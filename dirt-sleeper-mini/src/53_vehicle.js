@@ -79,7 +79,7 @@
     /* one substep. inp {thr, brk, nos}. W: four wheels {w, Fx, Kd, Fz, kap}. aid {tc, escThr}. */
     step(dt, inp, W2, aid) {
       let e = this.e, o = this.o, R2 = o.R, Iw = o.Iw, drv = this.drv, idleW = e.idle * TAU / 60;
-      this.t += dt, this.lopeT += dt, this.sinceShift += dt, this.twostep = !1, this.cutFrac = 0, this.tcOn = !1;
+      this.t += dt, this.lopeT += dt, this.sinceShift += dt, this.twostep = !1, this.cutFrac = 0, this.tcOn = !1, this.etcOn = !1;
       let thrIn = clamp(inp.thr, 0, 1), brkIn = clamp(inp.brk, 0, 1);
       if (this.st === "off") {
         this.we = 0, this.rpm = 0, this.load = 0, this.engage = 0, this.locked = !1, this._free(W2, dt), this._out();
@@ -123,7 +123,7 @@
           let tgtW = e.gears[this.shiftTo - 1] * e.fd * this.meanW(W2);
           thrEng = clamp((tgtW - this.we) * 0.02, 0, 1), thrSnd = thrEng;
         }
-      let grL = this.ratio(), wmL = this.meanW(W2), launchRpm = Math.max(Math.min(e.redline * 0.55, 4600), e.turbo ? e.s0 * 1.1 : 0), wHold = this.launchW || lerp(idleW * 1.3, launchRpm * TAU / 60, clamp(this.thr, 0, 1)), wTgt = Math.max(Math.abs(grL * wmL), wHold * Math.max(0.72, 1 - 0.3 * this.launchT));
+      let grL = this.ratio(), wmL = this.meanW(W2), launchRpm = Math.max(Math.min(e.redline * 0.55, 4600), e.turbo ? e.s0 * 1.1 : 0), wHold = this.launchW || lerp(idleW * 1.3, launchRpm * TAU / 60, clamp(this.thr, 0, 1)), wTgt = Math.max(Math.abs(grL * wmL), wHold * (e.conv ? 1 : Math.max(0.72, 1 - 0.3 * this.launchT)));
       if (this.launching && !shifting && !this.hold && this.we > wTgt + 15 && (thrEng *= clamp(1 - (this.we - wTgt - 15) / 90, 0, 1)), !shifting && !this.locked && !this.launching && this.engage < 1 && (thrEng *= this.engage * this.engage), this.cutT > 0 && (this.cutT -= dt, thrEng = 0, this.cutFrac = 1), rpm > e.limiterRpm)
         if (e.limiter === "soft") {
           let k = clamp(1 - (rpm - e.limiterRpm) / 150, 0, 1);
@@ -146,8 +146,11 @@
       let TeS = engTq(e, Math.max(rpm, 1), thrSnd, this.boost);
       this.load = this.st === "run" ? clamp(thrSnd * (TeS > 0 ? 1 : 0) * (0.42 + 0.58 * Math.min(1, TeS / e.tq)), 0, 1) : 0, this.Te = Te, shifting && (this.shiftT -= dt, this.shiftT <= 0 && (this.gear = this.shiftTo, this.shiftT = 0));
       let gr = this.ratio(), wm = this.meanW(W2);
-      !this.locked && !shifting && Math.abs(gr * wm) < idleW * 1.3 && this.engage < 0.5 && (this.launching = !0), this.launching ? this.launchT += dt : this.launchT = 0;
-      let slowForGear = this.launching && Math.abs(gr * wm) < wTgt * 0.98, fzD = 0;
+      /* Mini: also pull away like an automatic's converter when the wheels are crawling or rolling back against
+         the gear (a hill start, or backing down a slope with your foot on the gas): the engine rises toward its
+         launch speed and pushes, instead of sitting at idle while the clutch slips */
+      !this.locked && !shifting && gr * wm < idleW * 1.3 && (Math.abs(gr * wm) < idleW * 1.3 && this.engage < 0.5 || this.thr > 0.2 && gr * wm < idleW * 0.7) && (this.launching = !0), this.launching ? this.launchT += dt : this.launchT = 0;
+      let slowForGear = this.launching && gr * wm < wTgt * 0.98, fzD = 0;
       for (let i of drv) fzD += W2[i].Fz;
       let tracCap = Math.abs(gr) > 0 ? (aid.fmax || fzD * o.mu) * (aid.tc ? 0.9 : 1.3) * R2 / (Math.abs(gr) * 0.88) : 1e9, engT = 1;
       (shifting || this.hold || !this.running || Math.abs(gr * wm) < idleW * 1.1 && this.thr < 0.05) && (engT = 0);
@@ -167,14 +170,16 @@
       } else this.locked = !1;
       if (!this.locked) {
         let slipW = this.we - gr * wm, Tc;
+        /* Mini: an automatic's torque converter multiplies the engine's torque while it slips (about 2x at stall) */
+        let TR = e.conv && slowForGear && !shifting ? 1 + clamp(1 - gr * wm / Math.max(this.we, 1), 0, 1) : 1;
         if (gr === 0 || cap <= 0) Tc = 0;
-        else if (slowForGear && !shifting) Tc = clamp(Te + 30 * e.Ie * (this.we - wTgt), 0, Math.min(cap, tracCap));
+        else if (slowForGear && !shifting) Tc = clamp(Te * TR + 30 * e.Ie * (this.we - wTgt), 0, Math.min(cap * TR, tracCap));
         else {
           Tc = cap * clamp(slipW / 10, -1, 1);
           let fl = idleW * 1.15;
           Tc > 0 && this.we < fl * 1.4 && (Tc = Math.min(Tc, Math.max(0, Te + 30 * e.Ie * (this.we - fl))));
         }
-        this.we += dt * (Te - Tc) / e.Ie, Tdrv = Tc * gr * 0.88;
+        this.we += dt * (Te - Tc / TR) / e.Ie, Tdrv = Tc * gr * 0.88;
         let dwm = dt * (Tdrv - R2 * Fsum) / (n * Iw + dt * R2 * Ksum);
         for (let i of drv) W2[i].w += dwm;
         let s2 = this.we - gr * (wm + dwm);
@@ -189,8 +194,16 @@
         Dd -= sgn(Dd) * Math.min(Math.abs(Dd), dt * lk / Iw), W2[i].w = m + Dd, W2[j].w = m - Dd;
       } else {
         let m = (W2[0].w + W2[1].w + W2[2].w + W2[3].w) / 4, Dc = (W2[0].w + W2[1].w - (W2[2].w + W2[3].w)) / 4, Df = (W2[0].w - W2[1].w) / 2, Dr = (W2[2].w - W2[3].w) / 2, Qc = -R2 * (W2[0].Fx + W2[1].Fx - W2[2].Fx - W2[3].Fx) - Tdrv * 0.2;
-        Dc += dt * Qc / (4 * Iw + dt * R2 * (W2[0].Kd + W2[1].Kd + W2[2].Kd + W2[3].Kd)), Dc -= sgn(Dc) * Math.min(Math.abs(Dc), dt * (D.cLock ? 1e6 : 160 + Math.abs(Dc) * 80) / (4 * Iw)), Df += dt * (-R2 * (W2[0].Fx - W2[1].Fx)) / (2 * Iw + dt * R2 * (W2[0].Kd + W2[1].Kd)), Df -= sgn(Df) * Math.min(Math.abs(Df), dt * (D.fLock ? 1e6 : 20 + 0.1 * Math.abs(Tdrv)) / (2 * Iw)), Dr += dt * (-R2 * (W2[2].Fx - W2[3].Fx)) / (2 * Iw + dt * R2 * (W2[2].Kd + W2[3].Kd));
-        let lk = D.rLock ? 1e6 : D.pre + (Tdrv >= 0 ? D.acc : D.dec) * Math.abs(Tdrv) * 0.6;
+        /* Mini: the factory truck's brake traction control (AdvanceTrac on the real one). When a wheel spins
+           faster than the one across from it, or one axle faster than the other, its brake goes on, so the
+           open diffs send the torque to the wheels that can use it: the same as a partial lock. */
+        let E = D.etc || 0, eC = 0, eF = 0, eR = 0;
+        if (E) {
+          let k = (d) => E * sstep(0.5, 2, Math.abs(d) * 2 * R2);
+          eC = 1400 * k(Dc), eF = 1700 * k(Df), eR = 1700 * k(Dr), this.etcOn = Math.max(eC, eF, eR) > 500;
+        }
+        Dc += dt * Qc / (4 * Iw + dt * R2 * (W2[0].Kd + W2[1].Kd + W2[2].Kd + W2[3].Kd)), Dc -= sgn(Dc) * Math.min(Math.abs(Dc), dt * (D.cLock ? 1e6 : 160 + Math.abs(Dc) * 80 + eC) / (4 * Iw)), Df += dt * (-R2 * (W2[0].Fx - W2[1].Fx)) / (2 * Iw + dt * R2 * (W2[0].Kd + W2[1].Kd)), Df -= sgn(Df) * Math.min(Math.abs(Df), dt * (D.fLock ? 1e6 : 20 + 0.1 * Math.abs(Tdrv) + eF) / (2 * Iw)), Dr += dt * (-R2 * (W2[2].Fx - W2[3].Fx)) / (2 * Iw + dt * R2 * (W2[2].Kd + W2[3].Kd));
+        let lk = D.rLock ? 1e6 : D.pre + (Tdrv >= 0 ? D.acc : D.dec) * Math.abs(Tdrv) * 0.6 + eR;
         Dr -= sgn(Dr) * Math.min(Math.abs(Dr), dt * lk / (2 * Iw)), W2[0].w = m + Dc + Df, W2[1].w = m + Dc - Df, W2[2].w = m - Dc + Dr, W2[3].w = m - Dc - Dr;
       }
       for (let i = 0; i < 4; i++) drv.includes(i) || (W2[i].w += dt * (-R2 * W2[i].Fx) / (Iw + dt * R2 * W2[i].Kd));
@@ -388,7 +401,9 @@
           Tb *= k, k < 0.95 && (this.absOn = !0);
         }
         !wh.front && hb > 0 && (Tb += c.hbTorque * hb), Tb += wh.escBrake + (wh.rr || 0) * R2, (hold || pt.hold) && (Tb += 1500);
-        let dw = dt * Tb / pt.effInertia(wh.i, c.Iw);
+        /* Mini: the brake (and rolling resistance) goes through the same implicit tyre term as the drive, so at a
+           standstill on soft ground a wheel's rolling drag can no longer out-pull the engine every substep */
+        let dw = dt * Tb / (pt.effInertia(wh.i, c.Iw) + dt * R2 * (wh.Kd || 0));
         Math.abs(wh.w) <= dw ? wh.w = 0 : wh.w -= sgn(wh.w) * dw, wh.Tb = Tb, wh.disc = clamp(wh.disc + dt * (Tb * Math.abs(wh.w) / 9e4 - wh.disc * (0.08 + this.speed * 4e-3)), 0, 1.2);
       }
       hb > 0.5 && !pt.drv.includes(0) && (pt.engage = 0, pt.locked = !1), pt._sync(W2);

@@ -6,7 +6,7 @@ const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
 const APP={t:0,build:0,level:'real',cam:0,fps:60,tris:0,res:2,lights:false};
 try{const s=JSON.parse(store.get('dsmini-game','{}'));if(s.build>=0&&s.build<4)APP.build=s.build|0;if(['real','middle','kids'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;}catch(e){}
 const saveGame=()=>store.set('dsmini-game',JSON.stringify({build:APP.build,level:APP.level,cam:APP.cam}));
-const LEVELS=[['real','Realistic','The truck as it is: ABS and the automatic gearbox, nothing else. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
+const LEVELS=[['real','Realistic','The truck as it is: ABS, the automatic gearbox and, on the Stock and the Sleeper, the factory all-wheel-drive traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
   ['kids','Kids','Extra grip, every helper on, top speed held to about 40 mph, and a hand that keeps it on its wheels. If it does go over, it flips itself back.']];
 const CAMS=['Chase','Far','Hood'];

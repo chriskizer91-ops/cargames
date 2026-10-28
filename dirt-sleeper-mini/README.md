@@ -19,8 +19,9 @@ and the volume.
 
 Three driving levels:
 
-- **Realistic** (the default): ABS and the automatic gearbox, nothing else. It slides, spins its tyres
-  and rolls.
+- **Realistic** (the default): ABS, the automatic gearbox and, on the Stock and the Sleeper, the
+  factory all-wheel-drive traction control that brakes a spinning wheel so the others pull. It slides,
+  spins its tyres and rolls.
 - **Middle**: a steering helper, stability control and traction control.
 - **Kids**: all of that, extra grip, a hand that keeps it on its wheels, about 40 mph at most, and it
   flips itself back over if it does go over.
@@ -34,6 +35,9 @@ or tablet there are on-screen pedals.
   its assist sets.
 - `src/54_truckphys.js`: each build's chassis by Dirt Sleeper's rules (springs from ride height, shocks,
   sway bars, brakes, grip and rolling resistance per tread and surface), with the body's real size.
+  The Stock runs all-season tyres and the Sleeper street performance tyres; both have the factory
+  traction control and a torque converter, so they pull out of muddy ruts the way the real truck does.
+  The Rock & Mud has mud tyres, lockers and low range; the Race's slicks still bog in mud and slide on grass.
 - `src/60_ranch.js`: Dirt Sleeper's ranch code, unchanged apart from the trees and two speed-ups that
   change nothing; its geometry goes through a builder that speaks this renderer's materials.
 - `src/61_ranchmesh.js`: the ground in 64 m tiles, each meshed at 2, 4 and 8 m with skirts, drawn by

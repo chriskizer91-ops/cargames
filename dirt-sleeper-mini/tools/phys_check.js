@@ -13,7 +13,7 @@ const BUILDS=[{id:'stock',name:'Stock',look:{lift:0,track:1.6,roof:'bars',tyre:{
 vm.runInContext(stub+src('15_de_engine.js')+src('16_engines.js')+src('50_physmath.js')+src('51_tyre.js')+src('52_tune.js')+src('53_vehicle.js')+src('54_truckphys.js')+
   '\nthis.makeTruck=makeTruck;this.FlatWorld=FlatWorld;this.qmat=qmat;this.mcol=mcol;this.setLow=setLow;this.setLockers=setLockers;',ctx);
 const {makeTruck,FlatWorld,qmat,mcol}=ctx,DT=1/240;
-function settle(v){v.place([0,0,0],0);v.pt.st='run';v.pt.we=v.pt.e.idle*Math.PI*2/60;for(let i=0;i<480;i++)v.step(DT,{thr:0,brk:1,steer:0});}
+function settle(v){v.place([0,0,0],0);v.pt.st='run';v.pt.we=v.pt.e.idle*Math.PI*2/60;for(let i=0;i<480;i++)v.step(DT,{thr:0,brk:1,steer:0});v.rev=false;v.pt.rev=false;v.revT=0;v.v=[0,0,0];v.w=[0,0,0];}
 function upY(v){return mcol(qmat(v.q),1)[1];}
 for(const surf of ['strip','dirt']){
   console.log(`\n=== on ${surf} ===`);

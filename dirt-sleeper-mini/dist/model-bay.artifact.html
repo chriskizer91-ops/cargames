@@ -1959,6 +1959,8 @@ function engineSpec(b){
   const gears=DE_GEARS[r.trans],R=b.look.tyre.R;
   const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:'car'}));
   e.gears=gears.slice();e.nG=gears.length;e.fd=r.axle;e.shiftT=DE_SHIFT[r.trans];e.R=R;
+  /* the six-speed auto and the race four-speed both have a torque converter; the sequential doesn't (the game's physics reads this) */
+  e.conv=r.trans!=='seq6';
   return e;
 }
 const SPECS={};
