@@ -35,7 +35,9 @@ button{font:inherit;color:inherit}
   padding:10px max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
   background:linear-gradient(to top,rgba(7,7,11,.96) 70%,rgba(7,7,11,0));max-width:1280px;margin:0 auto}
 .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.builds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.pick{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.pick .seg{flex:none}
+.builds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;flex:1 1 300px;min-width:0}
 .bld{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:8px 10px 7px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
 .bld b{font:700 13px/1 var(--f);letter-spacing:.12em;text-transform:uppercase}
 .bld small{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -81,19 +83,19 @@ button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 #err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:500 14px/1.6 var(--f);color:var(--ink-2)}
 </style>
-<canvas id="gl" aria-label="The truck on a turntable, drawn on an LED dot matrix. Drag to turn the view."></canvas>
+<canvas id="gl" aria-label="The car on a turntable, drawn on an LED dot matrix. Drag to turn the view."></canvas>
 <div id="sa"></div>
 <div class="bar">
   <span class="brand">DIRT SLEEPER MINI<span>MODEL BAY</span></span>
   <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="res" type="button">Dots 640×360</button></div>
 </div>
 <div id="dock">
-  <div class="builds" id="builds"></div>
+  <div class="pick"><div class="seg" id="cars" role="group" aria-label="Car"></div><div class="builds" id="builds"></div></div>
   <div class="row">
     <div class="seg tabs" id="tabs" role="group" aria-label="Panel"><button type="button" data-v="look" aria-pressed="true">Look</button><button type="button" data-v="engine" aria-pressed="false">Engine</button></div>
     <div class="inl" data-p="look">
       <div class="seg" id="views" role="group" aria-label="View"></div>
-      <button class="tog cmp" id="cmp" type="button" aria-pressed="false">All four</button>
+      <button class="tog cmp" id="cmp" type="button" aria-pressed="false">Compare</button>
     </div>
     <div class="inl" data-p="engine" hidden>
       <button class="tog power" id="power" type="button" aria-pressed="false"><i></i><span id="powerLbl">Start engine</span><kbd>I</kbd></button>
@@ -571,9 +573,10 @@ void main(){
     if(uLiv>.5&&m==1){
       float xn=(vL.x-uLivP.y)/(uLivP.x-uLivP.y);
       float band=uLivP.z-.30+.34*smoothstep(.15,.85,1.-xn);
-      if(abs(N.z)>.35&&vL.y<band&&vL.y>uLivP.z-.62)pc=uPaint2;
-      float az=abs(vL.z);if(az>.07&&az<.2&&(N.y>.45||abs(N.x)>.6&&vL.y>uLivP.z-.3))pc=uPaint2;
-      if(az>.035&&az<.06&&(N.y>.45||abs(N.x)>.6&&vL.y>uLivP.z-.3))pc=vec3(.9);
+      bool l2=uLiv>1.5;
+      if(!l2&&abs(N.z)>.35&&vL.y<band&&vL.y>uLivP.z-.62)pc=uPaint2;
+      float az=abs(vL.z),s0=l2?.02:.07,s1=l2?.15:.2;if(az>s0&&az<s1&&(N.y>.45||abs(N.x)>.6&&vL.y>uLivP.z-.3))pc=uPaint2;
+      if(!l2&&az>.035&&az<.06&&(N.y>.45||abs(N.x)>.6&&vL.y>uLivP.z-.3))pc=vec3(.9);
     }
     alb=pc*.6;
     /* metallic: a little sparkle in the flake and a coloured highlight */
@@ -1837,27 +1840,39 @@ if(typeof module!=='undefined')module.exports=SIM;
 /* ---- END DIGITAL ENGINE ---- */
 
 /* =====================================================================================
-   THE FOUR ENGINES. Each truck's engine is a Digital Engine spec, built by the lab's own
+   THE ENGINES. Each build's engine is a Digital Engine spec, built by the lab's own
    SIM.makeSpec from a base engine plus bolt-ons, the same way Dirt Sleeper builds them (its
    ENGINES table and buildSpec). Nothing here touches the synth: it only says what engine it is.
    ===================================================================================== */
 const DE_ENGINES={
   v46: {layout:'V8',disp:4.6,redline:5800,idle:650,tq:407,cP:.62,cW:.55,cA:.65,Ie:.2,crackle:.12,limiter:'soft'},
   bb74:{layout:'V8',disp:7.4,redline:6300,idle:750,tq:660,cP:.6,cW:.52,cA:.62,Ie:.3,crackle:.4,limiter:'hard'},
-  tt35:{layout:'V6',disp:3.5,redline:6800,idle:750,tq:330,cP:.6,cW:.5,cA:.55,Ie:.15,fi:'twin',boost:1.1,tsize:1,bov:'valve',crackle:.4,limiter:'hard'}
+  tt35:{layout:'V6',disp:3.5,redline:6800,idle:750,tq:330,cP:.6,cW:.5,cA:.55,Ie:.15,fi:'twin',boost:1.1,tsize:1,bov:'valve',crackle:.4,limiter:'hard'},
+  /* the 4x4's lazy truck six, the V8 that gets swapped into it, the coupe's flat-plane and the wagon's turbo five */
+  i40: {layout:'I6',disp:4.0,redline:5400,idle:700,tq:320,cP:.55,cW:.55,cA:.6,Ie:.2,crackle:.1,limiter:'soft'},
+  v62: {layout:'V8',disp:6.2,redline:6400,idle:750,tq:610,cP:.6,cW:.5,cA:.55,Ie:.25,crackle:.35,limiter:'hard'},
+  fp52:{layout:'V8F',disp:5.2,redline:8250,idle:950,tq:560,cP:.72,cW:.45,cA:.5,Ie:.15,crackle:.35,limiter:'hard'},
+  i525:{layout:'I5',disp:2.5,redline:6500,idle:800,tq:330,cP:.6,cW:.5,cA:.5,Ie:.14,fi:'turbo',boost:.9,tsize:1,bov:'valve',crackle:.2,limiter:'soft'}
 };
-const DE_GEARS={auto6:[4.17,2.34,1.52,1.14,.87,.69],race4:[2.76,1.57,1,.72],seq6:[2.9,2.1,1.66,1.37,1.16,1]};
-const DE_SHIFT={auto6:.42,race4:.11,seq6:.06};
+const DE_GEARS={auto6:[4.17,2.34,1.52,1.14,.87,.69],race4:[2.76,1.57,1,.72],seq6:[2.9,2.1,1.66,1.37,1.16,1],auto4:[2.8,1.55,1,.7],auto5:[3.6,2.19,1.41,1,.83],man6:[3.0,2.07,1.43,1.0,.84,.62]};
+const DE_SHIFT={auto6:.42,race4:.11,seq6:.06,auto4:.5,auto5:.4,man6:.3};
 /* the recipes. power: none | bigturbo (V6) | roots | twin. exhaust: stock | headers | side.
    intake: 0 airbox, 1 cold air, 2 ram air. cam and tune 0..3 and 0..2. nos: 0, 1 = 35-shot .. 4 = 250-shot */
 const ENGINE_OF={
   stock:  {desc:'The factory 4.6 V8 with its airbox and muffler, a six-speed automatic and 3.73 gears.',engine:'v46', power:'none',    intake:0,exhaust:'stock',  cam:0,tune:0,nos:0,trans:'auto6',axle:3.73,mass:2180,cdA:1.25,mu:1.0},
   sleeper:{desc:'Twin-turbo 3.5 V6 with bigger turbos, ram air, long-tube headers, a race tune and a 250-shot of nitrous. Race four-speed with a trans-brake, 4.56 gears.',engine:'tt35',power:'bigturbo',intake:2,exhaust:'headers',cam:0,tune:2,nos:4,trans:'race4',axle:4.56,mass:2090,cdA:1.2, mu:1.15},
   crawler:{desc:'7.4 big-block with a Roots blower, race cam, ram air, headers, a race tune and a 35-shot. Race four-speed with a trans-brake, 5.38 gears.',engine:'bb74',power:'roots',   intake:2,exhaust:'headers',cam:2,tune:2,nos:1,trans:'race4',axle:5.38,mass:2480,cdA:1.55,mu:.95},
-  race:   {desc:'7.4 big-block with twin turbos, a wild cam, ram air, side exits, a race tune and a 250-shot. Six-speed sequential with straight-cut gears.',engine:'bb74',power:'twin',    intake:2,exhaust:'side',   cam:3,tune:2,nos:4,trans:'seq6', axle:3.73,mass:1960,cdA:1.3, mu:1.45}
+  race:   {desc:'7.4 big-block with twin turbos, a wild cam, ram air, side exits, a race tune and a 250-shot. Six-speed sequential with straight-cut gears.',engine:'bb74',power:'twin',    intake:2,exhaust:'side',   cam:3,tune:2,nos:4,trans:'seq6', axle:3.73,mass:1960,cdA:1.3, mu:1.45},
+  trail:  {desc:'The factory 4.0 inline-six, a four-speed automatic, a two-speed transfer case and 4.10 gears.',engine:'i40',power:'none',intake:0,exhaust:'stock',cam:0,tune:0,nos:0,trans:'auto4',axle:4.10,mass:1620,cdA:1.25,mu:1.0},
+  trailRig:{desc:'A 6.2 V8 swapped in with a cam, a cold-air intake, headers and a tune. Four-speed automatic, 4.88 gears and lockers.',engine:'v62',power:'none',intake:1,exhaust:'headers',cam:2,tune:1,nos:0,trans:'auto4',axle:4.88,mass:1880,cdA:1.4,mu:.95},
+  coupe:  {desc:'The factory 5.2 flat-plane V8, revving past 8,000, a six-speed manual and 3.73 gears, driving the rear wheels.',engine:'fp52',power:'none',intake:0,exhaust:'stock',cam:0,tune:0,nos:0,trans:'man6',axle:3.73,mass:1560,cdA:.72,mu:1.15,drv:'RWD'},
+  coupeGT:{desc:'The flat-plane bored to 5.5 with ram air, a wild cam, side pipes and a race tune. Six-speed sequential with straight-cut gears.',engine:'fp52',disp:5.5,power:'none',intake:2,exhaust:'side',cam:3,tune:2,nos:0,trans:'seq6',axle:3.91,mass:1340,cdA:.85,mu:1.55,drv:'RWD'},
+  wagon:  {desc:'The factory 2.5 turbo five, a five-speed automatic, all-wheel drive and 3.5 gears. Nothing on the outside says so.',engine:'i525',power:'none',intake:0,exhaust:'stock',cam:0,tune:0,nos:0,trans:'auto5',axle:3.5,mass:1640,cdA:.78,mu:1.0},
+  wagonSleeper:{desc:'The five on a big single turbo with a cold-air intake, a straight-through exhaust, a cam, a race tune and a 75-shot. Race four-speed with a trans-brake, 4.10 gears.',engine:'i525',power:'bigturbo',intake:1,exhaust:'straight',cam:2,tune:2,nos:2,trans:'race4',axle:4.10,mass:1580,cdA:.78,mu:1.25}
 };
 function engineSpec(b){
   const r=ENGINE_OF[b.id]||ENGINE_OF.stock,base=Object.assign({},DE_ENGINES[r.engine]);let k=1;
+  if(r.disp){k*=r.disp/base.disp;base.disp=r.disp;}
   k*=[1,1.03,1.05][r.intake];base.intake=r.intake;
   base.ex={stock:0,catback:1,headers:2,straight:3,side:3,stacks:9}[r.exhaust];k*={stock:1,catback:1.03,headers:1.07,straight:1.06,side:1.06,stacks:1.06}[r.exhaust];
   if(base.layout!=='V6'){base.cam=r.cam;k*=[1,1.03,1.06,1.08][r.cam];base.cP+=.03*r.cam;base.redline+=150*r.cam;}
@@ -1869,7 +1884,7 @@ function engineSpec(b){
   if(r.trans==='race4'){base.launch=1;base.launchRpm=Math.round(base.redline*.55);}
   if(r.trans==='seq6'){base.seq=1;base.gearWhine=1;}
   const gears=DE_GEARS[r.trans],R=b.look.tyre.R;
-  const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:'car'}));
+  const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:r.drv||'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:'car'}));
   e.gears=gears.slice();e.nG=gears.length;e.fd=r.axle;e.shiftT=DE_SHIFT[r.trans];e.R=R;
   return e;
 }
@@ -2096,7 +2111,62 @@ const SUVB={
   /* greenhouse: windshield base, roof front, roof rear, rear glass end, glass base lift and inset,
      roof width, crown, the D-pillar line and the black pillars between the side windows [u, lean, half width] */
   G:{cowl:1.48,rf:2.32,rr:4.60,be:4.80,base:.012,inset:.034,tum:.80,crown:.03,cB:4.53,cT:4.36,pillars:[[2.62,-.07,.032],[3.56,-.03,.03]]},
-  dome:[.32,1.42,.022],bumperF:.088,bumperR:4.845
+  dome:[.32,1.42,.022],bumperF:.088,bumperR:4.845,
+  /* roof height, shoulder tuck, hip bulge over the front and rear arches */
+  Hr:1.79,sh:.968,hip:[.018,.018],oy:1,
+  /* doors (4: the rear one steps round the arch), handle stations, the fuel door, the liftgate outline,
+     roof rails [u0, u1, z], where the rear wiper sits, a spare under the tail */
+  doors:4,fuel:4.42,lift:{z:.71,u:4.8},rails:[2.72,4.48,.6],wiperR:4.8,underSpare:1,
+  /* how far the chassis, the front parts and the rear parts sit above or below the SUV's, the exhaust's start */
+  chY:0,fit:{fdy:0,rdy:0,exU:3.3}
+};
+/* every body the bay can build. Each one is a set of designed lines and the numbers its parts fit to */
+const BODIES={suv:SUVB};
+/* the 4x4, from its reference sheets: an original two-door short-wheelbase off-roader on a ladder frame.
+   3.50 m long on a 2.33 m wheelbase, 1.66 m wide over the body (the black flares add the rest), 1.79 m
+   tall. Very short overhangs, a flat grille face just behind the bumper, a clamshell hood rising to the
+   cowl, a raked windshield, a flat roof and a vertical back with the spare on the door. */
+BODIES.trail={
+  L:3.50,ovF:.68,wb:2.33,R0:.415,
+  top:[[0,.55],[0,.80,.02],[.06,.81,.01],[.08,1.19,.03],[.5,1.23,.6],[1.18,1.30,.03],[1.56,1.76,.06],[2.5,1.785,2],[3.44,1.78,.04],[3.48,1.27,.012],[3.50,1.23,.012],[3.50,.58]],
+  belt:[[0,.78],[.08,1.18,.04],[.5,1.22,.5],[1.18,1.255,.2],[1.6,1.245,.5],[3.50,1.245]],
+  sill:[[0,.58],[0,.55,.02],[.3,.52,.1],[1.0,.50,.2],[2.6,.50,.2],[3.3,.52,.1],[3.50,.56,.02],[3.50,.6]],
+  plan:[[0,0],[0,.76,.08],[.1,.82,.15],[.5,.83,.4],[3.2,.83,.4],[3.50,.81,.05],[3.50,0]],
+  clad:[[0,.80],[.06,.80],[.12,.62],[3.38,.62],[3.44,.74],[3.50,.74]],
+  G:{cowl:1.18,rf:1.56,rr:3.44,be:3.48,base:.012,inset:.028,tum:.94,crown:.01,cB:3.40,cT:3.38,pillars:[[2.52,0,.04]]},
+  dome:[.3,1.0,0],bumperF:.06,bumperR:9,
+  Hr:1.785,sh:.985,hip:[.008,.008],oy:1,doors:2,doorR:2.56,handles:[2.34],fuel:null,lift:null,rails:null,wiperR:null,underSpare:0,markers:false,seams:false,
+  chY:.08,fit:{fdy:.1,rdy:.06,exU:2.3,sideZ:.9,ventU:-.25}
+};
+/* the coupe, from its reference sheets: an original front-engine V8 fastback. 4.45 m long on a long 2.88 m
+   wheelbase, 1.92 m wide, 1.21 m tall. A tall blunt nose round a big grille, a long hood rising to a high
+   cowl, the cabin well back, a fastback falling to a low ducktail, a narrow waist and wide rear hips. */
+BODIES.coupe={
+  L:4.45,ovF:.90,wb:2.88,R0:.35,
+  top:[[0,.22],[0,.50,.07],[.10,.635,.12],[.8,.75,1.2],[1.62,.86,.05],[2.30,1.18,.45],[2.65,1.21,1.0],[3.05,1.17,.6],[3.95,.90,.3],[4.30,.86,.05],[4.40,.885,.02],[4.45,.84,.03],[4.45,.30]],
+  belt:[[0,.48],[.12,.62,.12],[.90,.76,.4],[1.62,.79,.4],[2.5,.80,1.2],[3.78,.86,.4],[4.25,.87,.3],[4.45,.83]],
+  sill:[[0,.30],[0,.20,.05],[.35,.17,.2],[1.4,.165,.3],[3.2,.165,.3],[4.05,.21,.2],[4.45,.28,.04],[4.45,.34]],
+  plan:[[0,0],[0,.62,.30],[.45,.90,.55],[1.0,.95,.45],[2.3,.915,.8],[3.78,.96,.45],[4.25,.90,.3],[4.45,.74,.2],[4.45,0]],
+  clad:[[0,.26],[4.45,.26]],
+  G:{cowl:1.62,rf:2.30,rr:3.02,be:3.95,base:.012,inset:.03,tum:.72,crown:.03,cB:3.55,cT:3.0,pillars:[[2.92,-.12,.022]]},
+  dome:[.3,1.45,.012],bumperF:.1,bumperR:9,
+  Hr:1.21,sh:.94,hip:[.015,.04],oy:.5,doors:2,doorR:3.0,handles:[2.78],fuel:null,lift:null,rails:null,wiperR:null,underSpare:0,markers:false,
+  chY:-.15,fit:{fdy:-.21,rdy:-.22,exU:3.1,sideZ:.97,ventU:-.18,lipZ:.8,lipU:.35,epU:.2,sideEx:.96,sideExY:.03,filler:[3.9,.72]}
+};
+/* the wagon, from its reference sheets: an original mid-2000s family estate, as plain as a car gets. 4.72 m
+   long on a 2.86 m wheelbase, 1.82 m wide, 1.43 m tall. A short soft nose, a cab-forward windshield, a long
+   flat roof, three side windows and a near-upright tailgate between tall lamps. */
+BODIES.wagon={
+  L:4.72,ovF:.76,wb:2.86,R0:.33,
+  top:[[0,.18],[0,.50,.06],[.08,.66,.10],[.16,.74,.05],[.6,.82,.6],[1.12,.94,.05],[1.80,1.39,.25],[3.0,1.43,1.6],[4.30,1.41,.12],[4.62,.98,.05],[4.72,.62,.04],[4.72,.22]],
+  belt:[[0,.50],[.16,.72,.1],[.76,.82,.4],[1.12,.92,.3],[2.6,.96,1.5],[4.2,1.0,.4],[4.72,.96]],
+  sill:[[0,.22],[0,.17,.04],[.35,.20,.2],[1.3,.22,.4],[3.0,.22,.4],[4.2,.24,.2],[4.72,.22,.04],[4.72,.26]],
+  plan:[[0,0],[0,.76,.26],[.4,.885,.5],[2.4,.91,1.2],[4.2,.905,.45],[4.72,.84,.18],[4.72,0]],
+  clad:[[0,.40],[4.2,.40],[4.35,.60],[4.72,.60]],
+  G:{cowl:1.12,rf:1.80,rr:4.30,be:4.60,base:.012,inset:.03,tum:.84,crown:.03,cB:4.32,cT:4.22,pillars:[[2.36,-.04,.03],[3.42,-.02,.035]]},
+  dome:[.3,.9,.006],bumperF:.1,bumperR:9,
+  Hr:1.43,sh:.965,hip:[.012,.012],oy:.65,doors:4,fuel:3.95,lift:{z:.6,u:4.6},rails:[1.95,4.15,.62],wiperR:4.55,underSpare:0,markers:false,
+  chY:-.1,fit:{fdy:-.2,rdy:-.2,exU:3.0}
 };
 const MM={
   PAINT:V([1,1,1],MAT.PAINT),ACC:V([1,1,1],MAT.ACCENT),GL:V([0,0,0],MAT.GLASS),GLL:V([0,0,0],MAT.GLASSL),
@@ -2108,12 +2178,12 @@ const MM={
 };
 const col=(h,mat=MAT.METAL,em=0)=>V(lin(h),mat,em);
 function suvDesign(look){
-  const B=SUVB,L=B.L,R=look.tyre.R,dy=look.lift+(R-B.R0);
+  const B=BODIES[look.body||'suv'],L=B.L,R=look.tyre.R,dy=look.lift+(R-B.R0);
   const D={look,B,G:B.G,L,R,dy,uFa:B.ovF,uRa:B.ovF+B.wb,uC:L/2};
   const up=k=>[k[0],k[1]+dy,k[2]||0];
   D.top=profLine(B.top.map(up),L,1);D.belt=profLine(B.belt.map(up),L,1);D.sill=profLine(B.sill.map(up),L,-1);D.plan=profLine(B.plan,L,1);
   D.cladY=pwl(B.clad.map(k=>[k[0],k[1]+dy]));
-  D.Hr=1.79+dy;D.sh=.968;
+  D.Hr=B.Hr+dy;D.sh=B.sh;
   const a=look.archR;D.arch={a,b:a*(look.archH||.985),n:look.archN||2.3,cy:B.R0+dy};
   D.cO=look.clad===false?0:.012;
   D.dome=u=>B.dome[2]*plat(u,(B.dome[0]+B.dome[1])/2,(B.dome[1]-B.dome[0])/2,.12);
@@ -2132,9 +2202,10 @@ function secKeys(D,u){
   const ends=sm01(u/.35)*sm01((L-u)/.35),yT=D.top(u);
   let yB=Math.min(D.belt(u),yT+.15*ends);yB=Math.max(yB,yS+.1);
   const yc=Math.max(yS+.02,Math.min(D.cladY(u),yB-.12)),cO=D.cO,sk=D.look.skirt||0;
-  const hip=.018*Math.max(plat(u,D.uFa,.42,.3),plat(u,D.uRa,.42,.3)),hl=hb+hip;
+  const hip=Math.max(D.B.hip[0]*plat(u,D.uFa,.42,.3),D.B.hip[1]*plat(u,D.uRa,.42,.3)),hl=hb+hip;
   const P=new Array(14);
-  P[0]=[hb*.84,Math.max(ySill+.04,yS)];
+  /* the floor rides up over the wheels, but never through a hood that sits lower than the arches */
+  P[0]=[hb*.84,Math.min(Math.max(ySill+.04,yS),yT-.1)];
   P[1]=[hl*lerp(.96,.985,arch)+cO+sk*.02*(1-arch),yS-sk*.03*(1-arch)];
   P[2]=[hl*.995+cO+sk*.012*(1-arch),yc];
   P[3]=[hl*.99,yc+.006];
@@ -2173,7 +2244,7 @@ function faceMat(D,u,K,y,gk,yG){
   const G=D.G,lk=D.look;
   if(K===0)return MM.UNDER;
   if(K<=2)return D.cO>0?MM.CLAD:MM.PAINT;
-  if(u>SUVB.bumperR&&K>=3&&lk.rearClad!==false&&D.cO>0)return MM.CLAD;
+  if(u>D.B.bumperR&&K>=3&&lk.rearClad!==false&&D.cO>0)return MM.CLAD;
   if(K<=7)return MM.PAINT;
   if(u<G.cowl||u>G.be)return MM.PAINT;
   if(K<=9){if(gk<.5)return MM.PAINT;const t=clamp((y-yG)/Math.max(.05,D.Hr-yG),0,1);return u<lerp(G.cB,G.cT,t)-.03?MM.TRIM:MM.PAINT;}
@@ -2193,7 +2264,7 @@ function buildSUV(look){
     for(let u=0;u<.2;u+=.005)a(u);for(let u=L-.2;u<=L+1e-6;u+=.005)a(u);
     for(const ua of [D.uFa,D.uRa]){for(let k=0;k<=28;k++)a(archPt(D,ua,k/28*PI)[0]);a(ua-D.arch.a-.012);a(ua+D.arch.a+.012);}
     for(let u=G.cowl-.06;u<G.cowl+.3;u+=.012)a(u);for(let u=G.rr-.06;u<G.be+.06;u+=.012)a(u);
-    for(const k of [G.rf,G.cB,G.cT,SUVB.bumperR,SUVB.bumperF,.47,.52,4.25,4.31,SUVB.dome[0],SUVB.dome[1]])a(k-.012),a(k),a(k+.012);
+    const B=D.B;for(const k of [G.rf,G.cB,G.cT,B.bumperR,B.bumperF,...B.clad.slice(1,-1).map(c=>c[0]),B.dome[0],B.dome[1]])a(k-.012),a(k),a(k+.012);
     for(const [pu,ln,w] of G.pillars)for(const o of [-w,w])a(pu+o),a(pu+ln+o);
     const srt=[...s].sort((p,q)=>p-q);for(const u of srt)if(!US.length||u-US[US.length-1]>.002)US.push(u);
     if(US[US.length-1]<L-1e-6)US.push(L);else US[US.length-1]=L;}
@@ -2254,10 +2325,10 @@ function buildSUV(look){
   const pair=fn=>{fn(1);fn(-1);};
   const K={D,G,L,X,dy,mb,pm,decal,line,ring2,pair,uFront,uRear,topY,sideZ,ringAt,secKeys:u=>secKeys(D,u),inside};
   bodyCommon(K);
-  FACES[look.face](K);TAILS[look.tail](K);
+  if(FACES[look.face])FACES[look.face](K);if(TAILS[look.tail])TAILS[look.tail](K);
   buildParts(K);
   const S={skin:mb.p.length/9,parts:0};
-  mb.smooth(34,[0,1+dy*.5,0]);pm.smooth(28);S.parts=pm.p.length/9;mb.append(pm);
+  mb.smooth(34,[0,D.B.oy+dy*.5,0]);pm.smooth(28);S.parts=pm.p.length/9;mb.append(pm);
   return {body:mb.build(),D,tris:mb.p.length/9,stats:S};
 }
 /* ---------- glass, pillars, shut lines, handles, markers, mirrors, wipers: every build has these ---------- */
@@ -2286,38 +2357,43 @@ function bodyCommon(K){
     const sl=[];for(let u=u0+.03;u<G.cB-.02;u+=.1)sl.push([u,ks(u).yG+.006]);sl.push([G.cB-.02,ks(G.cB-.02).yG+.006]);
     line('S',sl,.012,MM.TRIM,.005);}
   /* shut lines: hood, front and rear doors (the rear one steps round the arch), fuel door, bumper seams */
-  {const w=.0055,yb=u=>D.sill(u)+.075,yt=u=>D.belt(u)-.02,A=D.arch;
-    const fd=G.cowl+.06,bd=G.pillars[0][0]-.005,rd=G.pillars[1][0]+.02;
+  {const w=.0055,yb=u=>D.sill(u)+.075,yt=u=>D.belt(u)-.02,A=D.arch,B=D.B;
+    const fd=G.cowl+.06,bd=G.pillars[0][0]-.005;
     line('S',[[fd,yb(fd)+.04],[fd-.012,yt(fd)-.02],[fd+.03,yt(fd)+.012]],w,MM.SHUT);
-    line('S',[[bd+.01,yb(bd)],[bd-.01,yt(bd)+.012]],w,MM.SHUT);
-    const ra=archPt(D,D.uRa,PI*.14,.06),rb=archPt(D,D.uRa,PI*.42,.06);
-    line('S',[[rd,yt(rd)+.012],[rd-.02,rb[1]+.08],[rb[0],rb[1]],[ra[0],ra[1]],[ra[0]+.01,D.sill(ra[0])+.06]],w,MM.SHUT);
-    line('S',[[fd+.04,yb(fd)+.02],[bd-.02,yb(bd)]],w,MM.SHUT);line('S',[[bd+.03,yb(bd)],[ra[0]-.04,yb(ra[0])]],w,MM.SHUT);
+    if(B.doors===2){
+      /* one long door: its back edge runs straight down a little behind the pillar */
+      const rd=B.doorR;line('S',[[rd,yt(rd)+.012],[rd-.015,yb(rd)]],w,MM.SHUT);line('S',[[fd+.04,yb(fd)+.02],[rd-.02,yb(rd)]],w,MM.SHUT);
+    }else{
+      const rd=G.pillars[1][0]+.02;
+      line('S',[[bd+.01,yb(bd)],[bd-.01,yt(bd)+.012]],w,MM.SHUT);
+      const ra=archPt(D,D.uRa,PI*.14,.06),rb=archPt(D,D.uRa,PI*.42,.06);
+      line('S',[[rd,yt(rd)+.012],[rd-.02,rb[1]+.08],[rb[0],rb[1]],[ra[0],ra[1]],[ra[0]+.01,D.sill(ra[0])+.06]],w,MM.SHUT);
+      line('S',[[fd+.04,yb(fd)+.02],[bd-.02,yb(bd)]],w,MM.SHUT);line('S',[[bd+.03,yb(bd)],[ra[0]-.04,yb(ra[0])]],w,MM.SHUT);}
     /* front bumper to fender, and rear bumper to quarter panel */
-    const fa=archPt(D,D.uFa,PI*.08,.07),fb=archPt(D,D.uFa,0,.08);
-    line('S',[[.12,D.cladY(.12)+.15],[.32,D.cladY(.3)+.16],[fa[0]-.02,fa[1]+.02]],w,MM.SHUT);
-    const rq=archPt(D,D.uRa,PI*.94,.07);
-    line('S',[[rq[0]+.02,rq[1]+.02],[4.6,D.cladY(4.6)+.02],[L-.05,D.cladY(L)+.01]],w,MM.SHUT);
+    if(B.seams!==false){const fa=archPt(D,D.uFa,PI*.08,.07);
+      line('S',[[.12,D.cladY(.12)+.15],[.32,D.cladY(.3)+.16],[fa[0]-.02,fa[1]+.02]],w,MM.SHUT);
+      const rq=archPt(D,D.uRa,PI*.94,.07),ur=L-.32;
+      line('S',[[rq[0]+.02,rq[1]+.02],[ur,D.cladY(ur)+.02],[L-.05,D.cladY(L)+.01]],w,MM.SHUT);}
     /* hood: along the fender tops and across the cowl */
     const hz=u=>Math.max(.2,D.plan(u)*D.sh-.07),u1=G.cowl-.05;
-    pair(s=>line('T',[[.2,s*(hz(.2)-.02)],[.6,s*hz(.6)],[1.2,s*hz(1.2)],[u1,s*hz(u1)]],w,MM.SHUT,.004));
+    const um=Math.min(1.2,u1-.1);pair(s=>line('T',[[.2,s*(hz(.2)-.02)],[.6,s*hz(.6)],[um,s*hz(um)],[u1,s*hz(u1)]],w,MM.SHUT,.004));
     line('T',[[u1,-hz(u1)],[u1,hz(u1)]],w,MM.SHUT,.004);
     /* liftgate outline on the tail */
-    if(!lk.noLiftLine){const yl=D.cladY(L)+.02+(lk.tail==='race'?0:0),zl=.71;
-      line('R',[[-zl,yl+.02],[zl,yl+.02]],w,MM.SHUT,.004);pair(s=>line('R',[[s*zl,yl+.02],[s*(zl+.01),D.belt(4.8)-.04],[s*(zl-.01),D.Hr-.15]],w,MM.SHUT,.004));}
+    if(!lk.noLiftLine&&B.lift){const yl=D.cladY(L)+.02,zl=B.lift.z;
+      line('R',[[-zl,yl+.02],[zl,yl+.02]],w,MM.SHUT,.004);pair(s=>line('R',[[s*zl,yl+.02],[s*(zl+.01),D.belt(B.lift.u)-.04],[s*(zl-.01),D.Hr-.15]],w,MM.SHUT,.004));}
     /* fuel door on the right rear quarter */
-    if(!lk.noFuel)decal('SR',RR2(4.42,4.6,D.belt(4.5)-.25,D.belt(4.5)-.1,.03).map(p=>p),MM.SHUT,.0035,.05);
-    if(!lk.noFuel)decal('SR',RR2(4.43,4.59,D.belt(4.5)-.24,D.belt(4.5)-.11,.024),MM.PAINT,.005,.05);}
+    const f=B.fuel,yf=D.belt(f+.08);
+    if(!lk.noFuel&&f){decal('SR',RR2(f,f+.18,yf-.25,yf-.1,.03),MM.SHUT,.0035,.05);decal('SR',RR2(f+.01,f+.17,yf-.24,yf-.11,.024),MM.PAINT,.005,.05);}}
   /* door handles, a little recessed */
-  if(!lk.noHandles)for(const u of [G.pillars[0][0]-.2,G.pillars[1][0]-.17]){const y=D.belt(u)-.09;
+  if(!lk.noHandles)for(const u of D.B.handles||[G.pillars[0][0]-.2,G.pillars[1][0]-.17]){const y=D.belt(u)-.09;
     decal('S',RR2(u-.09,u+.06,y-.022,y+.022,.014),MM.TRIM,.004,.05);decal('S',RR2(u-.085,u+.055,y-.016,y+.016,.012),lk.handles||MM.CHROME,.007,.05);}
   /* side markers on the bumper corners */
-  if(!lk.noMarkers){decal('S',RR2(.20,.33,D.cladY(.25)+.05,D.cladY(.25)+.085,.012),MM.AMBER,.004);
+  if(!lk.noMarkers&&D.B.markers!==false){decal('S',RR2(.20,.33,D.cladY(.25)+.05,D.cladY(.25)+.085,.012),MM.AMBER,.004);
     decal('S',RR2(L-.30,L-.17,D.cladY(L)-.12,D.cladY(L)-.085,.012),MM.TAIL,.004);}
   /* wipers lying at the base of the windshield, and one on the rear glass */
   {const u=G.cowl+.07,y0=topY(u,0);
     for(const [z0,z1] of [[-.62,.06],[.02,.66]])line('T',[[u,z0],[u+.02,z1]],.014,MM.TRIM,.012);
-    const ur=(G.rr+G.be)/2;line('R',[[.04,D.belt(4.8)+.1],[.42,D.belt(4.8)+.22]],.012,MM.TRIM,.012);}
+    const wr=D.B.wiperR;if(wr)line('R',[[.04,D.belt(wr)+.1],[.42,D.belt(wr)+.22]],.012,MM.TRIM,.012);}
   /* mirrors: a black base on the sail and a big housing with a painted cap */
   mirrors(K);
 }
@@ -2422,7 +2498,7 @@ TAILS.classic=K=>{
   decal('R',RR2(-.16,.16,Y(.875),Y(.955),.008),MM.PLATE,.007);
   decal('R',RR2(-.36,.36,Y(1.052),Y(1.072),.008),MM.CHROME,.006);
   /* the step pad on the bumper top */
-  K.decal('T',RR2(SUVB.bumperR+.005,SUVB.L-.01,-.55,.55,.01),MM.RUBBER,.004);
+  K.decal('T',RR2(K.D.B.bumperR+.005,K.L-.01,-.55,.55,.01),MM.RUBBER,.004);
 };
 TAILS.led=K=>{
   const {decal,pair,dy,ring2}=K,Y=y=>y+dy;
@@ -2486,12 +2562,12 @@ function flares(K){
 }
 /* ---------- underneath: frame, drivetrain, tank, spare, suspension ---------- */
 function underbody(K){
-  const {D,X,pm,dy,pair}=K,lk=D.look,R=D.R,Y=y=>y+dy,M=MM.UNDER,tw=lk.track/2;
-  pair(s=>abox(pm,[X(2.46),Y(.37),s*.5],[2.08,.045,.038],M));
-  for(const u of [.5,1.35,2.25,3.2,4.38])abox(pm,[X(u),Y(.37),0],[.035,.035,.5],M);
-  rbox(pm,[X(1.65),Y(.47),0],[1,0,0],[0,1,0],[0,0,1],[.52,.11,.17],M,.4,12,6);
-  abox(pm,[X(3.32),Y(.42),.05],[.3,.065,.4],M);
-  tubeAB(pm,[X(4.52),Y(.36),0],[X(4.52),Y(.5),0],.33,16,MM.RUBBER);
+  const {D,X,pm,dy,pair,L}=K,lk=D.look,R=D.R,Y=y=>y+dy+D.B.chY,M=MM.UNDER,tw=lk.track/2;
+  pair(s=>abox(pm,[X(L/2),Y(.37),s*.5],[L/2-.38,.045,.038],M));
+  for(const u of [.5,1.35,2.25,3.2,4.38])abox(pm,[X(u*L/4.92),Y(.37),0],[.035,.035,.5],M);
+  rbox(pm,[X(D.uFa+.72),Y(.47),0],[1,0,0],[0,1,0],[0,0,1],[.52,.11,.17],M,.4,12,6);
+  abox(pm,[X(D.uRa-.5),Y(.42),.05],[.3,.065,.4],M);
+  if(D.B.underSpare)tubeAB(pm,[X(4.52),Y(.36),0],[X(4.52),Y(.5),0],.33,16,MM.RUBBER);
   if(lk.susp==='solid')solidAxles(K);else for(const ua of [D.uFa,D.uRa])ifs(K,ua,ua===D.uRa);
 }
 /* a coil spring between two points */
@@ -2499,7 +2575,7 @@ function coil(pm,a,b,r,turns,wire,m){const d=V3.sub(b,a),L=V3.len(d),ax=V3.mul(d
   for(let i=0;i<=n;i++){const t=i/n,ang=t*turns*TAU;pts.push(V3.add(V3.add(a,V3.mul(ax,t*L)),V3.add(V3.mul(u,Math.cos(ang)*r),V3.mul(w,Math.sin(ang)*r))));}
   for(let i=0;i<n;i++)tubeAB(pm,pts[i],pts[i+1],wire,5,m,false);}
 function ifs(K,ua,rear){
-  const {D,X,pm,dy,pair}=K,lk=D.look,R=D.R,Y=y=>y+dy,tw=lk.track/2,M=MM.UNDER,x=X(ua);
+  const {D,X,pm,dy,pair}=K,lk=D.look,R=D.R,Y=y=>y+dy+D.B.chY,tw=lk.track/2,M=MM.UNDER,x=X(ua);
   const dyF=Math.min(R,Y(.5));
   ball(pm,[x+(rear?0:.05),dyF,0],.13,10,M);
   pair(s=>{const hub=[x,R,s*(tw-.12)];
@@ -2510,7 +2586,7 @@ function ifs(K,ua,rear){
     tubeAB(pm,lo,hi,.026,8,MM.STEEL);coil(pm,V3.lerp(lo,hi,.12),V3.lerp(lo,hi,.7),.06,6,.009,lk.springCol||MM.UNDER);});
 }
 function solidAxles(K){
-  const {D,X,pm,dy,pair}=K,lk=D.look,R=D.R,Y=y=>y+dy,tw=lk.track/2,M=MM.UNDER;
+  const {D,X,pm,dy,pair}=K,lk=D.look,R=D.R,Y=y=>y+dy+D.B.chY,tw=lk.track/2,M=MM.UNDER;
   for(const ua of [D.uFa,D.uRa]){const x=X(ua),rear=ua===D.uRa;
     tubeAB(pm,[x,R,-(tw-.09)],[x,R,tw-.09],.055,10,M);
     ball(pm,[x+(rear?-.02:.04),R,.16],.17,12,M);tubeAB(pm,[x+(rear?-.1:.12),R,.16],[x+(rear?-.32:.42),R+.04,.16],.03,8,MM.STEEL);
@@ -2526,12 +2602,12 @@ function solidAxles(K){
 /* ---------- roof: rails, crossbars, the expedition rack ---------- */
 function roof(K){
   const {D,X,pm,topY,pair}=K,lk=D.look,r=lk.roof;if(!r||r==='none')return;
-  const zr=.6,u0=2.72,u1=4.48,ry=u=>topY(u,zr)+.058,RM=lk.railCol||MM.BLACK;
+  const [u0,u1,zr]=D.B.rails,ry=u=>topY(u,zr)+.058,RM=lk.railCol||MM.BLACK;
   pair(s=>{const n=10;for(let i=0;i<n;i++){const a=u0+(u1-u0)*i/n,b=u0+(u1-u0)*(i+1)/n;
       const p=[X(a),ry(a),s*zr],q=[X(b),ry(b),s*zr],c=V3.lerp(p,q,.5),ax=V3.norm(V3.sub(q,p));
       obox(pm,c,ax,V3.norm(V3.cross([0,0,1],ax)),[0,0,1],[V3.len(V3.sub(q,p))/2+.002,.014,.017],RM);}
     for(const u of [u0+.04,u1-.04,(u0+u1)/2]){const y0=topY(u,zr);obox(pm,[X(u),(y0+ry(u))/2,s*zr],[1,0,0],[0,1,0],[0,0,1],[.05,(ry(u)-y0)/2+.012,.02],RM);}});
-  if(r==='bars')for(const u of [3.02,4.16]){const y=ry(u)+.022;obox(pm,[X(u),y,0],[1,0,0],[0,1,0],[0,0,1],[.032,.011,zr+.015],RM);
+  if(r==='bars')for(const u of [u0+.3,u1-.32]){const y=ry(u)+.022;obox(pm,[X(u),y,0],[1,0,0],[0,1,0],[0,0,1],[.032,.011,zr+.015],RM);
     pair(s=>obox(pm,[X(u),y-.012,s*zr],[1,0,0],[0,1,0],[0,0,1],[.045,.022,.03],RM));}
   if(r==='rack')rack(K,ry);
 }
@@ -2563,9 +2639,20 @@ function rack(K,ry){
   tubeAB(pm,[X(u1),y,-.62],[X(u1+.06),y+.95,-.62],.005,5,B);ball(pm,[X(u1+.06),y+.955,-.62],.012,6,MM.TAIL);
 }
 /* ---------- spoilers and wings ---------- */
+/* a GT wing on two uprights off the deck lid, with endplates and a Gurney flap */
+function deckWing(K){
+  const {D,X,pm,topY,pair,L}=K,lk=D.look,m=lk.spoilerMat||MM.CARBON,hw=.86,c=.34,yd=topY(L-.28,.42),yw=yd+.29,x=X(L-.44);
+  wing(pm,x,yw,hw,c,.032,.2,m,true);
+  obox(pm,[x-c,yw+.07,0],[1,0,0],[0,1,0],[0,0,1],[.004,.02,hw],m);
+  /* swan necks: up from the deck behind the wing, over its top and down onto it */
+  pair(s=>{plateXY(pm,[[X(L-.13),yd-.02],[X(L-.03),yd-.04],[X(L-.04),yw+.12],[X(L-.1),yw+.13]],s*.42,.012,m);
+    plateXY(pm,[[X(L-.04),yw+.12],[X(L-.1),yw+.15],[X(L-.34),yw+.08],[X(L-.3),yw+.05]],s*.42,.012,m);
+    plateXY(pm,[[x+.05,yw-.09],[x+.03,yw+.1],[x-c-.03,yw+.13],[x-c-.06,yw-.09]],s*(hw+.006),.01,m);});
+}
 function spoiler(K){
   const {D,X,pm,topY,pair,G}=K,lk=D.look,sp=lk.spoiler;if(!sp)return;
-  const big=sp==='roof'||sp==='wing',u0=G.rr-.08,len=big?.26:.13,n=8,w=.68;
+  if(sp==='gt'){deckWing(K);return;}
+  const big=sp==='roof'||sp==='wing',u0=G.rr-.08,len=big?.26:.13,n=8,w=D.B.lipW||.68;
   /* a lofted lip over the rear glass: carries the roofline back and tips down, fins down each side when big */
   const rows=[];for(let i=0;i<=n;i++){const t=i/n,u=u0+len*t,y0=topY(u0,0)+.004;rows.push([u,y0+.01*Math.sin(t*PI)-(big?.05:.03)*t*t,(big?.025:.018)*(1-t)+.008]);}
   const m=lk.spoilerMat||MM.PAINT;
@@ -2588,25 +2675,33 @@ function spoiler(K){
 }
 /* ---------- exhaust tips ---------- */
 function exhausts(K){
-  const {D,X,pm,dy,pair,L}=K,lk=D.look,Y=y=>y+dy,ex=lk.exhaust||'single';
+  const {D,X,pm,dy,pair,L}=K,lk=D.look,F=D.B.fit,Y=y=>y+dy+F.rdy;
   /* each tip's outlet and direction go in D.tips, where the flames on a bang come out */
   D.tips=[];
+  /* a build can run more than one system (the GT has side pipes and quads) */
+  for(const ex of [].concat(lk.exhaust||'single')){
   const tipAt=(c,r,dir=[-1,0,0],len=.12)=>{const b=V3.add(c,V3.mul(dir,len));tubeAB(pm,c,b,r,14,MM.CHROME,false);D.tips.push({p:b,d:V3.norm(dir),r});
     tubeAB(pm,V3.add(b,V3.mul(dir,-.03)),b,r*.82,14,V([.012,.012,.012],MAT.COL),true);};
-  if(ex==='single'){tubeAB(pm,[X(3.3),Y(.36),.42],[X(L-.12),Y(.39),.6],.03,8,MM.UNDER);tipAt([X(L-.13),Y(.39),.6],.037);}
+  if(ex==='single'){tubeAB(pm,[X(F.exU),Y(.36),.42],[X(L-.12),Y(.39),.6],.03,8,MM.UNDER);tipAt([X(L-.13),Y(.39),.6],.037);}
   if(ex==='dual')pair(s=>{tubeAB(pm,[X(3.3),Y(.36),s*.42],[X(L-.1),Y(.43),s*.64],.035,8,MM.UNDER);tipAt([X(L-.12),Y(.43),s*.64],.048,[-1,0,0],.16);});
   if(ex==='crawl'){tubeAB(pm,[X(3.3),Y(.4),.42],[X(L-.2),Y(.5),.55],.035,8,MM.UNDER);tipAt([X(L-.22),Y(.5),.55],.04,V3.norm([-.6,-.8,0]),.1);}
-  if(ex==='side'){for(const o of [-.09,.09]){const u=D.uRa-D.arch.a-.18+o;tubeAB(pm,[X(u),Y(.36),.5],[X(u),Y(.36),.86],.04,8,MM.UNDER);tipAt([X(u),Y(.36),.86],.046,[0,-.15,1],.1);}}
+  if(ex==='side'){const z=F.sideEx||.86;for(const o of [-.09,.09]){const u=D.uRa-D.arch.a-.18+o,y=F.sideExY!=null?D.sill(u)+F.sideExY:Y(.36);tubeAB(pm,[X(u),y,.5],[X(u),y,z],.04,8,MM.UNDER);tipAt([X(u),y,z],.046,[0,-.15,1],.1);}}
+  /* four tips in the diffuser */
+  if(ex==='quad')pair(s=>{for(const z of [.52,.64]){const y=D.sill(L)+.01;tubeAB(pm,[X(F.exU),y-.02,s*z*.8],[X(L-.06),y,s*z],.03,8,MM.UNDER);tipAt([X(L-.06),y,s*z],.042,[-1,0,0],.1);}});
+  /* the sleeper wagon's: one fat pipe turned down under the bumper, where nobody looks */
+  if(ex==='big'){const y=D.sill(L)-.01;tubeAB(pm,[X(F.exU),y,.3],[X(L-.2),y,.45],.05,10,MM.UNDER);tipAt([X(L-.2),y,.45],.058,V3.norm([-.5,-.6,0]),.1);}
+  /* the plain wagon's: two small tips tucked under the bumper */
+  if(ex==='tuck')for(const z of [.48,.58]){const y=D.sill(L);tubeAB(pm,[X(F.exU),y-.02,z*.8],[X(L-.12),y,z],.025,8,MM.UNDER);tipAt([X(L-.12),y,z],.03,[-1,0,0],.06);}}
 }
 /* ---------- front ends ---------- */
 const FRONTS={
   /* the sleeper's lip: a black splitter that follows the bumper, a red line along its front edge */
-  lip:K=>{const {D,X,pm,dy,uFront,pair}=K,Y=y=>y+dy,n=14,y=Y(.425);
-    const P=[];for(let k=0;k<=n;k++){const z=-.84+1.68*k/n;P.push([uFront(z*.96,y+.04)-.045,z]);}
+  lip:K=>{const {D,X,pm,dy,uFront,pair}=K,F=D.B.fit,Y=y=>y+dy+F.fdy,n=14,y=Y(.425),zw=F.lipZ||.84;
+    const P=[];for(let k=0;k<=n;k++){const z=-zw+2*zw*k/n;P.push([uFront(z*.96,y+.04)-.045,z]);}
     for(let k=0;k<n;k++){const [ua,za]=P[k],[ub,zb]=P[k+1];
-      pm.quad([X(ua),y,za],[X(ub),y,zb],[X(.3),y,zb],[X(.3),y,za],MM.BLACK[0],0,MM.BLACK[2]);
+      pm.quad([X(ua),y,za],[X(ub),y,zb],[X(F.lipU||.3),y,zb],[X(F.lipU||.3),y,za],MM.BLACK[0],0,MM.BLACK[2]);
       pm.quad([X(ua),y,za],[X(ub),y,zb],[X(ub),y+.022,zb],[X(ua),y+.022,za],MM.BLACK[0],0,MM.BLACK[2]);
-      pm.quad([X(ua)+.002,y+.006,za],[X(ub)+.002,y+.006,zb],[X(ub)+.002,y+.014,zb],[X(ua)+.002,y+.014,za],[1,1,1],0,MAT.ACCENT);}},
+      if(D.look.lipLine!==false)pm.quad([X(ua)+.002,y+.006,za],[X(ub)+.002,y+.006,zb],[X(ub)+.002,y+.014,zb],[X(ua)+.002,y+.014,za],[1,1,1],0,MAT.ACCENT);}},
   /* the crawler's steel bumper: plated, winch in the middle, bronze shackles, LED cubes, a skid plate */
   steel:K=>{const {D,X,pm,dy,pair}=K,Y=y=>y+dy,S=V(lin('#1c1d1f'),MAT.METAL),x0=X(0)+.07;
     obox(pm,[x0,Y(.56),0],[1,0,0],[0,1,0],[0,0,1],[.09,.115,.62],S);
@@ -2623,18 +2718,19 @@ const FRONTS={
     obox(pm,[x0+.1,Y(.6),0],[1,0,0],[0,1,0],[0,0,1],[.02,.03,.1],MM.ALU);tubeAB(pm,[x0+.12,Y(.6),0],[x0+.16,Y(.58),0],.012,6,V(lin('#c83020'),MAT.METAL));
     obox(pm,[X(.32),Y(.38),0],V3.norm([1,.35,0]),V3.norm([-.35,1,0]),[0,0,1],[.3,.008,.5],S);},
   /* race: a carbon splitter well out front with endplates, two canards a side, a red tow strap */
-  race:K=>{const {D,X,pm,dy,uFront,pair}=K,Y=y=>y+dy,n=14,y=Y(.4);
+  race:K=>{const {D,X,pm,dy,uFront,pair}=K,Y=y=>y+dy+D.B.fit.fdy,n=14,y=Y(.4);
     const P=[];for(let k=0;k<=n;k++){const z=-.9+1.8*k/n;P.push([uFront(z*.95,y+.05)-.14,z]);}
     for(let k=0;k<n;k++){const [ua,za]=P[k],[ub,zb]=P[k+1];
       pm.quad([X(ua),y,za],[X(ub),y,zb],[X(.35),y,zb],[X(.35),y,za],[1,1,1],0,MAT.CARBON);
       pm.quad([X(ua),y,za],[X(ub),y,zb],[X(ub),y+.018,zb],[X(ua),y+.018,za],[1,1,1],0,MAT.CARBON);}
-    pair(s=>{plateXY(pm,[[X(P[0][0]),y],[X(.08),y],[X(.1),y+.13],[X(P[0][0])+.02,y+.06]],s*.9,.008,MM.CARBON);
+    const ep=D.B.fit.epU==null?.08:P[0][0]+D.B.fit.epU;
+    pair(s=>{plateXY(pm,[[X(P[0][0]),y],[X(ep),y],[X(ep+.02),y+.13],[X(P[0][0])+.02,y+.06]],s*.9,.008,MM.CARBON);
       for(const [yy,du] of [[.62,.05],[.53,.03]]){const u0=K.uFront(.8,Y(yy))+du;
         pm.tri([X(u0),Y(yy),s*.8],[X(u0+.24),Y(yy+.03),s*.93],[X(u0+.02),Y(yy+.005),s*.93],[1,1,1],0,MAT.CARBON);}});
     const xr=X(K.uFront(.35,Y(.47)));tubeAB(pm,[xr,Y(.47),.35],[xr+.09,Y(.42),.35],.014,6,V(lin('#d02020'),MAT.FABRIC));obox(pm,[xr+.09,Y(.42),.35],[1,0,0],[0,1,0],[0,0,1],[.012,.035,.006],V(lin('#d02020'),MAT.FABRIC));}
 };
 const REARS={
-  diffuser:K=>{const {D,X,pm,dy,pair,L}=K,Y=y=>y+dy,x=X(L);
+  diffuser:K=>{const {D,X,pm,dy,pair,L}=K,Y=y=>y+dy+D.B.fit.rdy,x=X(L);
     obox(pm,[x+.15,Y(.47),0],V3.norm([1,-.25,0]),V3.norm([.25,1,0]),[0,0,1],[.18,.007,.5],MM.BLACK);
     for(let k=-2;k<=2;k++)plateXY(pm,[[x+.3,Y(.44)],[x-.01,Y(.52)],[x-.01,Y(.47)],[x+.2,Y(.43)]],k*.18,.006,MM.BLACK);
     obox(pm,[x-.012,Y(.53),0],[1,0,0],[0,1,0],[0,0,1],[.003,.005,.48],V([1,1,1],MAT.ACCENT));},
@@ -2644,7 +2740,7 @@ const REARS={
     pair(s=>{const sc=V(lin('#a8783c'),MAT.METAL);obox(pm,[x-.06,Y(.48),s*.55],[1,0,0],[0,1,0],[0,0,1],[.03,.035,.012],S);
       tubeAB(pm,[x-.11,Y(.47),s*.55-.04],[x-.11,Y(.47),s*.55+.04],.012,6,sc);
       obox(pm,[x-.081,Y(.6),s*.75],[1,0,0],[0,1,0],[0,0,1],[.003,.02,.06],MM.TAIL);});},
-  race:K=>{const {D,X,pm,dy,pair,L}=K,Y=y=>y+dy,x=X(L);
+  race:K=>{const {D,X,pm,dy,pair,L}=K,Y=y=>y+dy+D.B.fit.rdy,x=X(L);
     obox(pm,[x+.25,Y(.43),0],V3.norm([1,-.3,0]),V3.norm([.3,1,0]),[0,0,1],[.28,.008,.66],MM.CARBON);
     for(let k=-3;k<=3;k++)plateXY(pm,[[x+.45,Y(.37)],[x-.06,Y(.56)],[x-.06,Y(.43)],[x+.25,Y(.36)]],k*.2,.008,MM.CARBON);
     obox(pm,[x-.02,Y(.62),0],[1,0,0],[0,1,0],[0,0,1],[.012,.035,.045],MM.TAIL);
@@ -2659,15 +2755,15 @@ const HOODS={
     const f=rows[0];for(let k=0;k<6;k++){const a=f[k],b=f[k+1],ya=topY(u0,a[2]),yb=topY(u0,b[2]);pm.quad([a[0],ya,a[2]],[b[0],yb,b[2]],[b[0],b[1],b[2]],[a[0],a[1],a[2]],[0,0,0],0,MAT.MESH);}
     for(const k of [0,6]){const r=rows.map(q=>q[k]);for(let i=0;i<n;i++){const a=r[i],b=r[i+1];pm.quad(a,b,[b[0],topY(u0+(u1-u0)*(i+1)/n,b[2]),b[2]],[a[0],topY(u0+(u1-u0)*i/n,a[2]),a[2]],[1,1,1],0,MAT.PAINT);}}},
   /* race: two louvred vents and hood pins */
-  vents:K=>{const {D,decal,pair}=K;
-    pair(s=>{decal('T',[[.7,s*.22],[1.25,s*.24],[1.25,s*.58],[.7,s*.52]],MM.TRIM,.004,.06);
-      for(let k=0;k<9;k++){const u=.75+k*.055;decal('T',[[u,s*.235],[u+.02,s*.235],[u+.02,s*.53],[u,s*.53]],MM.CARBON,.008,.08);}
-      decal('T',RR2(.24,.27,s*.6-.015,s*.6+.015,.01),MM.CHROME,.008);});}
+  vents:K=>{const {D,decal,pair}=K,o=D.B.fit.ventU||0;
+    pair(s=>{decal('T',[[.7+o,s*.22],[1.25+o,s*.24],[1.25+o,s*.58],[.7+o,s*.52]],MM.TRIM,.004,.06);
+      for(let k=0;k<9;k++){const u=.75+o+k*.055;decal('T',[[u,s*.235],[u+.02,s*.235],[u+.02,s*.53],[u,s*.53]],MM.CARBON,.008,.08);}
+      if(D.look.hoodPins!==false)decal('T',RR2(.24,.27,s*.6-.015,s*.6+.015,.01),MM.CHROME,.008);});}
 };
 /* ---------- everything else ---------- */
 const EXTRAS={
   /* rock sliders: a tube along each rocker, kicked out from the frame */
-  sliders:K=>{const {D,X,pm,dy,pair}=K,Y=y=>y+dy,u0=D.uFa+D.arch.a+.06,u1=D.uRa-D.arch.a-.06,z=.99;
+  sliders:K=>{const {D,X,pm,dy,pair}=K,Y=y=>y+dy+D.B.chY,u0=D.uFa+D.arch.a+.06,u1=D.uRa-D.arch.a-.06,z=D.B.fit.sideZ||.99;
     pair(s=>{tubeAB(pm,[X(u0),Y(.43),s*z],[X(u1),Y(.43),s*z],.032,10,MM.BLACK);for(const u of [u0+.05,(u0+u1)/2,u1-.05])tubeAB(pm,[X(u),Y(.43),s*z],[X(u),Y(.4),s*.55],.026,8,MM.BLACK);
       tubeAB(pm,[X(u0),Y(.43),s*z],[X(u0-.06),Y(.5),s*.86],.03,8,MM.BLACK);tubeAB(pm,[X(u1),Y(.43),s*z],[X(u1+.06),Y(.5),s*.86],.03,8,MM.BLACK);});},
   /* a snorkel up the right A-pillar */
@@ -2687,21 +2783,22 @@ const EXTRAS={
   flaps:K=>{const {D,X,pm,dy,pair,sideZ}=K;for(const ua of [D.uFa,D.uRa])pair(s=>{const u=ua+D.arch.a+.04,z=sideZ(u,D.arch.cy)*.9;
     obox(pm,[X(u),D.arch.cy-.14,s*z],[1,0,0],[0,1,0],[0,0,1],[.006,.16,.13],V(lin('#141414'),MAT.RUBBER));});},
   /* race: carbon side skirts */
-  skirts:K=>{const {D,X,pm,dy,pair}=K,Y=y=>y+dy,u0=D.uFa+D.arch.a+.1,u1=D.uRa-D.arch.a-.1;
-    pair(s=>{obox(pm,[X((u0+u1)/2),Y(.34),s*.95],[1,0,0],[0,1,0],[0,0,1],[(u1-u0)/2,.035,.035],MM.CARBON);});},
+  skirts:K=>{const {D,X,pm,dy,pair}=K,Y=y=>y+dy+D.B.chY,u0=D.uFa+D.arch.a+.1,u1=D.uRa-D.arch.a-.1;
+    pair(s=>{obox(pm,[X((u0+u1)/2),Y(.34),s*(D.B.fit.sideZ?D.B.fit.sideZ-.04:.95)],[1,0,0],[0,1,0],[0,0,1],[(u1-u0)/2,.035,.035],MM.CARBON);});},
   /* race: a roof scoop, a windshield banner, a fuel filler, a number on each front door */
-  raceKit:K=>{const {D,X,pm,G,topY,decal,pair}=K;
+  raceKit:K=>{const {D,X,pm,G,topY,decal,pair,ring2}=K;
     const u0=G.rf+.12,u1=u0+.45,w=.2,h=.07;
     for(let i=0;i<6;i++){const a=u0+(u1-u0)*i/6,b=u0+(u1-u0)*(i+1)/6,ha=h*(1-i/6),hb=h*(1-(i+1)/6);
       pm.quad([X(a),topY(a,0)+ha,-w],[X(b),topY(b,0)+hb,-w],[X(b),topY(b,0)+hb,w],[X(a),topY(a,0)+ha,w],[1,1,1],0,MAT.PAINT);
       pair(s=>pm.quad([X(a),topY(a,0),s*w],[X(b),topY(b,0),s*w],[X(b),topY(b,0)+hb,s*w],[X(a),topY(a,0)+ha,s*w],[1,1,1],0,MAT.PAINT));}
     pm.quad([X(u0),topY(u0,0),-w],[X(u0),topY(u0,0),w],[X(u0),topY(u0,0)+h,w],[X(u0),topY(u0,0)+h,-w],[0,0,0],0,MAT.MESH);
     decal('T',[[G.rf-.2,-.66],[G.rf-.02,-.66],[G.rf-.02,.66],[G.rf-.2,.66]],MM.TRIM,.004,.1);
-    decal('SR',EL2(4.4,K.secKeys(4.4).yG+.22,.045,.045,14),MM.CHROME,.007);
+    const fl=D.B.fit.filler||[K.L-.52,K.secKeys(K.L-.52).yG+.22];decal('SR',EL2(fl[0],fl[1],.045,.045,14),MM.CHROME,.007);
     /* the number: a white roundel with digits drawn from the dot-matrix font */
     const uc=(G.cowl+G.pillars[0][0])/2+.08,yc=D.belt(uc)-.3,cell=.026;
     decal('S',EL2(uc,yc,.24,.24,24),V([.92,.92,.9],MAT.COL),.006,.08);
-    const txt='06',wd=txt.length*6-1;
+    const txt=D.look.raceNum??'06',wd=txt.length*6-1;
+    if(!txt){ring2('S',uc,yc,.24,.25,V([.02,.02,.02],MAT.COL),.008,32);return;}
     for(const side of ['SR','SL'])for(let ci=0;ci<txt.length;ci++){const g=G5[txt[ci]];for(let r=0;r<7;r++)for(let c=0;c<5;c++)if((g[r]>>(4-c))&1){
       const col=ci*6+c,du=(col-(wd-1)/2)*cell*(side==='SR'?-1:1),y=yc+(3-r)*cell*1.15;
       decal(side,[[uc+du-cell/2,y-cell*.58],[uc+du+cell/2,y-cell*.58],[uc+du+cell/2,y+cell*.58],[uc+du-cell/2,y+cell*.58]],V([.02,.02,.02],MAT.COL),.009,.1);}}},
@@ -2709,6 +2806,175 @@ const EXTRAS={
   pinstripe:K=>{const {D,line}=K,u0=D.uFa+D.arch.a+.08,u1=D.uRa-D.arch.a-.08,y=D.sill(2)+.025;
     line('S',[[u0,y],[u1,y]],.012,V(lin('#b0703c'),MAT.METAL),.016);}
 };
+
+/* =====================================================================================
+   THE 4X4 — its face and tail, and the parts only it wears. Heights are in its own body
+   coordinates (Y adds the lift and the bigger tyres).
+   ===================================================================================== */
+/* two round lamps in a flat black grille panel, five slots between them, small amber squares at the top corners */
+FACES.trail=K=>{
+  const {decal,ring2,pair,dy}=K,Y=y=>y+dy;
+  decal('F',RR2(-.72,.72,Y(.84),Y(1.15),.02),MM.TRIM,.004);
+  for(let k=0;k<5;k++){const y=.885+k*.052;decal('F',RR2(-.4,.4,Y(y),Y(y+.03),.008),MM.MESH,.007);}
+  pair(s=>{
+    ring2('F',s*.565,Y(.99),.085,.104,MM.CHROME,.008,20);decal('F',EL2(s*.565,Y(.99),.085,.085,20),MM.HEAD,.009);decal('F',EL2(s*.565,Y(.99),.02,.02,8),MM.CHROME,.011);
+    decal('F',RR2(s*.745,s*.795,Y(1.085),Y(1.145),.008),MM.AMBER,.007);
+  });
+};
+/* lamps low in the corners, red over a white reverse lens; the side-hinged door with its handle by the spare */
+TAILS.trail=K=>{
+  const {decal,line,pair,dy}=K,Y=y=>y+dy,w=.0055;
+  pair(s=>{
+    decal('R',RR2(s*.64,s*.79,Y(.86),Y(1.04),.012),MM.TAIL,.005);
+    decal('R',RR2(s*.655,s*.775,Y(.875),Y(.925),.006),MM.REV,.008);
+  });
+  line('R',[[-.6,Y(.78)],[.6,Y(.78)],[.6,Y(1.25)],[-.6,Y(1.25)],[-.6,Y(.78)]],w,MM.SHUT,.004);
+  decal('R',RR2(-.56,-.44,Y(1.1),Y(1.135),.01),MM.TRIM,.006);
+};
+/* a red D-ring shackle hanging from a tab: bow, pin, tab */
+function shackle(pm,c,tab=V(lin('#1c1d1f'),MAT.METAL)){
+  const sc=V(lin('#c8241c'),MAT.METAL),[cx,cy,z]=c,r=.034,pts=[];
+  obox(pm,[cx-.01,cy+.03,z],[1,0,0],[0,1,0],[0,0,1],[.03,.035,.012],tab);
+  for(let k=0;k<=8;k++){const t=-PI/2+PI*k/8;pts.push([cx+.03+Math.cos(t)*r*.6,cy-.02+Math.sin(t)*r,z]);}
+  tubePath(pm,[[cx,cy-.02-r,z],...pts,[cx,cy-.02+r,z]],.01,6,sc);
+  tubeAB(pm,[cx-.005,cy-.02-r-.015,z-.02],[cx-.005,cy-.02-r-.015,z+.02],.008,6,sc);
+}
+/* the factory bumper: a black steel bar as wide as the tyres, red shackles under it, a skid plate behind */
+FRONTS.trail=K=>{const {D,X,pm,dy,pair}=K,Y=y=>y+dy,S=V(lin('#1c1d1f'),MAT.METAL),x0=X(0)+.03;
+  obox(pm,[x0,Y(.735),0],[1,0,0],[0,1,0],[0,0,1],[.05,.075,.84],S);
+  pair(s=>{obox(pm,[x0-.04,Y(.735),s*.86],V3.norm([1,0,-s*.9]),[0,1,0],V3.norm([s*.9,0,1]),[.035,.07,.05],S);shackle(pm,[x0+.03,Y(.62),s*.37],S);});
+  obox(pm,[X(.3),Y(.5),0],V3.norm([1,.3,0]),V3.norm([-.3,1,0]),[0,0,1],[.28,.008,.45],S);
+  for(let k=-3;k<=3;k++)obox(pm,[X(.12),Y(.555),k*.1],V3.norm([1,.3,0]),V3.norm([-.3,1,0]),[0,0,1],[.025,.0015,.02],V([.006,.006,.007],MAT.COL));};
+/* the crawler's stubby bumper: tucked inside the tyres, a winch in it, red shackles, a skid plate */
+FRONTS.stubby=K=>{const {D,X,pm,dy,pair}=K,Y=y=>y+dy,S=V(lin('#1c1d1f'),MAT.METAL),x0=X(0)+.06;
+  obox(pm,[x0,Y(.7),0],[1,0,0],[0,1,0],[0,0,1],[.08,.11,.56],S);
+  pair(s=>{const a=V3.norm([-1,0,s*.9]);obox(pm,[x0-.1,Y(.73),s*.62],a,[0,1,0],V3.cross(a,[0,1,0]),[.11,.08,.04],S);shackle(pm,[x0+.07,Y(.6),s*.38],S);
+    /* a hoop up round each lamp */
+    tubePath(pm,[[x0+.02,Y(.8),s*.5],[x0+.08,Y(1.0),s*.66],[x0+.02,Y(1.12),s*.66],[X(.1),Y(1.14),s*.66]],.018,6,S);});
+  tubeAB(pm,[x0+.05,Y(.74),-.2],[x0+.05,Y(.74),.2],.07,12,S);tubeAB(pm,[x0+.05,Y(.74),-.16],[x0+.05,Y(.74),.16],.074,12,V(lin('#202020'),MAT.RUBBER));
+  obox(pm,[x0+.11,Y(.68),0],[1,0,0],[0,1,0],[0,0,1],[.02,.03,.1],MM.ALU);tubeAB(pm,[x0+.13,Y(.68),0],[x0+.15,Y(.55),0],.012,6,V(lin('#c83020'),MAT.FABRIC));
+  obox(pm,[X(.3),Y(.5),0],V3.norm([1,.35,0]),V3.norm([-.35,1,0]),[0,0,1],[.3,.008,.42],S);};
+/* the factory rear bumper: a black bar, red shackles, the tailpipe out the right */
+REARS.trail=K=>{const {X,pm,dy,L,pair}=K,Y=y=>y+dy,S=V(lin('#1c1d1f'),MAT.METAL),x=X(L)-.03;
+  obox(pm,[x,Y(.64),0],[1,0,0],[0,1,0],[0,0,1],[.05,.08,.84],S);
+  pair(s=>{obox(pm,[x+.05,Y(.64),s*.86],V3.norm([1,0,s*.9]),[0,1,0],V3.norm([-s*.9,0,1]),[.035,.075,.05],S);shackle(pm,[x-.03,Y(.53),s*.55],S);});};
+/* the crawler's rear: a high-clearance bar with its corners cut away and a swing-out tyre carrier */
+REARS.rig=K=>{const {D,X,pm,dy,L,pair}=K,Y=y=>y+dy,S=V(lin('#1c1d1f'),MAT.METAL),x=X(L)-.05,sy=(D.look.spare||{}).y||1.1;
+  obox(pm,[x,Y(.68),0],[1,0,0],[0,1,0],[0,0,1],[.06,.09,.62],S);
+  pair(s=>{const a=V3.norm([1,0,s*.9]);obox(pm,[x+.05,Y(.74),s*.7],a,[0,1,0],V3.cross(a,[0,1,0]),[.1,.05,.035],S);shackle(pm,[x-.05,Y(.58),s*.45],S);});
+  /* the carrier: a post on the left corner, arms across to the tyre */
+  tubeAB(pm,[x-.07,Y(.74),-.6],[x-.07,Y(sy+.3),-.6],.035,8,S);tubeAB(pm,[x-.07,Y(sy+.25),-.6],[x-.12,Y(sy+.1),.1],.03,8,S);
+  tubeAB(pm,[x-.07,Y(.85),-.6],[x-.12,Y(sy-.05),0],.03,8,S);};
+/* a spare on the back. lk.spare: {back: how far behind the tail, y: its height, cover: a black vinyl cover}.
+   A bare spare is the build's own wheel, drawn again at D.spare. */
+EXTRAS.spare=K=>{const {D,X,pm,dy,L}=K,lk=D.look,t=lk.tyre,sp=lk.spare||{},Y=y=>y+dy,x0=X(L)-(sp.back||.06),y=Y(sp.y||1.1);
+  tubeAB(pm,[x0+.02,y,0],[x0-.04,y,0],.06,10,MM.BLACK);
+  if(sp.cover){tubeAB(pm,[x0-.04,y,0],[x0-.04-t.W,y,0],t.R+.01,28,V(lin('#141416'),MAT.FABRIC));return;}
+  D.spare={p:[x0-.04-t.W/2,y,0]};};
+/* a flat black roof rack on four feet */
+EXTRAS.flatRack=K=>{const {D,X,pm,topY,pair,G}=K,u0=G.rf+.16,u1=G.rr-.08,z=.68,y=topY((u0+u1)/2,0)+.075,B=MM.BLACK;
+  pair(s=>{obox(pm,[X((u0+u1)/2),y,s*z],[1,0,0],[0,1,0],[0,0,1],[(u1-u0)/2,.018,.02],B);
+    for(const u of [u0+.08,u1-.08]){const y0=topY(u,z);obox(pm,[X(u),(y0+y)/2,s*z],[1,0,0],[0,1,0],[0,0,1],[.04,(y-y0)/2+.01,.025],B);}});
+  for(let k=0;k<4;k++){const u=u0+.1+(u1-u0-.2)*k/3;obox(pm,[X(u),y+.004,0],[1,0,0],[0,1,0],[0,0,1],[.022,.016,z],B);}
+  for(const u of [u0,u1])obox(pm,[X(u),y,0],[1,0,0],[0,1,0],[0,0,1],[.02,.018,z],B);};
+/* stock rock rails: black box section under each door */
+EXTRAS.rails=K=>{const {D,X,pm,pair}=K,u0=D.uFa+D.arch.a+.04,u1=D.uRa-D.arch.a-.04,um=(u0+u1)/2,y=D.sill(um)+.01,z=D.plan(um)+.005;
+  pair(s=>obox(pm,[X(um),y,s*z],[1,0,0],[0,1,0],[0,0,1],[(u1-u0)/2,.045,.04],MM.BLACK));};
+/* the crawler's exo-cage: tubes up the pillars and over the roof, a rack grid on top, an LED bar on the front hoop */
+EXTRAS.cage=K=>{const {D,X,pm,dy,pair,G,L}=K,Y=y=>y+dy,B=MM.BLACK,r=.026,yt=D.Hr+.1,z=.8;
+  const P=(u,y,zz)=>[X(u),y,zz],ub=D.belt(G.cowl)+.02,um=(G.rf+G.rr)/2;
+  pair(s=>{tubePath(pm,[P(G.cowl-.08,ub,s*(z+.04)),P(G.rf+.02,yt,s*z),P(G.rr-.02,yt,s*z),P(L+.04,D.belt(L)+.02,s*(z+.02))],r,8,B);
+    tubeAB(pm,P(um,yt,s*z),P(um,D.belt(um)+.02,s*(z+.06)),r,8,B);});
+  for(let k=0;k<=6;k++){const u=G.rf+.02+(G.rr-G.rf-.04)*k/6;tubeAB(pm,P(u,yt,-z),P(u,yt,z),k%3?r*.6:r,8,B);}
+  for(const zz of [-.3,.3])tubeAB(pm,P(G.rf+.02,yt,zz),P(G.rr-.02,yt,zz),r*.6,6,B);
+  /* the light bar on tabs above the front hoop */
+  const xb=X(G.rf+.05);
+  pair(s=>obox(pm,[xb,yt+.045,s*.5],[1,0,0],[0,1,0],[0,0,1],[.02,.03,.012],B));
+  rbox(pm,[xb,yt+.1,0],[1,0,0],[0,1,0],[0,0,1],[.045,.045,.66],B,.2,16,6);
+  obox(pm,[xb+.046,yt+.1,0],[1,0,0],[0,1,0],[0,0,1],[.002,.03,.62],MM.HEAD);};
+
+/* =====================================================================================
+   THE COUPE — face, tail and its own parts, from its reference sheets. The nose curves back
+   hard, so lamps drawn at the corners land well back on the fenders and come out swept.
+   ===================================================================================== */
+/* a big trapezoid of honeycomb, slim swept lamps over its corners, round fogs in black pods, a gill behind each front wheel */
+FACES.coupe=K=>{
+  const {D,decal,pair,dy}=K,Y=y=>y+dy,lk=D.look;
+  decal('F',[[-.57,Y(.225)],[.57,Y(.225)],[.62,Y(.3)],[.45,Y(.505)],[-.45,Y(.505)],[-.62,Y(.3)]],MM.SMOKE,.005);
+  decal('F',[[-.54,Y(.24)],[.54,Y(.24)],[.585,Y(.3)],[.43,Y(.488)],[-.43,Y(.488)],[-.585,Y(.3)]],MM.MESH,.007);
+  pair(s=>{
+    decal('F',[[s*.45,Y(.525)],[s*.86,Y(.592)],[s*.91,Y(.64)],[s*.86,Y(.655)],[s*.47,Y(.567)]],MM.SMOKE,.005);
+    decal('F',EL2(s*.6,Y(.565),.024,.022,12),MM.HEAD,.009);decal('F',EL2(s*.72,Y(.588),.024,.022,12),MM.HEAD,.009);
+    decal('F',[[s*.47,Y(.531)],[s*.84,Y(.592)],[s*.85,Y(.603)],[s*.48,Y(.543)]],MM.LED,.008);
+    decal('F',EL2(s*.73,Y(.3),.055,.042,16),MM.SMOKE,.005);decal('F',EL2(s*.73,Y(.3),.022,.022,12),MM.HEAD,.008);
+  });
+  /* the gills behind the front wheels, and on the GT a slot ahead of each rear wheel */
+  const ug=D.uFa+D.arch.a+(lk.flares?.2:.1);
+  decal('S',[[ug,Y(.40)],[ug+.06,Y(.40)],[ug+.16,Y(.64)],[ug+.1,Y(.64)]],MM.SMOKE,.005,.04);
+  decal('S',[[ug+.015,Y(.42)],[ug+.05,Y(.42)],[ug+.14,Y(.62)],[ug+.105,Y(.62)]],MM.MESH,.007,.04);
+  if(lk.flares){const ur=D.uRa-D.arch.a-.32;for(const o of [0,.07])decal('S',[[ur+o,Y(.44)],[ur+o+.03,Y(.44)],[ur+o+.1,Y(.62)],[ur+o+.07,Y(.62)]],MM.SMOKE,.006,.04);}
+};
+/* thin blade lamps sweeping out and up under the ducktail, the lid's outline, honeycomb over the diffuser */
+TAILS.coupe=K=>{
+  const {D,decal,line,pair,dy,L}=K,Y=y=>y+dy,w=.0055;
+  pair(s=>{
+    decal('R',[[s*.22,Y(.70)],[s*.62,Y(.706)],[s*.8,Y(.728)],[s*.87,Y(.762)],[s*.8,Y(.768)],[s*.22,Y(.726)]],MM.SMOKE,.005);
+    decal('R',[[s*.24,Y(.708)],[s*.79,Y(.736)],[s*.84,Y(.756)],[s*.24,Y(.719)]],MM.TAIL,.008);
+  });
+  line('R',[[-.62,Y(.8)],[-.6,Y(.55)],[.6,Y(.55)],[.62,Y(.8)]],w,MM.SHUT,.004);
+  line('T',[[3.98,-.6],[3.98,.6]],w,MM.SHUT,.004);pair(s=>line('T',[[3.98,s*.6],[L-.06,s*.66]],w,MM.SHUT,.004));
+  decal('R',RR2(-.46,.46,Y(.37),Y(.43),.02),MM.MESH,.006);
+};
+/* a wide black diffuser: undertray, fins, red reflectors at its ends */
+REARS.coupeDiff=K=>{const {D,X,pm,pair,L}=K,x=X(L),y0=D.sill(L);
+  obox(pm,[x+.12,y0-.03,0],V3.norm([1,-.18,0]),V3.norm([.18,1,0]),[0,0,1],[.16,.006,.76],MM.BLACK);
+  obox(pm,[x-.006,y0+.03,0],[1,0,0],[0,1,0],[0,0,1],[.012,.06,.78],MM.BLACK);
+  for(let k=-2;k<=2;k++)plateXY(pm,[[x+.22,y0-.05],[x-.012,y0+.06],[x-.012,y0-.02],[x+.15,y0-.06]],k*.16,.006,MM.BLACK);
+  pair(s=>obox(pm,[x-.02,y0+.05,s*.74],[1,0,0],[0,1,0],[0,0,1],[.003,.012,.035],MM.TAIL));};
+/* two mesh vents near the front corners of the hood */
+HOODS.coupe=K=>{const {decal,pair}=K;
+  pair(s=>{decal('T',[[.5,s*.36],[.82,s*.4],[.82,s*.56],[.5,s*.5]],MM.SMOKE,.004,.05);decal('T',[[.52,s*.375],[.8,s*.41],[.8,s*.545],[.52,s*.49]],MM.MESH,.007,.05);});};
+
+/* =====================================================================================
+   THE WAGON — face and tail, from its reference sheets: nothing on it says fast.
+   ===================================================================================== */
+/* plain lamps with two round reflectors and amber ends, a chrome-topped grille, rub strips on the bumper corners,
+   a wide slatted intake low down (with an intercooler showing through it on the sleeper) */
+FACES.wagon=K=>{
+  const {D,decal,ring2,pair,dy}=K,Y=y=>y+dy,lk=D.look;
+  pair(s=>{
+    decal('F',[[s*.45,Y(.545)],[s*.84,Y(.555)],[s*.86,Y(.70)],[s*.47,Y(.715)]],MM.REFL,.005);
+    for(const z of [.56,.69]){ring2('F',s*z,Y(.628),.048,.058,MM.CHROME,.008,16);decal('F',EL2(s*z,Y(.628),.048,.048,16),MM.HEAD,.009);}
+    decal('F',[[s*.775,Y(.56)],[s*.845,Y(.56)],[s*.86,Y(.695)],[s*.775,Y(.7)]],MM.AMBER,.008);
+    decal('F',RR2(s*.44,s*.88,Y(.43),Y(.46),.01),MM.TRIM,.005);
+  });
+  decal('F',RR2(-.42,.42,Y(.525),Y(.68),.02),MM.TRIM,.004);
+  for(let k=0;k<4;k++){const y=.54+k*.028;decal('F',RR2(-.39,.39,Y(y),Y(y+.016),.005),MM.MESH,.007);}
+  decal('F',RR2(-.43,.43,Y(.655),Y(.678),.008),MM.CHROME,.009);
+  decal('F',RR2(-.7,.7,Y(.235),Y(.325),.03),MM.TRIM,.004);
+  if(lk.ic){decal('F',RR2(-.46,.46,Y(.25),Y(.31),.008),V(lin('#8f9297'),MAT.METAL),.007);
+    for(let k=0;k<6;k++)decal('F',RR2(-.45,.45,Y(.255+k*.01),Y(.259+k*.01),.001),V([.02,.02,.022],MAT.COL),.009);}
+  else for(const y of [.25,.29])decal('F',RR2(-.66,.66,Y(y),Y(y+.022),.006),MM.MESH,.007);
+};
+/* tall lamps up the D-pillars with white and amber blocks low down, a plate recess, a rub strip, a high stop lamp */
+TAILS.wagon=K=>{
+  const {decal,line,pair,dy}=K,Y=y=>y+dy,w=.0055;
+  pair(s=>{
+    decal('R',[[s*.62,Y(.66)],[s*.84,Y(.66)],[s*.82,Y(1.0)],[s*.76,Y(1.2)],[s*.72,Y(1.3)],[s*.64,Y(1.3)],[s*.62,Y(1.0)]],MM.TAIL,.005);
+    decal('R',RR2(s*.645,s*.83,Y(.69),Y(.745),.006),MM.REV,.008);
+    decal('R',RR2(s*.645,s*.83,Y(.755),Y(.79),.006),MM.AMBER,.008);
+  });
+  line('R',[[-.32,Y(.64)],[.32,Y(.64)],[.33,Y(.86)],[-.33,Y(.86)],[-.32,Y(.64)]],w,MM.SHUT,.004);
+  decal('R',RR2(-.26,.26,Y(.69),Y(.8),.008),MM.PLATE,.006);
+  decal('R',RR2(-.12,.12,Y(.875),Y(.892),.006),MM.CHROME,.006);
+  decal('R',RR2(-.88,.88,Y(.47),Y(.5),.01),MM.TRIM,.005);
+  decal('R',RR2(-.13,.13,Y(1.385),Y(1.405),.005),MM.TAIL,.006);
+};
+/* black rub strips down the sides at bumper height, broken by the wheel arches */
+EXTRAS.rubstrip=K=>{const {D,line}=K,a=D.arch.a,Y=y=>y+D.dy,w=.03;
+  line('S',[[.12,Y(.445)],[D.uFa-a-.04,Y(.445)]],w,MM.TRIM,.006);
+  line('S',[[D.uFa+a+.04,Y(.49)],[D.uRa-a-.04,Y(.49)]],w,MM.TRIM,.006);
+  line('S',[[D.uRa+a+.04,Y(.485)],[K.L-.1,Y(.485)]],w,MM.TRIM,.006);};
 
 /* =====================================================================================
    WHEELS AND TYRES. One mesh per build, drawn four times. Local axes: the axle along z with
@@ -2726,18 +2992,25 @@ function buildWheel(w){
   if(w.tyre==='slick')prof=[[rimR+.012,-hw*.86],[rimR+.03,-hw*.98],[R-.05,-hw],[R-.012,-hw*.93],[R,-hw*.8],[R,hw*.8],[R-.012,hw*.93],[R-.05,hw],[rimR+.03,hw*.98],[rimR+.012,hw*.86]];
   else if(w.tyre==='perf'){const g=(z)=>[[R,z-.012],[R-.007,z-.008],[R-.007,z+.008],[R,z+.012]];
     prof=[[rimR+.012,-hw*.86],[rimR+.025,-hw*.98],[R-.035,-hw],[R-.008,-hw*.94],[R,-hw*.84],...g(-hw*.36),...g(hw*.36),[R,hw*.84],[R-.008,hw*.94],[R-.035,hw],[rimR+.025,hw*.98],[rimR+.012,hw*.86]];}
+  else if(w.tyre==='at')prof=[[rimR+.012,-hw*.85],[rimR+.03,-hw*.97],[R-.085,-hw*1.01],[R-.035,-hw*.97],[R-.016,-hw*.88],[R-.016,hw*.88],[R-.035,hw*.97],[R-.085,hw*1.01],[rimR+.03,hw*.97],[rimR+.012,hw*.85]];
   else if(w.tyre==='mt')prof=[[rimR+.012,-hw*.84],[rimR+.03,-hw*.97],[R-.1,-hw*1.02],[R-.045,-hw*.98],[R-.026,-hw*.9],[R-.026,hw*.9],[R-.045,hw*.98],[R-.1,hw*1.02],[rimR+.03,hw*.97],[rimR+.012,hw*.84]];
   else{const g=(z)=>[[R,z-.01],[R-.007,z-.007],[R-.007,z+.007],[R,z+.01]];
     prof=[[rimR+.012,-hw*.86],[rimR+.03,-hw*.97],[R-.07,-hw*1.01],[R-.025,-hw*.97],[R-.004,-hw*.82],...g(-hw*.4),...g(0),...g(hw*.4),[R-.004,hw*.82],[R-.025,hw*.97],[R-.07,hw*1.01],[rimR+.03,hw*.97],[rimR+.012,hw*.86]];}
   /* the tread's sipes are drawn by the shader: em carries the outer radius */
-  const tread=w.tyre==='slick'||w.tyre==='mt'?0:R;
+  const tread=w.tyre==='slick'||w.tyre==='mt'||w.tyre==='at'?0:R;
   for(let i=0;i<seg;i++){const a=i/seg*TAU,b=(i+1)/seg*TAU,ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b);
     for(let k=0;k<prof.length-1;k++){const p=prof[k],q=prof[k+1];mb.quad([ca*p[0],sa*p[0],p[1]],[cb*p[0],sb*p[0],p[1]],[cb*q[0],sb*q[0],q[1]],[ca*q[0],sa*q[0],q[1]],TY,tread,MAT.TYRE);}}
   /* mud-terrain lugs: two staggered rows of blocks across the tread, and shoulder lugs down the sidewalls */
-  if(w.tyre==='mt'){const np=21,blk=(a0,a1,r0,r1,z0,z1)=>{
-      const P=(a,r,z)=>[Math.cos(a)*r,Math.sin(a)*r,z],f=(p,q,s,t)=>mb.quad(p,q,s,t,TY,0,MAT.TYRE);
-      const A=[P(a0,r0,z0),P(a1,r0,z0),P(a1,r0,z1),P(a0,r0,z1)],B=[P(a0,r1,z0),P(a1,r1,z0),P(a1,r1,z1),P(a0,r1,z1)];
-      f(B[0],B[1],B[2],B[3]);f(A[0],A[1],B[1],B[0]);f(A[2],A[3],B[3],B[2]);f(A[1],A[2],B[2],B[1]);f(A[3],A[0],B[0],B[3]);};
+  const blk=(a0,a1,r0,r1,z0,z1)=>{
+    const P=(a,r,z)=>[Math.cos(a)*r,Math.sin(a)*r,z],f=(p,q,s,t)=>mb.quad(p,q,s,t,TY,0,MAT.TYRE);
+    const A=[P(a0,r0,z0),P(a1,r0,z0),P(a1,r0,z1),P(a0,r0,z1)],B=[P(a0,r1,z0),P(a1,r1,z0),P(a1,r1,z1),P(a0,r1,z1)];
+    f(B[0],B[1],B[2],B[3]);f(A[0],A[1],B[1],B[0]);f(A[2],A[3],B[3],B[2]);f(A[1],A[2],B[2],B[1]);f(A[3],A[0],B[0],B[3]);};
+  /* all-terrain: smaller blocks in three staggered rows with sipes between, and short shoulder blocks */
+  if(w.tyre==='at'){const np=30,p=TAU/np,d=.016;
+    for(let i=0;i<np;i++){const a=i*p;
+      blk(a,a+p*.62,R-d,R,hw*.36,hw*.9);blk(a+p*.5,a+p*1.12,R-d,R,-hw*.9,-hw*.36);blk(a+p*.25,a+p*.8,R-d,R,-hw*.28,hw*.28);
+      for(const s of [1,-1]){const a0=a+(s>0?0:p*.5);blk(a0,a0+p*.5,R-.075,R-.02,s*hw*.97,s*hw*1.02);}}}
+  if(w.tyre==='mt'){const np=21;
     for(let i=0;i<np;i++){const p=TAU/np,a=i*p;
       blk(a,a+p*.55,R-.028,R,hw*.06,hw*.9);blk(a+p*.5,a+p*1.05,R-.028,R,-hw*.9,-hw*.06);
       blk(a+p*.2,a+p*.38,R-.028,R-.004,-hw*.12,hw*.12);
@@ -2747,7 +3020,7 @@ function buildWheel(w){
         f(P(a0,r0,z1),P(a1,r0,z1),P(a1,r1,z1),P(a0,r1,z1));f(P(a0,r1,z0),P(a1,r1,z0),P(a1,r1,z1),P(a0,r1,z1));
         f(P(a0,r0,z0),P(a0,r0,z1),P(a0,r1,z1),P(a0,r1,z0));f(P(a1,r0,z0),P(a1,r1,z0),P(a1,r1,z1),P(a1,r0,z1));f(P(a0,r0,z0),P(a1,r0,z0),P(a1,r0,z1),P(a0,r0,z1));}}}
   /* ---------- the wheel ---------- */
-  const zf=hw*.86,RIM=[1,1,1],dish=w.style==='bead'?.012:w.style==='ten'?.03:.05;
+  const zf=hw*.86,RIM=[1,1,1],dish={bead:.012,ten:.03,split:.035,cap:.02,steel:.03}[w.style]||.05;
   const face=zf-dish,lipIn=rimR*.93;
   for(let i=0;i<seg;i++){const a=i/seg*TAU,b=(i+1)/seg*TAU,c=Math.cos,s=Math.sin;
     /* the outer lip, the inner barrel, and the dark back of the barrel */
@@ -2785,6 +3058,24 @@ function buildWheel(w){
     hubR=.075;}
   else if(w.style==='race'){for(let i=0;i<6;i++){const a=i/6*TAU;sp(a,.03,.03,.07,rO*.52,0,.045);sp(a+.11,.014,.016,rO*.48,rO,.07,.012);sp(a-.11,.014,.016,rO*.48,rO,-.07,.012);}
     lugs=0;}
+  else if(w.style==='five'){for(let i=0;i<5;i++)sp(i/5*TAU+PI/10,.05,.085,.07,rO,0,.045,.035);disc(rO*.93,rO,face+.004,V(RIM,RM));}
+  else if(w.style==='split'){for(let i=0;i<5;i++){const a=i/5*TAU;sp(a-.05,.015,.019,.07,rO,-.1,.032,.03);sp(a+.05,.015,.019,.07,rO,.1,.032,.03);}lugs=5;}
+  else if(w.style==='cap'||w.style==='steel'){
+    /* a revolved profile [r, z] in front of the face */
+    const rev=(P,m)=>{for(let k=0;k<P.length-1;k++){const [r0,z0]=P[k],[r1,z1]=P[k+1];
+      for(let i=0;i<seg;i++){const a=i/seg*TAU,b=(i+1)/seg*TAU,C=Math.cos,S=Math.sin;mb.quad([C(a)*r1,S(a)*r1,face+z1],[C(b)*r1,S(b)*r1,face+z1],[C(b)*r0,S(b)*r0,face+z0],[C(a)*r0,S(a)*r0,face+z0],m[0],m[1],m[2]);}}};
+    const hole=(c,r,z)=>{for(let k=0;k<12;k++){const p=k/12*TAU,q=(k+1)/12*TAU;mb.tri([c[0],c[1],face+z],[c[0]+Math.cos(q)*r,c[1]+Math.sin(q)*r,face+z],[c[0]+Math.cos(p)*r,c[1]+Math.sin(p)*r,face+z],[.008,.008,.009],0,MAT.COL);}};
+    if(w.style==='cap'){
+      /* a plastic wheel cover: a shallow dome to the lip, a ring of slots, a plain centre */
+      rev([[rimR*1.03,dish+.004],[rO*.86,.042],[rO*.5,.06],[.06,.068],[0,.07]],V(RIM,MAT.RIM));
+      for(let i=0;i<10;i++){const a=i/10*TAU,b=a+TAU/10*.55,r0=rO*.6,r1=rO*.8,z=t=>.06+(.042-.06)*(t-rO*.5)/(rO*.36)+.0015,C=Math.cos,S=Math.sin;
+        mb.quad([C(a)*r0,S(a)*r0,face+z(r0)],[C(a)*r1,S(a)*r1,face+z(r1)],[C(b)*r1,S(b)*r1,face+z(r1)],[C(b)*r0,S(b)*r0,face+z(r0)],[.008,.008,.009],0,MAT.COL);}}
+    else{
+      /* a pressed steel wheel: a raised centre, six round vents, and a small chrome dog-dish cap over the nuts */
+      rev([[rimR*1.03,dish+.004],[rO*.9,.006],[rO*.56,.006],[rO*.48,.022],[.06,.022]],V(RIM,MAT.RIM));
+      for(let i=0;i<6;i++){const a=i/6*TAU+PI/6;hole([Math.cos(a)*rO*.73,Math.sin(a)*rO*.73],rO*.08,.0075);}
+      rev([[rO*.45,.026],[rO*.38,.05],[rO*.2,.066],[0,.07]],MM.CHROME);}
+    lugs=0;hubR=.05;}
   /* hub, cap, lug nuts (or the centre-lock nut) */
   tubeAB(mb,[0,0,face-.01],[0,0,face+.05],hubR,16,V(RIM,RM));
   if(lugs)for(let i=0;i<lugs;i++){const a=i/lugs*TAU+.3;tubeAB(mb,[Math.cos(a)*lugR,Math.sin(a)*lugR,face+.04],[Math.cos(a)*lugR,Math.sin(a)*lugR,face+.062],.01,6,MM.CHROME);}
@@ -2795,42 +3086,86 @@ function buildWheel(w){
 }
 
 /* =====================================================================================
-   THE FOUR TRUCKS. Each is a look: ride height, tyres and wheels, a face and a tail, and the
-   bolt-ons. Paint, mud and the lights are set at draw time, so they cost nothing to change.
+   THE BUILDS. Each is a look on one of the bodies: ride height, tyres and wheels, a face and a
+   tail, and the bolt-ons. Paint, mud and the lights are set at draw time, so they cost nothing to change.
    ===================================================================================== */
 const PAINTS=[
   ['Canyon Stone','#6a625b'],['Gunmetal','#4b4e53'],['Midnight','#141518'],['Desert Sand','#b39d7a'],
   ['Safety Orange','#d8611e'],['Forest','#2f4636'],['Oxide Red','#6e2a22'],['Race White','#e4e2dc']
 ];
 const BUILDS=[
-  {id:'stock',name:'Stock',tag:'As it left the factory',
+  {id:'stock',car:'suv',name:'Stock',tag:'As it left the factory',
     blurb:'The classic sleeper: 4.6 V8, chrome twin-bar face, factory six-spokes on 245/65R17 all-seasons, roof rails with crossbars.',
     paint:'#6a625b',paint2:'#8a1c1c',rim:'#b8bcc2',cal:'#3a3a3e',clad:'#3a3a3d',dirt:0,liv:0,
     look:{lift:0,track:1.60,archR:.445,archN:2.3,tyre:{R:.378,W:.245,rim:17,tyre:'hwy',style:'six',brake:'stock'},
       face:'classic',tail:'classic',flares:{w:.088,out:.03},roof:'bars',spoiler:'lip',exhaust:'single',susp:'ifs'},
     specs:[['Ride','Factory'],['Tyres','245/65R17 all-season'],['Wheels','17 in six-spoke alloy'],['Engine','4.6 V8']]},
-  {id:'sleeper',name:'Sleeper',tag:'Looks like church, runs sevens',
+  {id:'sleeper',car:'suv',name:'Sleeper',tag:'Looks like church, runs sevens',
     blurb:'The street sleeper: dropped two inches on 20-inch ten-spokes and big red brakes, split-mesh face, smoked lamps, hood scoop, lip, roof spoiler and LED tails.',
     paint:'#5f554b',paint2:'#c2241c',rim:'#7a1418',cal:'#c8241c',clad:'#1d1d20',dirt:0,liv:0,
     look:{lift:-.05,track:1.62,archR:.455,archN:2.3,skirt:1,tyre:{R:.372,W:.285,rim:20,tyre:'perf',style:'ten',brake:'big'},
       face:'street',tail:'led',flares:{w:.06,out:.014},roof:'rails',spoiler:'roof',exhaust:'dual',susp:'ifs',hood:'scoop',front:'lip',rear:'diffuser',
       extras:['pinstripe'],tintF:MM.GL,tintR:MM.GL},
     specs:[['Ride','Lowered 2 in'],['Tyres','285/45R20 performance'],['Wheels','20 in ten-spoke'],['Engine','Twin-turbo V6, 250 shot']]},
-  {id:'crawler',name:'Rock & Mud',tag:'Built for the bog and the ledges',
+  {id:'crawler',car:'suv',name:'Rock & Mud',tag:'Built for the bog and the ledges',
     blurb:'Six-inch lift and 37-inch mud-terrains on bronze beadlocks, solid axles on coilovers, steel bumpers with a winch and shackles, rock sliders, snorkel and an expedition rack.',
     paint:'#6a5a49',paint2:'#a8783c',rim:'#9a6a32',cal:'#3a3a3e',clad:'#2c2c2e',dirt:.62,liv:0,
     look:{lift:.15,track:1.74,archR:.5,archN:3.2,archH:.95,tyre:{R:.47,W:.318,rim:17,tyre:'mt',style:'bead',brake:'stock'},
       face:'back',tail:'back',flares:{w:.125,out:.1},roof:'rack',spoiler:'lip',exhaust:'crawl',susp:'solid',front:'steel',rear:'steel',
       extras:['sliders','snorkel','ditch','flaps'],springCol:V(lin('#c8301c'),MAT.METAL),mirrorCap:MM.PAINT},
     specs:[['Ride','6 in lift, solid axles'],['Tyres','37x12.5R17 mud-terrain'],['Wheels','17 in beadlock'],['Engine','7.4 big-block, Roots blower']]},
-  {id:'race',name:'Race',tag:'Everything for the stopwatch',
+  {id:'race',car:'suv',name:'Race',tag:'Everything for the stopwatch',
     blurb:'A full race build: bolted widebody, slammed on 18-inch centre-locks and slicks, carbon splitter, canards and diffuser, a GT wing on swan necks, vented hood, roof scoop and side-exit exhaust.',
     paint:'#e4e2dc',paint2:'#d0261e',rim:'#d6a63a',cal:'#d6a63a',clad:'#1a1a1c',dirt:0,liv:1,
     look:{lift:-.1,track:1.76,archR:.47,archN:2.6,clad:false,tyre:{R:.345,W:.31,rim:18,tyre:'slick',style:'race',brake:'race'},
       face:'race',tail:'race',flares:{w:.17,out:.13,mat:MM.PAINT,bolts:1,a0:-.03,a1:1.03},roof:'none',spoiler:'wing',spoilerMat:MM.CARBON,exhaust:'side',susp:'ifs',
       hood:'vents',front:'race',rear:'race',extras:['skirts','raceKit'],mirror:'race',noHandles:1,noFuel:1,noMarkers:1,tintR:MM.GL,roofBlack:0},
-    specs:[['Ride','Slammed 4 in'],['Tyres','310/680R18 slick'],['Wheels','18 in centre-lock'],['Engine','Twin-turbo big-block']]}
+    specs:[['Ride','Slammed 4 in'],['Tyres','310/680R18 slick'],['Wheels','18 in centre-lock'],['Engine','Twin-turbo big-block']]},
+  {id:'trail',car:'trail',name:'Stock',tag:'Off-road from the factory',
+    blurb:'Off-road from the factory: a short two-door on a ladder frame with solid axles and a two-speed transfer case, 33-inch all-terrains on 17-inch five-spokes, steel bumpers with red shackles, rock rails, a roof rack and the spare on the door.',
+    paint:'#4a5238',paint2:'#a8783c',rim:'#3c3f42',cal:'#3a3a3e',clad:'#232325',dirt:0,liv:0,
+    look:{body:'trail',lift:0,track:1.45,archR:.50,archN:3.0,archH:.96,tyre:{R:.415,W:.265,rim:17,tyre:'at',style:'five',brake:'stock'},
+      face:'trail',tail:'trail',flares:{w:.12,out:.07},roof:'none',exhaust:'single',susp:'solid',rearClad:false,front:'trail',rear:'trail',
+      extras:['spare','rails','flatRack'],spare:{back:.06,y:1.11},mirrorCap:MM.TRIM,handles:MM.TRIM},
+    specs:[['Ride','Factory, solid axles'],['Tyres','265/75R17 all-terrain'],['Wheels','17 in five-spoke'],['Engine','4.0 inline-six']]},
+  {id:'trailRig',car:'trail',name:'Crawler',tag:'Built for the rocks',
+    blurb:'A rock crawler: a 4.5-inch lift on long-travel coilovers, 37-inch mud-terrains on black beadlocks, trimmed tube fenders, a stubby winch bumper, rock sliders, a high-clearance rear with a swing-out carrier, a vented hood and an exo-cage with a light bar.',
+    paint:'#4a5238',paint2:'#a8783c',rim:'#1d1d1f',cal:'#3a3a3e',clad:'#232325',dirt:.4,liv:0,
+    look:{body:'trail',lift:.11,track:1.62,archR:.58,archN:3.4,archH:.95,tyre:{R:.47,W:.318,rim:17,tyre:'mt',style:'bead',brake:'stock'},
+      face:'trail',tail:'trail',flares:{w:.06,out:.03},roof:'none',exhaust:'crawl',susp:'solid',rearClad:false,front:'stubby',rear:'rig',hood:'vents',hoodPins:false,
+      extras:['spare','sliders','cage'],spare:{back:.2,y:1.12},springCol:V(lin('#2f74c8'),MAT.METAL),mirrorCap:MM.TRIM,handles:MM.TRIM},
+    specs:[['Ride','4.5 in lift, long-travel'],['Tyres','37x12.5R17 mud-terrain'],['Wheels','17 in beadlock'],['Engine','6.2 V8 swap']]},
+  {id:'coupe',car:'coupe',name:'Stock',tag:'A track car with plates',
+    blurb:'A track car with plates: a long-hood fastback with a flat-plane V8, 20-inch split five-spokes on performance tyres, big brakes with red calipers, a honeycomb grille, a splitter lip, hood vents and four tips in a wide diffuser.',
+    paint:'#a9adb3',paint2:'#c2241c',rim:'#c9ccd1',cal:'#c8241c',clad:'#1a1a1c',dirt:0,liv:0,
+    look:{body:'coupe',lift:0,track:1.64,archR:.41,archN:2.2,clad:false,tyre:{R:.35,W:.275,rim:20,tyre:'perf',style:'split',brake:'big'},
+      face:'coupe',tail:'coupe',roof:'none',exhaust:'quad',susp:'ifs',mirror:'race',front:'lip',lipLine:false,rear:'coupeDiff',hood:'coupe',tintR:MM.GL},
+    specs:[['Ride','Factory, track-tuned'],['Tyres','275/35R20 performance'],['Wheels','20 in split five-spoke'],['Engine','5.2 flat-plane V8']]},
+  {id:'coupeGT',car:'coupe',name:'GT',tag:'Everything for the stopwatch',
+    blurb:'A GT race car: a riveted widebody, slicks on 18-inch gold centre-locks, a carbon splitter with canards, a swan-neck wing, louvred hood vents and pins, a roof scoop, side pipes and quads, and twin stripes over a blank roundel.',
+    paint:'#e4e2dc',paint2:'#d0261e',rim:'#c9a24a',cal:'#d0261e',clad:'#1a1a1c',dirt:0,liv:2,
+    look:{body:'coupe',lift:-.05,track:1.76,archR:.43,archN:2.4,clad:false,tyre:{R:.345,W:.31,rim:18,tyre:'slick',style:'race',brake:'race'},
+      face:'coupe',tail:'coupe',flares:{w:.15,out:.10,mat:MM.PAINT,bolts:1,a0:-.03,a1:1.03},roof:'none',spoiler:'gt',spoilerMat:MM.CARBON,exhaust:['side','quad'],susp:'ifs',mirror:'race',
+      front:'race',rear:'coupeDiff',hood:'vents',extras:['skirts','raceKit'],raceNum:'',noHandles:1,noFuel:1,tintR:MM.GL},
+    specs:[['Ride','Slammed 2 in'],['Tyres','310/680R18 slick'],['Wheels','18 in centre-lock'],['Engine','5.5 flat-plane V8']]},
+  {id:'wagon',car:'wagon',name:'Stock',tag:'Nobody looks twice',
+    blurb:'The family wagon nobody looks at twice: champagne paint, hubcaps, roof rails and rub strips. Underneath, a turbo five and all-wheel drive from the factory; the only tells are the brakes behind the hubcaps and two small tips under the bumper.',
+    paint:'#b9a98a',paint2:'#8a1c1c',rim:'#c3c6cb',cal:'#3a3a3e',clad:'#2a2a2c',dirt:0,liv:0,
+    look:{body:'wagon',lift:0,track:1.54,archR:.39,archN:2.2,clad:false,tyre:{R:.33,W:.205,rim:16,tyre:'hwy',style:'cap',brake:'stock'},
+      face:'wagon',tail:'wagon',roof:'rails',railCol:V(lin('#a9adb3'),MAT.METAL),exhaust:'tuck',susp:'ifs',extras:['rubstrip'],handles:MM.PAINT,tintR:MM.GLL},
+    specs:[['Ride','Factory'],['Tyres','205/60R16 touring'],['Wheels','16 in with hubcaps'],['Engine','2.5 turbo five, AWD']]},
+  {id:'wagonSleeper',car:'wagon',name:'Sleeper',tag:'Still nobody looks twice',
+    blurb:'Still the family wagon. The hubcaps are gone for black steelies with dog-dish caps on drag radials, it sits a little lower, the rear glass is dark, and if you look hard there is an intercooler behind the bumper and one fat pipe under it.',
+    paint:'#b9a98a',paint2:'#8a1c1c',rim:'#141416',cal:'#3a3a3e',clad:'#2a2a2c',dirt:0,liv:0,
+    look:{body:'wagon',lift:-.035,track:1.56,archR:.4,archN:2.2,clad:false,tyre:{R:.34,W:.245,rim:15,tyre:'perf',style:'steel',brake:'big'},
+      face:'wagon',tail:'wagon',roof:'rails',railCol:V(lin('#a9adb3'),MAT.METAL),exhaust:'big',susp:'ifs',extras:['rubstrip'],handles:MM.PAINT,ic:1,tintR:MM.GL},
+    specs:[['Ride','Lowered 1.5 in'],['Tyres','245/60R15 drag radial'],['Wheels','15 in steel, dog-dish caps'],['Engine','2.5 big-turbo five, 75 shot']]}
 ];
+
+/* the four cars; each build belongs to one */
+const CARS=[['suv','SUV'],['trail','4x4'],['coupe','Coupe'],['wagon','Wagon']];
+const carName=b=>CARS.find(c=>c[0]===b.car)[1];
+const carBuilds=car=>BUILDS.map((b,i)=>b.car===car?i:-1).filter(i=>i>=0);
 
 /* =====================================================================================
    THE STAGE — two photo studios. The dark bay is the Shiftlight garage: a glossy floor, a
@@ -2867,7 +3202,7 @@ function buildStage(kind){
 }
 
 /* =====================================================================================
-   THE MODEL BAY — one truck on the turntable (or all four in a grid), drawn into the scene
+   THE MODEL BAY — one car on the turntable (or all of a car's builds at once), drawn into the scene
    target at matrix resolution and turned into LED dots by Shiftlight 2's present().
    ===================================================================================== */
 const VIEWS=[['front34','Front ¾',-38,8,8.6,.86],['side','Side',90,2.5,8.4,.82],['rear34','Rear ¾',142,9,8.6,.86],
@@ -2876,6 +3211,7 @@ const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
 const APP={build:0,view:'front34',compare:false,stage:'dark',lights:false,steer:false,spin:false,yaw:0,paint:{},dirt:{},
   cam:{th:-38,ph:8,d:8.6,ty:.86},camT:null,fov:.5,t:0,frameMs:0,fps:60,tris:0};
 try{const s=JSON.parse(store.get('dsmini-bay','{}'));for(const k of ['build','view','stage','lights','steer','compare'])if(s[k]!==undefined)APP[k]=s[k];if(s.paint)APP.paint=s.paint;if(s.dirt)APP.dirt=s.dirt;}catch(e){}
+if(!(APP.build>=0&&APP.build<BUILDS.length))APP.build=0;
 const saveApp=()=>store.set('dsmini-bay',JSON.stringify({build:APP.build,view:APP.view,stage:APP.stage,lights:APP.lights,steer:APP.steer,compare:APP.compare,paint:APP.paint,dirt:APP.dirt}));
 /* ---------- meshes, built on demand ---------- */
 const TRUCK={};
@@ -2929,6 +3265,8 @@ function renderOne(i,vp,cam){
   const live=i===APP.build&&!!ENG.sim;let Mb=Mc;
   if(live){const pv=.62;Mb=M4.mul(Mc,M4.mul(M4T(0,pv+ENG.shake[1],ENG.shake[0]),M4.mul(M4RX(ENG.roll),M4.mul(M4RZ(ENG.pitch),M4T(0,-pv,0)))));}
   gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);
+  /* a bare spare on the back is the build's own wheel, turned to face rearward */
+  if(D.spare){gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(D.spare.p[0],D.spare.p[1],D.spare.p[2]),M4RY(-PI/2))));drawMesh(T.wheel);}
   if(live&&ENG.flame>.04&&D.tips)for(const tp of D.tips){
     const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,ENG.flame),fl=(.12+.42*k*ENG.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
@@ -2945,12 +3283,14 @@ function render(dt){
   const T=sceneTarget();gl.bindFramebuffer(gl.FRAMEBUFFER,T.f);gl.viewport(0,0,T.w,T.h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);gl.useProgram(P_LIT.p);
   let tris=0;
-  if(APP.compare){const w=T.w>>1,h=T.h>>1;
-    for(let q=0;q<4;q++){const c=Object.assign({},APP.cam,{ty:APP.cam.ty+truck(q).D.dy*.55});tris+=renderOne(q,[(q&1)*w,(q<2?1:0)*h,w,h],camFor(c,w/h));}
-    for(let q=0;q<4;q++){const x=(q&1)*(W>>1)+4,y=(q<2?0:H>>1)+3;otxt5(BUILDS[q].name.toUpperCase(),x,y,q===APP.build?GR.volt:GR.steel,1);}
-    hRect(W>>1,0,1,H,pack(0,0,0,255));hRect(0,H>>1,W,1,pack(0,0,0,255));}
+  if(APP.compare){
+    /* every build of this car: four in a 2x2 grid, two stacked */
+    const list=carBuilds(BUILDS[APP.build].car),n=list.length,cols=n>2?2:1,rows=Math.ceil(n/cols),w=Math.floor(T.w/cols),h=Math.floor(T.h/rows),cw=Math.floor(W/cols),ch=Math.floor(H/rows);
+    list.forEach((q,k)=>{const c=Object.assign({},APP.cam,{ty:APP.cam.ty+truck(q).D.dy*.55,d:APP.cam.d*(cols===1&&rows>1?.66:1)});tris+=renderOne(q,[(k%cols)*w,(rows-1-Math.floor(k/cols))*h,w,h],camFor(c,w/h));});
+    list.forEach((q,k)=>otxt5(BUILDS[q].name.toUpperCase(),(k%cols)*cw+4,Math.floor(k/cols)*ch+3,q===APP.build?GR.volt:GR.steel,1));
+    for(let c=1;c<cols;c++)hRect(cw*c,0,1,H,pack(0,0,0,255));for(let r=1;r<rows;r++)hRect(0,ch*r,W,1,pack(0,0,0,255));}
   else{tris=renderOne(APP.build,[0,0,T.w,T.h],camFor(curCam(),T.w/T.h));
-    const b=BUILDS[APP.build],sc=W>=400?2:1;otxt5(b.name.toUpperCase(),5,5,GR.volt,sc,'l',.12);txt3(b.tag.toUpperCase(),5,7+7*sc+2,PAL.ink);
+    const b=BUILDS[APP.build],sc=W>=400?2:1;otxt5((carName(b)+' '+b.name).toUpperCase(),5,5,GR.volt,sc,'l',.12);txt3(b.tag.toUpperCase(),5,7+7*sc+2,PAL.ink);
     engineHud();}
   gl.bindVertexArray(null);
   APP.tris=tris;
@@ -2968,32 +3308,44 @@ cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('wheel',e=>{e.preventDefault();APP.camT=null;APP.cam.d=clamp(APP.cam.d*Math.exp(e.deltaY*.0012),3.5,16);},{passive:false});
 cv.addEventListener('dblclick',()=>setView(APP.view||'front34'));
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.metaKey||e.ctrlKey||e.altKey)return;
-  if(e.code==='BracketLeft'||e.code==='BracketRight'){setBuild((APP.build+(e.code==='BracketRight'?1:3))%4);}
+  if(e.code==='BracketLeft'||e.code==='BracketRight'){setBuild((APP.build+(e.code==='BracketRight'?1:BUILDS.length-1))%BUILDS.length);}
   else if(e.key==='c'||e.key==='C')setCompare(!APP.compare);else if(e.key==='l'||e.key==='L')toggle('lights');
   else if(e.key==='ArrowLeft'){APP.cam.th+=6;markView(null);}else if(e.key==='ArrowRight'){APP.cam.th-=6;markView(null);}});
 /* ---------- the dock ---------- */
-function setBuild(i){APP.build=i;engineFor(i);for(const [k,el] of [...$('builds').children].entries())el.setAttribute('aria-pressed',String(k===i));syncDock();saveApp();}
+function setBuild(i){APP.build=i;engineFor(i);if($('builds').dataset.car!==BUILDS[i].car)fillBuilds();
+  for(const el of $('builds').children)el.setAttribute('aria-pressed',String(+el.dataset.i===i));
+  for(const el of $('cars').children)el.setAttribute('aria-pressed',String(el.dataset.v===BUILDS[i].car));syncDock();saveApp();}
+/* a car remembers the build it was last on */
+const CAR_LAST={};
+function setCar(car){if(BUILDS[APP.build].car===car)return;CAR_LAST[BUILDS[APP.build].car]=APP.build;setBuild(CAR_LAST[car]!==undefined?CAR_LAST[car]:carBuilds(car)[0]);if(APP.compare)setCompare(true);}
+function fillBuilds(){
+  const bx=$('builds'),car=BUILDS[APP.build].car,list=carBuilds(car);bx.dataset.car=car;bx.textContent='';bx.style.gridTemplateColumns='repeat('+list.length+',minmax(0,1fr))';
+  for(const i of list){const b=BUILDS[i],el=document.createElement('button');el.type='button';el.className='bld';el.dataset.i=String(i);el.innerHTML='<b></b><small></small>';
+    el.querySelector('b').textContent=b.name;el.querySelector('small').textContent=b.tag;
+    el.setAttribute('aria-pressed',String(i===APP.build));el.addEventListener('click',()=>setBuild(i));bx.appendChild(el);}
+}
 function setView(id){const v=VIEWS.find(q=>q[0]===id);if(!v)return;APP.view=id;APP.camT={th:v[2],ph:v[3],d:v[4],ty:v[5]};
   /* go round the short way */
   while(APP.camT.th-APP.cam.th>180)APP.camT.th-=360;while(APP.camT.th-APP.cam.th<-180)APP.camT.th+=360;
   if(APP.spin){APP.spin=false;$('spin').setAttribute('aria-pressed','false');}
   APP.yaw=0;markView(id);saveApp();}
 function markView(id){if(id===null)APP.view=null;for(const el of $('views').children)el.setAttribute('aria-pressed',String(el.dataset.v===id));}
-function setCompare(on){APP.compare=on;$('cmp').setAttribute('aria-pressed',String(on));if(on)for(let i=0;i<4;i++)truck(i);saveApp();}
+function setCompare(on){APP.compare=on;$('cmp').setAttribute('aria-pressed',String(on));if(on)for(const i of carBuilds(BUILDS[APP.build].car))truck(i);saveApp();}
 function toggle(k){APP[k]=!APP[k];$(k).setAttribute('aria-pressed',String(APP[k]));saveApp();}
 function syncDock(){
   const b=BUILDS[APP.build],p=APP.paint[b.id]||b.paint;
   for(const el of $('paints').children)el.setAttribute('aria-pressed',String(el.dataset.c===p));
   $('mud').value=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt;
   if(ENG.tab==='engine'){const e=specOf(APP.build),r=ENGINE_OF[b.id];
-    $('info').innerHTML='<b>'+b.name+' engine.</b> '+r.desc+' <b>'+fmt(Math.round(e.peak.hp))+' hp</b> at '+fmt(Math.round(e.peak.rpm/50)*50)+' rpm · <b>'+fmt(Math.round(e.peak.tq*.7376))+' lb-ft</b> · redline '+fmt(e.redline)+'. <span class="st">'+(ENG.status||'Sound starts when you start the engine.')+'</span>';}
-  else $('info').innerHTML='<b>'+b.name+'.</b> '+b.blurb+' '+b.specs.map(s=>'<b>'+s[0]+'</b> '+s[1]).join(' · ');
+    $('info').innerHTML='<b>'+carName(b)+' '+b.name+' engine.</b> '+r.desc+' <b>'+fmt(Math.round(e.peak.hp))+' hp</b> at '+fmt(Math.round(e.peak.rpm/50)*50)+' rpm · <b>'+fmt(Math.round(e.peak.tq*.7376))+' lb-ft</b> · redline '+fmt(e.redline)+'. <span class="st">'+(ENG.status||'Sound starts when you start the engine.')+'</span>';}
+  else $('info').innerHTML='<b>'+carName(b)+' · '+b.name+'.</b> '+b.blurb+' '+b.specs.map(s=>'<b>'+s[0]+'</b> '+s[1]).join(' · ');
   syncEngineDock();
   requestAnimationFrame(layout);
 }
 function buildDock(){
-  const bx=$('builds');BUILDS.forEach((b,i)=>{const el=document.createElement('button');el.type='button';el.className='bld';el.innerHTML='<b>'+b.name+'</b><small>'+b.tag+'</small>';
-    el.setAttribute('aria-pressed',String(i===APP.build));el.addEventListener('click',()=>setBuild(i));bx.appendChild(el);});
+  const cx=$('cars');for(const [id,n] of CARS){const el=document.createElement('button');el.type='button';el.dataset.v=id;el.textContent=n;
+    el.setAttribute('aria-pressed',String(id===BUILDS[APP.build].car));el.addEventListener('click',()=>setCar(id));cx.appendChild(el);}
+  fillBuilds();
   const vx=$('views');for(const [id,n] of VIEWS){const el=document.createElement('button');el.type='button';el.dataset.v=id;el.textContent=n;el.addEventListener('click',()=>setView(id));vx.appendChild(el);}
   const px=$('paints');for(const [n,c] of PAINTS){const el=document.createElement('button');el.type='button';el.dataset.c=c;el.title=n;el.setAttribute('aria-label',n);el.style.background=c;
     el.addEventListener('click',()=>{APP.paint[BUILDS[APP.build].id]=c;syncDock();saveApp();});px.appendChild(el);}
@@ -3079,7 +3431,7 @@ else{
   if(APP.compare)setCompare(true);
   addEventListener('resize',resize);
   requestAnimationFrame(frame);
-  window.__bay={APP,ENG,BUILDS,SIM,specOf,startEngine,setMode,setTab,engineFrame,truck,render,setBuild,setView,setCompare,setRes,present,
+  window.__bay={APP,ENG,BUILDS,BODIES,SIM,specOf,suvDesign,secRing,startEngine,setMode,setTab,engineFrame,truck,render,setBuild,setView,setCompare,setRes,present,
     shot(o){Object.assign(APP,o.app||{});if(o.cam)Object.assign(APP.cam,o.cam);APP.camT=null;render(1/60);return true;},
     snap(){render(1/60);return cv.toDataURL('image/png');},bench(n=5){gl.finish();const t=performance.now();for(let i=0;i<n;i++)render(1/60);gl.finish();return (performance.now()-t)/n;}};
 }
