@@ -212,7 +212,7 @@
     { id: "spoiler", cat: "body", name: "Roof spoiler", opts: [
       { v: 1, n: "Factory lip", d: "A short lip over the rear glass.", price: 0 },
       { v: 0, n: "Shaved", d: "No spoiler at all.", price: 100, mass: -2 },
-      { v: 2, n: "Big wing", d: "A tall wing on stands with end plates.", price: 650, mass: 6, loud: 12 }
+      { v: 2, n: "Big roof spoiler", d: "Carries the roofline back past the glass and tips it down, with fins down each side.", price: 650, mass: 6, loud: 10 }
     ] },
     { id: "interior", cat: "body", name: "Interior", opts: [
       { v: "stock", n: "Factory leather", d: "Heated seats, third row, the works.", price: 0 },
@@ -237,7 +237,7 @@
     ] },
     { id: "accent", cat: "paint", name: "Accent", opts: [
       { v: "none", n: "None", d: "", price: 0 },
-      { v: "red", n: "Red", d: "A pinstripe on the rockers, splitter, diffuser, wing and wheel lips, and calipers to match.", price: 250, loud: 3, col: [0.62, 0.025, 0.02] },
+      { v: "red", n: "Red", d: "A pinstripe on the rockers, splitter, diffuser, spoiler and wheel lips, and calipers to match.", price: 250, loud: 3, col: [0.62, 0.025, 0.02] },
       { v: "copper", n: "Copper", d: "The same lines in burnished copper.", price: 250, loud: 3, col: [0.55, 0.25, 0.1] }
     ] },
     { id: "trim", cat: "paint", name: "Trim", opts: [
@@ -258,7 +258,7 @@
   /* three finished looks, one click each: only the parts you can see (and the wheels, tyres and ride height under them) */
   var LOOKS = [
     { id: "classic", name: "Classic Sleeper", blurb: "Bronze-grey paint, the chrome twin-bar face, six-spoke alloys, factory cladding and the little lip. Looks like it's going to church.", build: { paint: "bronze", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "stock18", tyre: "street32", susp: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0 } },
-    { id: "street", name: "Street Sleeper", blurb: "Gunmetal, dropped two inches on 20-inch ten-spokes with red calipers. Split-mesh face, smoked lamps, LED tails, a splitter, a diffuser, a wing and red pinstripes.", build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", livery: 0, tint: "limo", wheel: "street20", tyre: "street32", susp: "lowered", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "diffuser", hood: "stock", snorkel: 0 } },
+    { id: "street", name: "Street Sleeper", blurb: "Gunmetal, dropped two inches on 20-inch ten-spokes with red calipers. Split-mesh face, smoked lamps, LED tails, a splitter, a diffuser, a big roof spoiler and red pinstripes.", build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", livery: 0, tint: "limo", wheel: "street20", tyre: "street32", susp: "lowered", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "diffuser", hood: "stock", snorkel: 0 } },
     { id: "backcountry", name: "Backcountry", blurb: "Canyon stone on bronze discs and all-terrains, a leveling kit, wide black flares, quad round lamps, recovery shackles and the expedition rack.", build: { paint: "stone", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "bronze17", tyre: "at33", susp: "level", flares: 2, sides: "cladding", spoiler: 0, roof: "expedition", front: "recovery", rear: "stock", hood: "stock", snorkel: 0 } }
   ];
   function optOf(b, id) {

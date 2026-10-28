@@ -10,7 +10,7 @@ shop's **Looks** tab:
 
 - **Classic Sleeper**: bronze-grey, chrome twin-bar face, six-spoke alloys, the factory lip.
 - **Street Sleeper**: gunmetal, lowered on 20-inch ten-spokes with red calipers, split-mesh face,
-  smoked lamps, LED ring tails, splitter, diffuser, wing and red pinstripes.
+  smoked lamps, LED ring tails, splitter, diffuser, roof spoiler and red pinstripes.
 - **Backcountry**: canyon stone on bronze discs and all-terrains, quad round lamps in a slatted
   black panel, wide bolted flares, recovery shackles and an expedition rack.
 
