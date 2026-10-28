@@ -1,0 +1,125 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dirt Sleeper Mini</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Saira:wght@400;500&display=swap">
+<style>
+/* Dirt Sleeper Mini: the model bay. A lit dot-matrix sign in a dark shed, dark-only by design.
+   The truck renders on Shiftlight 2's LED pipeline; the controls sit under it in a dock. */
+:root{
+  --bg:#07070b;--panel:#111119;--raised:#191924;--ink:#efeaf6;--ink-2:#a8a2b8;--ink-3:#6c6880;
+  --edge:rgba(255,255,255,.12);--edge-2:rgba(255,255,255,.22);--accent:#ff3d5a;--amber:#ffb43c;--cyan:#4fe3ff;
+  --f:"Chakra Petch","Arial Narrow",system-ui,sans-serif;--fb:"Saira",system-ui,-apple-system,sans-serif;color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none}
+body{font:400 13px/1.4 var(--fb);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#gl.drag{cursor:grabbing}
+#sa{position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+.bar{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;pointer-events:none;
+  padding:max(10px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.brand{font:700 14px/1 var(--f);letter-spacing:.3em;color:var(--accent);text-shadow:0 0 12px rgba(255,61,90,.5);white-space:nowrap}
+.brand span{color:var(--ink-2);letter-spacing:.2em;font-weight:500;font-size:10px;margin-left:8px;text-shadow:none}
+@media (max-width:560px){.brand span{display:none}.brand{font-size:12px;letter-spacing:.2em}}
+.opts{display:flex;gap:8px;align-items:center}
+.chip{pointer-events:auto;height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--edge);background:var(--panel);color:var(--ink);cursor:pointer;
+  font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat{pointer-events:none;font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:640px){.stat{display:none}}
+/* the dock */
+#dock{position:fixed;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:8px;
+  padding:10px max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:linear-gradient(to top,rgba(7,7,11,.96) 70%,rgba(7,7,11,0));max-width:1280px;margin:0 auto}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.builds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.bld{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:8px 10px 7px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
+.bld b{font:700 13px/1 var(--f);letter-spacing:.12em;text-transform:uppercase}
+.bld small{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bld[aria-pressed="true"]{border-color:var(--accent);background:linear-gradient(180deg,rgba(255,61,90,.16),var(--panel));}
+.bld[aria-pressed="true"] small{color:var(--ink-2)}
+@media (max-width:560px){.bld small{display:none}.bld b{font-size:11px;letter-spacing:.06em}}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:999px;padding:2px;background:var(--panel);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{border:0;background:none;height:28px;padding:0 10px;border-radius:999px;cursor:pointer;font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--edge-2) inset}
+.tog{height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--edge);background:var(--panel);cursor:pointer;font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
+.tog[aria-pressed="true"]{color:var(--amber);border-color:rgba(255,180,60,.6)}
+.tog.cmp[aria-pressed="true"]{color:var(--cyan);border-color:rgba(79,227,255,.6)}
+.sw{display:inline-flex;gap:5px;align-items:center;padding:0 2px}
+.sw button{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.15);cursor:pointer;padding:0}
+.sw button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ink-2)}
+.mud{display:inline-flex;align-items:center;gap:7px;font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.mud input{width:90px;accent-color:#9a6a32}
+.info{margin:0;color:var(--ink-2);font-size:12px;max-width:110ch}
+.info b{color:var(--ink);font-weight:500}
+.info .st{color:var(--ink-3)}
+.spacer{flex:1}
+.inl{display:contents}
+.tabs button[aria-pressed="true"]{color:var(--accent)}
+.tog kbd,.keys kbd{font:600 9.5px/1 var(--f);color:var(--ink-3);border:1px solid var(--edge);border-radius:4px;padding:2px 4px;margin-left:6px}
+.keys kbd{margin:0 1px}
+.tog.on{color:var(--amber);border-color:rgba(255,180,60,.75);background:var(--raised)}
+.tog[data-tone="red"].on{color:var(--accent);border-color:rgba(255,61,90,.75)}
+.tog[data-tone="cyan"].on{color:var(--cyan);border-color:rgba(79,227,255,.75)}
+.tog:disabled{opacity:.35;cursor:default}
+.power{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+.power i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.power[aria-pressed="true"]{border-color:rgba(93,255,122,.6)}
+.power[aria-pressed="true"] i{background:#5dff7a;box-shadow:0 0 8px #5dff7a}
+.pad{position:relative;flex:1 1 240px;min-width:150px;height:40px;border-radius:10px;border:1px solid var(--edge-2);background:var(--panel);overflow:hidden;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.padFill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(255,180,60,.15),rgba(255,180,60,.55) 70%,rgba(255,61,90,.75))}
+.pad span{position:absolute;inset:0;display:grid;place-items:center;font:600 10.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);pointer-events:none;text-align:center;padding:0 8px}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.keys{font-size:11px;color:var(--ink-3);line-height:1.9}
+@media (hover:none),(max-width:720px){.keys{display:none}.tog kbd{display:none}}
+.mud.vol input{accent-color:var(--amber)}
+
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:500 14px/1.6 var(--f);color:var(--ink-2)}
+</style></head><body>
+<canvas id="gl" aria-label="The truck on a turntable, drawn on an LED dot matrix. Drag to turn the view."></canvas>
+<div id="sa"></div>
+<div class="bar">
+  <span class="brand">DIRT SLEEPER MINI<span>MODEL BAY</span></span>
+  <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="res" type="button">Dots 640×360</button></div>
+</div>
+<div id="dock">
+  <div class="builds" id="builds"></div>
+  <div class="row">
+    <div class="seg tabs" id="tabs" role="group" aria-label="Panel"><button type="button" data-v="look" aria-pressed="true">Look</button><button type="button" data-v="engine" aria-pressed="false">Engine</button></div>
+    <div class="inl" data-p="look">
+      <div class="seg" id="views" role="group" aria-label="View"></div>
+      <button class="tog cmp" id="cmp" type="button" aria-pressed="false">All four</button>
+    </div>
+    <div class="inl" data-p="engine" hidden>
+      <button class="tog power" id="power" type="button" aria-pressed="false"><i></i><span id="powerLbl">Start engine</span><kbd>I</kbd></button>
+      <div class="seg" id="segMode" role="group" aria-label="Mode"><button type="button" data-v="free" aria-pressed="true">Free rev</button><button type="button" data-v="drive" aria-pressed="false">Drive</button></div>
+      <div class="seg" id="segListen" role="group" aria-label="Where you listen"></div>
+    </div>
+  </div>
+  <div class="row" data-p="look">
+    <div class="sw" id="paints" role="group" aria-label="Paint"></div>
+    <label class="mud" for="mud">Mud <input id="mud" type="range" min="0" max="1" step="0.01"></label>
+    <button class="tog" id="lights" type="button" aria-pressed="false">Lights</button>
+    <button class="tog" id="steer" type="button" aria-pressed="false">Steer</button>
+    <button class="tog" id="spin" type="button" aria-pressed="false">Spin</button>
+    <div class="seg" id="stage" role="group" aria-label="Studio"><button type="button" data-v="dark" aria-pressed="true">Dark bay</button><button type="button" data-v="light" aria-pressed="false">Light cyc</button></div>
+  </div>
+  <div class="row" data-p="engine" hidden>
+    <div class="pad" id="pad" role="slider" tabindex="0" aria-label="Throttle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="padFill" id="padFill"></div><span id="padLbl">Hold to rev</span></div>
+    <div class="btns" id="ebtns"></div>
+  </div>
+  <div class="row" data-p="engine" hidden>
+    <div class="seg" id="segRoom" role="group" aria-label="Room"><button type="button" data-v="open">Open air</button><button type="button" data-v="garage">Garage</button><button type="button" data-v="tunnel">Tunnel</button></div>
+    <label class="mud vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label>
+    <span class="keys" id="keys"><kbd>Space</kbd> throttle · <kbd>1</kbd>–<kbd>9</kbd> part throttle · <kbd>S</kbd> brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>N</kbd> nitrous · <kbd>P</kbd> purge · <kbd>B</kbd> blip · <kbd>V</kbd> where you listen</span>
+  </div>
+  <p class="info" id="info"></p>
+</div>
+<div id="err">This needs WebGL2, which this browser has turned off.</div>
+<script>
+(()=>{
+'use strict';
