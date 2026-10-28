@@ -2,6 +2,22 @@
   /* Everything you can bolt on, swap or paint, and how a build becomes an engine spec, a chassis,
      a look and a paint job. Prices are in dollars; mass in kg; "loud" is how much a part gives
      the game away to anyone looking (the sleeper meter counts it). */
+  /* paint colours for the truck. The first is the factory colour of the one in the driveway */
+  var SUV_PAINTS = {
+    bronze: { name: "Bronze-Grey Metallic", col: [0.2, 0.17, 0.135], metal: 0.75, rough: 0.3, flake: 0.85, price: 0 },
+    black: { name: "Midnight Black", col: [0.008, 0.008, 0.009], metal: 0.4, rough: 0.22, flake: 0.6, price: 900 },
+    pearl: { name: "Pearl White", col: [0.78, 0.77, 0.74], metal: 0.15, rough: 0.22, flake: 0.5, price: 1100 },
+    silver: { name: "Liquid Silver", col: [0.55, 0.56, 0.57], metal: 1, rough: 0.28, flake: 0.6, price: 900 },
+    candy: { name: "Candy Apple Red", col: [0.42, 0.012, 0.012], metal: 0.8, rough: 0.2, flake: 1, price: 1800 },
+    orange: { name: "Safety Orange", col: [0.85, 0.22, 0.02], metal: 0.1, rough: 0.28, flake: 0.2, price: 1200 },
+    lime: { name: "Toxic Lime", col: [0.32, 0.6, 0.02], metal: 0.5, rough: 0.25, flake: 0.8, price: 1500 },
+    sky: { name: "Baja Blue", col: [0.04, 0.2, 0.5], metal: 0.6, rough: 0.26, flake: 0.8, price: 1200 },
+    tan: { name: "Desert Tan", col: [0.42, 0.33, 0.21], metal: 0, rough: 0.45, flake: 0, price: 800 },
+    olive: { name: "Field Green", col: [0.09, 0.11, 0.055], metal: 0, rough: 0.5, flake: 0, price: 800 },
+    matte: { name: "Matte Black", col: [0.012, 0.012, 0.013], metal: 0, rough: 0.6, flake: 0, price: 1400 },
+    primer: { name: "Grey Primer", col: [0.2, 0.2, 0.2], metal: 0, rough: 0.75, flake: 0, price: 300 },
+    purple: { name: "Grape Soda", col: [0.16, 0.02, 0.3], metal: 0.8, rough: 0.22, flake: 1, price: 1600 }
+  };
   var TYRES = {
     street32: { R: 0.375, w: 0.245, tread: "street", track: 1.56, mass: 0, kPk: 0.11, aPk: 0.14, slide: 0.8, slideW: 0.6, If: 1 },
     at33: { R: 0.42, w: 0.285, tread: "at", track: 1.6, mass: 20, kPk: 0.13, aPk: 0.16, slide: 0.82, slideW: 0.7, If: 1 },

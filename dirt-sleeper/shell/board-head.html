@@ -1,0 +1,115 @@
+<title>Dirt Sleeper Sound Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<style>
+/* A mixing desk for the game's sound, in the same shop colours as the game. Scenes are manila tags,
+   buses are wide strips with meters, every sound is a card. Dark by design: it sits next to the game. */
+:root{
+  color-scheme:dark;
+  --bg:#13100c; --panel:#1d1813; --panel2:#262019; --edge:rgba(239,226,204,.12); --edge2:rgba(239,226,204,.22);
+  --ink:#f0e6d4; --dim:#a8997f; --faint:rgba(240,230,212,.55);
+  --tag:#e9d9b1; --tagInk:#2b2217; --tagEdge:#b9a47a;
+  --hivis:#ff6a1a; --hivis2:#ffa24d; --good:#97d36a; --amber:#ffb12e; --bad:#ff5440;
+  --display:"Big Shoulders Display","Arial Narrow","Roboto Condensed",Impact,sans-serif;
+  --body:"Barlow Semi Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;
+  --mono:"Courier Prime","Courier New",ui-monospace,monospace;
+}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 var(--body)}
+body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+button,input,select,textarea{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--hivis2);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 48px;display:flex;flex-direction:column;gap:22px}
+.btn{appearance:none;border:1px solid var(--edge2);background:var(--panel2);border-radius:4px;padding:8px 13px;font:700 14px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;min-height:38px;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--faint)}
+.btn.go{background:var(--hivis);border-color:var(--hivis);color:#1a0d04}
+.btn.on{border-color:var(--hivis);background:rgba(255,106,26,.18)}
+.btn.small{min-height:30px;padding:5px 9px;font-size:12px}
+.eyebrow{font:700 12px/1 var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:0 0 10px}
+h1{margin:0;font:900 clamp(30px,4.5vw,46px)/.95 var(--display);text-transform:uppercase;letter-spacing:.005em}
+h1 span{color:var(--hivis)}
+h2{margin:0;font:800 24px/1 var(--display);text-transform:uppercase}
+/* header */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--edge);padding-block:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.bar .lead{flex:1 1 280px;min-width:0}
+.bar .lead p{margin:4px 0 0;color:var(--dim);font-size:14px;max-width:62ch}
+.bar .ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mm{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:center;width:min(300px,100%)}
+.mm .k{font:700 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.mm .db{font:700 13px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--faint);min-width:5.5ch;text-align:right}
+.mm .db.clip{color:var(--bad)}
+/* meters */
+.meter{position:relative;height:10px;border-radius:3px;background:rgba(240,230,212,.08);overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--good) 0 70%,var(--amber) 70% 88%,var(--bad) 88%);background-size:var(--w,300px) 100%}
+.meter b{position:absolute;top:0;bottom:0;width:2px;left:0;background:var(--ink);opacity:.8}
+/* scenes: manila tags */
+.scenes{display:flex;flex-wrap:wrap;gap:8px}
+.tag{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 12px 9px 24px;background:var(--tag);color:var(--tagInk);border:1px solid var(--tagEdge);border-radius:3px 10px 10px 3px;cursor:pointer;max-width:240px}
+.tag::before{content:"";position:absolute;left:8px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--bg);box-shadow:0 0 0 2px #cdb98d}
+.tag b{font:800 16px/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.tag span{font-size:12.5px;line-height:1.25;color:#5a4a35}
+.tag.on{outline:3px solid var(--hivis);outline-offset:1px}
+/* the scene's knobs */
+.ctx{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px 18px;padding:14px;background:var(--panel);border:1px solid var(--edge);border-radius:6px}
+.row{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;min-width:0}
+.row>label,.row>.k{font:600 13px/1.2 var(--body);color:var(--dim)}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button{border:1px solid var(--edge2);background:transparent;border-radius:3px;padding:5px 8px;font:600 13px/1 var(--body);cursor:pointer}
+.seg button.on{border-color:var(--hivis);background:rgba(255,106,26,.18)}
+.sl{display:grid;grid-template-columns:1fr 6.5ch;gap:8px;align-items:center;min-width:0}
+.sl output{font:700 12.5px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--faint);text-align:right}
+input[type=range]{width:100%;accent-color:var(--hivis);min-width:0}
+select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;padding:6px 8px;min-width:0;max-width:100%}
+/* buses */
+.buses{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:10px}
+.strip{background:var(--panel);border:1px solid var(--edge);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.strip .hd{display:flex;align-items:center;gap:8px}
+.strip .hd h2{flex:1;font-size:21px}
+.strip .note{font-size:12.5px;color:var(--dim);margin:0}
+.strip.muted{opacity:.55}
+/* sound cards */
+.group{display:flex;flex-direction:column;gap:10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--edge);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.card.off{opacity:.5}
+.card.solo{border-color:var(--hivis)}
+.card .hd{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.card .hd h3{flex:1 1 140px;margin:0;font:800 19px/1.05 var(--display);text-transform:uppercase;min-width:0}
+.card .vars{display:flex;flex-wrap:wrap;gap:4px}
+.card .vars button{border:1px solid var(--edge2);background:transparent;border-radius:999px;padding:5px 10px;font:600 13px/1 var(--body);cursor:pointer}
+.card .vars button.on{background:var(--tag);color:var(--tagInk);border-color:var(--tagEdge)}
+.card .when{font-size:12.5px;color:var(--dim);margin:0}
+/* code */
+.code{background:var(--panel);border:1px solid var(--edge);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.code textarea{width:100%;box-sizing:border-box;min-height:64px;background:var(--bg);border:1px solid var(--edge2);border-radius:4px;padding:9px;font:12.5px/1.4 var(--mono);color:var(--ink);resize:vertical;word-break:break-all}
+.code ol{margin:0;padding-left:20px;color:var(--dim);font-size:14px}
+.code ol b{color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--edge2);border-radius:5px;padding:10px 14px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
+.modal{position:fixed;inset:0;background:rgba(10,8,5,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:30}
+.modal .box{background:var(--panel2);border:1px solid var(--edge2);border-radius:8px;padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:10px}
+.modal textarea{width:100%;box-sizing:border-box;min-height:90px;background:var(--bg);border:1px solid var(--edge2);border-radius:4px;padding:9px;font:12.5px/1.4 var(--mono);color:var(--ink)}
+.hint{color:var(--dim);font-size:13.5px;margin:0}
+@media (max-width:560px){.row{grid-template-columns:1fr}.bar{position:static}.bar .ctl{width:100%}.mm{width:100%}.scenes{display:grid;grid-template-columns:1fr 1fr}.tag{max-width:none}.tag span{font-size:12px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<div class="wrap">
+  <header class="bar">
+    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Pick a scene, then choose a version of each sound and set its level. The engine runs underneath so you can check the mix at idle and at redline. When it sounds right, copy the mix code into the game.</p></div>
+    <div class="ctl">
+      <button class="btn go" id="start">Start sound</button>
+      <div class="mm"><span class="k">Out</span><div class="meter" id="mMaster"><i></i><b></b></div><span class="db" id="dMaster">−∞</span></div>
+      <button class="btn" id="copy">Copy mix code</button><button class="btn" id="paste">Paste code</button><button class="btn" id="reset">Reset</button>
+    </div>
+  </header>
+  <section><p class="eyebrow">Scene</p><div class="scenes" id="scenes"></div><div class="ctx" id="ctx"></div></section>
+  <section><p class="eyebrow">Buses</p><div class="buses" id="buses"></div></section>
+  <section class="group" id="g-ground"><p class="eyebrow">Ground and tyres</p><div class="cards" id="c-ground"></div></section>
+  <section class="group" id="g-world"><p class="eyebrow">The world</p><div class="cards" id="c-world"></div></section>
+  <section class="group" id="g-ui"><p class="eyebrow">Shop and HUD</p><div class="cards" id="c-ui"></div></section>
+  <section class="code"><p class="eyebrow" style="margin:0">Mix code</p><textarea id="code" readonly spellcheck="false"></textarea>
+    <ol><li>Press <b>Copy mix code</b>.</li><li>In the game, open <b>Settings</b> (in the shop or from Pause), find <b>Sound mix</b>, paste it and press <b>Use this mix</b>.</li><li>The code holds every level, version and knob on this page. Changes save here automatically.</li></ol></section>
+</div>
+<script>
+(() => {

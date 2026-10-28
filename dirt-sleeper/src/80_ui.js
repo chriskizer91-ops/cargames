@@ -281,6 +281,19 @@
       av.innerHTML = `<span class="k">Ambience</span><input type="range" id="sAmb" min="0" max="1.5" step="0.05" value="${S.amb ?? 1}">`, p.appendChild(av), av.querySelector("input").oninput = (e) => {
         S.amb = +e.target.value, audio.setAmbVolume(S.amb), persist();
       };
+      /* a mix from the sound board */
+      let mx = el("div", "set mixset"), custom = !!readKey(MIX_KEY);
+      mx.innerHTML = `<span class="k">Sound mix</span><div class="mixbox"><p class="mixnow">${custom ? "Using your mix from the sound board." : "Using the default mix."}</p><textarea id="sMixCode" rows="2" placeholder="Paste a mix code from the sound board" spellcheck="false"></textarea><div class="acts"><button class="btn" id="sMixApply">Use this mix</button>${custom ? '<button class="btn ghost" id="sMixReset">Back to the default</button>' : ""}</div></div>`, p.appendChild(mx), mx.querySelector("#sMixApply").onclick = () => {
+        let v = mx.querySelector("textarea").value;
+        if (!v.trim()) return U.toast("Paste a code first", "bad", 1.8);
+        try {
+          setMixCode(v), mx.querySelector(".mixnow").textContent = "Using your mix from the sound board.", U.toast("Mix applied", "go", 1.6);
+        } catch (e) {
+          U.toast(e.message || "That code didn't work", "bad", 2.6);
+        }
+      }, mx.querySelector("#sMixReset") && (mx.querySelector("#sMixReset").onclick = () => {
+        setMixCode(null), mx.querySelector(".mixnow").textContent = "Using the default mix.", U.toast("Default mix", "", 1.4);
+      });
       let rs = el("div", "set"), rb = el("button", "btn ghost", FREE() ? "Reset free play" : "Start the campaign over");
       rs.appendChild(el("span", "k", "Save")), rs.appendChild(rb), rb.onclick = () => {
         rb.dataset.arm ? ((() => {

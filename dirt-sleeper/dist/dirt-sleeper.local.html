@@ -171,6 +171,11 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--hivis2);ou
 .seg button.on{border-color:var(--hivis);background:rgba(255,106,26,.16)}
 .set input[type=range]{width:100%;accent-color:var(--hivis)}
 .menu .keys{font-size:13px;line-height:1.7;color:var(--dim)}
+.mixset{align-items:start}
+.mixbox{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mixbox p{margin:0;font-size:13px;color:var(--dim)}
+.mixbox textarea{width:100%;box-sizing:border-box;background:rgba(240,230,212,.06);color:var(--ink);border:1px solid var(--edge);border-radius:4px;padding:7px 8px;font:12px/1.35 var(--mono);resize:vertical}
+.mixbox .acts{display:flex;gap:8px;flex-wrap:wrap}
 .menu .keys b{color:var(--ink)}
 /* ---------- result: the time slip ---------- */
 .res{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;justify-content:center;max-width:min(860px,100%)}
@@ -4464,7 +4469,9 @@ if(typeof module!=='undefined')module.exports=SIM;
         let p = this.p, g = this.g, sr = this.sr, k = 1 - Math.exp(-1 / (sr * 0.05)), sp = p.speed || 0, cab = p.cabin ? 1 : 0, wet = p.wet || 0, lat = p.lat || [0, 0, 0, 0], lon = p.lon || [0, 0, 0, 0], sqT = [0, 1, 2, 3].map((i) => {
           let side = ss(1.25, 2.1, lat[i]), spin = ss(2.8, 5.5, lon[i]);
           return Math.max(side * ss(2, 6, sp), spin * 0.8 * ss(0.5, 3, sp + lon[i])) * Math.min(1.2, (p.load[i] || 0) / 3600) * (1 - 0.95 * wet) * (p.sqK ? p.sqK[i] : 1);
-        }), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, windT = Math.min(1.2, (sp / 55) ** 2) * 0.35, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
+        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gWind = G("speedwind"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, windT = Math.min(1.2, (sp / 55) ** 2) * 0.35, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
+        dv !== this.dv && (this.dv = dv, this.grvF.set(dv === "coarse" ? 760 : 1150, 0.8, sr), this.grvF2.set(dv === "coarse" ? 330 : 520, 1, sr));
+        let gRate = dv === "coarse" ? [420, 65] : [700, 110], gDec = dv === "coarse" ? 0.986 : 0.975, gLvl = (dv === "coarse" ? 0.3 : dv === "packed" ? 0.085 : 0.24) * gDirt, pebK = dv === "coarse" ? 2.2 : dv === "packed" ? 0.4 : 1;
         for (let w = 0; w < 4; w++) {
           let v = this.sq[w];
           v.drift += (this.rnd() * 0.4 - v.drift * 0.05) * 0.15;
@@ -4480,52 +4487,52 @@ if(typeof module!=='undefined')module.exports=SIM;
           for (let w = 0; w < 4; w++) {
             let a = g.sq[w];
             if (a < 1e-4) continue;
-            let v2 = this.sq[w], s = (v2.bp.run(wn) * 1 + v2.bp2.run(wn) * 0.35) * a * 0.55;
+            let v2 = this.sq[w], s = (v2.bp.run(wn) * 1 + v2.bp2.run(wn) * 0.35) * a * 0.55 * gSq;
             w % 2 === 0 ? (l += s * 1.1, r += s * 0.7) : (l += s * 0.7, r += s * 1.1);
           }
-          let road = (this.road.run(pink) * 1.6 + this.road2.run(pink) * 0.6) * g.rd * (cab ? 0.7 : 1) * (1 - 0.6 * Math.min(1, lo)) + this.hissF.run(pink * 3) * g.hiss * (cab ? 0.3 : 1);
+          let road = ((this.road.run(pink) * 1.6 + this.road2.run(pink) * 0.6) * g.rd * (cab ? 0.7 : 1) * (1 - 0.6 * Math.min(1, lo)) + this.hissF.run(pink * 3) * g.hiss * (cab ? 0.3 : 1)) * gRoll;
           if (g.grv > 1e-3) {
             /* dirt under the tread: thousands of tiny grains a second through low-mid bands, so they fuse into a crunch */
-            Math.random() < (700 + sp * 110) * g.grv / sr && (this.grE += 0.35 + Math.random() * 0.65), this.grE *= 0.975;
+            Math.random() < (gRate[0] + sp * gRate[1]) * g.grv / sr && (this.grE += 0.35 + Math.random() * 0.65), this.grE *= gDec;
             let gr = wn * this.grE;
             let cr = this.grvF.run(gr) * 0.9 + this.grvF2.run(gr) * 0.75;
-            this.gl1 = (this.gl1 || 0) + 0.27 * (cr - (this.gl1 || 0)), this.gl2 = (this.gl2 || 0) + 0.27 * (this.gl1 - (this.gl2 || 0)), road += this.gl2 * Math.min(1, g.grv * 1.3) * 0.24 * (cab ? 0.6 : 1);
+            this.gl1 = (this.gl1 || 0) + 0.27 * (cr - (this.gl1 || 0)), this.gl2 = (this.gl2 || 0) + 0.27 * (this.gl1 - (this.gl2 || 0)), road += this.gl2 * Math.min(1, g.grv * 1.3) * gLvl * (cab ? 0.6 : 1);
             /* now and then a pebble flicked into a wheel well */
-            Math.random() < sp * 0.28 * lo / sr && this.ping(1500 + Math.random() * 1700, 0.025 + Math.random() * 0.025, (0.03 + Math.random() * 0.06) * (cab ? 0.8 : 0.5));
+            Math.random() < sp * 0.28 * lo * pebK / sr && this.ping((dv === "coarse" ? 1100 : 1500) + Math.random() * 1700, 0.025 + Math.random() * 0.025, (0.03 + Math.random() * 0.06) * (cab ? 0.8 : 0.5) * gDirt);
           }
-          lo > 0.01 && (road += this.rollF.run(pink * 2) * ss(1, 25, sp) * lo * 0.32 * (cab ? 0.85 : 1));
-          g.roar > 1e-3 && (road += this.roarF.run(pink * 2.2) * g.roar * (cab ? 0.6 : 1));
+          lo > 0.01 && (road += this.rollF.run(pink * 2) * ss(1, 25, sp) * lo * 0.32 * (cab ? 0.85 : 1) * gRoll);
+          g.roar > 1e-3 && (road += this.roarF.run(pink * 2.2) * g.roar * (cab ? 0.6 : 1) * gDirt);
           if (g.mud > 1e-3) {
-            this.mudPh += (3 + sp * 1.5) / sr;
+            this.mudPh += (thick ? 1.8 + sp * 0.9 : 3 + sp * 1.5) / sr;
             let lfo = 0.45 + 0.55 * Math.abs(Math.sin(this.mudPh * TAU2 * 0.5)) ** 3;
-            road += (this.mudF.run(wn) * 1.8 + this.mudF2.run(pink) * 0.9 * lfo) * g.mud * lfo * (cab ? 0.6 : 1);
-            Math.random() < g.mud * (2 + sp * 1.2) / sr && this.ping(110 + Math.random() * 190, 0.04 + Math.random() * 0.05, 0.12 + Math.random() * 0.12);
+            road += (this.mudF.run(wn) * 1.8 + this.mudF2.run(pink) * 0.9 * lfo) * g.mud * lfo * (cab ? 0.6 : 1) * gMud;
+            Math.random() < g.mud * (2 + sp * 1.2) * (thick ? 2.2 : 1) / sr && this.ping(thick ? 70 + Math.random() * 90 : 110 + Math.random() * 190, thick ? 0.06 + Math.random() * 0.06 : 0.04 + Math.random() * 0.05, (0.12 + Math.random() * 0.12) * gMud);
           }
           if (g.spl > 1e-3) {
             this.splSw = (this.splSw || 0) * 0.9997 + (Math.random() < 6 / sr ? 0.5 + Math.random() * 0.5 : 0);
-            road += (this.sloshF.run(pink * 2.5) * (0.5 + this.splSw) * 1.1 + this.splF.run(wn) * 0.35) * g.spl * (cab ? 0.55 : 1);
-            Math.random() < g.spl * 45 / sr && this.ping(380 + Math.random() * 900, 0.012 + Math.random() * 0.02, 0.05 + Math.random() * 0.05);
+            road += (this.sloshF.run(pink * 2.5) * (0.5 + this.splSw) * 1.1 + this.splF.run(wn) * 0.35) * g.spl * (cab ? 0.55 : 1) * gWat;
+            Math.random() < g.spl * 45 / sr && this.ping(380 + Math.random() * 900, 0.012 + Math.random() * 0.02, (0.05 + Math.random() * 0.05) * gWat);
           }
           for (let q = this.pings.length - 1; q >= 0; q--) {
             let P = this.pings[q], y = P.a1 * P.y1 - P.a2 * P.y2;
             P.y2 = P.y1, P.y1 = y, road += y, --P.n <= 0 && this.pings.splice(q, 1);
           }
           l += road, r += road;
-          let wind = this.windF.run(pink) * g.wind * (cab ? 0.45 : 1);
+          let wind = this.windF.run(pink) * g.wind * (cab ? 0.45 : 1) * gWind;
           if (l += wind * 1.05, r += wind * 0.95, g.curb > 1e-3) {
             this.curbPh += Math.max(sp, 1) / 2 / sr, this.curbPh >= 1 && (this.curbPh -= 1, this.thumpE = 1), this.thumpE *= Math.exp(-1 / (sr * 0.03)), this.thumpPh = (this.thumpPh || 0) + 46 / sr, this.thumpLp += (wn - this.thumpLp) * 0.01;
-            let th = (Math.sin(TAU2 * this.thumpPh) * 0.5 + this.thumpLp * 3) * this.thumpE * g.curb * 0.18;
+            let th = (Math.sin(TAU2 * this.thumpPh) * 0.5 + this.thumpLp * 3) * this.thumpE * g.curb * 0.18 * gHit;
             l += th, r += th;
           }
           if (g.scr > 1e-3) {
             Math.random() < (30 + p.scrape * 6) / sr && (this.grainE = 1, this.grainA = 0.4 + Math.random() * 0.6), this.grainE *= Math.exp(-1 / (sr * 6e-3));
-            let sc = (this.grit.run(wn) * this.grainE * this.grainA * 0.9 + this.gritLo.run(pink) * 0.9) * g.scr * 0.45;
+            let sc = (this.grit.run(wn) * this.grainE * this.grainA * 0.9 + this.gritLo.run(pink) * 0.9) * g.scr * 0.45 * gHit;
             l += sc, r += sc;
           }
           for (let h = this.hits.length - 1; h >= 0; h--) {
             let H = this.hits[h];
             H.t += 1 / sr;
-            let e = Math.exp(-H.t * 14) * H.a;
+            let e = Math.exp(-H.t * 14) * H.a * gHit;
             this.hitLp += (wn - this.hitLp) * 0.15;
             let s = (Math.sin(TAU2 * H.f * H.t * (1 - H.t * 1.5)) * 0.9 + this.hitLp * 1.5 * Math.exp(-H.t * 30) + wn * 0.25 * Math.exp(-H.t * 80)) * e;
             l += s, r += s, H.t > 0.6 && this.hits.splice(h, 1);
@@ -4581,33 +4588,38 @@ registerProcessor('shiftlight-fx',ShiftlightFX);
 const AMBDSP=(${makeAmb.toString()})();
 class DirtAmb extends AudioWorkletProcessor{
   constructor(){super();this.d=new AMBDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
-  process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
+  process(i,o){const w=o[0],u=o[1];this.d.process(w[0],w[1]||w[0],w[0].length,u?u[0]:null,u?(u[1]||u[0]):null);return true;}}
 registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     constructor() {
-      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.tunnel = 0, this.ambVol = 1, this.yard = 0, this.shop = 0;
+      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.ambVol = 1, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
     }
-    /* call from a user gesture */
+    /* call from a user gesture. The graph: each source has its own bus; the engine is tamed on its own
+       compressor so a redline doesn't push the world down; a limiter only catches peaks at the end. */
     start() {
       return this.starting ? this.starting : (this.starting = (async () => {
         let AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return;
         let ctx = new AC({ latencyHint: "interactive" });
         this.ctx = ctx;
-        let master = ctx.createGain();
-        master.gain.value = this.muted ? 0 : this.vol, this.master = master;
-        let comp = ctx.createDynamicsCompressor();
-        comp.threshold.value = -10, comp.knee.value = 6, comp.ratio.value = 4, comp.attack.value = 3e-3, comp.release.value = 0.2, master.connect(comp), comp.connect(ctx.destination);
-        let dry = ctx.createGain();
-        dry.connect(master);
+        let G = (v = 1) => {
+          let g = ctx.createGain();
+          return g.gain.value = v, g;
+        }, A = () => {
+          let a = ctx.createAnalyser();
+          return a.fftSize = 2048, a.smoothingTimeConstant = 0, a;
+        };
+        let pre = G(), master = G(this.muted ? 0 : this.vol), lim = ctx.createDynamicsCompressor();
+        lim.threshold.value = -1.5, lim.knee.value = 0, lim.ratio.value = 20, lim.attack.value = 1e-3, lim.release.value = 0.12, pre.connect(master), master.connect(lim), lim.connect(ctx.destination), this.master = master, this.lim = lim;
         let mk = (k) => {
-          let send = ctx.createGain();
-          send.gain.value = 0;
-          let cv = ctx.createConvolver();
-          return cv.buffer = roomIR(ctx, k), send.connect(cv), cv.connect(master), send;
+          let send = G(0), cv = ctx.createConvolver();
+          return cv.buffer = roomIR(ctx, k), send.connect(cv), cv.connect(pre), send;
         };
         this.sendS = mk("street"), this.sendT = mk("tunnel");
-        let bus = ctx.createGain();
-        bus.connect(dry), bus.connect(this.sendS), bus.connect(this.sendT);
+        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), worldBus = G(), uiBus = G();
+        engIn.connect(engBus), engBus.connect(engComp), engComp.connect(engOut);
+        for (let b of [engOut, groundBus]) b.connect(pre), b.connect(this.sendS), b.connect(this.sendT);
+        worldBus.connect(pre), uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, worldBus, uiBus });
+        this.meters = { engine: A(), ground: A(), world: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), worldBus.connect(this.meters.world), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
         try {
           if (!ctx.audioWorklet) throw new Error("no worklet");
           let src = ENGINE_SRC();
@@ -4616,17 +4628,19 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           } catch {
             await ctx.audioWorklet.addModule("data:application/javascript;charset=utf-8," + encodeURIComponent(src));
           }
-          let eng = new AudioWorkletNode(ctx, "shiftlight-engine", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] }), fx = new AudioWorkletNode(ctx, "shiftlight-fx", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
-          let amb = new AudioWorkletNode(ctx, "dirt-amb", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
-          eng.connect(bus), fx.connect(bus), amb.connect(master), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.amb = { post: (m) => amb.port.postMessage(m) }, this.kind = "worklet";
+          let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), amb = node("dirt-amb", 2);
+          eng.connect(engIn), fx.connect(groundBus), amb.connect(worldBus, 0), amb.connect(uiBus, 1), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.amb = { post: (m) => amb.port.postMessage(m) }, this.kind = "worklet";
         } catch {
-          let D = makeDSP(), F = makeFX(), A = makeAmb(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), am = new A(ctx.sampleRate), node = ctx.createScriptProcessor(1024, 1, 2), tmpL = new Float32Array(1024), tmpR = new Float32Array(1024), aL = new Float32Array(1024), aR = new Float32Array(1024), src = ctx.createConstantSource ? ctx.createConstantSource() : null;
-          src && (src.offset.value = 0, src.connect(node), src.start()), node.onaudioprocess = (ev) => {
-            let b = ev.outputBuffer, L = b.getChannelData(0), R2 = b.getChannelData(1), n = b.length;
-            d.process(L, R2, n), f2.process(tmpL, tmpR, n), am.process(aL, aR, n);
-            for (let i = 0; i < n; i++)
-              L[i] += tmpL[i] + aL[i], R2[i] += tmpR[i] + aR[i];
-          }, node.connect(bus), this.eng = { post: (m) => {
+          /* no worklets: one script processor runs all three synths, each into its own bus through a splitter-free trick of three processors */
+          let D = makeDSP(), F = makeFX(), Am = makeAmb(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), am = new Am(ctx.sampleRate), sp = (fn) => {
+            let n = ctx.createScriptProcessor(1024, 1, 2), src = ctx.createConstantSource ? ctx.createConstantSource() : null;
+            return src && (src.offset.value = 0, src.connect(n), src.start()), n.onaudioprocess = (ev) => {
+              let b = ev.outputBuffer;
+              fn(b.getChannelData(0), b.getChannelData(1), b.length);
+            }, n;
+          };
+          sp((L, R2, n) => d.process(L, R2, n)).connect(engIn), sp((L, R2, n) => f2.process(L, R2, n)).connect(groundBus), sp((L, R2, n) => am.process(L, R2, n)).connect(worldBus);
+          this.eng = { post: (m) => {
             m.t === "cfg" ? d.configure(m.cfg) : m.t === "p" ? d.set(m.p) : m.t === "ev" && d.event(m.ev);
           } }, this.fx = { post: (m) => {
             m.t === "p" ? f2.set(m.p) : m.t === "ev" && f2.event(m.ev);
@@ -4634,14 +4648,61 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
             m.t === "p" ? am.set(m.p) : m.t === "ev" && am.event(m.ev);
           } }, this.kind = "main thread";
         }
-        ctx.state !== "running" && await ctx.resume(), this.cfg && this.eng.post({ t: "cfg", cfg: this.cfg }), this.ready = !0;
+        ctx.state !== "running" && await ctx.resume(), this.cfg && this.eng.post({ t: "cfg", cfg: this.cfg }), this.ready = !0, this.setMix(this.mix);
       })(), this.starting);
     }
+    /* how loud this engine is at redline, so every engine can sit at the same level in the mix */
+    measure(cfg) {
+      let key = JSON.stringify(cfg);
+      if (this.normCache.has(key)) return this.normCache.get(key);
+      let D = makeDSP(), sr = 16e3, d = new D(sr), n = Math.round(sr * 0.55), L = new Float32Array(n), R2 = new Float32Array(n), s = 0, m = 0;
+      d.configure(cfg);
+      for (let o = 0; o < n; o += 128) {
+        let k = Math.min(128, n - o);
+        d.set({ on: 1, firing: 1, crank: 0, rpm: (cfg.redline || 6e3) * 0.97, load: 1, cutFrac: 0, boost: cfg.fiBoost || 0, nos: 0, speed: 25, gear: 3, twostep: 0, antilag: 0, view: 0, dist: 3, pan: 0, rear: 1, vol: 1 }), d.process(L.subarray(o, o + k), R2.subarray(o, o + k), k);
+      }
+      for (let i = Math.round(sr * 0.2); i < n; i++) s += L[i] * L[i], m++;
+      let db = 10 * Math.log10(Math.max(1e-12, s / m)), norm = Math.max(-16, Math.min(10, -18 - db));
+      return this.normCache.set(key, norm), norm;
+    }
     configure(cfg) {
-      this.cfg = cfg, this.ready && this.eng.post({ t: "cfg", cfg });
+      this.cfg = cfg;
+      try {
+        this.engNorm = this.measure(cfg);
+      } catch {
+        this.engNorm = 0;
+      }
+      this.engIn && this.engIn.gain.setTargetAtTime(this.normGain(), this.ctx.currentTime, 0.05), this.ready && this.eng.post({ t: "cfg", cfg });
+    }
+    /* how much of the loudness correction to use: 1 makes every engine equally loud at redline */
+    normGain() {
+      return dbToLin(this.engNorm * Math.max(0, Math.min(1, +this.mix.eng.norm)));
+    }
+    applyMixParts() {
+      this.mixG = mixFor(this.mix, MIX_GROUND), this.mixW = mixFor(this.mix, MIX_WORLD);
+    }
+    /* apply a mix: bus faders, the engine's tamer, the limiter, and the per-sound settings */
+    setMix(m) {
+      if (this.mix = mixFill(m), this.applyMixParts(), !this.ctx) return;
+      let t = this.ctx.currentTime, M = this.mix, set = (g, db) => g && g.gain.setTargetAtTime(dbToLin(db), t, 0.03), tame = Math.max(0, Math.min(1, M.eng.tame ?? 0.55));
+      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.worldBus, M.bus.world), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
+      let c = this.engComp;
+      c.threshold.value = -6 - 22 * tame, c.ratio.value = 1 + 5 * tame, c.knee.value = 10, c.attack.value = 6e-3, c.release.value = 0.25, this.lim.threshold.value = M.limiter ? -1.5 : 0, this.lim.ratio.value = M.limiter ? 20 : 1, this.engIn.gain.setTargetAtTime(this.normGain(), t, 0.05);
+    }
+    /* peak and RMS (dBFS) on each bus, for meters */
+    levels() {
+      let out = {};
+      if (!this.meters) return out;
+      for (let k in this.meters) {
+        this.meters[k].getFloatTimeDomainData(this.mbuf);
+        let pk = 0, s = 0;
+        for (let x of this.mbuf) pk = Math.max(pk, Math.abs(x)), s += x * x;
+        out[k] = [20 * Math.log10(Math.max(1e-6, pk)), 10 * Math.log10(Math.max(1e-12, s / this.mbuf.length))];
+      }
+      return out.reduction = this.engComp ? this.engComp.reduction : 0, out;
     }
     setVolume(v) {
-      this.vol = v, this.master && this.master.gain.setTargetAtTime(this.muted ? 0 : v, this.ctx.currentTime, 0.05);
+      this.vol = v, this.master && this.master.gain.setTargetAtTime(this.muted ? 0 : v * dbToLin(this.mix.bus.master || 0), this.ctx.currentTime, 0.05);
     }
     setMuted(m) {
       this.muted = m, this.setVolume(this.vol);
@@ -4655,37 +4716,38 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       for (let e of engineEvents) this.eng.post({ t: "ev", ev: e });
       this.eng.post({ t: "p", p: engineP });
       for (let e of fxEvents) this.fx.post({ t: "ev", ev: e });
-      this.fx.post({ t: "p", p: fxP });
-      if (amb) {
+      if (this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) }), amb) {
         for (let e of ambEvents) this.amb.post({ t: "ev", ev: e });
-        this.amb.post({ t: "p", p: Object.assign({ vol: this.ambVol, uiVol: 1 }, amb) });
+        this.amb.post({ t: "p", p: Object.assign({ vol: this.ambVol, uiVol: 1, mix: this.mixW }, amb) });
       }
       /* the space: open range is nearly dry, the shop yard throws back a slap, inside the shop it rings */
       let t = this.ctx.currentTime, c = cabin ? 0.4 : 1;
       this.yard += (yard - this.yard) * 0.08, this.shop += (shop - this.shop) * 0.08, this.sendS.gain.setTargetAtTime(c * (0.05 + 0.3 * this.yard) * (1 - this.shop), t, 0.08), this.sendT.gain.setTargetAtTime(0.6 * c * this.shop, t, 0.08);
     }
-    /* one-shot shop and HUD sounds */
-    ui(type) {
-      this.ready && this.amb && this.amb.post({ t: "ev", ev: { type } });
+    /* one-shot shop and HUD sounds, or a world event (thunder, a bird, a cheer) */
+    ui(type, extra) {
+      this.ready && this.amb && this.amb.post({ t: "ev", ev: Object.assign({ type }, extra || {}) });
     }
     setAmbVolume(v) {
       this.ambVol = v;
     }
-
   };
 
   // ===== audio/ambience.js =====
-  /* The world around the truck, synthesised live: rain (a dense patter of tiny drops over a soft wash, or
-     drumming on the roof from inside the cab), thunder, gusting wind, birds by day, crickets at dusk and
-     night, the creek, the crowd at the strip, and the little sounds of the shop and the HUD. Runs in its
-     own AudioWorklet so none of it touches the engine synth. */
+  /* The world around the truck, synthesised live in its own AudioWorklet: rain (several kinds, or drumming
+     on the roof from the cab), thunder, wind, birds, day and night insects, the creek, the crowd at the
+     strip, and the shop and HUD sounds on a separate output. Which version of each sound plays, and how
+     loud, comes from the mix (34_mix.js); how much of each the scene calls for comes from the game. */
   function makeAmb() {
     let TAU = Math.PI * 2;
     class Bq {
       constructor() {
-        this.z1 = 0, this.z2 = 0, this.b0 = 1, this.b1 = 0, this.b2 = 0, this.a1 = 0, this.a2 = 0;
+        this.z1 = 0, this.z2 = 0, this.b0 = 1, this.b1 = 0, this.b2 = 0, this.a1 = 0, this.a2 = 0, this.key = "";
       }
       set(type, f, q, sr) {
+        let k = type + f + q;
+        if (k === this.key) return this;
+        this.key = k;
         let w = TAU * Math.min(f, sr * 0.45) / sr, cw = Math.cos(w), al = Math.sin(w) / (2 * q), a0 = 1 + al, b0, b1, b2;
         type === "lp" ? (b0 = (1 - cw) / 2, b1 = 1 - cw, b2 = b0) : type === "hp" ? (b0 = (1 + cw) / 2, b1 = -(1 + cw), b2 = b0) : (b0 = al, b1 = 0, b2 = -al);
         return this.b0 = b0 / a0, this.b1 = b1 / a0, this.b2 = b2 / a0, this.a1 = -2 * cw / a0, this.a2 = (1 - al) / a0, this;
@@ -4695,65 +4757,114 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
         return this.z1 = this.b1 * x - this.a1 * y + this.z2, this.z2 = this.b2 * x - this.a2 * y, y;
       }
     }
+    /* rain kinds: wash level, low body, drops per second, drop pitch range, decay range (s), drop size, tick */
+    let RAIN = {
+      patter: { wash: 0.07, low: 0.05, rate: 2400, f0: 1800, span: 3.8, d0: 1.5e-3, d1: 4e-3, a: 0.03, clk: 0.03 },
+      drizzle: { wash: 0.035, low: 0.01, rate: 1100, f0: 2600, span: 3, d0: 1e-3, d1: 2.5e-3, a: 0.018, clk: 0.02 },
+      downpour: { wash: 0.1, low: 0.14, rate: 4200, f0: 1100, span: 4, d0: 2.5e-3, d1: 6e-3, a: 0.04, clk: 0.05 },
+      tin: { wash: 0.03, low: 0.02, rate: 1400, f0: 1700, span: 2.1, d0: 0.025, d1: 0.06, a: 0.02, clk: 0.01, metal: 1 }
+    };
     class Amb {
       constructor(sr) {
-        this.sr = sr, this.p = {}, this.t = 0, this.seed = 987654321, this.b = [0, 0, 0], this.g = { rain: 0, wind: 0, birds: 0, crick: 0, creek: 0, crowd: 0, cab: 0 };
+        this.sr = sr, this.p = {}, this.mix = {}, this.t = 0, this.seed = 987654321, this.b = [0, 0, 0];
+        this.g = { rain: 0, wind: 0, birds: 0, day: 0, night: 0, creek: 0, crowd: 0, cab: 0 };
         let B = (type, f, q) => new Bq().set(type, f, q, sr);
-        this.rainHP = B("hp", 900, 0.7), this.rainBP = B("bp", 3000, 0.45), this.rainLow = B("lp", 380, 0.7), this.roofLP = B("lp", 1600, 0.7), this.clkHP = B("hp", 2500, 0.7);
-        this.windL = B("bp", 300, 0.6), this.windR = B("bp", 340, 0.6), this.whis = B("bp", 820, 5), this.crBg = B("bp", 4600, 9), this.creekA = B("bp", 620, 0.9), this.creekB = B("bp", 1900, 1.4);
-        this.walla = [B("bp", 420, 2), B("bp", 880, 2.5), B("bp", 1650, 3)], this.wEnv = [0.5, 0.5, 0.5], this.wTgt = [0.5, 0.5, 0.5], this.clap = B("bp", 2300, 0.6), this.clapE = 0, this.cheer = 0;
-        this.drops = [], this.tones = [], this.clk = 0, this.flut = 0, this.nextBird = 2, this.nextThunder = 20 + Math.random() * 20, this.thunders = [], this.ph = [Math.random() * 9, Math.random() * 9, Math.random() * 9];
-        this.crick = [0, 1, 2].map((i) => ({ f: 4250 + Math.random() * 600, per: 0.42 + Math.random() * 0.25, rate: 26 + Math.random() * 8, n: 3 + (Math.random() < 0.4 ? 1 : 0), ph: Math.random(), cp: 0, amp: 0.022 + Math.random() * 0.016, pan: (i - 1) * 0.7 }));
+        this.rainHP = B("hp", 900, 0.7), this.rainBP = B("bp", 3e3, 0.45), this.rainLow = B("lp", 380, 0.7), this.roofLP = B("lp", 1600, 0.7), this.clkHP = B("hp", 2500, 0.7);
+        this.windL = B("bp", 300, 0.6), this.windR = B("bp", 340, 0.6), this.whis = B("bp", 820, 5), this.whis2 = B("bp", 1240, 7), this.roar = B("lp", 120, 0.7), this.rust = B("bp", 2400, 0.7), this.rust2 = B("bp", 3800, 0.9);
+        this.crBg = B("bp", 4600, 9), this.cicN = B("bp", 5e3, 2.5), this.hopF = B("bp", 7e3, 2);
+        this.creekA = B("bp", 620, 0.9), this.creekB = B("bp", 1900, 1.4);
+        this.walla = [B("bp", 420, 2), B("bp", 880, 2.5), B("bp", 1650, 3), B("bp", 2600, 3)], this.wEnv = [0.5, 0.5, 0.5, 0.5], this.wTgt = [0.5, 0.5, 0.5, 0.5], this.clap = B("bp", 2300, 0.6), this.clapE = 0, this.cheer = 0;
+        this.drops = [], this.tones = [], this.clk = 0, this.flut = 0, this.nextBird = 2, this.nextThunder = 18 + Math.random() * 20, this.thunders = [], this.ph = [Math.random() * 9, Math.random() * 9, Math.random() * 9];
+        this.bugs = [], this.bugKey = "", this.cic = [0, 1].map((i) => ({ st: 0, t: i * 7 + Math.random() * 5, ph: 0, f: 4300 + Math.random() * 500, am: 150 + Math.random() * 80, dur: 0, lv: 0.7 + Math.random() * 0.3 })), this.hop = { t: 4, n: 0, gap: 0, e: 0 };
       }
       set(p) {
-        this.p = p;
+        this.p = p, p.mix && (this.mix = p.mix);
+      }
+      M(id) {
+        return this.mix[id] || { g: 1 };
       }
       rnd() {
         let s = this.seed;
         return s ^= s << 13, s ^= s >>> 17, s ^= s << 5, this.seed = s, (s >>> 0) / 4294967296;
       }
-      /* a damped resonator: a raindrop, a bubble, a tick */
-      drop(f, dec, amp, pan) {
-        if (this.drops.length > 72) return;
-        let w = TAU * f / this.sr, r = Math.exp(-1 / (dec * this.sr));
-        this.drops.push({ a1: 2 * r * Math.cos(w), a2: r * r, y1: amp * Math.sin(w), y2: 0, n: Math.round(dec * this.sr * 6), pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan) });
+      /* a damped resonator: a raindrop, a bubble, a tick. Two modes when metal */
+      drop(f, dec, amp, pan, metal = 0) {
+        if (this.drops.length > 90) return;
+        let mk = (ff, aa) => {
+          let w = TAU * Math.min(ff, this.sr * 0.45) / this.sr, r = Math.exp(-1 / (dec * this.sr));
+          this.drops.push({ a1: 2 * r * Math.cos(w), a2: r * r, y1: aa * Math.sin(w), y2: 0, n: Math.round(dec * this.sr * 6), pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan) });
+        };
+        mk(f, amp), metal && mk(f * 1.47, amp * 0.6);
       }
-      /* a pitched voice: kind 0 is a bird note (soft in and out, pitch glides), kind 1 a bell (struck, decays) */
+      /* pitched voices. kind 0 bird, 1 bell (UI), 2 outdoor whistle, 3 dove (soft, with a second harmonic) */
       tone(at, dur, f0, f1, amp, pan, kind = 0, fm = 0) {
-        this.tones.length < 24 && this.tones.push({ at: this.t + at, dur, f0, f1, amp, ph: 0, pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan), kind, fm });
+        this.tones.length < 32 && this.tones.push({ at: this.t + at, dur, f0, f1, amp, ph: 0, pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan), kind, fm });
       }
-      thunder(dist = Math.random()) {
-        let sw = [];
+      thunder(kind = "rolling") {
+        let dist = kind === "crack" ? Math.random() * 0.2 : kind === "distant" ? 0.7 + Math.random() * 0.3 : Math.random(), sw = [];
         for (let k = 0, n = 3 + Math.floor(Math.random() * 3), t = 0.2 + dist * 1.5; k < n; k++) sw.push([t, 0.4 + Math.random() * 0.6, 0.35 + Math.random() * 0.9]), t += 0.4 + Math.random() * 1.3;
-        this.thunders.push({ t: 0, sw, crack: dist < 0.35 ? 0.6 : 0.15, c: 1 - Math.exp(-TAU * (55 + (1 - dist) * 60) / this.sr), y1: 0, y2: 0, cy: 0, amp: 0.55 - dist * 0.3, dur: 9 });
+        this.thunders.push({ t: 0, sw, crack: dist < 0.35 ? kind === "crack" ? 1.1 : 0.6 : 0, c: 1 - Math.exp(-TAU * (40 + (1 - dist) * 70) / this.sr), y1: 0, y2: 0, cy: 0, amp: (0.55 - dist * 0.3) * (kind === "crack" ? 1.3 : 1), dur: 9 });
+      }
+      bird(kind) {
+        let pan = this.rnd() * 1.6 - 0.8, d = 0.35 + this.rnd() * 0.65, a = 0.045 * d, base = 0.85 + this.rnd() * 0.3;
+        if (kind === "mixed") {
+          let q = this.rnd();
+          kind = q < 0.5 ? "songbirds" : q < 0.8 ? "meadowlark" : "doves";
+        }
+        if (a *= kind === "meadowlark" ? 2.2 : kind === "doves" ? 3 : 4.5, kind === "meadowlark") {
+          let f = 2900 * base, t = 0;
+          for (let i = 0, c = 5 + Math.floor(this.rnd() * 3); i < c; i++) {
+            let dur = 0.08 + this.rnd() * 0.13, f1 = f * (0.82 + this.rnd() * 0.12);
+            this.tone(t, dur, f, f1, a * 0.9, pan, 0, 0.15), t += dur + 0.03, f = f1 * (1.05 + this.rnd() * 0.15);
+          }
+          for (let i = 0; i < 6; i++) this.tone(t + i * 0.03, 0.025, 3800 * base, 3500 * base, a * 0.5, pan, 0, 0.3);
+        } else if (kind === "doves") {
+          let f = 470 * base, a2 = a * 2.2;
+          [[0, 0.32, 1, 1.06], [0.42, 0.55, 1.08, 1.18], [1.05, 0.34, 1.02, 0.98], [1.5, 0.34, 1, 0.97], [1.95, 0.36, 0.99, 0.95]].forEach(([t, dur, k0, k1]) => this.tone(t, dur, f * k0, f * k1, a2, pan, 3));
+        } else {
+          let sp = Math.floor(this.rnd() * 3);
+          if (sp === 0) for (let i = 0, c = 2 + Math.floor(this.rnd() * 3); i < c; i++) this.tone(i * 0.11, 0.07, 5200 * base, 3100 * base, a, pan);
+          else if (sp === 1) this.tone(0, 0.26, 2200 * base, 3100 * base, a * 0.9, pan), this.tone(0.34, 0.3, 3e3 * base, 2500 * base, a * 0.8, pan);
+          else for (let i = 0, c = 7 + Math.floor(this.rnd() * 7); i < c; i++) this.tone(i * 0.045, 0.03, 4e3 * base, 4300 * base, a * 0.7, pan, 0, 0.3);
+        }
+      }
+      /* (re)build the night insect voices when their settings change */
+      bugVoices(m) {
+        let key = [m.v, m.n, (m.pitch ?? 0.5).toFixed(2), (m.rate ?? 0.5).toFixed(2)].join();
+        if (key === this.bugKey) return;
+        this.bugKey = key;
+        let v = m.v || "field", n = Math.max(1, Math.min(6, Math.round(m.n ?? 3))), P = m.pitch ?? 0.5, Rt = m.rate ?? 0.5, out = [], mk = (kind, i) => {
+          let d = 0.25 + this.rnd() * 0.75;
+          return { kind, d, lpA: 1 - Math.exp(-TAU * (2500 + 7e3 * d) / this.sr), lp: 0, pan: (this.rnd() * 2 - 1) * 0.8, t: this.rnd() * 2, ph: 0, cp: 0, f: (kind === "tree" ? 2400 + 1200 * P : 3600 + 2200 * P) * (0.95 + this.rnd() * 0.1), per: (0.78 - 0.4 * Rt) * (0.9 + this.rnd() * 0.2), sp: 1 / ((28 + 14 * Rt) * (0.95 + this.rnd() * 0.1)), np: 3 + (this.rnd() < 0.35 ? 1 : 0), on: 1, onT: 2 + this.rnd() * 3, kf: 7e3 + 4e3 * P, kE: 0, kN: 0, kS: 0, kNext: 0.5 + this.rnd(), bq: kind === "katydid" ? new Bq().set("bp", (7e3 + 4e3 * P) * (0.92 + this.rnd() * 0.16), 4, this.sr) : null };
+        };
+        if (v === "field" || v === "mixed") for (let i = 0; i < n; i++) out.push(mk("field", i));
+        if (v === "tree") for (let i = 0; i < n; i++) out.push(mk("tree", i));
+        if (v === "katydid") for (let i = 0; i < Math.min(4, n); i++) out.push(mk("katydid", i));
+        v === "mixed" && out.push(mk("katydid", 9)), this.bugs = out, this.bugMode = v;
       }
       event(e) {
         let T = e.type;
-        if (T === "thunder") this.thunder(e.dist);
+        if (T === "thunder") this.thunder(e.kind || (this.M("thunder").v || "rolling"));
         else if (T === "cheer") {
           this.cheer = Math.max(this.cheer, e.a || 1);
-          for (let k = 0; k < 4; k++) this.tone(0.2 + Math.random() * 1.2, 0.35 + Math.random() * 0.3, 2400 + Math.random() * 500, 3000 + Math.random() * 700, 0.02, Math.random() * 1.6 - 0.8, 2);
-        } else if (T === "kaching") this.tone(0, 0.8, 2093, 2093, 0.07, 0.1, 1), this.tone(0.02, 0.7, 2637, 2637, 0.05, -0.1, 1), this.tone(0.05, 0.5, 4186, 4186, 0.02, 0, 1), this.clk += 0.6;
+          for (let k = 0; k < 4; k++) this.tone(0.2 + Math.random() * 1.2, 0.35 + Math.random() * 0.3, 2400 + Math.random() * 500, 3e3 + Math.random() * 700, 0.02, Math.random() * 1.6 - 0.8, 2);
+        } else if (T === "bird") this.bird(e.kind || this.M("birds").v || "mixed");
+        else if (T === "kaching") this.tone(0, 0.8, 2093, 2093, 0.07, 0.1, 1), this.tone(0.02, 0.7, 2637, 2637, 0.05, -0.1, 1), this.tone(0.05, 0.5, 4186, 4186, 0.02, 0, 1), this.clk += 0.6;
         else if (T === "chime") this.tone(0, 0.45, 1319, 1319, 0.06, 0, 1), this.tone(0.1, 0.6, 1760, 1760, 0.06, 0, 1), this.tone(0.2, 0.8, 2637, 2637, 0.03, 0, 1);
-        else if (T === "tick") this.drop(1900, 0.01, 0.12, 0), this.drop(950, 0.014, 0.08, 0);
-        else if (T === "trophy" || T === "medal") {
-          let ns = T === "trophy" ? [1047, 1319, 1568, 2093] : [1319, 1568, 2093];
-          ns.forEach((f, i) => this.tone(i * 0.11, 0.9, f, f, 0.05, (i - 1.5) * 0.2, 1));
-        }
+        else if (T === "tick") this.tone(0, 0.05, 1900, 1900, 0.09, 0, 1), this.tone(0, 0.07, 950, 950, 0.06, 0, 1);
+        else if (T === "trophy" || T === "medal") (T === "trophy" ? [1047, 1319, 1568, 2093] : [1319, 1568, 2093]).forEach((f, i, a) => this.tone(i * 0.11, 0.9, f, f, 0.05, (i - (a.length - 1) / 2) * 0.2, 1));
       }
-      process(L, R, n) {
-        let p = this.p, g = this.g, sr = this.sr, k = 1 - Math.exp(-1 / (sr * 0.4)), cab = p.cabin ? 1 : 0, tg = { rain: p.rain || 0, wind: p.wind || 0, birds: p.birds || 0, crick: p.crickets || 0, creek: p.creek || 0, crowd: p.crowd || 0, cab };
+      process(L, R, n, UL, UR) {
+        let p = this.p, g = this.g, sr = this.sr, dt = 1 / sr, k = 1 - Math.exp(-1 / (sr * 0.4)), cab = p.cabin ? 1 : 0, M = (id) => this.M(id);
+        let mRain = M("rain"), mRoof = M("roof"), mTh = M("thunder"), mWind = M("wind"), mBird = M("birds"), mDay = M("daybugs"), mNight = M("nightbugs"), mCreek = M("creek"), mCrowd = M("crowd"), mUI = M("ui");
+        let tg = { rain: p.rain || 0, wind: p.wind || 0, birds: p.birds || 0, day: p.dayBugs || 0, night: p.crickets || 0, creek: p.creek || 0, crowd: p.crowd || 0, cab };
         /* thunder rolls in on its own in a storm */
-        p.storm && g.rain > 0.15 && this.t > this.nextThunder && (this.thunder(), this.nextThunder = this.t + 14 + Math.random() * 30);
-        /* birds call in phrases */
-        if (g.birds > 0.05 && this.t > this.nextBird) {
-          let sp = Math.floor(this.rnd() * 3), pan = this.rnd() * 1.6 - 0.8, d = 0.35 + this.rnd() * 0.65, a = 0.045 * d, base = 0.85 + this.rnd() * 0.3;
-          if (sp === 0) for (let i = 0, c = 2 + Math.floor(this.rnd() * 3); i < c; i++) this.tone(i * 0.11, 0.07, 5200 * base, 3100 * base, a, pan);
-          else if (sp === 1) this.tone(0, 0.26, 2200 * base, 3100 * base, a * 0.9, pan), this.tone(0.34, 0.3, 3000 * base, 2500 * base, a * 0.8, pan);
-          else for (let i = 0, c = 7 + Math.floor(this.rnd() * 7); i < c; i++) this.tone(i * 0.045, 0.03, 4000 * base, 4300 * base, a * 0.7, pan, 0, 0.3);
-          this.nextBird = this.t + (1.5 + this.rnd() * 4.5) / (0.4 + g.birds);
-        }
-        let out = 1 - 0.7 * g.cab, vol = p.vol ?? 1, uiv = p.uiVol ?? 1, dt = 1 / sr;
+        p.storm && g.rain > 0.15 && this.t > this.nextThunder && mTh.g > 0 && (this.thunder(mTh.v || "rolling"), this.nextThunder = this.t + (mTh.every || 28) * (0.5 + Math.random()));
+        g.birds > 0.05 && this.t > this.nextBird && mBird.g > 0 && (this.bird(mBird.v || "mixed"), this.nextBird = this.t + (1.5 + this.rnd() * 4.5) / ((0.4 + g.birds) * (mBird.rate || 1)) * ((mBird.v || "") === "doves" ? 2.5 : 1));
+        this.bugVoices(mNight);
+        let rk = RAIN[mRain.v] || RAIN.patter, br = mRain.bright ?? 0.5, fm = 0.65 + 0.7 * br, dens = mRain.dens ?? 1, soft = mRoof.v === "soft", wv = mWind.v || "breeze", gust = mWind.gust ?? 0.5, cv = mCreek.v || "babble", stad = mCrowd.v === "stadium", nv = this.bugMode;
+        this.rainBP.set("bp", 2e3 + 3e3 * br, 0.45, sr), this.roofLP.set("lp", soft ? 800 : 1600, 0.7, sr), this.creekA.set("bp", cv === "rush" ? 380 : 620, 0.9, sr), this.crBg.set("bp", 3600 + 2200 * (mNight.pitch ?? 0.5), 9, sr);
+        let out = 1 - 0.7 * g.cab, vol = p.vol ?? 1, uiv = (p.uiVol ?? 1) * (mUI.g ?? 1);
         for (let i = 0; i < n; i++) {
           for (let key in tg) g[key] += (tg[key] - g[key]) * k;
           this.t += dt;
@@ -4763,12 +4874,16 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           /* ---- rain ---- */
           if (g.rain > 1e-3) {
             this.flut += (this.rnd() - 0.5) * 2e-3 - this.flut * 2e-4;
-            let wash = this.rainBP.run(this.rainHP.run(wn)) * g.rain * 0.07 * (1 + this.flut * 4) + this.rainLow.run(pink) * g.rain * g.rain * 0.05, roof = this.roofLP.run(pink) * g.rain * 0.06;
-            l += (wash * (1 - 0.8 * g.cab) + roof * g.cab) * 1, r += (wash * (1 - 0.8 * g.cab) + roof * g.cab) * 0.96;
-            let rate = g.rain * (g.cab > 0.5 ? 1100 : 2400);
-            if (this.rnd() < rate * dt) {
+            let gr = mRain.g ?? 1, gro = mRoof.g ?? 1, wash = (this.rainBP.run(this.rainHP.run(wn)) * rk.wash * (1 + this.flut * 4) + this.rainLow.run(pink) * rk.low * g.rain) * g.rain * gr, roof = this.roofLP.run(pink) * g.rain * (soft ? 0.05 : 0.06) * gro, mixed = wash * (1 - 0.8 * g.cab) + roof * g.cab;
+            l += mixed, r += mixed * 0.96;
+            if (g.cab > 0.5) {
+              if (this.rnd() < g.rain * 1100 * dt && gro > 0) {
+                let q = this.rnd();
+                soft ? this.drop(150 + 450 * this.rnd(), 0.01 + 0.015 * this.rnd(), (0.01 + 0.06 * q * q * q) * g.rain * gro, (this.rnd() - 0.5) * 1.2) : this.drop(380 + 1e3 * this.rnd(), 6e-3 + 0.01 * this.rnd(), (8e-3 + 0.05 * q * q * q) * g.rain * gro, (this.rnd() - 0.5) * 1.2);
+              }
+            } else if (this.rnd() < g.rain * rk.rate * dens * dt && gr > 0) {
               let q = this.rnd(), pan = this.rnd() * 1.8 - 0.9;
-              g.cab > 0.5 ? this.drop(380 + 1000 * this.rnd(), 6e-3 + 0.01 * this.rnd(), (0.008 + 0.05 * q * q * q) * g.rain, pan * 0.6) : (this.drop(1800 * Math.pow(3.8, this.rnd()), 1.5e-3 + 2.5e-3 * this.rnd(), (5e-3 + 0.03 * q * q * q) * g.rain, pan), this.clk += 0.03 * q * g.rain);
+              this.drop(rk.f0 * fm * Math.pow(rk.span, this.rnd()), rk.d0 + (rk.d1 - rk.d0) * this.rnd(), (rk.a * 0.18 + rk.a * q * q * q) * g.rain * gr, pan, rk.metal), this.clk += rk.clk * q * g.rain * gr;
             }
           }
           /* ---- thunder ---- */
@@ -4777,45 +4892,90 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
             T.t += dt, T.y1 += T.c * (wn - T.y1), T.y2 += T.c * (T.y1 - T.y2), T.cy += 0.12 * (wn - T.cy);
             let e = 0;
             for (let [t0, a, w] of T.sw) e += a * Math.exp(-(((T.t - t0) / w) ** 2));
-            let s = T.y2 * 9 * e * T.amp + (T.t < 0.35 ? T.cy * T.crack * (1 - T.t / 0.35) ** 2 * 0.5 : 0);
+            let s = (T.y2 * 9 * e * T.amp + (T.t < 0.35 ? T.cy * T.crack * (1 - T.t / 0.35) ** 2 * 0.5 : 0)) * (mTh.g ?? 1);
             l += s * (0.6 + 0.4 * out), r += s * (0.6 + 0.4 * out), T.t > T.dur && this.thunders.splice(j, 1);
           }
           /* ---- wind ---- */
-          if (g.wind > 1e-3) {
-            let gust = 0.55 + 0.25 * Math.sin(TAU * 0.071 * this.t + this.ph[0]) + 0.15 * Math.sin(TAU * 0.13 * this.t + this.ph[1]) + 0.1 * Math.sin(TAU * 0.29 * this.t + this.ph[2]), w = g.wind * Math.max(0, gust) ** 2 * out;
-            l += this.windL.run(pink) * w * 0.16 + this.whis.run(wn) * w * w * 0.012, r += this.windR.run(pink * 0.9 + wn * 0.02) * w * 0.16;
-          }
-          /* ---- crickets ---- */
-          if (g.crick > 0.01) {
-            for (let c of this.crick) {
-              c.ph += dt;
-              let tc = c.ph % c.per, kk = Math.floor(tc * c.rate);
-              if (kk < c.n) {
-                let fp = tc * c.rate - kk;
-                if (fp < 0.6) {
-                  c.cp += c.f * dt;
-                  let s = Math.sin(TAU * c.cp) * Math.sin(Math.PI * fp / 0.6) * c.amp * g.crick * out;
-                  l += s * (1 - Math.max(0, c.pan)), r += s * (1 + Math.min(0, c.pan));
-                }
-              }
+          if (g.wind > 1e-3 && (mWind.g ?? 1) > 0) {
+            let dep = 0.3 + 0.9 * gust, gu = 0.55 + dep * (0.25 * Math.sin(TAU * 0.071 * this.t + this.ph[0]) + 0.15 * Math.sin(TAU * 0.13 * this.t + this.ph[1]) + 0.1 * Math.sin(TAU * 0.29 * this.t + this.ph[2])), w = g.wind * Math.max(0, gu) ** 2 * out * (mWind.g ?? 1);
+            if (wv === "grass") {
+              this.flut2 = (this.flut2 || 0) * 0.9995 + (this.rnd() - 0.5) * 0.004;
+              let rs = (this.rust.run(wn) * 0.6 + this.rust2.run(wn) * 0.4) * w * (0.03 + Math.abs(this.flut2) * 3) * 1.4;
+              l += this.windL.run(pink) * w * 0.3 + rs, r += this.windR.run(pink * 0.9 + wn * 0.02) * w * 0.3 + rs * 0.9;
+            } else {
+              let pl = wv === "plains", body = pl ? 0.2 : 0.5;
+              l += this.windL.run(pink) * w * body + this.whis.run(wn) * w * w * (pl ? 0.03 : 0.035) + (pl ? this.roar.run(pink * 3) * w * 0.25 : 0), r += this.windR.run(pink * 0.9 + wn * 0.02) * w * body + (pl ? this.whis2.run(wn) * w * w * 0.02 + this.roar.run(pink * 3) * w * 0.05 : 0);
             }
-            let bg = this.crBg.run(wn) * (0.55 + 0.45 * Math.sin(TAU * 23 * this.t)) * g.crick * 0.012 * out;
-            l += bg, r += bg * 0.9;
+          }
+          /* ---- insects at night ---- */
+          if (g.night > 0.01 && (mNight.g ?? 1) > 0) {
+            let gn = g.night * (mNight.g ?? 1) * out;
+            for (let c of this.bugs) {
+              let s = 0;
+              c.t += dt;
+              if (c.kind === "field") {
+                let tc = c.t % c.per, kk = Math.floor(tc / c.sp);
+                if (tc < dt && (c.per *= 0.97 + this.rnd() * 0.06, c.per = Math.min(1.1, Math.max(0.3, c.per))), kk < c.np) {
+                  let fp = (tc - kk * c.sp) / c.sp;
+                  if (fp < 0.55) {
+                    c.cp += c.f * (1 - 0.02 * fp) * dt;
+                    let env = Math.min(1, fp / 0.05) * Math.exp(-fp * 3);
+                    s = Math.sin(TAU * c.cp) * (0.7 + 0.3 * Math.sin(TAU * c.f * 0.31 * tc)) * env * 0.24 * c.d;
+                  }
+                }
+              } else if (c.kind === "tree") {
+                if (c.t > c.onT && (c.on = 1 - c.on, c.t = 0, c.onT = c.on ? 2 + this.rnd() * 4 : 0.5 + this.rnd() * 1.5), c.on) {
+                  let fp = c.t / c.sp % 1;
+                  c.cp += c.f * dt, s = Math.sin(TAU * c.cp) * Math.sin(Math.PI * fp) ** 2 * Math.min(1, c.t * 2) * 0.04 * c.d;
+                }
+              } else {
+                if (c.t > c.kNext && (c.kN = 2 + Math.floor(this.rnd() * 2), c.kS = 0, c.kE = 0, c.kNext = c.t + (1.3 - 0.5 * (mNight.rate ?? 0.5)) * (0.85 + this.rnd() * 0.3), c.kSyl = 0), c.kN > 0) {
+                  c.kE += dt;
+                  let pulse = Math.floor(c.kE / 0.02), within = c.kE - pulse * 0.02;
+                  pulse < 5 ? within < 4e-3 && (s = wn * (1 - within / 4e-3) * 0.36 * c.d) : c.kE > 0.17 && (c.kE = 0, c.kN--);
+                }
+                s = c.bq.run(s);
+              }
+              c.lp += c.lpA * (s - c.lp), l += c.lp * gn * (1 - Math.max(0, c.pan)), r += c.lp * gn * (1 + Math.min(0, c.pan));
+            }
+            if (nv === "chorus" || nv === "mixed") {
+              let bg = this.crBg.run(wn) * (0.55 + 0.45 * Math.sin(TAU * 23 * this.t)) * (0.65 + 0.35 * Math.sin(TAU * 0.31 * this.t)) * gn * (nv === "chorus" ? 0.1 * (mNight.n || 3) / 3 : 0.04);
+              l += bg, r += bg * 0.9;
+            }
+          }
+          /* ---- insects by day ---- */
+          if (g.day > 0.01 && (mDay.g ?? 1) > 0 && mDay.v !== "off") {
+            let gd = g.day * (mDay.g ?? 1) * out;
+            if (mDay.v === "hopper") {
+              let H = this.hop;
+              H.t -= dt, H.t <= 0 && (H.n = 8 + Math.floor(this.rnd() * 12), H.gap = 1 / (25 + this.rnd() * 15), H.t = 3 + this.rnd() * 6, H.next = 0), H.n > 0 && (H.next -= dt, H.next <= 0 && (H.e = 1, H.n--, H.next = H.gap)), H.e *= 0.93;
+              let s = this.hopF.run(wn * H.e) * 0.5 * gd;
+              l += s * 0.8, r += s;
+            } else for (let C of this.cic) {
+              if (C.t -= dt, C.t <= 0) C.st = (C.st + 1) % 4, C.t = [5 + this.rnd() * 10, 3 + this.rnd() * 2, 3 + this.rnd() * 4, 1.5 + this.rnd()][C.st], C.dur = C.t;
+              if (C.st === 0) continue;
+              let x = 1 - C.t / C.dur, env = C.st === 1 ? x * x : C.st === 2 ? 1 : (1 - x) ** 2;
+              C.ph += C.f * (1 + 0.03 * env) * dt;
+              let am = Math.pow(0.5 + 0.5 * Math.sin(TAU * C.am * this.t), 4), s = (Math.sin(TAU * C.ph) * 0.6 + this.cicN.run(wn) * 2.5) * am * env * 0.076 * C.lv * gd;
+              l += s, r += s * 0.85;
+            }
           }
           /* ---- the creek ---- */
-          if (g.creek > 1e-3) {
-            let s = (this.creekA.run(pink * 2) * (0.6 + this.flut * 30) + this.creekB.run(wn) * 0.12) * g.creek * 0.09 * out;
-            l += s, r += s * 0.92, this.rnd() < g.creek * 35 * dt && this.drop(300 + 1100 * this.rnd(), 0.01 + 0.02 * this.rnd(), 0.025 * g.creek * out, this.rnd() * 1.4 - 0.7);
+          if (g.creek > 1e-3 && (mCreek.g ?? 1) > 0) {
+            let gc = g.creek * (mCreek.g ?? 1) * out, bed = cv === "trickle" ? 0.3 : cv === "rush" ? 2.2 : 1, s = (this.creekA.run(pink * 2) * (0.6 + this.flut * 30) + this.creekB.run(wn) * 0.12) * 0.09 * bed * gc;
+            l += s, r += s * 0.92;
+            let br2 = cv === "trickle" ? 2.5 : cv === "rush" ? 0.4 : 1;
+            this.rnd() < g.creek * 35 * br2 * dt && this.drop(cv === "trickle" ? 600 + 1600 * this.rnd() : 300 + 1100 * this.rnd(), 0.01 + 0.02 * this.rnd(), (cv === "trickle" ? 0.018 : 0.025) * gc, this.rnd() * 1.4 - 0.7);
           }
           /* ---- the crowd at the strip ---- */
-          if (this.cheer *= 1 - dt / 3.2, g.crowd > 1e-3 || this.cheer > 1e-3) {
-            if ((i & 63) === 0) for (let j = 0; j < 3; j++) this.rnd() < 0.02 && (this.wTgt[j] = 0.2 + this.rnd() * 0.8), this.wEnv[j] += (this.wTgt[j] - this.wEnv[j]) * 0.05;
-            let lev = (g.crowd + this.cheer * 1.6) * out, s = 0;
-            for (let j = 0; j < 3; j++) s += this.walla[j].run(pink * 2.2) * this.wEnv[j];
-            this.rnd() < this.cheer * 1100 * dt && (this.clapE += 0.4 + this.rnd() * 0.6), this.clapE *= 0.82;
-            s = s * lev * 0.05 + this.clap.run(wn * this.clapE) * this.cheer * 0.05 * out, l += s, r += s * 0.95;
+          if (this.cheer *= 1 - dt / 3.2, (g.crowd > 1e-3 || this.cheer > 1e-3) && (mCrowd.g ?? 1) > 0) {
+            if ((i & 63) === 0) for (let j = 0; j < 4; j++) this.rnd() < 0.02 && (this.wTgt[j] = 0.2 + this.rnd() * 0.8), this.wEnv[j] += (this.wTgt[j] - this.wEnv[j]) * 0.05;
+            let lev = (g.crowd + this.cheer * 1.6) * out * (mCrowd.g ?? 1), s = 0;
+            for (let j = 0; j < (stad ? 4 : 3); j++) s += this.walla[j].run(pink * 2.2) * this.wEnv[j];
+            this.rnd() < this.cheer * (stad ? 2200 : 1100) * dt && (this.clapE += 0.4 + this.rnd() * 0.6), this.clapE *= 0.82;
+            s = s * lev * (stad ? 0.08 : 0.05) + this.clap.run(wn * this.clapE) * this.cheer * 0.05 * out * (mCrowd.g ?? 1), l += s, r += s * 0.95;
           }
-          /* ---- drops, bubbles, ticks ---- */
+          /* ---- drops, bubbles ---- */
           for (let j = this.drops.length - 1; j >= 0; j--) {
             let D = this.drops[j], y = D.a1 * D.y1 - D.a2 * D.y2;
             D.y2 = D.y1, D.y1 = y, l += y * D.pl, r += y * D.pr, --D.n <= 0 && this.drops.splice(j, 1);
@@ -4823,7 +4983,7 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           this.clk *= 0.55;
           let ck = this.clkHP.run(wn * this.clk) * 0.6;
           l += ck, r += ck;
-          /* ---- pitched voices: birds and bells ---- */
+          /* ---- pitched voices: birds, whistles, bells ---- */
           for (let j = this.tones.length - 1; j >= 0; j--) {
             let T = this.tones[j], tt = this.t - T.at;
             if (tt < 0) continue;
@@ -4833,14 +4993,94 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
             }
             let x = tt / T.dur, f = T.f0 + (T.f1 - T.f0) * x;
             T.fm && (f *= 1 + T.fm * 0.05 * Math.sin(TAU * 45 * tt)), T.ph += f * dt;
-            let env = T.kind === 1 ? Math.exp(-x * 4.5) * Math.min(1, tt / 2e-3) : Math.sin(Math.PI * x) ** 2, s = Math.sin(TAU * T.ph) * env * T.amp;
-            T.kind === 1 ? u += s + Math.sin(TAU * T.ph * 2.76) * env * env * T.amp * 0.25 : (s *= (T.kind ? 1 : g.birds) * out, l += s * T.pl, r += s * T.pr);
+            let env = T.kind === 1 ? Math.exp(-x * 4.5) * Math.min(1, tt / 2e-3) : T.kind === 3 ? Math.sin(Math.PI * x) ** 1.5 * Math.min(1, tt / 0.04) : Math.sin(Math.PI * x) ** 2, s = Math.sin(TAU * T.ph) * env * T.amp;
+            if (T.kind === 1) u += s + Math.sin(TAU * T.ph * 2.76) * env * env * T.amp * 0.25;
+            else {
+              T.kind === 3 && (s += Math.sin(TAU * T.ph * 2) * env * T.amp * 0.25);
+              let gb = (T.kind === 0 || T.kind === 3 ? g.birds * (mBird.g ?? 1) : mCrowd.g ?? 1) * out;
+              l += s * gb * T.pl, r += s * gb * T.pr;
+            }
           }
-          L[i] = l * vol + u * uiv, R[i] = r * vol + u * uiv;
+          u *= uiv, L[i] = l * vol, R[i] = r * vol, UL ? (UL[i] = u, UR[i] = u) : (L[i] += u, R[i] += u);
         }
       }
     }
     return Amb;
+  }
+  // ===== audio/mix.js =====
+  /* One mix for the whole game: four buses (engine, ground, world, UI), and for every sound its level,
+     which version of it plays, and a few character knobs. The sound board edits this object and turns it
+     into a short code; the game reads the same code. Levels are in dB. */
+  var MIX_SOUNDS = [
+    /* ground: what the tyres and the body make */
+    { id: "dirt", bus: "ground", name: "Dirt under the tyres", vars: [["fine", "Fine dirt"], ["coarse", "Coarse gravel"], ["packed", "Packed clay"]], knobs: [] },
+    { id: "roll", bus: "ground", name: "Rolling rumble", vars: [], knobs: [] },
+    { id: "squeal", bus: "ground", name: "Tyre squeal", vars: [], knobs: [] },
+    { id: "mud", bus: "ground", name: "Mud", vars: [["squelch", "Squelch"], ["thick", "Thick and sucking"]], knobs: [] },
+    { id: "water", bus: "ground", name: "Water splash", vars: [], knobs: [] },
+    { id: "speedwind", bus: "ground", name: "Wind from speed", vars: [], knobs: [] },
+    { id: "hits", bus: "ground", name: "Bumps and landings", vars: [], knobs: [] },
+    /* the world around the truck */
+    { id: "rain", bus: "world", name: "Rain", vars: [["patter", "Patter"], ["drizzle", "Drizzle"], ["downpour", "Downpour"], ["tin", "On sheet metal"]], knobs: [["dens", "Density", 0.2, 2], ["bright", "Brightness", 0, 1]] },
+    { id: "roof", bus: "world", name: "Rain on the roof (in the cab)", vars: [["steel", "Steel roof"], ["soft", "Muffled"]], knobs: [] },
+    { id: "thunder", bus: "world", name: "Thunder", vars: [["rolling", "Rolling"], ["crack", "Close crack"], ["distant", "Distant"]], knobs: [["every", "Seconds between", 8, 60]] },
+    { id: "wind", bus: "world", name: "Wind", vars: [["breeze", "Breeze"], ["plains", "Plains gusts"], ["grass", "Through the grass"]], knobs: [["gust", "Gustiness", 0, 1]] },
+    { id: "birds", bus: "world", name: "Birds (day)", vars: [["songbirds", "Songbirds"], ["meadowlark", "Meadowlark"], ["doves", "Doves"], ["mixed", "All of them"]], knobs: [["rate", "How often", 0.2, 2]] },
+    { id: "daybugs", bus: "world", name: "Insects (day)", vars: [["cicada", "Cicadas"], ["hopper", "Grasshoppers"], ["off", "None"]], knobs: [] },
+    { id: "nightbugs", bus: "world", name: "Insects (night)", vars: [["field", "Field crickets"], ["tree", "Tree crickets"], ["katydid", "Katydids"], ["chorus", "Distant chorus"], ["mixed", "Mixed"]], knobs: [["pitch", "Pitch", 0, 1], ["rate", "Chirp rate", 0, 1], ["n", "How many", 1, 6]] },
+    { id: "creek", bus: "world", name: "Creek", vars: [["babble", "Babble"], ["trickle", "Trickle"], ["rush", "Rushing"]], knobs: [] },
+    { id: "crowd", bus: "world", name: "Crowd at the strip", vars: [["bleachers", "Bleachers"], ["stadium", "Big crowd"]], knobs: [] },
+    { id: "ui", bus: "ui", name: "Shop and HUD sounds", vars: [], knobs: [] }
+  ];
+  var MIX_DEFAULT = {
+    v: 1,
+    bus: { engine: -1, ground: 0, world: 4, ui: -3, master: 0 },
+    eng: { norm: 0.75, tame: 0.55 },
+    limiter: 1,
+    s: {
+      dirt: { on: 1, lvl: 0, v: "fine" }, roll: { on: 1, lvl: 0 }, squeal: { on: 1, lvl: 0 }, mud: { on: 1, lvl: 0, v: "squelch" }, water: { on: 1, lvl: 0 }, speedwind: { on: 1, lvl: 0 }, hits: { on: 1, lvl: 0 },
+      rain: { on: 1, lvl: 0, v: "patter", dens: 1, bright: 0.5 }, roof: { on: 1, lvl: 0, v: "steel" }, thunder: { on: 1, lvl: 0, v: "rolling", every: 28 }, wind: { on: 1, lvl: 0, v: "breeze", gust: 0.5 },
+      birds: { on: 1, lvl: 0, v: "mixed", rate: 1 }, daybugs: { on: 1, lvl: -4, v: "cicada" }, nightbugs: { on: 1, lvl: 0, v: "mixed", pitch: 0.5, rate: 0.5, n: 4 },
+      creek: { on: 1, lvl: 0, v: "babble" }, crowd: { on: 1, lvl: 0, v: "bleachers" }, ui: { on: 1, lvl: 0 }
+    }
+  };
+  var dbToLin = (d) => Math.pow(10, d / 20);
+  /* fill in anything a saved or pasted mix is missing */
+  function mixFill(m) {
+    let D = MIX_DEFAULT, o = JSON.parse(JSON.stringify(D));
+    if (!m || typeof m != "object") return o;
+    Object.assign(o.bus, m.bus || {}), Object.assign(o.eng, m.eng || {}), m.limiter !== void 0 && (o.limiter = m.limiter ? 1 : 0);
+    for (let k in o.s) m.s && m.s[k] && Object.assign(o.s[k], m.s[k]);
+    return o;
+  }
+  /* the per-sound linear gains and settings the DSPs read */
+  function mixFor(m, ids) {
+    let out = {};
+    for (let k of ids) {
+      let s = m.s[k];
+      s && (out[k] = Object.assign({}, s, { g: s.on ? dbToLin(s.lvl) : 0 }));
+    }
+    return out;
+  }
+  var MIX_GROUND = ["dirt", "roll", "squeal", "mud", "water", "speedwind", "hits"], MIX_WORLD = ["rain", "roof", "thunder", "wind", "birds", "daybugs", "nightbugs", "creek", "crowd", "ui"];
+  /* a short code to carry a mix between the sound board and the game */
+  function mixEncode(m) {
+    let only = { v: 1, bus: m.bus, eng: m.eng, limiter: m.limiter, s: {} };
+    for (let k in m.s) {
+      let a = m.s[k], d = MIX_DEFAULT.s[k], diff = {};
+      for (let q in a) a[q] !== d[q] && (diff[q] = a[q]);
+      Object.keys(diff).length && (only.s[k] = diff);
+    }
+    let txt = JSON.stringify(only);
+    return "DSMIX1." + btoa(unescape(encodeURIComponent(txt))).replace(/=+$/, "");
+  }
+  function mixDecode(code) {
+    let c = String(code || "").trim();
+    if (c.startsWith("{")) return mixFill(JSON.parse(c));
+    if (!c.startsWith("DSMIX1.")) throw new Error("That isn't a Dirt Sleeper mix code.");
+    let b = c.slice(7);
+    for (; b.length % 4; ) b += "=";
+    return mixFill(JSON.parse(decodeURIComponent(escape(atob(b)))));
   }
   // ===== world/ranch.js =====
   /* The ranch: one heightfield of red-dirt country around a metal shop. A graded dirt drag strip runs
@@ -6197,22 +6437,6 @@ void main(){
 #endif
 }`;
 
-  /* paint colours for the truck. The first is the factory colour of the one in the driveway */
-  var SUV_PAINTS = {
-    bronze: { name: "Bronze-Grey Metallic", col: [0.2, 0.17, 0.135], metal: 0.75, rough: 0.3, flake: 0.85, price: 0 },
-    black: { name: "Midnight Black", col: [0.008, 0.008, 0.009], metal: 0.4, rough: 0.22, flake: 0.6, price: 900 },
-    pearl: { name: "Pearl White", col: [0.78, 0.77, 0.74], metal: 0.15, rough: 0.22, flake: 0.5, price: 1100 },
-    silver: { name: "Liquid Silver", col: [0.55, 0.56, 0.57], metal: 1, rough: 0.28, flake: 0.6, price: 900 },
-    candy: { name: "Candy Apple Red", col: [0.42, 0.012, 0.012], metal: 0.8, rough: 0.2, flake: 1, price: 1800 },
-    orange: { name: "Safety Orange", col: [0.85, 0.22, 0.02], metal: 0.1, rough: 0.28, flake: 0.2, price: 1200 },
-    lime: { name: "Toxic Lime", col: [0.32, 0.6, 0.02], metal: 0.5, rough: 0.25, flake: 0.8, price: 1500 },
-    sky: { name: "Baja Blue", col: [0.04, 0.2, 0.5], metal: 0.6, rough: 0.26, flake: 0.8, price: 1200 },
-    tan: { name: "Desert Tan", col: [0.42, 0.33, 0.21], metal: 0, rough: 0.45, flake: 0, price: 800 },
-    olive: { name: "Field Green", col: [0.09, 0.11, 0.055], metal: 0, rough: 0.5, flake: 0, price: 800 },
-    matte: { name: "Matte Black", col: [0.012, 0.012, 0.013], metal: 0, rough: 0.6, flake: 0, price: 1400 },
-    primer: { name: "Grey Primer", col: [0.2, 0.2, 0.2], metal: 0, rough: 0.75, flake: 0, price: 300 },
-    purple: { name: "Grape Soda", col: [0.16, 0.02, 0.3], metal: 0.8, rough: 0.22, flake: 1, price: 1600 }
-  };
   function freeMesh(gl, M) {
     M && (gl.deleteVertexArray(M.vao), gl.deleteBuffer(M.vb), M.ib && gl.deleteBuffer(M.ib));
   }
@@ -6309,6 +6533,22 @@ void main(){
   /* Everything you can bolt on, swap or paint, and how a build becomes an engine spec, a chassis,
      a look and a paint job. Prices are in dollars; mass in kg; "loud" is how much a part gives
      the game away to anyone looking (the sleeper meter counts it). */
+  /* paint colours for the truck. The first is the factory colour of the one in the driveway */
+  var SUV_PAINTS = {
+    bronze: { name: "Bronze-Grey Metallic", col: [0.2, 0.17, 0.135], metal: 0.75, rough: 0.3, flake: 0.85, price: 0 },
+    black: { name: "Midnight Black", col: [0.008, 0.008, 0.009], metal: 0.4, rough: 0.22, flake: 0.6, price: 900 },
+    pearl: { name: "Pearl White", col: [0.78, 0.77, 0.74], metal: 0.15, rough: 0.22, flake: 0.5, price: 1100 },
+    silver: { name: "Liquid Silver", col: [0.55, 0.56, 0.57], metal: 1, rough: 0.28, flake: 0.6, price: 900 },
+    candy: { name: "Candy Apple Red", col: [0.42, 0.012, 0.012], metal: 0.8, rough: 0.2, flake: 1, price: 1800 },
+    orange: { name: "Safety Orange", col: [0.85, 0.22, 0.02], metal: 0.1, rough: 0.28, flake: 0.2, price: 1200 },
+    lime: { name: "Toxic Lime", col: [0.32, 0.6, 0.02], metal: 0.5, rough: 0.25, flake: 0.8, price: 1500 },
+    sky: { name: "Baja Blue", col: [0.04, 0.2, 0.5], metal: 0.6, rough: 0.26, flake: 0.8, price: 1200 },
+    tan: { name: "Desert Tan", col: [0.42, 0.33, 0.21], metal: 0, rough: 0.45, flake: 0, price: 800 },
+    olive: { name: "Field Green", col: [0.09, 0.11, 0.055], metal: 0, rough: 0.5, flake: 0, price: 800 },
+    matte: { name: "Matte Black", col: [0.012, 0.012, 0.013], metal: 0, rough: 0.6, flake: 0, price: 1400 },
+    primer: { name: "Grey Primer", col: [0.2, 0.2, 0.2], metal: 0, rough: 0.75, flake: 0, price: 300 },
+    purple: { name: "Grape Soda", col: [0.16, 0.02, 0.3], metal: 0.8, rough: 0.22, flake: 1, price: 1600 }
+  };
   var TYRES = {
     street32: { R: 0.375, w: 0.245, tread: "street", track: 1.56, mass: 0, kPk: 0.11, aPk: 0.14, slide: 0.8, slideW: 0.6, If: 1 },
     at33: { R: 0.42, w: 0.285, tread: "at", track: 1.6, mass: 20, kPk: 0.13, aPk: 0.16, slide: 0.82, slideW: 0.7, If: 1 },
@@ -6778,7 +7018,16 @@ void main(){
     for (let sl of SLOTS) SLOT[sl.id].opts.some((o) => o.v === s.build[sl.id]) || (s.build[sl.id] = STOCK_BUILD[sl.id]);
     return gm === "free" && (s.drag = RIVALS.length), s.settings = SETTINGS, s;
   }
-  var SV = loadSave("campaign"), FREE = () => SV.gm === "free";
+  var SV = loadSave("campaign"), FREE = () => SV.gm === "free", MIX_KEY = "dirt-sleeper-mix", MIX = mixFill(readKey(MIX_KEY));
+  function setMixCode(code) {
+    let m = code === null ? mixFill(null) : mixDecode(code);
+    return MIX = m, code === null ? (() => {
+      try {
+        localStorage.removeItem(MIX_KEY);
+      } catch {
+      }
+    })() : writeKey(MIX_KEY, m), audio.setMix(m), m;
+  }
   function persist() {
     writeKey(SAVE_KEYS[SV.gm], SV), writeKey(SET_KEY, SETTINGS);
   }
@@ -7090,7 +7339,7 @@ void main(){
     return {
       rain, storm: wet && env.cloud > 0.8 ? 1 : 0, cabin: cabin ? 1 : 0,
       wind: clamp(0.16 + (wet ? 0.35 : 0) + clamp((cp[1] - 6) / 60, 0, 1) * 0.5, 0, 1),
-      birds: clamp(1 - env.night * 1.4, 0, 1) * (wet ? 0.15 : 1), crickets: clamp((env.night - 0.35) * 1.8, 0, 1) * (wet ? 0.3 : 1),
+      birds: clamp(1 - env.night * 1.4, 0, 1) * (wet ? 0.15 : 1), dayBugs: clamp(1 - env.night * 1.6, 0, 1) * (wet ? 0 : 1), crickets: clamp((env.night - 0.35) * 1.8, 0, 1) * (wet ? 0.3 : 1),
       creek: clamp(1 - dCreek / 55, 0, 1) ** 1.5, crowd: drag ? clamp(1 - Math.hypot(cp[0] - 90, cp[2] - 58) / 170, 0, 1) * 0.9 : 0
     };
   }
@@ -7483,6 +7732,19 @@ void main(){
       av.innerHTML = `<span class="k">Ambience</span><input type="range" id="sAmb" min="0" max="1.5" step="0.05" value="${S.amb ?? 1}">`, p.appendChild(av), av.querySelector("input").oninput = (e) => {
         S.amb = +e.target.value, audio.setAmbVolume(S.amb), persist();
       };
+      /* a mix from the sound board */
+      let mx = el("div", "set mixset"), custom = !!readKey(MIX_KEY);
+      mx.innerHTML = `<span class="k">Sound mix</span><div class="mixbox"><p class="mixnow">${custom ? "Using your mix from the sound board." : "Using the default mix."}</p><textarea id="sMixCode" rows="2" placeholder="Paste a mix code from the sound board" spellcheck="false"></textarea><div class="acts"><button class="btn" id="sMixApply">Use this mix</button>${custom ? '<button class="btn ghost" id="sMixReset">Back to the default</button>' : ""}</div></div>`, p.appendChild(mx), mx.querySelector("#sMixApply").onclick = () => {
+        let v = mx.querySelector("textarea").value;
+        if (!v.trim()) return U.toast("Paste a code first", "bad", 1.8);
+        try {
+          setMixCode(v), mx.querySelector(".mixnow").textContent = "Using your mix from the sound board.", U.toast("Mix applied", "go", 1.6);
+        } catch (e) {
+          U.toast(e.message || "That code didn't work", "bad", 2.6);
+        }
+      }, mx.querySelector("#sMixReset") && (mx.querySelector("#sMixReset").onclick = () => {
+        setMixCode(null), mx.querySelector(".mixnow").textContent = "Using the default mix.", U.toast("Default mix", "", 1.4);
+      });
       let rs = el("div", "set"), rb = el("button", "btn ghost", FREE() ? "Reset free play" : "Start the campaign over");
       rs.appendChild(el("span", "k", "Save")), rs.appendChild(rb), rb.onclick = () => {
         rb.dataset.arm ? ((() => {
@@ -7641,7 +7903,7 @@ void main(){
   // ===== boot =====
   ui = makeUI(), rebuildTruck(!1), placeTruck(GARAGE.x, GARAGE.z, GARAGE.yaw), truck.pt.st = "off", cam.orbit = { yaw: 2.3, pitch: 0.12, dist: 9.5, y: 0.35, fov: 0.7, cut: !0 }, setEnv(SV.settings.env === "night" ? "night" : "dusk"), state = "title";
   audio.setVolume(SV.settings.vol);
-  audio.setAmbVolume(SETTINGS.amb ?? 1);
+  audio.setAmbVolume(SETTINGS.amb ?? 1), audio.setMix(MIX);
   window.__game = { R, W, get truck() {
     return truck;
   }, get state() {
