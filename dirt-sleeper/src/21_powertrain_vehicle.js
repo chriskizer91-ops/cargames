@@ -126,6 +126,11 @@
         } else
           this.cutT = clamp(48 / e.cyl * 60 / rpm, 0.025, 0.07), thrEng = 0, this.cutFrac = 1;
       let Te = engTq(e, Math.max(rpm, 1), thrEng, this.boost);
+      /* the tuning panel's power, and its boost-by-gear in 1st and 2nd */
+      if (this.tuned && Te > 0) {
+        let lw = this.rev ? 1 : this.gear === 1 ? TUNE.low1 : this.gear === 2 ? (1 + TUNE.low1) / 2 : 1;
+        Te *= TUNE.power, lw < 1 && (Te = Math.min(Te, (e.peak && e.peak.tq || e.tq) * TUNE.power * lw));
+      }
       if (Te > 0 && (this.tcMul < 1 || Te > this.tcCap)) {
         let Tr = Te;
         Te = Math.min(Te * clamp(this.tcMul - 3 * Math.max(0, dslip - 0.13), 0.15, 1), this.tcCap);
@@ -304,8 +309,9 @@
       for (let wh of this.wheels)
         wh.w = 0;
     }
-    _smu(s) {
-      return this.surfMu ? this.surfMu[s] ?? 0.8 : SURF_MU[s] || 1;
+    _smu(s, n) {
+      let b = this.surfMu ? this.surfMu[s] ?? 0.8 : SURF_MU[s] || 1;
+      return this.tuned ? b * tuneGrip(s, n) : b;
     }
     setAssists(id) {
       this.aid = ASSISTS[id] || ASSISTS.arcade, this.pt.auto = !!this.aid.auto, this.plus = this.aid.plus || null;
@@ -337,7 +343,9 @@
           wh.contact = !1, wh.Fz = 0, wh.comp = 0, wh.len = hit ? Math.min(s.rest, hit.t - R2) : s.rest;
           continue;
         }
-        let rate = clamp((comp - wh.comp) / dt, -4, 4);
+        let rate = clamp((comp - wh.comp) / dt, -4, 4), sr = wh.contact ? rate : clamp(-dot2(add(v, cross2(w, sub2(hpW, p))), U), 0, 8);
+        /* for the sound: the sharpest compression since the last frame, and whether it hit the bump stops */
+        wh.cv = Math.max(wh.cv || 0, sr), comp > s.travel && (wh.bot = Math.max(wh.bot || 0, sr));
         wh.comp = comp, wh.len = s.rest - comp, wh.contact = !0, nContact++;
         let Fs = wh.k * comp + (rate > 0 ? wh.cb : wh.cr) * rate;
         comp > s.travel && (Fs += (comp - s.travel) * wh.k * 14 + Math.max(0, rate) * wh.cb * 2), wh.Fz = Math.max(0, Fs), wh.cp = hit.p, wh.n = hit.n, wh.surf = hit.surf, wh.off = hit.off || 0;
@@ -355,14 +363,14 @@
           continue;
         }
         let st = wh.front ? this.steer : 0, fw = mvec(M, [Math.cos(st), 0, Math.sin(st)]), n = wh.n, f2 = norm2(sub2(fw, scale(n, dot2(fw, n)))), r = norm2(cross2(f2, n)), vc = add(v, cross2(w, sub2(wh.cp, p))), vl = dot2(vc, f2), vt = dot2(vc, r), vn = Math.max(Math.abs(vl), 2.5), kap = (wh.w * R2 - vl) / vn, tanA = vt / vn, tg = wh.temp < 0.62 ? 0.92 + 0.08 * sstep(0.15, 0.62, wh.temp) : wh.temp < 0.85 ? 1.02 : 1.02 - 0.15 * sstep(0.85, 1.15, wh.temp);
-        tyreForce(this.tyre, wh.Fz, kap, tanA, this._smu(wh.surf) * wetMu * tg, TY), wh.Fx = TY.fx, wh.rr = (this.surfRR ? this.surfRR[wh.surf] ?? 0.015 : 0.012) * wh.Fz, wh.vd = (this.surfDrag ? this.surfDrag[wh.surf] || 0 : 0) * wh.Fz * vl, wh.Fy = TY.fy, wh.Kd = TY.dk * R2 / vn, wh.kap = kap, wh.tanA = tanA, wh.sg = TY.sg, wh.f = f2, wh.r = r, wh.vl = vl, wh.slipV = Math.hypot(wh.w * R2 - vl, vt), wh.temp += dt * (wh.slipV * wh.Fz / (m * G) * 0.02 - (wh.temp - 0.42) * (0.015 + this.speed * 8e-4)), wh.temp = clamp(wh.temp, 0.2, 1.25);
+        tyreForce(this.tyre, wh.Fz, kap, tanA, this._smu(wh.surf, wh.n) * wetMu * tg, TY), wh.Fx = TY.fx, wh.rr = (this.surfRR ? this.surfRR[wh.surf] ?? 0.015 : 0.012) * wh.Fz, wh.vd = (this.surfDrag ? this.surfDrag[wh.surf] || 0 : 0) * wh.Fz * vl, wh.Fy = TY.fy, wh.Kd = TY.dk * R2 / vn, wh.kap = kap, wh.tanA = tanA, wh.sg = TY.sg, wh.f = f2, wh.r = r, wh.vl = vl, wh.slipV = Math.hypot(wh.w * R2 - vl, vt), wh.temp += dt * (wh.slipV * wh.Fz / (m * G) * 0.02 - (wh.temp - 0.42) * (0.015 + this.speed * 8e-4)), wh.temp = clamp(wh.temp, 0.2, 1.25);
       }
       let escThr = this._stability(dt, inp, vb, wb, thr), fmax = 0;
       for (let i of pt.drv) {
         let wh = W2[i];
         if (wh.contact) {
           let lf = Math.max(0.6, 1 - this.tyre.loadSens * (wh.Fz / this.tyre.fz0 - 1));
-          fmax += wh.Fz * this.tyre.mu * lf * wetMu * this._smu(wh.surf);
+          fmax += wh.Fz * this.tyre.mu * lf * wetMu * this._smu(wh.surf, wh.n);
         }
       }
       /* line lock: the fronts are held on the brakes and the drive goes to the rear axle alone */
@@ -380,7 +388,7 @@
         Math.abs(wh.w) <= dw ? wh.w = 0 : wh.w -= sgn(wh.w) * dw, wh.Tb = Tb, wh.disc = clamp(wh.disc + dt * (Tb * Math.abs(wh.w) / 9e4 - wh.disc * (0.08 + this.speed * 4e-3)), 0, 1.2);
       }
       hb > 0.5 && !pt.drv.includes(0) && (pt.engage = 0, pt.locked = !1), pt._sync(W2);
-      let force = [0, -m * G, 0], torque = [0, 0, 0], apply = (F, at) => {
+      let force = [0, -m * G * (this.tuned && this.air ? TUNE.airG : 1), 0], torque = [0, 0, 0], apply = (F, at) => {
         force[0] += F[0], force[1] += F[1], force[2] += F[2];
         let t = cross2(sub2(at, p), F);
         torque[0] += t[0], torque[1] += t[1], torque[2] += t[2];
@@ -421,7 +429,7 @@
         tgt = lerp(tgt, assist, aid.steer * sstep(1.5, 8, vx));
       }
       tgt = clamp(tgt, -lock, lock);
-      let rate = aid.steer > 0 ? 5.5 : 4.2;
+      let rate = (aid.steer > 0 ? 5.5 : 4.2) * (this.tuned ? TUNE.steerSpd : 1);
       return this.steer + clamp(tgt - this.steer, -rate * dt, rate * dt);
     }
     /* stability control, the drift helper and the spin catcher. Returns a throttle multiplier. */
@@ -462,7 +470,7 @@
         let P = add(p, mvec(M, hp)), loc = world2.locate(P, this.hint), wc = world2.wall(P, loc);
         wc && wc.pen > 0 && (this._impulse(M, P, wc.n, wc.pen, this.plus ? 0.04 : 0.18, this.plus ? 0.05 : 0.28, "wall"), push = madd(push, wc.n, wc.pen), pushN++);
         let g = world2.ground(P[0], P[2], loc ? loc.i : this.hint), pen = (g.y - P[1]) * g.n[1];
-        pen > 0 && (this._impulse(M, P, g.n, pen, 0.05, 0.55, "ground"), push = madd(push, g.n, pen), pushN++);
+        pen > 0 && (this._impulse(M, P, g.n, pen, 0.05, 0.55, "ground"), this.ev.gsurf = g.surf, push = madd(push, g.n, pen), pushN++);
       }
       if (pushN) for (let k = 0; k < 3; k++) this.p[k] += push[k] / pushN;
     }
@@ -477,11 +485,11 @@
       for (let q = 0; q < 3; q++) this.v[q] += Jv[q] / this.m;
       let dw = this.invI(M, cross2(r, Jv));
       for (let q = 0; q < 3; q++) this.w[q] += dw[q];
-      kind === "wall" ? (this.ev.wall = Math.max(this.ev.wall, -vn), vtl > 2 && (this.ev.scrape = Math.max(this.ev.scrape, vtl))) : this.ev.ground = Math.max(this.ev.ground, -vn);
+      kind === "wall" ? (this.ev.wall = Math.max(this.ev.wall, -vn), vtl > 2 && (this.ev.scrape = Math.max(this.ev.scrape, vtl))) : (this.ev.ground = Math.max(this.ev.ground, -vn), vtl > 0.5 && (this.ev.gscr = Math.max(this.ev.gscr || 0, vtl)));
     }
     takeEvents() {
       let e = this.ev;
-      return this.ev = { wall: 0, land: 0, scrape: 0, ground: 0 }, e;
+      return this.ev = { wall: 0, land: 0, scrape: 0, ground: 0, gscr: 0, gsurf: null }, e;
     }
   };
 

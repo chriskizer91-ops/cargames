@@ -37,6 +37,8 @@
     return gm === "free" && (s.drag = RIVALS.length), s.settings = SETTINGS, s;
   }
   var SV = loadSave("campaign"), FREE = () => SV.gm === "free", MIX_KEY = "dirt-sleeper-mix", MIX = mixFill(readKey(MIX_KEY));
+  /* the tuning panel's set, or the shipped baseline while comparing */
+  SETTINGS.tune = tuneFill(SETTINGS.tune), tuneSet(SETTINGS.tuneAB ? null : SETTINGS.tune);
   function setMixCode(code) {
     let m = code === null ? mixFill(null) : mixDecode(code);
     return MIX = m, code === null ? (() => {
@@ -64,12 +66,12 @@
     return { n, data, params: [-400, -400, 1 / 800, n] };
   }
   var world = new RanchWorld(W), SR = new SuvRenderer(R), CR = new CarRenderer(R, CHASSIS.sl3), PS = new Particles(R, heightMask(W), { rainN: { low: 2500, medium: 4e3, high: 6e3, ultra: 8e3 }[SV.settings.quality] || 4e3 }), drs = new DRS({ min: 0.5, max: R.Q.maxScale, start: 0.8 }), input = new Input(window), audio = new GameAudio();
-  KEYS.led = [], KEYS.high = [], KEYS.lo = ["KeyL"], KEYS.lock = ["KeyK"], KEYS.lights = ["KeyF"], KEYS.horn = ["KeyH"], KEYS.env = ["KeyT"], KEYS.cam = ["KeyC"], KEYS.up = ["KeyE"], KEYS.down = ["KeyQ"], KEYS.linelock = ["KeyG"], KEYS.replay = ["KeyY"], KEYS.skip = ["Space", "Enter", "Escape", "KeyY"];
+  KEYS.led = [], KEYS.high = [], KEYS.lo = ["KeyL"], KEYS.lock = ["KeyK"], KEYS.lights = ["KeyF"], KEYS.horn = ["KeyH"], KEYS.env = ["KeyT"], KEYS.cam = ["KeyC"], KEYS.up = ["KeyE"], KEYS.down = ["KeyQ"], KEYS.linelock = ["KeyG"], KEYS.replay = ["KeyY"], KEYS.ab = ["KeyV"], KEYS.skip = ["Space", "Enter", "Escape", "KeyY"];
   var truck = null, spec = null, nums = null, state = "boot", mode = null, time = 0, acc = 0, envId = SV.settings.env, env = ENVS[envId], lightsOn = !1, horn = !1, cam = null, lastEv = {}, msgs = [];
   function setEnv(id) {
     envId = id, env = ENVS[id] || ENVS.afternoon;
   }
-  function rebuildTruck(keepPose = !0) {
+  function rebuildTruck(keepPose = !0, keepSound = !1) {
     let b = SV.build, old = truck;
     spec = buildSpec(b), nums = buildNumbers(b), truck = makeTruck(b, world), truck.setAssists(SV.settings.assist);
     if (old && keepPose) {
@@ -77,7 +79,18 @@
       for (let i = 0; i < 4; i++) truck.wheels[i].w = old.wheels[i].w, truck.wheels[i].ang = old.wheels[i].ang;
       old.pt.st !== "off" && (truck.pt.st = "run", truck.pt.we = Math.max(old.pt.we, truck.pt.e.idle * TAU / 60), truck.pt.rpm = truck.pt.we * 60 / TAU);
     }
-    audio.configure(SIM.dspCfg(spec));
+    keepSound || audio.configure(SIM.dspCfg(spec));
+  }
+  /* a tuning change: live numbers take effect on the next step; chassis ones rebuild the truck where it is */
+  function tuneApply(rebuild) {
+    tuneSet(SETTINGS.tuneAB ? null : SETTINGS.tune), rebuild && truck && retune(), persist();
+  }
+  function retune() {
+    let lo = truck.low, lk = truck.locked;
+    rebuildTruck(!0, !0), lo && setLow(truck, !0), lk && setLockers(truck, !0);
+  }
+  function tuneAB(on) {
+    SETTINGS.tuneAB = on ? 1 : 0, tuneApply(!0), ui && ui.tuneSync && ui.tuneSync(), say(on ? "Baseline tuning" : "Your tuning", "", 1.2);
   }
   function placeTruck(x, z, yaw) {
     let y = W.heightAt(x, z);
@@ -381,25 +394,29 @@
     SV.dirt = clamp(SV.dirt + dt * loose * Math.min(1, mph / 25) * 6e-3 - inWater * dt * 0.04, 0, 1), SV.mud = clamp(SV.mud + dt * inMud * (0.04 + Math.min(1, sp / 6) * 0.18) - inWater * dt * 0.08, 0, 1);
     return { loose, inMud, inWater };
   }
-  function soundUpdate(c, ev, surf) {
+  function soundUpdate(c, ev, surf, dt = 1 / 60) {
     let M = qmat(truck.q), F = mcol(M, 0), mname = cam.orbit ? "Orbit" : CAMS[cam.mode], exhaust = add(truck.p, mvec(M, [-2.3, 0.4 - SUV.hcg0, 0])), rel = sub2(c.pos, exhaust), dist = len(rel), right = norm2([-c.fwd[2], 0, c.fwd[0]]), dirToCam = norm2(sub2(c.pos, truck.p)), listener = 0, geo = { dist: Math.max(1.5, dist), pan: clamp(-dot2(norm2(sub2(truck.p, c.pos)), right) * 0.9, -1, 1), rear: 1 };
     mname === "Driver" ? (listener = 1, geo = { dist: 1.4, pan: 0, rear: 0.35 }) : mname === "Hood" ? geo = { dist: 3.2, pan: 0, rear: 0.3 } : geo.rear = clamp(0.5 - 0.5 * dot2(dirToCam, F), 0, 1) * 0.6 + 0.4;
     mname === "Orbit" && (geo.dist = Math.max(2.5, dist), geo.rear = clamp(0.5 - 0.5 * dot2(dirToCam, F), 0, 1) * 0.7 + 0.3);
     let ep = truck.pt.soundParams(listener, len(truck.v), geo);
     ep.horn = horn ? 1 : 0;
-    let tA = Math.tan(truck.tyre.aPk), kP = truck.tyre.kPk, W2 = truck.wheels, sl = 0, sm = 0;
-    for (let w of W2) w.contact && ((LOOSE[w.surf] ?? 0) > 0.2 && (sl = Math.max(sl, clamp((w.slipV - 1.5) / 8, 0, 1))), w.surf === "mud" && (sm = Math.max(sm, clamp(w.slipV / 6, 0, 1))));
-    let fx = {
-      lat: W2.map((w) => w.contact ? Math.abs(w.tanA) / tA : 0), lon: W2.map((w) => w.contact ? Math.abs(w.kap) / kP : 0), load: W2.map((w) => w.Fz),
-      sqK: W2.map((w) => w.surf === "concrete" ? 1 : w.surf === "rock" ? 0.35 : 0.06), wet: env.wet, speed: len(truck.v), cabin: listener === 1 ? 1 : 0, curb: 0, scrape: ev.scrape || 0, vol: 1,
-      loose: surf.loose, spinLoose: sl, mud: surf.inMud, spinMud: sm, water: surf.inWater
-    }, fev = [];
-    ev.wall > 1.2 && fev.push({ type: "hit", a: ev.wall / 9 }), ev.land > 2.2 && fev.push({ type: "hit", a: ev.land / 10 }), ev.ground > 2 && fev.push({ type: "hit", a: ev.ground / 8 }), audio.update(ep, truck.pt.takeEvents(), fx, fev, Object.assign({ cabin: listener === 1 }, space())), state === "drive" && recPose(ep, fx);
+    /* per wheel: contact, surface, rolling speed, slip speed, load, and how fast the tread is going round */
+    let W2 = truck.wheels, m4 = truck.m * 9.81 / 4, R2 = truck.c.R, fx = {
+      c: W2.map((w) => w.contact ? 1 : 0), s: W2.map((w) => SURF_IDX[w.surf] ?? 1), v: W2.map((w) => w.contact ? Math.abs(w.vl) : 0), sl: W2.map((w) => w.contact ? w.slipV : 0), ld: W2.map((w) => w.Fz / m4), ws: W2.map((w) => Math.abs(w.w * R2)),
+      pitch: TREAD_PITCH[truck.c.tread] ?? 0.05, speed: len(truck.v), cabin: listener === 1 ? 1 : 0, vol: 1, scr: Math.max(ev.scrape || 0, ev.gscr || 0), scrK: ev.scrape ? 2 : ev.gsurf === "rock" ? 1 : 0
+    }, fev = [], land = (ev.land || 0) > 1.6;
+    /* the suspension: a thump for every sharp compression, a clank when it bottoms, one big thud on landing */
+    land && fev.push({ type: "land", a: clamp(ev.land / 7, 0, 1.3) }), W2.forEach((w, i) => {
+      let cv = w.cv || 0, bt = w.bot || 0;
+      w.cv = 0, w.bot = 0, bumpCd[i] -= dt, bt > 0.6 ? (fev.push({ type: "bottom", w: i, a: clamp(bt / 3, 0, 1) }), bumpCd[i] = 0.12) : !land && cv > 0.45 && bumpCd[i] <= 0 && (fev.push({ type: "bump", w: i, a: clamp((cv - 0.3) / 2.2, 0.05, 1) }), bumpCd[i] = 0.09);
+    }), ev.wall > 1.2 && fev.push({ type: "hit", a: ev.wall / 9, k: "wall" }), ev.ground > 1.5 && fev.push({ type: "hit", a: ev.ground / 8, k: ev.gsurf === "rock" ? "rock" : "ground" });
+    audio.update(ep, truck.pt.takeEvents(), fx, fev, Object.assign({ cabin: listener === 1 }, space())), state === "drive" && recPose(ep, fx, fev);
   }
-  /* the recorded sound, slowed down: the engine drops in pitch with the picture */
+  var SURF_IDX = { grass: 0, dirt: 1, strip: 2, trail: 3, rock: 4, mud: 5, concrete: 6, water: 7 }, TREAD_PITCH = { street: 0.03, at: 0.045, mud: 0.07, swamper: 0.085, paddle: 0.12, slick: 0 }, bumpCd = [0, 0, 0, 0];
+  /* the recorded sound, slowed down: the engine drops in pitch with the picture, the tyres slow with it */
   function replaySound(fr, c) {
-    let k = replay.rate < 0.6 ? 0.6 : 0.85, ep = Object.assign({}, fr.ep, { rpm: (fr.ep.rpm || 0) * k, speed: (fr.ep.speed || 0) * replay.rate, view: 0, dist: Math.max(2, len(sub2(c.pos, truck.p))), pan: 0, rear: 0.6, vol: 0.85 }), fx = Object.assign({ lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], sqK: [0, 0, 0, 0] }, fr.fx || {}, { wet: env.wet, cabin: 0, curb: 0, scrape: 0, vol: 0.8 });
-    fx.speed = (fx.speed || 0) * replay.rate, audio.update(ep, [], fx, [], Object.assign({ cabin: !1 }, space()));
+    let k = replay.rate < 0.6 ? 0.6 : 0.85, rt = replay.rate, ep = Object.assign({}, fr.ep, { rpm: (fr.ep.rpm || 0) * k, speed: (fr.ep.speed || 0) * rt, view: 0, dist: Math.max(2, len(sub2(c.pos, truck.p))), pan: 0, rear: 0.6, vol: 0.85 }), f = fr.fx || {}, sc = (a) => (a || [0, 0, 0, 0]).map((x) => x * rt), fx = Object.assign({}, f, { v: sc(f.v), sl: sc(f.sl), ws: sc(f.ws), speed: (f.speed || 0) * rt, cabin: 0, vol: 0.8 }), fev = replay.fe || [];
+    replay.fe = [], audio.update(ep, [], fx, fev, Object.assign({ cabin: !1 }, space()));
   }
   /* where the truck is decides the echo: open range, the yard by the shop, or inside it */
   function space() {
@@ -417,7 +434,7 @@
     };
   }
   function step(dt) {
-    let lo = input.hit("lo"), lk = input.hit("lock"), li = input.hit("lights"), repKey = input.hit("replay"), inp = input.poll(dt);
+    let lo = input.hit("lo"), lk = input.hit("lock"), li = input.hit("lights"), repKey = input.hit("replay"), abKey = input.hit("ab"), inp = input.poll(dt);
     horn = input.key("horn") || ui.touchHorn, lastInp = inp, inp.pause && (state === "drive" ? pause(!0) : state === "pause" && pause(!1));
     if (state === "pause" || state === "boot") return { ev: {} };
     let drive = { steer: 0, thr: 0, brk: 0, hb: 0 };
@@ -429,7 +446,7 @@
       })();
       inp.reset && resetTruck(), inp.up && truck.pt.shift(1), inp.down && truck.pt.shift(-1);
       drive = mode && mode.done && mode.kind !== "roam" ? { steer: inp.steer, thr: 0, brk: 0.45, hb: 1 } : Object.assign({}, inp, { lock: input.key("linelock") || ui.touchLock ? 1 : 0 });
-      repKey && startReplay(time - 6.5, time, 0.5, "instant");
+      repKey && startReplay(time - 6.5, time, 0.5, "instant"), abKey && tuneAB(!SETTINGS.tuneAB);
       mode && mode.kind === "drag" && mode.phase === "tree" && (drive = Object.assign({}, drive)), mode && mode.kind === "drag" && rival && (lastInp.steer = inp.steer);
     } else if (state === "garage" || state === "title" || state === "result" || state === "pick") drive = { steer: 0, thr: garageRev, brk: garageRev > 0 ? 1 : 0, hb: 1 };
     truck.wet = env.wet, acc += dt;
@@ -478,7 +495,7 @@
       }
     }
     let tree = mode && mode.kind === "drag" && state === "drive" ? mode.tree : [0, 0];
-    R.render({ time, dt, cam: c, cut: c.cut, env, flicker: [1, 1, 1, 1, 1, 1, 1, 1], probePos: add(truck.p, [0, 0.8, 0]), dyn, headlights: L.headlights, occ, suvs, cars, props, shutter: 0.5, tree: [tree[0], tree[1], 0, 0], lensRain: 0 }), fr ? replaySound(fr, c) : soundUpdate(c, r.ev, r.surf || { loose: 0, inMud: 0, inWater: 0 }), ui.lastCam = c, ui.frame(dt);
+    R.render({ time, dt, cam: c, cut: c.cut, env, flicker: [1, 1, 1, 1, 1, 1, 1, 1], probePos: add(truck.p, [0, 0.8, 0]), dyn, headlights: L.headlights, occ, suvs, cars, props, shutter: 0.5, tree: [tree[0], tree[1], 0, 0], lensRain: 0 }), fr ? replaySound(fr, c) : soundUpdate(c, r.ev, r.surf || { loose: 0, inMud: 0, inWater: 0 }, dt), ui.lastCam = c, ui.frame(dt);
   }
   function fit() {
     let dpr = Math.min(2, devicePixelRatio || 1), w = Math.max(2, Math.round(canvas.clientWidth * dpr)), h = Math.max(2, Math.round(canvas.clientHeight * dpr));
@@ -618,10 +635,10 @@
   function recBegin() {
     recCur = { t: time, sp: [] }, REC.push(recCur), REC.length > 900 && REC.shift();
   }
-  function recPose(ep, fx) {
+  function recPose(ep, fx, fev) {
     if (!recCur) return;
     let w = truck.wheels;
-    Object.assign(recCur, { t: time, p: truck.p.slice(), q: truck.q.slice(), v: truck.v.slice(), st: truck.steer, w: w.map((q) => [q.len, q.ang, q.disc]), br: truck.brkIn, rv: truck.rev, rx: rival ? rival.x : null, ep: Object.assign({}, ep), fx: fx ? { speed: fx.speed, loose: fx.loose, spinLoose: fx.spinLoose, mud: fx.mud, spinMud: fx.spinMud, water: fx.water, lat: fx.lat.slice(), lon: fx.lon.slice(), load: fx.load.slice(), sqK: fx.sqK.slice() } : null });
+    Object.assign(recCur, { t: time, p: truck.p.slice(), q: truck.q.slice(), v: truck.v.slice(), st: truck.steer, w: w.map((q) => [q.len, q.ang, q.disc]), br: truck.brkIn, rv: truck.rev, rx: rival ? rival.x : null, ep: Object.assign({}, ep), fx: fx ? { speed: fx.speed, c: fx.c.slice(), s: fx.s.slice(), v: fx.v.slice(), sl: fx.sl.slice(), ld: fx.ld.slice(), ws: fx.ws.slice(), pitch: fx.pitch, scr: fx.scr, scrK: fx.scrK } : null, fe: fev && fev.length ? fev.slice() : null });
   }
   function queueReplay(kind, t0, t1, rate) {
     pendingRep || (pendingRep = { kind, t0, t1, rate, at: Math.max(time + 0.25, t1) });
@@ -658,6 +675,7 @@
     for (R.tt += dt * R.rate; R.k < fr.length - 2 && fr[R.k + 1].t <= R.tt; ) {
       R.k++;
       for (let a of fr[R.k].sp) PS.spawnRaw(...a);
+      fr[R.k].fe && (R.fe = (R.fe || []).concat(fr[R.k].fe));
     }
     let A2 = fr[R.k], B2 = fr[Math.min(fr.length - 1, R.k + 1)], f = clamp((R.tt - A2.t) / Math.max(1e-4, B2.t - A2.t), 0, 1), L2 = (a, b) => a + (b - a) * f;
     truck.p = [0, 1, 2].map((i) => L2(A2.p[i], B2.p[i]));

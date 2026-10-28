@@ -309,6 +309,8 @@
             m.hidden = !0, audio.suspend(!1), openPicker();
           }, acts.appendChild(ct);
         }
+        let tn = el("button", "btn", "Tuning and sounds");
+        tn.onclick = () => U.openTune(), acts.appendChild(tn);
         let tt = el("button", "btn ghost", "Title screen");
         tt.onclick = () => {
           m.hidden = !0, audio.suspend(!1), goTitle();
@@ -368,12 +370,12 @@
           }
           SV = freshSave(gm), persist(), rebuildTruck(!1), m.hidden = !0, audio.suspend(!1), goTitle(), U.toast(gm === "free" ? "Free play reset" : "Campaign reset", "", 2);
         })()) : (rb.dataset.arm = "1", rb.textContent = FREE() ? "Tap again to reset free play" : "Tap again to erase the campaign");
-      }, p.appendChild(rs), p.appendChild(el("p", "keys", "<b>W/↑</b> gas · <b>S/↓</b> brake, hold to reverse · <b>A D</b> steer · <b>Space</b> handbrake · <b>Shift</b> nitrous · <b>G</b> line lock (hold with gas for a burnout) · <b>Y</b> instant replay · <b>L</b> low range · <b>K</b> lockers · <b>F</b> lights · <b>H</b> horn · <b>C</b> camera · <b>B</b> look back · <b>R</b> flip/reset · <b>T</b> time of day (free roam) · <b>Esc</b> pause")), m.appendChild(p), m.hidden = !1;
+      }, p.appendChild(rs), p.appendChild(el("p", "keys", "<b>W/↑</b> gas · <b>S/↓</b> brake, hold to reverse · <b>A D</b> steer · <b>Space</b> handbrake · <b>Shift</b> nitrous · <b>G</b> line lock (hold with gas for a burnout) · <b>Y</b> instant replay · <b>L</b> low range · <b>K</b> lockers · <b>F</b> lights · <b>H</b> horn · <b>C</b> camera · <b>B</b> look back · <b>R</b> flip/reset · <b>T</b> time of day (free roam) · <b>Tab</b> tuning panel · <b>V</b> your tuning or the baseline · <b>Esc</b> pause")), m.appendChild(p), m.hidden = !1;
     }
     U.openPause = openPause;
     let showPause = U.show;
     U.show = (name) => {
-      name === "pause" ? ($("hud").hidden = !0, $("touch").hidden = !0, openPause(!1)) : ($("pause").hidden = !0, $("events").hidden = !0, showPause(name));
+      name !== "hud" && name !== "replay" && U.tuneOn && !(name === "pause" && U.tuneFromPause) && U.closeTune(!0), name === "pause" ? ($("hud").hidden = !0, $("touch").hidden = !0, openPause(!1)) : ($("pause").hidden = !0, $("events").hidden = !0, showPause(name));
     };
     $("hPause").onclick = () => pause(!0), $("hCam").onclick = () => {
       cam.next(), SV.settings.cam = cam.mode;
@@ -512,6 +514,161 @@
       };
       b.addEventListener("pointerdown", on), b.addEventListener("pointerup", off), b.addEventListener("pointercancel", off), b.addEventListener("pointerleave", off), b.addEventListener("contextmenu", (e) => e.preventDefault());
     }
+    /* ---------- the tuning drawer: physics sliders and the sounds, live while you drive ---------- */
+    let SURF_NAME = { grass: "Grass", dirt: "Dirt", strip: "Drag strip", trail: "Trail", rock: "Rock", mud: "Mud", concrete: "Concrete", water: "Water" }, liveT = 0, tuneT = 0;
+    U.tuneTab = "phys", U.tuneOn = !1, U.tuneFromPause = !1;
+    U.openTune = (tab) => {
+      tab && (U.tuneTab = tab), U.touch ? (state === "drive" && pause(!0), U.tuneFromPause = !0, $("pause").hidden = !0, $("hud").hidden = !0) : state === "pause" && pause(!1), U.tuneOn = !0, renderTune(), $("tune").hidden = !1;
+    };
+    U.closeTune = (quiet) => {
+      $("tune").hidden = !0, U.tuneOn = !1, U.tuneFromPause && (U.tuneFromPause = !1, !quiet && state === "pause" && openPause(!1));
+    };
+    U.toggleTune = () => U.tuneOn ? U.closeTune() : U.openTune();
+    U.tuneSync = () => U.tuneOn && renderTune();
+    window.addEventListener("keydown", (e) => {
+      let tg = e.target, typing = tg && (tg.tagName === "TEXTAREA" || tg.tagName === "INPUT" && tg.type !== "range");
+      e.code === "Tab" && !typing && (state === "drive" || U.tuneOn) && (e.preventDefault(), U.toggleTune());
+    }, !0);
+    function trow(lab, val, def, min, max, step, fmt, note, on, reset) {
+      let r = el("div", "tr" + (Math.abs(val - def) > 1e-9 ? " chg" : "")), th = el("div", "th"), lb = el("label", "", esc(lab)), out = el("output", "", fmt(val)), rs = el("button", "rs", "↺"), inp = el("input"), rg = el("div", "rg");
+      rs.type = "button", rs.title = "Back to " + fmt(def), rs.setAttribute("aria-label", "Back to " + fmt(def)), inp.type = "range", inp.min = min, inp.max = max, inp.step = step, inp.defaultValue = val, inp.value = val, rg.style.setProperty("--d", ((def - min) / (max - min)).toFixed(4)), rg.title = "The amber mark is the baseline", rg.appendChild(inp);
+      let id = "tu" + Math.random().toString(36).slice(2, 8);
+      inp.id = id, lb.htmlFor = id, inp.oninput = () => {
+        let v = +inp.value;
+        out.textContent = fmt(v), r.classList.toggle("chg", Math.abs(v - def) > 1e-9), on(v);
+      }, inp.onchange = () => inp.blur(), inp.onpointerup = () => setTimeout(() => inp.blur(), 0), rs.onclick = () => {
+        inp.value = def, inp.oninput(), reset && reset();
+      }, th.append(lb, out, rs), r.append(th, rg), note && r.appendChild(el("p", "tn", esc(note)));
+      return r;
+    }
+    function renderTune() {
+      let box = $("tune"), S = SETTINGS, T = S.tune, base = !!S.tuneAB, sounds = U.tuneTab === "snd";
+      box.innerHTML = "";
+      let hd = el("header", "", `<h2>${sounds ? "Sounds" : "Tuning"}</h2>`), x = el("button", "btn x", "×");
+      x.type = "button", x.setAttribute("aria-label", "Close"), x.onclick = () => U.closeTune(), hd.appendChild(x), box.appendChild(hd);
+      let tabs = el("div", "tabs");
+      for (let [id, n] of [["phys", "Physics"], ["snd", "Sounds"]]) {
+        let b = el("button", U.tuneTab === id ? "on" : "", n);
+        b.type = "button", b.onclick = () => {
+          U.tuneTab = id, renderTune();
+        }, tabs.appendChild(b);
+      }
+      box.appendChild(tabs);
+      let body = el("div", "body");
+      if (sounds) renderSounds(body);
+      else {
+        let ab = el("div", "ab"), sg = el("div", "seg");
+        for (let [v, n] of [[0, "Yours"], [1, "Baseline"]]) {
+          let b = el("button", base === !!v ? "on" : "", n);
+          b.type = "button", b.onclick = () => tuneAB(!!v), sg.appendChild(b);
+        }
+        ab.append(sg, el("span", "hint", "<b>V</b> flips while you drive · <b>Tab</b> hides this")), box.appendChild(ab), box.appendChild(el("p", "live", "Drive to see what's under the truck.")).id = "tuLive";
+        base && body.appendChild(el("p", "abnote", "You're driving the baseline, the game as it ships. Your settings are kept: switch back to Yours, or move any slider."));
+        for (let [gid, gname, gnote] of TUNE_GROUPS) {
+          let G = el("div", "grp");
+          G.appendChild(el("h3", "", esc(gname))), G.appendChild(el("p", "", esc(gnote)));
+          for (let sp of TUNE_SPEC.filter((q) => q[1] === gid)) {
+            let [id, , lab, min, max, step, def, , kind, note] = sp, cur = base ? def : T[id];
+            G.appendChild(trow(lab, cur, def, min, max, step, (v) => tuneFmt(sp, v), note, (v) => {
+              base && (S.tuneAB = 0, U.toast("Back on your tuning", "", 1.4)), T[id] = v, kind === "build" ? (tuneSet(T), clearTimeout(tuneT), tuneT = setTimeout(() => tuneApply(!0), 140)) : tuneApply(!1), base && (base = !1, setTimeout(renderTune, 0));
+            }));
+          }
+          body.appendChild(G);
+        }
+      }
+      box.appendChild(body);
+      let ft = el("footer"), btn = (t, cls, fn) => {
+        let b = el("button", "btn " + cls, t);
+        return b.type = "button", b.onclick = fn, ft.appendChild(b), b;
+      };
+      if (sounds) {
+        btn("Copy mix code", "", () => copyText(mixEncode(MIX), "Mix code copied")), btn("Paste a code", "ghost", () => pasteBox("Paste a mix code (DSMIX3…)", (v) => {
+          setMixCode(v), renderTune(), U.toast("Mix applied", "go", 1.6);
+        })), btn("Game default", "ghost", () => {
+          setMixCode(null), renderTune(), U.toast("Default mix", "", 1.4);
+        });
+      } else {
+        btn("Copy tuning code", "", () => copyText(tuneEncode(T), tuneIsBase(T) ? "Copied: it's the baseline" : "Tuning code copied")), btn("Paste a code", "ghost", () => pasteBox("Paste a tuning code (DSTUNE1…)", (v) => {
+          S.tune = tuneDecode(v), S.tuneAB = 0, tuneApply(!0), renderTune(), U.toast("Tuning applied", "go", 1.6);
+        })), btn("Reset all", "ghost", function() {
+          if (!this.dataset.arm) return this.dataset.arm = "1", this.textContent = "Tap again to reset", void setTimeout(() => {
+            this.dataset.arm = "", this.textContent = "Reset all";
+          }, 3e3);
+          S.tune = tuneFill(null), S.tuneAB = 0, tuneApply(!0), renderTune(), U.toast("Back to the baseline numbers", "", 1.6);
+        });
+      }
+      box.appendChild(ft), liveT = 0;
+    }
+    function renderSounds(body) {
+      let M = MIX, save = () => {
+        writeKey(MIX_KEY, M), audio.setMix(M);
+      };
+      body.appendChild(el("p", "abnote", "Every sound but the engine was rebuilt from scratch. The <b>New</b> ones stay off in the game until they're approved: turn one on to hear it while you drive. Water and gravel are waiting for recordings."));
+      let eng = el("div", "grp");
+      eng.appendChild(el("h3", "", "Engine")), eng.appendChild(el("p", "", "The Digital Engine synth, exactly as the lab plays it.")), eng.appendChild(trow("Level", M.bus.engine, MIX_DEFAULT.bus.engine, -24, 12, 0.5, (v) => (v > 0 ? "+" : "") + v.toFixed(1) + " dB", "", (v) => {
+        M.bus.engine = v, save();
+      })), body.appendChild(eng);
+      let G = el("div", "grp");
+      G.appendChild(el("h3", "", "Everything else"));
+      for (let S of MIX_SOUNDS) {
+        let m = M.s[S.id], ok = MIX_DEFAULT.s[S.id].on, r = trow(S.name, m.lvl, 0, -24, 12, 0.5, (v) => (v > 0 ? "+" : "") + v.toFixed(1) + " dB", S.when, (v) => {
+          m.lvl = v, save();
+        }), th = r.querySelector(".th"), tg = el("button", "tog" + (m.on ? " on" : ""), m.on ? "On" : "Off");
+        tg.type = "button", tg.setAttribute("aria-pressed", m.on ? "true" : "false"), tg.onclick = () => {
+          m.on = m.on ? 0 : 1, tg.classList.toggle("on", !!m.on), tg.textContent = m.on ? "On" : "Off", tg.setAttribute("aria-pressed", m.on ? "true" : "false"), r.classList.toggle("off", !m.on), save();
+        }, th.insertBefore(tg, th.firstChild), ok || th.insertBefore(el("span", "new", "New"), th.querySelector("output")), m.on || r.classList.add("off");
+        if (S.vars.length) {
+          let vs = el("div", "seg");
+          for (let [v, t] of S.vars) {
+            let b = el("button", m.v === v ? "on" : "", esc(t));
+            b.type = "button", b.onclick = () => {
+              m.v = v, [...vs.children].forEach((q) => q.classList.toggle("on", q === b)), save();
+            }, vs.appendChild(b);
+          }
+          r.insertBefore(vs, r.querySelector(".tn"));
+        }
+        G.appendChild(r);
+      }
+      G.appendChild(el("div", "tr off", '<div class="th"><label>Water</label></div><p class="tn">Waiting for a recording.</p>')), body.appendChild(G);
+    }
+    function copyText(t, msg) {
+      let fail = () => pasteBox("Copy this code", null, t);
+      try {
+        navigator.clipboard.writeText(t).then(() => U.toast(msg, "go", 1.6), fail);
+      } catch {
+        fail();
+      }
+    }
+    /* a small box over the drawer for pasting (or, when the clipboard is blocked, for copying by hand) */
+    function pasteBox(title, go, text) {
+      let m = el("div", "pastebox"), ta = el("textarea");
+      ta.spellcheck = !1, ta.rows = 3, text && (ta.value = text, ta.readOnly = !0), m.append(el("b", "", esc(title)), ta);
+      let a = el("div", "acts");
+      if (go) {
+        let ok = el("button", "btn go", "Use it");
+        ok.type = "button", ok.onclick = () => {
+          try {
+            go(ta.value), m.remove();
+          } catch (e) {
+            U.toast(e.message || "That code didn't work", "bad", 2.6);
+          }
+        }, a.appendChild(ok);
+      }
+      let no = el("button", "btn ghost", go ? "Cancel" : "Done");
+      no.type = "button", no.onclick = () => m.remove(), a.appendChild(no), m.appendChild(a), $("tune").appendChild(m), text ? ta.select() : ta.focus();
+    }
+    /* what's under the truck right now, so you know which slider is in play */
+    function tuneLive(dt) {
+      if ((liveT -= dt) > 0) return;
+      liveT = 0.2;
+      let e = $("tuLive");
+      if (!e || !truck) return;
+      let n = [0, 0, 0], cnt = {}, k = 0, slip = 0;
+      for (let w of truck.wheels) w.contact && (k++, n[0] += w.n[0], n[1] += w.n[1], n[2] += w.n[2], cnt[w.surf] = (cnt[w.surf] || 0) + 1, slip = Math.max(slip, w.slipV));
+      if (!k) return e.textContent = "In the air";
+      let surf = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0], nl = Math.hypot(...n), deg = Math.acos(clamp(n[1] / nl, -1, 1)) * 180 / Math.PI, kmh = SV.settings.units === "kmh", sp = truck.speed * (kmh ? 3.6 : 2.237), gm = tuneGrip(surf, [n[0] / nl, n[1] / nl, n[2] / nl]);
+      e.innerHTML = `<b>${esc(SURF_NAME[surf] || surf)}</b> · ${deg.toFixed(0)}° slope · ${Math.round(sp)} ${kmh ? "km/h" : "mph"} · tyre slip ${slip.toFixed(1)} m/s<br>Ground grip here ${gm.toFixed(2)}×${SETTINGS.tuneAB ? " (baseline)" : ""}`;
+    }
     /* ---------- per frame ---------- */
     U.frame = (dt) => {
       if (state === "garage" || state === "title" || state === "pick") {
@@ -526,7 +683,7 @@
         }
         garageRev = Math.max(U.revBtn, state === "garage" && input.key("thr") ? 1 : 0);
       } else garageRev = 0;
-      state === "drive" && hudFrame();
+      state === "drive" && hudFrame(), U.tuneOn && U.tuneTab === "phys" && tuneLive(dt);
     };
     return U;
   }

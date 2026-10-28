@@ -18,6 +18,8 @@
     return replay;
   }, get time() {
     return time;
+  }, TUNE, SETTINGS, tuneAB, pause, tuneEncode, tuneDecode, mixEncode, mixDecode, get MIX() {
+    return MIX;
   } };
   var bootMsg = $("boot").querySelector("div");
   R.G.warmup((d, n) => {
