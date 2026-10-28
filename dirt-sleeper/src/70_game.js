@@ -462,7 +462,7 @@
   var camPrev = null, slowT = 0;
   function render(dt, r, fr) {
     let c = fr ? replayCam(dt) : cam.update(dt, truck, { look: !!lastInp.look, impact: Math.max(r.ev.wall || 0, r.ev.land || 0) * 0.25 }), L = truckLights(), M = qmat(truck.q), F = mcol(M, 0), fw = norm2([F[0], 1e-4, F[2]]), camVel = camPrev && !c.cut ? sub2(c.pos, camPrev).map((x) => x / Math.max(dt, 1e-3)) : [0, 0, 0];
-    camPrev = c.pos.slice(), PS.rain.on = env.rain, PS.rain.camVel = camVel, PS.update(fr ? dt * replay.rate : dt, c.pos);
+    camPrev = c.pos.slice(), PS.rain.on = env.rain, PS.rain.camVel = camVel, PS.update(fr ? dt * replay.rate : dt, c.pos, truck.p);
     let suvs = [truckView()], cars = [], occ = [[truck.p[0], truck.p[1], truck.p[2], truck.c.hcg, fw[0], fw[2], 2.5, 1]], rvw = rival && state !== "garage" ? rivalView() : null, props = [], dyn = L.dyn;
     rvw && (rvw.kind === "car" ? cars.push(rvw.v) : suvs.push(rvw.v), occ.push([rvw.v.p[0], rvw.v.p[1], rvw.v.p[2], 0.6, 1, 0, 2.3, 0.95]));
     if (mode && mode.kind === "roam" && state === "drive") {

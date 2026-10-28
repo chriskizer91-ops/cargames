@@ -235,7 +235,8 @@ void main(){
         fn(), a -= 1;
       this.emitAcc.set(key, a);
     }
-    update(dt, camPos) {
+    /* focus: the point the camera is watching (the truck); puffs between the camera and it are thinned so it stays in sight */
+    update(dt, camPos, focus) {
       let w = 0;
       for (let i = 0; i < this.n; i++) {
         if (this.age[i] += dt, this.age[i] >= this.life[i]) continue;
@@ -252,9 +253,16 @@ void main(){
         let o = i * 3;
         d[i] = (this.p[o] - camPos[0]) ** 2 + (this.p[o + 1] - camPos[1]) ** 2 + (this.p[o + 2] - camPos[2]) ** 2, this.order[i] = i;
       }
-      let ord = Array.from(this.order.subarray(0, this.n)).sort((a, b) => d[b] - d[a]);
+      let ord = Array.from(this.order.subarray(0, this.n)).sort((a, b) => d[b] - d[a]), fx = focus ? focus[0] - camPos[0] : 0, fy = focus ? focus[1] - camPos[1] : 0, fz = focus ? focus[2] - camPos[2] : 0, fL2 = fx * fx + fy * fy + fz * fz;
       for (let j = 0; j < ord.length; j++) {
         let i = ord[j], o = i * 3, t = this.age[i] / this.life[i], q = j * 8, sz = this.size0[i] + (this.size1[i] - this.size0[i]) * Math.sqrt(t), a = this.a0[i] * Math.min(1, t * 6) * (1 - t) * (1 - t);
+        if (fL2 > 4) {
+          let px = this.p[o] - camPos[0], py = this.p[o + 1] - camPos[1], pz = this.p[o + 2] - camPos[2], s = (px * fx + py * fy + pz * fz) / fL2;
+          if (s > 0 && s < 1) {
+            let dx = px - fx * s, dy = py - fy * s, dz = pz - fz * s, d = Math.sqrt(dx * dx + dy * dy + dz * dz), k = Math.min(1, Math.max(0, (d - sz * 0.4) / (sz * 0.8 + 1)));
+            a *= 1 - 0.75 * (1 - k * k * (3 - 2 * k)) * Math.min(1, (1 - s) * 8);
+          }
+        }
         this.inst[q] = this.p[o], this.inst[q + 1] = this.p[o + 1], this.inst[q + 2] = this.p[o + 2], this.inst[q + 3] = sz, this.inst[q + 4] = a, this.inst[q + 5] = this.kind[i], this.inst[q + 6] = this.seed[i], this.inst[q + 7] = this.age[i];
       }
     }
