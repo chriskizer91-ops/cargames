@@ -4,7 +4,7 @@
    ===================================================================================== */
 const VIEWS=[['front34','Front ¾',-38,8,8.6,.86],['side','Side',90,2.5,8.4,.82],['rear34','Rear ¾',142,9,8.6,.86],
   ['front','Front',0,4,7.4,.86],['rear','Rear',180,5,7.4,.86],['top','Top',-35,58,9.6,.55],['low','Low',-24,1.5,6.6,.62]];
-const RES=[[320,180,1],[480,270,1],[640,360,2]];
+const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
 const APP={build:0,view:'front34',compare:false,stage:'dark',lights:false,steer:false,spin:false,yaw:0,paint:{},dirt:{},
   cam:{th:-38,ph:8,d:8.6,ty:.86},camT:null,fov:.5,t:0,frameMs:0,fps:60,tris:0};
 try{const s=JSON.parse(store.get('dsmini-bay','{}'));for(const k of ['build','view','stage','lights','steer','compare'])if(s[k]!==undefined)APP[k]=s[k];if(s.paint)APP.paint=s.paint;if(s.dirt)APP.dirt=s.dirt;}catch(e){}
