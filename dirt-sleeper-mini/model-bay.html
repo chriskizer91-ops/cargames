@@ -109,6 +109,7 @@ button{font:inherit;color:inherit}
     <button class="tog" id="lights" type="button" aria-pressed="false">Lights</button>
     <button class="tog" id="steer" type="button" aria-pressed="false">Steer</button>
     <button class="tog" id="spin" type="button" aria-pressed="false">Spin</button>
+    <button class="tog" id="hood" type="button" aria-pressed="false">Hood</button>
     <div class="seg" id="stage" role="group" aria-label="Studio"><button type="button" data-v="dark" aria-pressed="true">Dark bay</button><button type="button" data-v="light" aria-pressed="false">Light cyc</button></div>
   </div>
   <div class="row" data-p="engine" hidden>
@@ -2111,7 +2112,7 @@ const SUVB={
   /* greenhouse: windshield base, roof front, roof rear, rear glass end, glass base lift and inset,
      roof width, crown, the D-pillar line and the black pillars between the side windows [u, lean, half width] */
   G:{cowl:1.48,rf:2.32,rr:4.60,be:4.80,base:.012,inset:.034,tum:.80,crown:.03,cB:4.53,cT:4.36,pillars:[[2.62,-.07,.032],[3.56,-.03,.03]]},
-  dome:[.32,1.42,.022],bumperF:.088,bumperR:4.845,
+  dome:[.32,1.42,.022],bumperF:.088,bumperR:4.845,hood0:.14,
   /* roof height, shoulder tuck, hip bulge over the front and rear arches */
   Hr:1.79,sh:.968,hip:[.018,.018],oy:1,
   /* doors (4: the rear one steps round the arch), handle stations, the fuel door, the liftgate outline,
@@ -2134,7 +2135,7 @@ BODIES.trail={
   plan:[[0,0],[0,.76,.08],[.1,.82,.15],[.5,.83,.4],[3.2,.83,.4],[3.50,.81,.05],[3.50,0]],
   clad:[[0,.80],[.06,.80],[.12,.62],[3.38,.62],[3.44,.74],[3.50,.74]],
   G:{cowl:1.18,rf:1.56,rr:3.44,be:3.48,base:.012,inset:.028,tum:.94,crown:.01,cB:3.40,cT:3.38,pillars:[[2.52,0,.04]]},
-  dome:[.3,1.0,0],bumperF:.06,bumperR:9,
+  dome:[.3,1.0,0],bumperF:.06,bumperR:9,hood0:.09,
   Hr:1.785,sh:.985,hip:[.008,.008],oy:1,doors:2,doorR:2.56,handles:[2.34],fuel:null,lift:null,rails:null,wiperR:null,underSpare:0,markers:false,seams:false,
   chY:.08,fit:{fdy:.1,rdy:.06,exU:2.3,sideZ:.9,ventU:-.25}
 };
@@ -2149,7 +2150,7 @@ BODIES.coupe={
   plan:[[0,0],[0,.62,.30],[.45,.90,.55],[1.0,.95,.45],[2.3,.915,.8],[3.78,.96,.45],[4.25,.90,.3],[4.45,.74,.2],[4.45,0]],
   clad:[[0,.26],[4.45,.26]],
   G:{cowl:1.62,rf:2.30,rr:3.02,be:3.95,base:.012,inset:.03,tum:.72,crown:.03,cB:3.55,cT:3.0,pillars:[[2.92,-.12,.022]]},
-  dome:[.3,1.45,.012],bumperF:.1,bumperR:9,
+  dome:[.3,1.45,.012],bumperF:.1,bumperR:9,hood0:.12,
   Hr:1.21,sh:.94,hip:[.015,.04],oy:.5,doors:2,doorR:3.0,handles:[2.78],fuel:null,lift:null,rails:null,wiperR:null,underSpare:0,markers:false,
   chY:-.15,fit:{fdy:-.21,rdy:-.22,exU:3.1,sideZ:.97,ventU:-.18,lipZ:.8,lipU:.35,epU:.2,sideEx:.96,sideExY:.03,filler:[3.9,.72]}
 };
@@ -2164,7 +2165,7 @@ BODIES.wagon={
   plan:[[0,0],[0,.76,.26],[.4,.885,.5],[2.4,.91,1.2],[4.2,.905,.45],[4.72,.84,.18],[4.72,0]],
   clad:[[0,.40],[4.2,.40],[4.35,.60],[4.72,.60]],
   G:{cowl:1.12,rf:1.80,rr:4.30,be:4.60,base:.012,inset:.03,tum:.84,crown:.03,cB:4.32,cT:4.22,pillars:[[2.36,-.04,.03],[3.42,-.02,.035]]},
-  dome:[.3,.9,.006],bumperF:.1,bumperR:9,
+  dome:[.3,.9,.006],bumperF:.1,bumperR:9,hood0:.17,
   Hr:1.43,sh:.965,hip:[.012,.012],oy:.65,doors:4,fuel:3.95,lift:{z:.6,u:4.6},rails:[1.95,4.15,.62],wiperR:4.55,underSpare:0,markers:false,
   chY:-.1,fit:{fdy:-.2,rdy:-.2,exU:3.0}
 };
@@ -2288,10 +2289,12 @@ function buildSUV(look){
       mb.quad([x,a[1],a[0]],[x,b[1],b[0]],[x,b[1],-b[0]],[x,a[1],-a[0]],m[0],m[1],m[2]);}
   }
   /* wheel wells: inner walls so the arches read as deep holes */
+  const ww0=pm.p.length/9;
   for(const ua of [D.uFa,D.uRa]){const zi=D.plan(ua)*.78,n=16;
     for(let k=0;k<n;k++){const p0=archPt(D,ua,PI*k/n),p1=archPt(D,ua,PI*(k+1)/n),yb=D.arch.cy-.06;
       for(const sd of [1,-1])pm.quad([X(p0[0]),yb,zi*sd],[X(p1[0]),yb,zi*sd],[X(p1[0]),p1[1],zi*sd],[X(p0[0]),p0[1],zi*sd],MM.UNDER[0],0,MM.UNDER[2]);
       for(const sd of [1,-1])pm.quad([X(p0[0]),p0[1],zi*sd],[X(p1[0]),p1[1],zi*sd],[X(p1[0]),p1[1],D.plan(p1[0])*.9*sd],[X(p0[0]),p0[1],D.plan(p0[0])*.9*sd],MM.UNDER[0],0,MM.UNDER[2]);}}
+  const ww1=pm.p.length/9;
   /* ---------- surface lookups for decals and parts ---------- */
   const inside=(u,z,y)=>zOut(ringAt(u).p,y)>=Math.abs(z);
   /* first station (from the nose, or from the tail) whose section holds (z,y), refined by bisection */
@@ -2328,8 +2331,31 @@ function buildSUV(look){
   if(FACES[look.face])FACES[look.face](K);if(TAILS[look.tail])TAILS[look.tail](K);
   buildParts(K);
   const S={skin:mb.p.length/9,parts:0};
-  mb.smooth(34,[0,D.B.oy+dy*.5,0]);pm.smooth(28);S.parts=pm.p.length/9;mb.append(pm);
-  return {body:mb.build(),D,tris:mb.p.length/9,stats:S};
+  mb.smooth(34,[0,D.B.oy+dy*.5,0]);pm.smooth(28);S.parts=pm.p.length/9;
+  /* the hood comes away from the body so it can open in the garage, and what lies under it (the floor and
+     the wheel wells where they cross the bay) is kept apart, to be drawn only while the hood is shut */
+  const h0=D.B.hood0,h1=G.cowl-.05,hz=u=>Math.max(.2,D.plan(u)*D.sh-.07);
+  D.hood={u0:h0,u1:h1,hz,hinge:[X(h1),topY(h1,0)]};D.topY=topY;
+  const where=(x,y,z)=>{const u=D.uC-x;if(u<h0||u>h1)return 0;const zh=hz(u),az=Math.abs(z);if(az>zh)return 0;
+    const ye=topY(u,az);return y>=ye-.015?1:az<zh-.02&&y<ye-.05?2:0;};
+  const out=[new MB(),new MB(),new MB()];
+  const put=(vs,mat,hide)=>{let x=0,y=0,z=0;for(const v of vs){x+=v.p[0]/3;y+=v.p[1]/3;z+=v.p[2]/3;}let w=where(x,y,z);if(w===2&&!hide)w=0;const d=out[w];
+    for(const v of vs){d.p.push(...v.p);d.n.push(...v.n);d.c.push(...v.c);d.m.push(mat);}};
+  /* a skin triangle that straddles the hood's edge is cut along it, so the hood comes away cleanly */
+  const lv=(a,b,t)=>{const n=[0,1,2].map(k=>a.n[k]+(b.n[k]-a.n[k])*t),l=Math.hypot(...n)||1;
+    return {p:[0,1,2].map(k=>a.p[k]+(b.p[k]-a.p[k])*t),n:n.map(q=>q/l),c:[0,1,2,3].map(k=>a.c[k]+(b.c[k]-a.c[k])*t)};};
+  const clipTo=(vs,f,keep)=>{const o=[];for(let i=0;i<vs.length;i++){const a=vs[i],b=vs[(i+1)%vs.length],fa=f(a)*keep,fb=f(b)*keep;
+    if(fa>=0)o.push(a);if((fa>=0)!==(fb>=0))o.push(lv(a,b,fa/(fa-fb)));}return o;};
+  const split=(src,hideOk,cut)=>{const P=src.p,N=src.n,C=src.c,Mt=src.m;
+    for(let t=0;t<P.length/9;t++){const vs=[0,1,2].map(k=>({p:[P[t*9+k*3],P[t*9+k*3+1],P[t*9+k*3+2]],n:[N[t*9+k*3],N[t*9+k*3+1],N[t*9+k*3+2]],c:[C[t*12+k*4],C[t*12+k*4+1],C[t*12+k*4+2],C[t*12+k*4+3]]})),mat=Mt[t*3],hide=hideOk(t);
+      if(cut){const uc=D.uC-(vs[0].p[0]+vs[1].p[0]+vs[2].p[0])/3,zc=(vs[0].p[2]+vs[1].p[2]+vs[2].p[2])/3;
+        if(uc>=h0&&uc<=h1){const sg=zc<0?-1:1,c=hz(uc),f=v=>sg*v.p[2]-c,fs=vs.map(f);
+          if(Math.min(...fs)<0&&Math.max(...fs)>0){for(const keep of [1,-1]){const q=clipTo(vs,f,keep);for(let k=1;k<q.length-1;k++)put([q[0],q[k],q[k+1]],mat,hide);}continue;}}}
+      put(vs,mat,hide);}};
+  /* from the skin only its underside is hidden; from the parts only the wheel wells */
+  split(mb,t=>mb.m[t*3]===MAT.METAL&&Math.abs(mb.c[t*12]-MM.UNDER[0][0])<1e-6,true);split(pm,t=>t>=ww0&&t<ww1,false);
+  const n=out[0].p.length+out[1].p.length+out[2].p.length;
+  return {body:out[0].build(),hood:out[1].build(),hide:out[2].build(),D,tris:n/9,stats:S};
 }
 /* ---------- glass, pillars, shut lines, handles, markers, mirrors, wipers: every build has these ---------- */
 function bodyCommon(K){
@@ -2552,7 +2578,8 @@ function flares(K){
   for(const ua of [D.uFa,D.uRa])for(const s of [1,-1]){
     const G=[];
     for(let k=0;k<=n;k++){const ph=(F.a0||-.01)+((F.a1||1.01)-(F.a0||-.01))*k/n,end=sm01(Math.min(k,n-k)/(n*.1)),row=[];
-      for(const [dr,dz] of sec){const [u,y]=archPt(D,ua,ph*PI,dr);row.push([X(u),y,s*(sideZ(u,y)+Math.max(0,dz)*(.35+.65*end)+Math.min(0,dz))]);}
+      /* never above the shoulder: on a low fender line the flare runs along it rather than over the hood */
+      for(const [dr,dz] of sec){const [u,y0]=archPt(D,ua,ph*PI,dr),y=Math.min(y0,D.belt(u)-.02);row.push([X(u),y,s*(sideZ(u,y)+Math.max(0,dz)*(.35+.65*end)+Math.min(0,dz))]);}
       G.push(row);}
     for(let k=0;k<n;k++)for(let j=0;j<sec.length-1;j++)pm.quad(G[k][j],G[k+1][j],G[k+1][j+1],G[k][j+1],m[0],m[1],m[2]);
     for(const k of [0,n]){const r=G[k];for(let j=1;j<r.length-1;j++)pm.tri(r[0],r[j],r[j+1],m[0],m[1],m[2]);}
@@ -3086,6 +3113,169 @@ function buildWheel(w){
 }
 
 /* =====================================================================================
+   UNDER THE HOOD — the engine bay, for the garage only. buildSUV has already split the hood
+   off the body and kept apart the floor and wheel wells under it. The bay is built the first
+   time a hood opens and is drawn only while it is open: inner fenders and wheel tubs, the
+   firewall, the radiator and the bay's furniture, and the engine the build actually has. Every
+   upgrade in the build's engine recipe shows: a cone filter or an airbox, cast manifolds or
+   headers, turbos with their charge pipes and intercooler, a blower and its hat, individual
+   throttle bodies, nitrous solenoids, electric fans, a strut brace, a catch can.
+   ===================================================================================== */
+/* each engine's colours: the block, the valve covers, and whether the covers are polished */
+const BAYLOOK={
+  v46:{block:'#2b2c2f',cover:'#1b1c1e'},
+  bb74:{block:'#b8401c',cover:'#c9ccd1',polish:1},
+  tt35:{block:'#85888d',cover:'#1b1c1e'},
+  i40:{block:'#2b2c2f',cover:'#7b7f86'},
+  v62:{block:'#2b2c2f',cover:'#a3201c'},
+  fp52:{block:'#85888d',cover:'#b0201c'},
+  i525:{block:'#85888d',cover:'#232528'}
+};
+const bm=h=>V(lin(h),MAT.METAL);
+/* move what a mesh builder holds by a rigid transform */
+function xformMB(mb,M){for(let i=0;i<mb.p.length;i+=3){const p=M4.xform(M,[mb.p[i],mb.p[i+1],mb.p[i+2]]),n=mb.n,x=n[i],y=n[i+1],z=n[i+2];
+  mb.p[i]=p[0];mb.p[i+1]=p[1];mb.p[i+2]=p[2];n[i]=M[0]*x+M[4]*y+M[8]*z;n[i+1]=M[1]*x+M[5]*y+M[9]*z;n[i+2]=M[2]*x+M[6]*y+M[10]*z;}}
+/* the engine, built round its crank: +x is the front (the belt end), +y up, the crank at y=0. An inline
+   engine breathes in on its left (-z) and out on its right. Returns where its throttle body, turbos and
+   thermostat are, for the bay to plumb to. */
+function bayEngine(mb,r,mechFan){
+  const E=DE_ENGINES[r.engine],BL=BAYLOOK[r.engine]||BAYLOOK.v46,lay=E.layout,v=lay[0]==='V',n=+(lay.match(/\d+/)||[4])[0],np=v?n/2:n;
+  const len=np*.095+.14,hx=len/2,ang=lay==='V6'?PI/3:PI/2;
+  const BLK=bm(BL.block),HEAD=bm('#74777c'),COV=bm(BL.polish?'#8d9096':BL.cover),IRON=bm('#4a3f36'),DARK=bm('#161618'),ALU=bm('#7f8288'),PIPE=bm('#8f8b84');
+  const hdr=['headers','straight','side'].includes(r.exhaust),fi=r.power==='roots'?'roots':r.power==='twin'?'twin':(E.fi||'none'),big=r.power==='bigturbo';
+  const itb=v&&lay==='V8F'&&r.intake>=2&&fi==='none',xs=k=>-hx+.07+(k+.5)*(len-.14)/np;
+  const I={len,hx,v,fi,itb,top:0,topCore:0,tb:null,turbos:[],cool:[hx+.02,.26,0]};
+  /* the bottom end, the front cover, pulleys and belt, the alternator, the bellhousing */
+  abox(mb,[0,-.13,0],[hx-.02,.07,v?.19:.13],DARK);
+  abox(mb,[hx+.015,.1,0],[.015,.17,v?.17:.12],BLK);
+  tubeAB(mb,[hx+.03,-.03,0],[hx+.075,-.03,0],.085,16,DARK);
+  tubeAB(mb,[hx+.03,.19,0],[hx+.07,.19,0],.06,14,ALU);
+  obox(mb,[hx+.055,.08,0],[1,0,0],[0,1,0],[0,0,1],[.012,.12,.05],DARK);
+  tubeAB(mb,[hx-.05,v?.33:.08,-.21],[hx+.06,v?.33:.08,-.21],.062,12,ALU);
+  tubeAB(mb,[-hx,.03,0],[-hx-.22,0,0],.21,16,ALU,true,.13);
+  if(mechFan)for(let k=0;k<5;k++){const a=k/5*TAU,c=Math.cos(a),s=Math.sin(a);obox(mb,[hx+.14,.19+c*.11,s*.11],[1,0,0],[0,c,s],[0,-s,c],[.006,.1,.04],DARK);}
+  /* exhaust: cast logs or a header per cylinder; with turbos, everything feeds the turbine */
+  const turbo=(c,s,r0)=>{
+    ball(mb,c,r0*1.1,12,IRON);tubeAB(mb,[c[0]-.04,c[1],c[2]],[c[0]+.03,c[1],c[2]],r0,14,IRON);
+    tubeAB(mb,[c[0]+.03,c[1],c[2]],[c[0]+.07,c[1],c[2]],r0*.45,10,DARK);
+    const cc=[c[0]+.11,c[1],c[2]];ball(mb,cc,r0,12,ALU);tubeAB(mb,[cc[0]-.04,cc[1],cc[2]],[cc[0]+.03,cc[1],cc[2]],r0*1.02,16,ALU);
+    tubeAB(mb,[c[0],c[1]-r0,c[2]],[c[0]-.03,-.24,c[2]*.9],.042,10,IRON);
+    I.turbos.push({inlet:[cc[0]+.03,cc[1],cc[2]],outlet:[cc[0],cc[1]+r0,cc[2]],s,r:r0});};
+  const exhaustBank=(s,port,out)=>{
+    const tz=s*(v?.36:.3),tc=[-hx*.15,v?.02:.14,tz],col=fi==='twin'||(fi==='turbo'&&s>0)?tc:[-hx+.06,-.16,s*(v?.3:.24)];
+    if(hdr)for(let k=0;k<np;k++){const p=port(k),q=V3.add(p,V3.mul(out,.07));
+      tubePath(mb,[p,q,[p[0]*.85+col[0]*.15,(q[1]+col[1])/2,(q[2]+col[2])/2+s*.03],[col[0]+(k-(np-1)/2)*.025,col[1]+.05,col[2]]],.019,8,PIPE);}
+    else{const a=V3.add(port(0),V3.mul(out,.05)),b=V3.add(port(np-1),V3.mul(out,.05));tubeAB(mb,a,b,.035,10,IRON);
+      for(let k=0;k<np;k++)tubeAB(mb,port(k),V3.add(port(k),V3.mul(out,.05)),.026,8,IRON);
+      tubeAB(mb,a[0]<b[0]?a:b,[col[0],col[1]+.05,col[2]],.034,10,IRON);}
+    if(col===tc)turbo(tc,s,(big?.1:.075));
+    else tubeAB(mb,[col[0],col[1]+.05,col[2]],[col[0]-.05,-.24,col[2]],.034,10,hdr?PIPE:IRON);};
+  if(!v){
+    abox(mb,[0,.1,0],[hx,.16,.15],BLK);abox(mb,[0,.31,0],[hx-.02,.05,.14],HEAD);
+    rbox(mb,[0,.39,0],[1,0,0],[0,1,0],[0,0,1],[hx-.04,.045,.115],COV,.3,16,6);
+    for(let k=0;k<np;k++)abox(mb,[xs(k),.445,0],[.022,.018,.028],DARK);
+    for(let k=0;k<np;k++)tubePath(mb,[[xs(k),.33,-.13],[xs(k),.38,-.22],[xs(k),.33,-.29]],.022,8,ALU);
+    rbox(mb,[0,.31,-.33],[1,0,0],[0,1,0],[0,0,1],[hx-.04,.06,.05],ALU,.35,14,6);
+    tubeAB(mb,[hx-.06,.31,-.33],[hx+.04,.31,-.33],.042,14,ALU);I.tb=[hx+.04,.31,-.33];
+    exhaustBank(1,k=>[xs(k),.27,.155],[0,0,1]);I.top=I.topCore=.47;
+  }else{
+    abox(mb,[0,.02,0],[hx,.1,.2],BLK);
+    for(const s of [1,-1]){const a=ang/2,d=[0,Math.cos(a),s*Math.sin(a)],az=[0,-d[2],d[1]],out=V3.mul(az,s),P=(t,o)=>V3.add(V3.mul(d,t),V3.mul(out,o));
+      obox(mb,P(.15,0),[1,0,0],d,az,[hx,.1,.12],BLK);obox(mb,P(.29,0),[1,0,0],d,az,[hx-.02,.04,.115],HEAD);
+      rbox(mb,P(.37,0),[1,0,0],d,az,[hx-.04,.04,.1],COV,.3,16,6);
+      exhaustBank(s,k=>{const q=P(.27,.12);return [xs(k)+s*.024,q[1],q[2]];},out);
+      I.top=Math.max(I.top,P(.41,-.1)[1]);}
+    if(itb){for(const s of [1,-1])for(let k=0;k<np;k++){const x=xs(k)+s*.024;tubeAB(mb,[x,.3,s*.1],[x,.47,s*.12],.026,10,bm('#9a9da3'),false,.042);}
+      I.top=I.topCore=.48;}
+    else{rbox(mb,[0,.34,0],[1,0,0],[0,1,0],[0,0,1],[hx-.06,.06,.12],fi==='roots'?ALU:bm(BL.polish?'#8d9096':'#2a2b2e'),.35,14,6);I.topCore=.4;
+      if(fi==='roots'){const yb=.5;rbox(mb,[0,yb,0],[1,0,0],[0,1,0],[0,0,1],[hx-.1,.1,.13],bm('#8d9096'),.25,16,8);
+        for(let k=0;k<6;k++)obox(mb,[-hx+.14+k*(len-.28)/5,yb,0],[1,0,0],[0,1,0],[0,0,1],[.006,.105,.135],ALU);
+        tubeAB(mb,[hx-.1,yb,0],[hx+.06,yb,0],.05,12,ALU);tubeAB(mb,[hx+.06,yb,0],[hx+.1,yb,0],.075,16,DARK);
+        obox(mb,[hx+.085,(yb-.03)/2,0],[1,0,0],[0,1,0],[0,0,1],[.01,(yb+.03)/2,.04],DARK);
+        rbox(mb,[0,yb+.17,0],[1,0,0],[0,1,0],[0,0,1],[.16,.07,.12],bm('#9a9da3'),.3,14,6);
+        obox(mb,[.161,yb+.17,0],[1,0,0],[0,1,0],[0,0,1],[.003,.05,.1],V([0,0,0],MAT.MESH));I.top=yb+.24;}
+      else{tubeAB(mb,[hx-.08,.36,0],[hx+.04,.36,0],.045,14,ALU);I.tb=[hx+.04,.36,0];I.top=Math.max(I.top,.4);}}
+  }
+  /* nitrous: a blue and a red solenoid by the intake, their lines running back */
+  if(r.nos){const t=I.tb||[0,I.topCore+.02,0];
+    for(const [dz,c] of [[-.07,'#2456a8'],[.07,'#c8241c']]){const p=[t[0]-.1,t[1]+.07,t[2]+dz];tubeAB(mb,[p[0],p[1]-.035,p[2]],[p[0],p[1]+.035,p[2]],.022,10,bm(c));
+      tubePath(mb,[[p[0],p[1]+.035,p[2]],[p[0]-.12,p[1]+.07,p[2]],[-hx-.1,p[1]+.03,p[2]*1.6]],.007,6,bm('#5a5c61'));}}
+  return I;
+}
+function buildBay(b,D){
+  const lk=b.look,r=ENGINE_OF[b.id]||ENGINE_OF.stock,X=D.X,topY=D.topY,H=D.hood,hz=H.hz;
+  const st=new MB(),en=new MB(),ln=new MB(),PAINT=MM.PAINT,DARK=bm('#161618'),HOSE=V(lin('#121212'),MAT.RUBBER),ALU=bm('#7f8288'),PIPE=bm('#8d9096');
+  const uF=H.u0+.09,uR=H.u1-.02,edge=u=>topY(u,hz(u)),yFloor=D.sill((uF+uR)/2)+.02,up=r.tune>0||r.power!=='none';
+  /* ---- the engine, set in the bay: back against the firewall, as low as its sump allows, under the hood ---- */
+  const I=bayEngine(en,r,!up),trans=r.mount==='trans';
+  const uc=trans?clamp((uF+.5+uR-.34)/2,uF+.42,uR-.3):Math.max(uF+.27,uR-.12-I.len)+I.hx;
+  let hm=9;for(let u=trans?uc-.35:uc-I.hx;u<=(trans?uc+.32:uc+I.hx+.1);u+=.05)hm=Math.min(hm,topY(u,.22));
+  const yC=Math.max(yFloor+.12,Math.min(D.arch.cy+.2,hm-I.topCore-.03));
+  const EM=trans?M4.basis([X(uc),yC,.06],[0,0,1],[0,1,0],[-1,0,0]):M4.basis([X(uc),yC,0],[1,0,0],[0,1,0],[0,0,1]);
+  xformMB(en,EM);const E=p=>M4.xform(EM,p);
+  /* a splash shield between the radiator and the engine (a front-mid engine leaves a lot of bay ahead of it) */
+  {const ue=trans?uc-.42:uc-I.hx-.14,y=Math.max(yFloor,yC-.17),z=lk.track/2-lk.tyre.W/2-.07;
+    if(ue>uF+.2)st.quad([X(uF+.12),y,-z],[X(uF+.12),y,z],[X(ue),y,z],[X(ue),y,-z],MM.UNDER[0],0,MM.UNDER[2]);}
+  /* ---- inner fenders and wheel tubs, strut towers on the independent fronts ---- */
+  const tw=lk.track/2,zin=tw-lk.tyre.W/2-.05,N=28,ytub=u=>{const a=archY(D,u);return a>0?Math.min(edge(u)-.03,a+.04):-1;};
+  for(const s of [1,-1]){
+    for(let k=0;k<N;k++){const ua=uF+(uR-uF)*k/N,ub=uF+(uR-uF)*(k+1)/N,za=s*(hz(ua)-.005),zb=s*(hz(ub)-.005);
+      const la=Math.max(yFloor,ytub(ua)),lb=Math.max(yFloor,ytub(ub));
+      st.quad([X(ua),la,za],[X(ub),lb,zb],[X(ub),edge(ub)-.03,zb],[X(ua),edge(ua)-.03,za],PAINT[0],0,PAINT[2]);
+      const ta=ytub(ua),tb=ytub(ub);if(ta>yFloor&&tb>yFloor){
+        st.quad([X(ua),yFloor,s*zin],[X(ub),yFloor,s*zin],[X(ub),tb,s*zin],[X(ua),ta,s*zin],MM.UNDER[0],0,MM.UNDER[2]);
+        st.quad([X(ua),ta,s*zin],[X(ub),tb,s*zin],[X(ub),tb,zb],[X(ua),ta,za],MM.UNDER[0],0,MM.UNDER[2]);}}
+    if(lk.susp!=='solid'){const u=D.uFa,z=s*(hz(u)-.13),y0=Math.max(yFloor,ytub(u)),y1=edge(u)-.07;
+      tubeAB(st,[X(u),y0,z],[X(u),y1,z],.085,14,PAINT);tubeAB(st,[X(u),y1,z],[X(u),y1+.01,z],.05,12,DARK);tubeAB(st,[X(u),y1,z],[X(u),y1+.035,z],.014,6,ALU);
+      if(r.tune>0)tubeAB(st,[X(u),y1+.02,z],[X(u),y1+.02,-z*.98],.018,8,bm('#c8241c'));}}
+  /* ---- the firewall, its insulation, the cowl tray ---- */
+  {const z=hz(uR)-.005,ym=yFloor+(edge(uR)-yFloor)*.45,x=X(uR),c=bm('#1d1d20');
+    st.quad([x,yFloor,-z],[x,yFloor,z],[x,ym,z],[x,ym,-z],PAINT[0],0,PAINT[2]);
+    st.quad([x,ym,-z],[x,ym,z],[x,edge(uR)-.02,z],[x,edge(uR)-.02,-z],c[0],0,MAT.FABRIC);
+    const y=edge(uR)-.02;st.quad([x,y,-z],[x,y,z],[X(H.u1+.03),y,z],[X(H.u1+.03),y,-z],c[0],0,MAT.FABRIC);}
+  /* ---- the front: support bar, radiator, shroud and fans ---- */
+  const yrT=edge(uF)-.1,yrB=Math.max(yFloor+.08,yrT-.45),yr=(yrT+yrB)/2,hr=(yrT-yrB)/2,zr=Math.min(.6,hz(uF)-.1);
+  abox(st,[X(uF),edge(uF)-.05,0],[.03,.025,hz(uF)-.02],PAINT);
+  abox(st,[X(uF+.05),yr,0],[.025,hr,zr],V([0,0,0],MAT.MESH));
+  for(const s of [1,-1])abox(st,[X(uF+.05),yr,s*(zr+.02)],[.03,hr+.01,.02],DARK);
+  tubeAB(st,[X(uF+.05),yrT+.01,zr*.7],[X(uF+.05),yrT+.04,zr*.7],.022,10,MM.CHROME);
+  abox(st,[X(uF+.1),yr,0],[.012,hr,zr],DARK);
+  if(up)for(const s of [1,-1]){const c=[X(uF+.115),yr,s*zr*.5],R=Math.min(hr,zr*.5)*.9;tubeAB(st,[c[0],c[1],c[2]],[c[0]-.03,c[1],c[2]],R,20,bm('#0c0c0d'));tubeAB(st,[c[0]-.03,c[1],c[2]],[c[0]-.05,c[1],c[2]],R*.25,12,ALU);}
+  /* the radiator hoses to the thermostat and the water pump */
+  {const c=E(I.cool),w=E([I.hx+.03,.12,-.05]),yu=Math.min(yrT-.04,c[1]+.04);
+    tubePath(en,[[X(uF+.12),yrT-.04,zr*.6],[X(uF+.18),yu,zr*.6],[c[0]+.1,yu,zr*.35],c],.022,8,HOSE);
+    tubePath(en,[[X(uF+.12),yrB+.05,-zr*.6],[X(uF+.18),yrB+.05,-zr*.6],[w[0]+.1,yrB+.05,-zr*.35],w],.024,8,HOSE);}
+  /* ---- the furniture: battery, coolant tank, brake booster, fuse box ---- */
+  {const u=uF+.22,z=-(hz(u)-.17),yb=Math.max(yFloor+.2,edge(u)-.36);abox(st,[X(u),yb+.09,z],[.1,.09,.075],DARK);
+    tubeAB(st,[X(u)+.05,yb+.18,z+.04],[X(u)+.05,yb+.21,z+.04],.016,8,bm('#c8241c'));tubeAB(st,[X(u)-.05,yb+.18,z+.04],[X(u)-.05,yb+.21,z+.04],.016,8,DARK);}
+  {const u=uR-.12,z=-(hz(u)-.24),y=edge(u)-.2;tubeAB(st,[X(uR),y,z],[X(uR)+.09,y,z],.13,18,DARK);
+    tubeAB(st,[X(uR)+.09,y+.02,z],[X(uR)+.27,y+.02,z],.035,10,ALU);abox(st,[X(uR)+.2,y+.08,z],[.05,.03,.04],V(lin('#a29e94'),MAT.COL));}
+  {const u=uR-.12,z=hz(u)-.2;abox(st,[X(u),edge(u)-.13,z],[.08,.05,.1],DARK);}
+  {const u=uF+.5,z=hz(u)-.15;abox(st,[X(u),edge(u)-.2,z],[.07,.07,.055],V(lin('#a29e94'),MAT.COL));tubeAB(st,[X(u),edge(u)-.13,z],[X(u),edge(u)-.11,z],.025,10,DARK);}
+  if(r.tune>0){const u=uR-.3,z=hz(u)-.32,y=edge(u)-.2;tubeAB(st,[X(u),y-.06,z],[X(u),y+.06,z],.035,12,ALU);tubeAB(st,[X(u),y+.06,z],E([0,I.topCore-.02,.08]),.008,6,HOSE);}
+  /* ---- breathing: an airbox, a cone filter, or the turbos' own; the intercooler and its piping ---- */
+  const zA=hz(uF+.25)-.22,airIn=(from,dir)=>{
+    if(r.intake>=1){const a=V3.add(from,V3.mul(dir,.06));tubeAB(en,from,a,.045,12,PIPE);tubeAB(en,a,V3.add(a,V3.mul(dir,.14)),.062,14,bm('#a8221c'),true,.045);}
+    else{const box=[X(uF+.25),edge(uF+.25)-.17,zA];abox(st,box,[.12,.075,.11],DARK);tubePath(en,[from,V3.add(from,V3.mul(dir,.1)),[box[0]-.12,box[1],box[2]]],.045,10,HOSE);}};
+  if(I.fi==='roots'||I.itb){}
+  else if(I.turbos.length){
+    const zic=zr+.05,yic=yrB+.02,xic=X(uF-.035);abox(st,[xic,yic,0],[.025,.07,zic+.04],V([0,0,0],MAT.MESH));
+    for(const s of [1,-1])abox(st,[xic,yic,s*(zic+.04)],[.03,.08,.02],ALU);
+    for(const t of I.turbos){const o=E(t.outlet),inl=E(t.inlet),s=t.s,z=s*zic,dir=V3.norm(V3.sub(inl,E([t.inlet[0]-.03,t.inlet[1],t.inlet[2]])));
+      tubePath(en,[o,[o[0],o[1]+.07,o[2]],[o[0],o[1]+.07,z],[X(uF+.08),yic+.06,z],[xic,yic,z]],.033,10,PIPE);airIn(inl,dir);}
+    if(I.tb){const tb=E(I.tb),s=I.turbos.length>1?0:-1,z=s*zic;
+      if(s)tubePath(en,[[xic,yic,z],[X(uF+.08),yic+.06,z],[X(uF+.18),tb[1],z*.6],[tb[0]+.1,tb[1],tb[2]],tb],.036,10,PIPE);
+      else tubePath(en,[[xic,yic+.07,0],[xic,yrT+.05,0],[X(uF+.12),yrT+.05,0],[tb[0]+.1,tb[1],tb[2]],tb],.036,10,PIPE);}}
+  else if(I.tb){const tb=E(I.tb),dir=V3.norm(V3.sub(tb,E([I.tb[0]-.1,I.tb[1],I.tb[2]])));airIn(tb,dir);}
+  /* ---- the underside of the hood: an insulation pad that lifts with it ---- */
+  {const nz=8,c=bm('#1c1c1e');for(let u=H.u0+.06;u<H.u1-.04;u+=.08){const v=Math.min(u+.08,H.u1-.04);
+    for(let k=0;k<nz;k++){const z0=-(hz(u)-.05)+2*(hz(u)-.05)*k/nz,z1=-(hz(u)-.05)+2*(hz(u)-.05)*(k+1)/nz,w0=-(hz(v)-.05)+2*(hz(v)-.05)*k/nz,w1=-(hz(v)-.05)+2*(hz(v)-.05)*(k+1)/nz;
+      ln.quad([X(u),topY(u,z0)-.012,z0],[X(u),topY(u,z1)-.012,z1],[X(v),topY(v,w1)-.012,w1],[X(v),topY(v,w0)-.012,w0],c[0],0,MAT.FABRIC);}}}
+  st.smooth(30);en.smooth(30);
+  return {bay:st.build(),engine:en.build(),liner:ln.build(),pivot:[X(uc),yC,0],trans,tris:(st.p.length+en.p.length+ln.p.length)/9};
+}
+
+/* =====================================================================================
    THE BUILDS. Each is a look on one of the bodies: ride height, tyres and wheels, a face and a
    tail, and the bolt-ons. Paint, mud and the lights are set at draw time, so they cost nothing to change.
    ===================================================================================== */
@@ -3206,18 +3396,22 @@ function buildStage(kind){
    target at matrix resolution and turned into LED dots by Shiftlight 2's present().
    ===================================================================================== */
 const VIEWS=[['front34','Front ¾',-38,8,8.6,.86],['side','Side',90,2.5,8.4,.82],['rear34','Rear ¾',142,9,8.6,.86],
-  ['front','Front',0,4,7.4,.86],['rear','Rear',180,5,7.4,.86],['top','Top',-35,58,9.6,.55],['low','Low',-24,1.5,6.6,.62]];
+  ['front','Front',0,4,7.4,.86],['rear','Rear',180,5,7.4,.86],['top','Top',-35,58,9.6,.55],['low','Low',-24,1.5,6.6,.62],['bay','Bay',-36,46,4.1,0]];
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
-const APP={build:0,view:'front34',compare:false,stage:'dark',lights:false,steer:false,spin:false,yaw:0,paint:{},dirt:{},
+/* how far the hood swings open (rad) */
+const HOOD_OPEN=1.0;
+const APP={build:0,view:'front34',compare:false,stage:'dark',lights:false,steer:false,spin:false,hood:false,hoodA:0,yaw:0,paint:{},dirt:{},
   cam:{th:-38,ph:8,d:8.6,ty:.86},camT:null,fov:.5,t:0,frameMs:0,fps:60,tris:0};
-try{const s=JSON.parse(store.get('dsmini-bay','{}'));for(const k of ['build','view','stage','lights','steer','compare'])if(s[k]!==undefined)APP[k]=s[k];if(s.paint)APP.paint=s.paint;if(s.dirt)APP.dirt=s.dirt;}catch(e){}
+try{const s=JSON.parse(store.get('dsmini-bay','{}'));for(const k of ['build','view','stage','lights','steer','hood','compare'])if(s[k]!==undefined)APP[k]=s[k];APP.hoodA=APP.hood?1:0;if(s.paint)APP.paint=s.paint;if(s.dirt)APP.dirt=s.dirt;}catch(e){}
 if(!(APP.build>=0&&APP.build<BUILDS.length))APP.build=0;
-const saveApp=()=>store.set('dsmini-bay',JSON.stringify({build:APP.build,view:APP.view,stage:APP.stage,lights:APP.lights,steer:APP.steer,compare:APP.compare,paint:APP.paint,dirt:APP.dirt}));
+const saveApp=()=>store.set('dsmini-bay',JSON.stringify({build:APP.build,view:APP.view,stage:APP.stage,lights:APP.lights,steer:APP.steer,hood:APP.hood,compare:APP.compare,paint:APP.paint,dirt:APP.dirt}));
 /* ---------- meshes, built on demand ---------- */
 const TRUCK={};
 function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
   const t0=performance.now(),s=buildSUV(b.look),w=buildWheel(b.look.tyre);
-  return TRUCK[b.id]={body:s.body,D:s.D,wheel:w,tris:s.tris+w.tris*4,ms:performance.now()-t0};}
+  return TRUCK[b.id]={body:s.body,hood:s.hood,hide:s.hide,D:s.D,wheel:w,tris:s.tris+w.tris*4,ms:performance.now()-t0};}
+/* the engine bay: built the first time this build's hood opens, never with it shut */
+const bayOf=i=>{const T=truck(i);return T.bay||(T.bay=buildBay(BUILDS[i],T.D));};
 let STG={};
 const stageMesh=k=>STG[k]||(STG[k]=buildStage(k));
 /* ---------- GL state ---------- */
@@ -3234,7 +3428,7 @@ function flameMesh(){if(FLAME)return FLAME;const mb=new MB(),seg=[[0,.18,1,.92,[
   for(const [a,b,r0,r1,c,em] of seg)tubeAB(mb,[a,0,0],[b,0,0],r0,10,V(c,MAT.EMIT,em),a===0,r1);return FLAME=mb.build();}
 const CAMS={};
 function camFor(c,asp){
-  const th=c.th*PI/180,ph=c.ph*PI/180,t=[0,c.ty,0],e=[c.d*Math.cos(ph)*Math.cos(th),c.ty+c.d*Math.sin(ph),-c.d*Math.cos(ph)*Math.sin(th)];
+  const th=c.th*PI/180,ph=c.ph*PI/180,tx=c.tx||0,t=[tx,c.ty,0],e=[tx+c.d*Math.cos(ph)*Math.cos(th),c.ty+c.d*Math.sin(ph),-c.d*Math.cos(ph)*Math.sin(th)];
   const V_=M4.look(e,t,[0,1,0]),P_=M4.persp(APP.fov,asp,.2,200);return {eye:e,V:V_,P:P_,VP:M4.mul(P_,V_)};}
 /* ---------- uniforms ---------- */
 function frameUniforms(cam,st){
@@ -3265,6 +3459,16 @@ function renderOne(i,vp,cam){
   const live=i===APP.build&&!!ENG.sim;let Mb=Mc;
   if(live){const pv=.62;Mb=M4.mul(Mc,M4.mul(M4T(0,pv+ENG.shake[1],ENG.shake[0]),M4.mul(M4RX(ENG.roll),M4.mul(M4RZ(ENG.pitch),M4T(0,-pv,0)))));}
   gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);
+  /* the hood, swung up about its hinge at the cowl; while it is open the bay is drawn and the insides it replaces are not */
+  const ha=sstep(0,1,APP.hoodA);let Mh=Mb,bt=0;
+  if(ha>0){const [hx,hy]=D.hood.hinge;Mh=M4.mul(Mb,M4.mul(M4T(hx,hy,0),M4.mul(M4RZ(ha*HOOD_OPEN),M4T(-hx,-hy,0))));
+    /* the bay is built the first time this hood opens; the engine rocks on its mounts against the torque */
+    const BY=bayOf(i),dirt=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt,p=BY.pivot,a=live?-ENG.roll*3:0;bt=BY.tris;
+    gl.uniform1f(u.uDirt,dirt*.3);drawMesh(BY.bay);
+    gl.uniformMatrix4fv(u.uM,false,a?M4.mul(Mb,M4.mul(M4T(p[0],p[1],p[2]),M4.mul(BY.trans?M4RZ(a):M4RX(a),M4T(-p[0],-p[1],-p[2])))):Mb);drawMesh(BY.engine);
+    gl.uniformMatrix4fv(u.uM,false,Mh);drawMesh(BY.liner);gl.uniform1f(u.uDirt,dirt);}
+  gl.uniformMatrix4fv(u.uM,false,Mh);drawMesh(T.hood);
+  gl.uniformMatrix4fv(u.uM,false,Mb);if(ha===0)drawMesh(T.hide);
   /* a bare spare on the back is the build's own wheel, turned to face rearward */
   if(D.spare){gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(D.spare.p[0],D.spare.p[1],D.spare.p[2]),M4RY(-PI/2))));drawMesh(T.wheel);}
   if(live&&ENG.flame>.04&&D.tips)for(const tp of D.tips){
@@ -3274,7 +3478,7 @@ function renderOne(i,vp,cam){
   for(const [u0,front] of [[D.uFa,1],[D.uRa,0]])for(const s of [1,-1]){
     const M=M4.mul(Mc,M4.mul(M4T(D.X(u0),R,s*tw),M4.mul(M4RY(front?st2:0),M4.mul(M4S(1,1,s),M4RZ(wa)))));
     gl.uniformMatrix4fv(u.uM,false,M);drawMesh(T.wheel);}
-  return T.tris+st.tris;
+  return T.tris+st.tris+bt;
 }
 /* ---------- the frame ---------- */
 function curCam(){const c=APP.cam,b=BUILDS[APP.build],T=truck(APP.build);return Object.assign({},c,{ty:c.ty+T.D.dy*.55});}
@@ -3309,10 +3513,10 @@ cv.addEventListener('wheel',e=>{e.preventDefault();APP.camT=null;APP.cam.d=clamp
 cv.addEventListener('dblclick',()=>setView(APP.view||'front34'));
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.metaKey||e.ctrlKey||e.altKey)return;
   if(e.code==='BracketLeft'||e.code==='BracketRight'){setBuild((APP.build+(e.code==='BracketRight'?1:BUILDS.length-1))%BUILDS.length);}
-  else if(e.key==='c'||e.key==='C')setCompare(!APP.compare);else if(e.key==='l'||e.key==='L')toggle('lights');
+  else if(e.key==='c'||e.key==='C')setCompare(!APP.compare);else if(e.key==='l'||e.key==='L')toggle('lights');else if(e.key==='h'||e.key==='H')toggle('hood');
   else if(e.key==='ArrowLeft'){APP.cam.th+=6;markView(null);}else if(e.key==='ArrowRight'){APP.cam.th-=6;markView(null);}});
 /* ---------- the dock ---------- */
-function setBuild(i){APP.build=i;engineFor(i);if($('builds').dataset.car!==BUILDS[i].car)fillBuilds();
+function setBuild(i){APP.build=i;engineFor(i);if($('builds').dataset.car!==BUILDS[i].car)fillBuilds();if(APP.view==='bay')setView('bay');
   for(const el of $('builds').children)el.setAttribute('aria-pressed',String(+el.dataset.i===i));
   for(const el of $('cars').children)el.setAttribute('aria-pressed',String(el.dataset.v===BUILDS[i].car));syncDock();saveApp();}
 /* a car remembers the build it was last on */
@@ -3324,7 +3528,9 @@ function fillBuilds(){
     el.querySelector('b').textContent=b.name;el.querySelector('small').textContent=b.tag;
     el.setAttribute('aria-pressed',String(i===APP.build));el.addEventListener('click',()=>setBuild(i));bx.appendChild(el);}
 }
-function setView(id){const v=VIEWS.find(q=>q[0]===id);if(!v)return;APP.view=id;APP.camT={th:v[2],ph:v[3],d:v[4],ty:v[5]};
+function setView(id){const v=VIEWS.find(q=>q[0]===id);if(!v)return;APP.view=id;APP.camT={th:v[2],ph:v[3],d:v[4],ty:v[5],tx:0};
+  if(id==='bay'){const D=truck(APP.build).D,H=D.hood;APP.camT.tx=D.X((H.u0+H.u1)/2);APP.camT.ty=H.hinge[1]-.38-D.dy*.55;
+    if(!APP.hood){APP.hood=true;$('hood').setAttribute('aria-pressed','true');}}
   /* go round the short way */
   while(APP.camT.th-APP.cam.th>180)APP.camT.th-=360;while(APP.camT.th-APP.cam.th<-180)APP.camT.th+=360;
   if(APP.spin){APP.spin=false;$('spin').setAttribute('aria-pressed','false');}
@@ -3351,10 +3557,10 @@ function buildDock(){
     el.addEventListener('click',()=>{APP.paint[BUILDS[APP.build].id]=c;syncDock();saveApp();});px.appendChild(el);}
   $('mud').addEventListener('input',e=>{APP.dirt[BUILDS[APP.build].id]=+e.target.value;saveApp();});
   $('cmp').addEventListener('click',()=>setCompare(!APP.compare));
-  for(const k of ['lights','steer','spin'])$(k).addEventListener('click',()=>toggle(k));
+  for(const k of ['lights','steer','spin','hood'])$(k).addEventListener('click',()=>toggle(k));
   $('stage').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;APP.stage=b.dataset.v;for(const x of $('stage').children)x.setAttribute('aria-pressed',String(x===b));saveApp();});
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
-  for(const k of ['lights','steer'])$(k).setAttribute('aria-pressed',String(APP[k]));
+  for(const k of ['lights','steer','hood'])$(k).setAttribute('aria-pressed',String(APP[k]));
   $('cmp').setAttribute('aria-pressed',String(APP.compare));
   for(const x of $('stage').children)x.setAttribute('aria-pressed',String(x.dataset.v===APP.stage));
   syncDock();
@@ -3413,7 +3619,8 @@ let LAST=0;
 function frame(ts){
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   if(APP.spin)APP.yaw+=dt*.3;
-  if(APP.camT){const k=1-Math.exp(-dt*7),c=APP.cam,t=APP.camT;let done=true;for(const q of ['th','ph','d','ty']){c[q]+=(t[q]-c[q])*k;if(Math.abs(t[q]-c[q])>.01)done=false;}if(done){Object.assign(c,t);APP.camT=null;}}
+  {const t=APP.hood?1:0;if(APP.hoodA!==t)APP.hoodA=t>APP.hoodA?Math.min(1,APP.hoodA+dt*1.8):Math.max(0,APP.hoodA-dt*1.8);}
+  if(APP.camT){const k=1-Math.exp(-dt*7),c=APP.cam,t=APP.camT;let done=true;for(const q of ['th','ph','d','ty','tx']){c[q]=(c[q]||0)+((t[q]||0)-(c[q]||0))*k;if(Math.abs(t[q]-c[q])>.01)done=false;}if(done){Object.assign(c,t);APP.camT=null;}}
   const t0=performance.now();
   try{engineFrame(dt);}catch(e){console.error(e);}
   try{render(dt);}catch(e){console.error(e);}
@@ -3432,7 +3639,7 @@ else{
   addEventListener('resize',resize);
   requestAnimationFrame(frame);
   window.__bay={APP,ENG,BUILDS,BODIES,SIM,specOf,suvDesign,secRing,startEngine,setMode,setTab,engineFrame,truck,render,setBuild,setView,setCompare,setRes,present,
-    shot(o){Object.assign(APP,o.app||{});if(o.cam)Object.assign(APP.cam,o.cam);APP.camT=null;render(1/60);return true;},
+    shot(o){Object.assign(APP,o.app||{});if(o.cam)Object.assign(APP.cam,o.cam);APP.camT=null;APP.hoodA=APP.hood?1:0;render(1/60);return true;},
     snap(){render(1/60);return cv.toDataURL('image/png');},bench(n=5){gl.finish();const t=performance.now();for(let i=0;i<n;i++)render(1/60);gl.finish();return (performance.now()-t)/n;}};
 }
 

@@ -1,7 +1,7 @@
 /* Screenshots of the model bay, for checking the cars by eye.
    usage: node tools/shot.js <out-dir> <build>:<view>[:<stage>] ...
    e.g.   node tools/shot.js /tmp/shots 0:front34 coupe:side:light
-   Builds are indexes into BUILDS (or ids); views are the bay's view ids. */
+   Builds are indexes into BUILDS (or ids); views are the bay's view ids ('bay' opens the hood). */
 const {chromium}=require('playwright');
 const path=require('path'),fs=require('fs');
 const page=process.env.PAGE||path.resolve(__dirname,'..','model-bay.html');
@@ -19,7 +19,7 @@ const page=process.env.PAGE||path.resolve(__dirname,'..','model-bay.html');
   for(const j of jobs){
     const [bi,view='front34',stage='dark']=j.split(':');
     const r=await pg.evaluate(([bi,view,stage])=>{const B=__bay.BUILDS,i=isNaN(+bi)?B.findIndex(b=>b.id===bi):+bi;
-      __bay.setBuild(i);__bay.setView(view);const c=__bay.APP.camT;__bay.APP.stage=stage;__bay.APP.spin=false;
+      __bay.setBuild(i);__bay.APP.hood=false;__bay.setView(view);const c=__bay.APP.camT;__bay.APP.stage=stage;__bay.APP.spin=false;
       __bay.shot({cam:c});const t=__bay.truck(i);return [__bay.snap(),B[i].id+' '+Math.round(t.tris/1000)+'k tris '+t.ms.toFixed(0)+' ms'];},[bi,view,stage]);
     const f=path.join(out,j.replace(/:/g,'_')+'.png');
     fs.writeFileSync(f,Buffer.from(r[0].split(',')[1],'base64'));console.log(f,r[1]);

@@ -11,7 +11,7 @@ its own engine running live in the Engine tab.
 | Wagon | Stock, Sleeper | A plain family wagon with a turbo five and all-wheel drive, then a big-turbo sleeper that still looks like a grocery getter. |
 
 Open `model-bay.html` in a browser with WebGL2. Pick a car, then a build; **Compare** shows all of a
-car's builds at once.
+car's builds at once. **Hood** (or H) opens the hood, and the **Bay** view looks into the engine bay.
 
 ## Files
 
@@ -31,3 +31,15 @@ car's builds at once.
 - **Builds** in `BUILDS`: which body, ride height, tyres and wheels, and the bolt-ons (`FRONTS`,
   `REARS`, `HOODS`, `EXTRAS`).
 - **An engine** in `ENGINE_OF`: a Digital Engine base engine plus bolt-ons, a gearbox and a weight.
+- **An engine bay**, built from that same recipe by `buildBay` the first time the hood opens: the
+  inner fenders, firewall, radiator and furniture, and an engine (`bayEngine`) that shows what the build
+  has: an airbox or a cone filter, cast manifolds or headers, turbos with their piping and intercooler,
+  a blower and its hat, individual throttle bodies, nitrous solenoids, electric fans, a strut brace.
+  The bay is garage-only: it is never built or drawn with the hood shut, so driving costs nothing for it.
+
+## Garage-only detail
+
+The body is built in three pieces: the body, the hood, and the floor and wheel wells under the hood.
+With the hood shut all three are drawn and the car looks exactly as it would on the road. With it open,
+the hood swings up on its hinge, the bits under it are skipped and the bay is drawn in their place. On
+the road the game can draw the body and the hood and never build a bay at all.
