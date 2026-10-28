@@ -31,8 +31,19 @@ pile of bolt-ons.
 
 ![The truck in three of its looks, rendered in the game](../docs/dirt-sleeper/looks.png)
 
+**Tuning panel.** Press Tab while driving (or Pause → Tuning and sounds) for live sliders: grip per
+surface, slope slip on loose ground, grip once a tyre is spinning, engine power and a torque cap in 1st
+and 2nd, springs, shocks, sway bars, weight, tip-over resistance, brakes, steering, and gravity in the
+air. Every default is the game as it ships (the baseline); V flips between your set and the baseline
+while you drive. A set copies out as a short code (`DSTUNE1.…`), and the set picked as the best one
+becomes the baseline in `src/19_tune.js`.
+
 Everything runs in one HTML file with no dependencies: WebGL2 graphics (from the Shiftlight 3
-renderer), live engine sound (from Digital Engine), and live-synthesised tyre, dirt, mud and water sounds.
+renderer), the engine from Digital Engine played exactly as its lab plays it (same synth, compressor
+and room), and the other sounds synthesised live from the physics: tyre rumble, dirt under the tread,
+wheelspin, suspension thumps and landings, body hits and scrapes, mud, and the HUD. Those were rebuilt
+from scratch with no ringing resonators; each stays off in the game until it's approved on the sound
+board. Water and gravel are waiting for recordings.
 
 ## Build
 
@@ -44,27 +55,29 @@ This writes two pages, each as the page body (as published) and as a `.local.htm
 you can open straight from disk:
 
 - `dist/dirt-sleeper.html`: the game.
-- `dist/sound-board.html`: the sound board. Pick a scene (shop, trail, strip, burnout, mud bog, rock
-  crawl, water crossing), switch versions of each sound, set levels against the engine at idle or
-  redline, then copy the mix code into the game under Settings → Sound mix.
+- `dist/sound-board.html`: the sound board. Pick a scene (shop, trail, gravel road, strip, burnout,
+  jumps, mud bog, rock crawl, water crossing), solo a sound, switch its versions, set levels against the
+  engine at idle or redline, then paste the mix code (`DSMIX3.…`) into the game's Sounds panel.
 
 ## Layout
 
 | Path | What's in it |
 | --- | --- |
 | `src/10`–`15` | Renderer, car shader pipeline, particles, maths, engine DSP and engine specs (from Shiftlight 3 and Digital Engine) |
+| `src/19` | The tuning panel's numbers and the baseline |
 | `src/20`–`22` | Tyre model, powertrain and vehicle physics |
-| `src/30`–`34` | Input, game audio (tyres, ground, buses, loudness, limiter), the shop and HUD sounds, and the shared mix |
+| `src/30`–`34` | Input, game audio (the ground and body synth, the lab's engine chain and rooms, buses, limiter), the shop and HUD sounds, and the shared mix |
 | `src/40`–`41` | The ranch: terrain, strip, trails, shop, burnout pad, mud track, rock garden, and their materials |
 | `src/50`–`51` | The truck's mesh, bolt-on parts and paint shader |
 | `src/60`–`61` | The parts catalogue and how a build becomes an engine, a chassis and a look |
 | `src/70`–`90` | Game flow, events, rivals, trophies, UI and boot |
 | `src/95` | The sound board |
 | `shell/` | The page shells: title, styles, markup |
-| `tools/` | Node and Playwright checks: mesh winding, drag estimates, autopilot runs over the trail, climb and bog, the preset search (`tune_builds.js`, `tune_mudder.js`), screenshots (`truck_shots.py`) |
+| `tools/` | Node and Playwright checks: mesh winding, drag estimates, autopilot runs over the trail, climb and bog, the preset search (`tune_builds.js`, `tune_mudder.js`), screenshots (`truck_shots.py`), the sound renders and their tone test (`fxcheck.js`) |
 
 ## Controls
 
 W/↑ gas · S/↓ brake (hold to reverse) · A D steer · Space handbrake · Shift nitrous · G line lock ·
 Y instant replay · L low range · K lockers · F lights · H horn · C camera (chase, far, cinematic, hood,
-driver) · R flip/reset · Esc pause. Gamepads and touch work too.
+driver) · R flip/reset · Tab tuning panel · V your tuning or the baseline · Esc pause. Gamepads and
+touch work too.

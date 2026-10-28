@@ -8,7 +8,7 @@
     for (let x of [2.3, 0.4, -2.3]) for (let z of [-0.92, 0.92]) v.hull.push([x, Yb(0.85), z]);
     for (let x of [0.2, -2.0]) for (let z of [-0.7, 0.7]) v.hull.push([x, Yb(1.82), z]);
     v.hull.push([2.5, Yb(0.62), 0], [-2.45, Yb(0.62), 0], [0, Yb(0.3), 0]);
-    v.low = !1, v.locked = !1, v.pt.lo = 1;
+    v.low = !1, v.locked = !1, v.pt.lo = 1, v.tuned = v.pt.tuned = !0;
     return v;
   }
   function setLow(v, on) {

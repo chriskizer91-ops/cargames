@@ -18,22 +18,24 @@
     } catch {
     }
   }
-  var BKEY = "dirt-sleeper-board-mix", CKEY = "dirt-sleeper-board-scene", audio = new GameAudio(), MX = mixFill(rd(BKEY)), solo = /* @__PURE__ */ new Set(), busSolo = /* @__PURE__ */ new Set(), started = !1, revHeld = !1;
+  var BKEY = "dirt-sleeper-board-mix", CKEY = "dirt-sleeper-board-scene-3", audio = new GameAudio(), MX = mixFill(rd(BKEY), MIX_BOARD), solo = /* @__PURE__ */ new Set(), busSolo = /* @__PURE__ */ new Set(), started = !1, revHeld = !1;
   var ENGS = [["stock", "Stock 4.6 V8", {}], ["hot", "Hot 6.2 V8", { engine: "v62", exhaust: "headers", cam: 2, tune: 2, intake: 1 }], ["blown", "Blown big-block", { engine: "bb74", power: "roots", exhaust: "straight", cam: 3, tune: 2 }], ["tt", "Twin-turbo V6", { engine: "tt35", power: "bigturbo", tune: 2, exhaust: "catback" }], ["diesel", "Turbo-diesel six", { engine: "d67", power: "compound", tune: 2, exhaust: "stacks" }]];
   var SCENES = [
-    { id: "shop", n: "Idle in the shop", d: "Engine ticking over inside the metal building.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, space: "shop" } },
-    { id: "trail", n: "Cruising the trail", d: "40 mph on dirt, light throttle.", c: { run: 1, rpm: 0.38, thr: 0.35, view: "out", mph: 40, ground: "dirt", spin: 0, space: "open" } },
-    { id: "strip", n: "Redline on the strip", d: "On the limiter halfway down the eighth mile.", c: { run: 1, rpm: 1, thr: 1, view: "out", mph: 55, ground: "dirt", spin: 0.3, space: "open" } },
-    { id: "burnout", n: "Burnout on the pad", d: "Line lock on, rear tyres buried in the dirt.", c: { run: 1, rpm: 0.85, thr: 1, view: "out", mph: 0, ground: "dirt", spin: 1, space: "open" } },
-    { id: "bog", n: "Mud bog", d: "Wheels spinning in the pit.", c: { run: 1, rpm: 0.75, thr: 0.9, view: "out", mph: 8, ground: "mud", spin: 0.8, space: "open" } },
-    { id: "crawl", n: "Rock crawl", d: "Low range, walking over boulders, heard from the cab.", c: { run: 1, rpm: 0.12, thr: 0.3, view: "cab", mph: 2, ground: "rock", spin: 0.1, space: "open" } },
-    { id: "water", n: "Water crossing", d: "Pushing a bow wave through the creek.", c: { run: 1, rpm: 0.3, thr: 0.4, view: "out", mph: 10, ground: "water", spin: 0, space: "open" } }
+    { id: "shop", n: "Idle in the shop", d: "Engine ticking over inside the metal building.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, bumps: 0, space: "shop", land: 0, scrape: 0 } },
+    { id: "trail", n: "Cruising the trail", d: "40 mph on a dirt road, light throttle, a few bumps.", c: { run: 1, rpm: 0.38, thr: 0.35, view: "out", mph: 40, ground: "dirt", spin: 0, bumps: 0.35, space: "open", land: 0, scrape: 0 } },
+    { id: "gravel", n: "Gravel road", d: "30 mph on the loose trail surface.", c: { run: 1, rpm: 0.32, thr: 0.3, view: "out", mph: 30, ground: "trail", spin: 0, bumps: 0.25, space: "open", land: 0, scrape: 0 } },
+    { id: "strip", n: "Redline on the strip", d: "On the limiter halfway down the eighth mile.", c: { run: 1, rpm: 1, thr: 1, view: "out", mph: 55, ground: "strip", spin: 0.15, bumps: 0.05, space: "open", land: 0, scrape: 0 } },
+    { id: "burnout", n: "Burnout on the pad", d: "Line lock on, rear tyres spinning in the dirt.", c: { run: 1, rpm: 0.85, thr: 1, view: "out", mph: 0, ground: "dirt", spin: 1, bumps: 0, space: "open", land: 0, scrape: 0 } },
+    { id: "jump", n: "Jumps", d: "45 mph over the hills, landing every few seconds.", c: { run: 1, rpm: 0.5, thr: 0.6, view: "out", mph: 45, ground: "dirt", spin: 0, bumps: 0.4, space: "open", land: 1, scrape: 0 } },
+    { id: "bog", n: "Mud bog", d: "Wheels spinning in the pit.", c: { run: 1, rpm: 0.75, thr: 0.9, view: "out", mph: 8, ground: "mud", spin: 0.8, bumps: 0.1, space: "open", land: 0, scrape: 0 } },
+    { id: "crawl", n: "Rock crawl", d: "Low range over the ledges, heard from the cab, the belly touching now and then.", c: { run: 1, rpm: 0.12, thr: 0.3, view: "cab", mph: 2, ground: "rock", spin: 0.1, bumps: 0.8, space: "open", land: 0, scrape: 0.3 } },
+    { id: "water", n: "Water crossing", d: "No sound for the water yet: it's waiting for a recording.", c: { run: 1, rpm: 0.3, thr: 0.4, view: "out", mph: 10, ground: "water", spin: 0, bumps: 0.1, space: "open", land: 0, scrape: 0 } }
   ];
   var CTX = Object.assign({ scene: "trail", eng: "stock" }, SCENES[1].c, rd(CKEY) || {});
-  SCENES.some((q) => q.id === CTX.scene) || Object.assign(CTX, SCENES[1].c, { scene: "trail" });
+  SCENES.some((q) => q.id === CTX.scene) || CTX.scene === null || Object.assign(CTX, SCENES[1].c, { scene: "trail" });
   /* what makes each sound play, so Solo can play it even when the scene wouldn't */
-  var FORCE = { dirt: { ground: "dirt", mph: 25 }, roll: { ground: "dirt", mph: 30 }, squeal: { ground: "concrete", spin: 0.7, mph: 20 }, mud: { ground: "mud", spin: 0.6, mph: 6 }, water: { ground: "water", mph: 12 } };
-  var WHEN = { dirt: "Driving on dirt: the strip, the trails, the burnout pad, the yard.", roll: "Rolling on any ground. Packed clay leans on this.", squeal: "Sliding on the concrete pad.", mud: "The mud pit and the mud track.", water: "Splashing through the creek.", hits: "Bumps, landings, rocks and scrapes.", ui: "Buying parts, coolers, gates, medals, trophies, new bests." };
+  var FORCE = { roll: { ground: "dirt", mph: 30 }, crunch: { ground: "trail", mph: 30 }, spin: { ground: "dirt", spin: 0.8, mph: 4 }, thump: { ground: "dirt", mph: 25, bumps: 0.6 }, hits: { ground: "rock", mph: 3, scrape: 0.5 }, mud: { ground: "mud", spin: 0.6, mph: 6 } };
+  var SIDX = { grass: 0, dirt: 1, strip: 2, trail: 3, rock: 4, mud: 5, concrete: 6, water: 7 };
   /* ---------- the engine ---------- */
   var eng = { rpm: 0, cutT: 0, crankT: -1, spec: null, id: null };
   function setEngine(id) {
@@ -75,8 +77,17 @@
     let load = run ? revHeld ? 1 : c.thr : 0, crank = eng.crankT >= 0 && eng.crankT < 0.9;
     crank && (eng.crankT += dt);
     let rpm = crank ? 230 + 60 * Math.sin(eng.crankT * 38) : eng.rpm, sp = c.mph * 0.447, gr = c.ground, spin = c.spin, ep = { on: run && !crank ? 1 : 0, firing: run && !crank ? 1 : 0, crank: crank ? 1 : 0, crankT: crank ? eng.crankT : 0, rpm: run ? rpm : 0, load: crank ? 0 : load, cutFrac: cut, boost: run ? SIM.steadyBoost(e, rpm) * load : 0, nos: 0, speed: sp, gear: 3, twostep: 0, antilag: 0, view: cab ? 1 : 0, dist: cab ? 1.4 : 6, pan: 0, rear: cab ? 0.35 : 0.7, vol: 1, horn: 0 };
-    let s4 = (v) => [v, v, v, v], fx = { lat: s4(0), lon: s4(spin * 7), load: s4(5300), sqK: s4(gr === "concrete" ? 1 : gr === "rock" ? 0.35 : 0.06), wet: 0, speed: sp, cabin: cab ? 1 : 0, curb: 0, scrape: 0, vol: 1, loose: gr === "dirt" ? 1 : 0, spinLoose: gr === "dirt" ? spin : 0, mud: gr === "mud" ? 1 : 0, spinMud: gr === "mud" ? spin : 0, water: gr === "water" ? 1 : 0 }, fev = hold.hit ? [{ type: "hit", a: 0.9 }] : [];
-    gr === "rock" && Math.random() < dt * 0.8 && fev.push({ type: "hit", a: 0.25 + Math.random() * 0.35 }), hold.hit = 0, audio.update(ep, [], fx, fev, { cabin: cab, shop: c.space === "shop" ? 1 : 0, yard: c.space === "yard" ? 1 : 0 }), meters(dt);
+    /* the wheels: front ones rolling, rear ones spinning by the Wheelspin amount */
+    let on = gr !== "none", si = SIDX[gr] ?? 1, slip = spin * 14, fx = { c: on ? [1, 1, 1, 1] : [0, 0, 0, 0], s: [si, si, si, si], v: [sp, sp, sp, sp], sl: [spin * 2, spin * 2, slip, slip], ld: [1, 1, 1, 1], ws: [sp, sp, sp + slip, sp + slip], pitch: 0.07, speed: sp, cabin: cab ? 1 : 0, vol: 1, scr: 0, scrK: gr === "rock" ? 1 : 0 }, fev = hold.ev || [];
+    hold.ev = [];
+    if (on) {
+      /* bumps under each wheel; a landing every few seconds in the jump scene; the belly scraping now and then */
+      for (let w = 0; w < 4; w++) Math.random() < dt * c.bumps * (1.5 + sp * 0.25) && fev.push({ type: "bump", w, a: 0.08 + 0.7 * Math.random() ** 2 * c.bumps });
+      c.land && (hold.landT = (hold.landT || 0) + dt) > 3.4 && (hold.landT = 0, fev.push({ type: "land", a: 0.85 }), Math.random() < 0.4 && fev.push({ type: "bottom", w: 2, a: 0.6 }));
+      c.scrape && (hold.scrT = Math.max(0, (hold.scrT || 0) - dt), hold.scrT <= 0 && Math.random() < dt * c.scrape * 0.8 && (hold.scrT = 0.6 + Math.random() * 0.8, Math.random() < 0.5 && fev.push({ type: "hit", a: 0.3 + Math.random() * 0.3, k: gr === "rock" ? "rock" : "ground" })), hold.scrT > 0 && (fx.scr = 1.2 + hold.scrT * 2));
+    }
+    hold.scrOnce > 0 && (hold.scrOnce -= dt, fx.scr = 3);
+    audio.update(ep, [], fx, fev, { cabin: cab, shop: c.space === "shop" ? 1 : 0, yard: c.space === "yard" ? 1 : 0 }), meters(dt);
   }
   requestAnimationFrame(frame);
   /* ---------- meters ---------- */
@@ -154,10 +165,10 @@
     let rh = el("div", "row");
     rh.append(el("span", "k", ""), rev), box.appendChild(rh);
     box.appendChild(slider("Throttle", 0, 1, 0.01, CTX.thr, pct, set("thr"), "cThr")), box.appendChild(seg("Listening", [["out", "Outside"], ["cab", "In the cab"]], CTX.view, set("view"))), box.appendChild(slider("Speed", 0, 90, 1, CTX.mph, (v) => v + " mph", set("mph"), "cMph"));
-    box.appendChild(seg("Ground", [["none", "None"], ["dirt", "Dirt"], ["mud", "Mud"], ["water", "Water"], ["rock", "Rock"], ["concrete", "Concrete"]], CTX.ground, set("ground"))), box.appendChild(slider("Wheelspin", 0, 1, 0.01, CTX.spin, pct, set("spin"), "cSpin"));
+    box.appendChild(seg("Ground", [["none", "None"], ["dirt", "Dirt"], ["trail", "Gravel trail"], ["grass", "Grass"], ["strip", "Drag strip"], ["mud", "Mud"], ["rock", "Rock"], ["concrete", "Concrete"], ["water", "Water"]], CTX.ground, set("ground"))), box.appendChild(slider("Wheelspin", 0, 1, 0.01, CTX.spin, pct, set("spin"), "cSpin")), box.appendChild(slider("Bumps", 0, 1, 0.01, CTX.bumps || 0, pct, set("bumps"), "cBumps"));
     box.appendChild(seg("Space", [["open", "Open range"], ["yard", "By the shop"], ["shop", "In the shop"]], CTX.space, set("space")));
   }
-  var BUSES = [["engine", "Engine", "The engine synth, on its own compressor."], ["ground", "Ground and tyres", "Dirt, mud, water, squeal, bumps and landings."], ["ui", "Shop and HUD", "Cash register, chimes, gate ticks, fanfares."], ["master", "Master", "Everything, through the limiter."]];
+  var BUSES = [["engine", "Engine", "The Digital Engine synth exactly as the lab plays it: the same compressor and the same open-air room (its garage inside the shop)."], ["ground", "Ground and body", "Tyres, dirt, wheelspin, suspension, hits, mud."], ["ui", "Shop and HUD", "Beeps, gate tocks, stabs for bests and medals, the cooler, buying parts."], ["master", "Master", "Everything, through the limiter."]];
   function renderBuses() {
     let box = $("buses");
     box.innerHTML = "";
@@ -172,19 +183,16 @@
       s.appendChild(hd), s.appendChild(el("div", "mm", `<span class="k">Level</span><div class="meter" id="m-${id}"><i></i><b></b></div><span class="db" id="d-${id}">−∞</span>`)), s.appendChild(slider("Fader", -30, 12, 0.5, MX.bus[id] ?? 0, (v) => dB(v) + " dB", (v) => {
         MX.bus[id] = v, push();
       }, "f-" + id));
-      id === "engine" && (s.appendChild(slider("Even out engines", 0, 1, 0.05, MX.eng.norm, pct, (v) => {
-        MX.eng.norm = v, push();
-      }, "f-norm")), s.appendChild(slider("Tame the redline", 0, 1, 0.05, MX.eng.tame, pct, (v) => {
-        MX.eng.tame = v, push();
-      }, "f-tame")), s.appendChild(el("p", "note", 'Pulling the engine down by <b id="gr">0.0 dB</b> right now. "Even out" makes a stock V8 and a blown big-block equally loud at 100%.')));
+      id === "engine" && s.appendChild(el("p", "note", 'The lab\'s compressor is pulling the engine down by <b id="gr">0.0 dB</b> right now.'));
       id === "master" && s.appendChild(seg("Limiter", [[1, "On"], [0, "Off"]], MX.limiter ? 1 : 0, (v) => {
         MX.limiter = v, push();
       })), s.appendChild(el("p", "note", esc(note))), box.appendChild(s);
     }
   }
-  function audition(id, m) {
+  function audition(id) {
     if (!started) return toast("Press Start sound first");
-    id === "hits" ? hold.hit = 1 : id === "ui" && ["kaching", "chime", "tick", "go", "lap", "best", "medal", "trophy"].forEach((t, i) => setTimeout(() => audio.ui(t), i * 800));
+    let at = (t, f) => setTimeout(f, t * 1e3), ev = (e) => (hold.ev = hold.ev || []).push(e);
+    id === "thump" ? ([0, 0.35, 0.6, 0.8].forEach((t, i) => at(t, () => ev({ type: "bump", w: i, a: 0.3 + i * 0.15 }))), at(1.4, () => ev({ type: "land", a: 1 })), at(2.4, () => ev({ type: "bottom", w: 2, a: 0.8 }))) : id === "hits" ? (at(0, () => ev({ type: "hit", a: 0.8, k: "rock" })), at(0.7, () => ev({ type: "hit", a: 0.8, k: "wall" })), at(1.4, () => ev({ type: "hit", a: 0.8, k: "ground" })), at(2, () => hold.scrOnce = 1.2)) : id === "ui" && ["ready", "ready", "go", "tick", "lap", "best", "medal", "trophy", "kaching", "chime", "miss"].forEach((t, i) => at(i * 0.9, () => audio.ui(t)));
   }
   function renderCards() {
     for (let bus of ["ground", "ui"]) {
@@ -197,11 +205,12 @@
         }, sb.onclick = () => {
           solo.has(S.id) ? solo.delete(S.id) : solo.add(S.id), renderCards(), push();
         }, hd.append(onb, sb);
-        if (["hits", "ui"].includes(S.id)) {
+        if (["thump", "hits", "ui"].includes(S.id)) {
           let pb = el("button", "btn small", "Play");
-          pb.type = "button", pb.onclick = () => audition(S.id, m), hd.appendChild(pb);
+          pb.type = "button", pb.onclick = () => audition(S.id), hd.appendChild(pb);
         }
-        if (c.appendChild(hd), c.appendChild(el("p", "when", esc(WHEN[S.id] || ""))), c.appendChild(slider("Level", -24, 12, 0.5, m.lvl, (v) => dB(v) + " dB", (v) => {
+        let ok = MIX_DEFAULT.s[S.id].on;
+        if (c.appendChild(hd), c.appendChild(el("p", "when", esc(S.when || ""))), c.appendChild(el("p", "status" + (ok ? " ok" : ""), ok ? "In the game" : "New: off in the game until you approve it")), c.appendChild(slider("Level", -24, 12, 0.5, m.lvl, (v) => dB(v) + " dB", (v) => {
           m.lvl = v, push();
         }, "l-" + S.id)), S.vars.length) {
           let vs = el("div", "vars");
@@ -221,6 +230,7 @@
         }
         box.appendChild(c);
       }
+      bus === "ground" && box.appendChild(el("div", "card off wait", '<div class="hd"><h3>Water</h3></div><p class="when">The creek crossings. Waiting for a recording; gravel will be swapped for one too if you find a good one.</p>'));
     }
   }
   var toastT = 0;
@@ -265,7 +275,7 @@
     if (!b.dataset.arm) return b.dataset.arm = "1", b.textContent = "Click again to reset", setTimeout(() => {
       b.dataset.arm = "", b.textContent = "Reset";
     }, 3e3);
-    b.dataset.arm = "", b.textContent = "Reset", MX = mixFill(null), solo.clear(), busSolo.clear(), renderAll(), push(), toast("Back to the default mix");
+    b.dataset.arm = "", b.textContent = "Reset", MX = mixFill(null, MIX_BOARD), solo.clear(), busSolo.clear(), renderAll(), push(), toast("Back to the board's starting mix");
   };
   window.__board = { audio, get MX() {
     return MX;

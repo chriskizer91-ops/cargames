@@ -310,15 +310,15 @@
   }
   /* the chassis for the physics */
   function buildChassis(b) {
-    let ty = TYRES[b.tyre], sp = optOf(b, "susp"), lift = sp.lift || 0, m = buildMass(b), R = ty.R, hcg = SUV.hcg0 + lift + (R - SUV.R0), sv = b.susp, kMul = { lowered: 1.3, stock: 1, level: 1, lift4: 0.9, lift6: 0.78, lift9: 0.72 }[sv], arbMul = { lowered: 1.4, stock: 1, level: 1, lift4: 0.75, lift6: 0.5, lift9: 0.4 }[sv], droop = { lowered: 0.06, stock: 0.1, level: 0.1, lift4: 0.12, lift6: 0.18, lift9: 0.24 }[sv], bump = { lowered: 0.06, stock: 0.09, level: 0.09, lift4: 0.12, lift6: 0.18, lift9: 0.22 }[sv], kF = 44e3 * kMul * m / 2150, kR = 48e3 * kMul * m / 2150, c0 = Math.max(m * 9.81 * 0.5 / 2 / kF, m * 9.81 * 0.5 / 2 / kR), sh = b.shocks, damp = sh === "bypass" ? 1.35 : 1, cs = Math.sqrt(kF * m / 4), wm = { weld15: 0.85, beadlock17: 1.15, chrome22: 1.2 }[b.wheel] || 1, rr = Object.assign({}, SURF_RR);
+    let T = TUNE, ty = TYRES[b.tyre], sp = optOf(b, "susp"), lift = sp.lift || 0, m = buildMass(b) * T.mass, R = ty.R, hcg = SUV.hcg0 + lift + (R - SUV.R0), sv = b.susp, kMul = { lowered: 1.3, stock: 1, level: 1, lift4: 0.9, lift6: 0.78, lift9: 0.72 }[sv] * T.spring, arbMul = { lowered: 1.4, stock: 1, level: 1, lift4: 0.75, lift6: 0.5, lift9: 0.4 }[sv] * T.arb, droop = { lowered: 0.06, stock: 0.1, level: 0.1, lift4: 0.12, lift6: 0.18, lift9: 0.24 }[sv], bump = { lowered: 0.06, stock: 0.09, level: 0.09, lift4: 0.12, lift6: 0.18, lift9: 0.22 }[sv], kF = 44e3 * kMul * m / 2150, kR = 48e3 * kMul * m / 2150, c0 = Math.max(m * 9.81 * 0.5 / 2 / kF, m * 9.81 * 0.5 / 2 / kR), sh = b.shocks, damp = (sh === "bypass" ? 1.35 : 1) * T.damp, cs = Math.sqrt(kF * m / 4), wm = { weld15: 0.85, beadlock17: 1.15, chrome22: 1.2 }[b.wheel] || 1, rr = Object.assign({}, SURF_RR);
     rr.mud *= TREAD_RR_MUD[ty.tread], rr.water *= TREAD_RR_MUD[ty.tread];
     let low = b.tcase === "low", lk = b.lockers;
     return {
-      name: "truck", mass: m, wb: 2.89, wf: 1.44 / 2.89, hcg, trackF: ty.track, trackR: ty.track, R, Iw: 1.6 * Math.pow(R / SUV.R0, 4) * ty.If * wm, rcH: 0.2,
+      name: "truck", mass: m, wb: 2.89, wf: 1.44 / 2.89, hcg, trackF: ty.track, trackR: ty.track, R, Iw: 1.6 * Math.pow(R / SUV.R0, 4) * ty.If * wm, rcH: T.roll,
       susp: { rest: c0 + droop, travel: c0 + bump, kF, kR, cbF: cs * 0.55 * damp * (sh === "drag" ? 0.9 : 1), crF: cs * 0.85 * damp * (sh === "drag" ? 0.45 : 1), cbR: cs * 0.55 * damp * (sh === "drag" ? 0.5 : 1), crR: cs * 0.85 * damp, arbF: 24e3 * arbMul, arbR: 14e3 * arbMul },
       body: { L: 4.9, W: 1.9, H: 1.86 },
-      tyre: { mu: 1, kPk: ty.kPk, aPk: ty.aPk, slide: ty.slide, slideW: ty.slideW, loadSens: 0.1 },
-      brake: 7200 * R / SUV.R0 * m / 2150, bias: 0.62, hbTorque: 3200 * R / SUV.R0, lock: 0.6,
+      tyre: { mu: 1, kPk: ty.kPk, aPk: ty.aPk, slide: Math.min(1, ty.slide * T.slide), slideW: ty.slideW, loadSens: 0.1 },
+      brake: 7200 * R / SUV.R0 * m / 2150 * T.brake, bias: 0.62, hbTorque: 3200 * R / SUV.R0, lock: 0.6 * T.lock,
       cdA: 1.25 + lift * 0.6 + (b.roof === "basket" || b.roof === "basketSpare" ? 0.1 : b.roof === "expedition" ? 0.13 : 0) + (b.lights ? 0.03 : 0) + (b.spoiler === 2 ? 0.02 : 0) + (ty.w - 0.245) * 0.8,
       clF: 0.03, clR: 0.05,
       diff: { pre: 40, acc: 0.3, dec: 0.15, rLock: !1, fLock: !1, cLock: !1, can: { r: lk >= 1, f: lk >= 2, low } },

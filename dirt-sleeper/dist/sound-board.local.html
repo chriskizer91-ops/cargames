@@ -81,6 +81,9 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
 .card .vars button{border:1px solid var(--edge2);background:transparent;border-radius:999px;padding:5px 10px;font:600 13px/1 var(--body);cursor:pointer}
 .card .vars button.on{background:var(--tag);color:var(--tagInk);border-color:var(--tagEdge)}
 .card .when{font-size:12.5px;color:var(--dim);margin:0}
+.card .status{margin:0;font:700 11px/1.3 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
+.card .status.ok{color:var(--good)}
+.card.wait{border-style:dashed;opacity:.7}
 /* code */
 .code{background:var(--panel);border:1px solid var(--edge);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .code textarea{width:100%;box-sizing:border-box;min-height:64px;background:var(--bg);border:1px solid var(--edge2);border-radius:4px;padding:9px;font:12.5px/1.4 var(--mono);color:var(--ink);resize:vertical;word-break:break-all}
@@ -96,7 +99,7 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
 </style>
 <div class="wrap">
   <header class="bar">
-    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Pick a scene, then choose a version of each sound and set its level. The engine runs underneath so you can check the mix at idle, at redline and mid-burnout. When it sounds right, copy the mix code into the game.</p></div>
+    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Every sound but the engine is new, rebuilt from scratch. Pick a scene, solo a sound, try its versions. The engine runs underneath exactly as the Digital Engine lab plays it. New sounds are off in the game until you approve them; copy the mix code into the game to hear them there.</p></div>
     <div class="ctl">
       <button class="btn go" id="start">Start sound</button>
       <div class="mm"><span class="k">Out</span><div class="meter" id="mMaster"><i></i><b></b></div><span class="db" id="dMaster">−∞</span></div>
@@ -105,10 +108,10 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
   </header>
   <section><p class="eyebrow">Scene</p><div class="scenes" id="scenes"></div><div class="ctx" id="ctx"></div></section>
   <section><p class="eyebrow">Buses</p><div class="buses" id="buses"></div></section>
-  <section class="group" id="g-ground"><p class="eyebrow">Ground and tyres</p><div class="cards" id="c-ground"></div></section>
+  <section class="group" id="g-ground"><p class="eyebrow">Ground and body</p><div class="cards" id="c-ground"></div></section>
   <section class="group" id="g-ui"><p class="eyebrow">Shop and HUD</p><div class="cards" id="c-ui"></div></section>
   <section class="code"><p class="eyebrow" style="margin:0">Mix code</p><textarea id="code" readonly spellcheck="false"></textarea>
-    <ol><li>Press <b>Copy mix code</b>.</li><li>In the game, open <b>Settings</b> (in the shop or from Pause), find <b>Sound mix</b>, paste it and press <b>Use this mix</b>.</li><li>The code holds every level, version and knob on this page. Changes save here automatically.</li></ol></section>
+    <ol><li>Press <b>Copy mix code</b>.</li><li>In the game, press <b>Tab</b> while driving (or Pause → <b>Tuning and sounds</b>), open <b>Sounds</b>, press <b>Paste a code</b>. Settings → Sound mix takes it too.</li><li>The code holds which sounds are on, every level and version. Changes save here automatically.</li></ol></section>
 </div>
 <script>
 (() => {
@@ -1279,117 +1282,289 @@ function makeSim(spec){return spec&&spec.road?new EngineSim(spec):new MachineSim
 return {LAYOUTS,LAYOUT_IDS,PRESETS,DEFAULTS,MACHINES,EXHAUSTS,INTAKES,CAMS,INDUCTION,HORNS,NOS_SHOTS,TURBO_SIZE,makeSpec,engTq,steadyBoost,curve,bankIntervals,dspCfg,EngineSim,MachineSim,makeSim,clamp};
 })();
 if(typeof module!=='undefined')module.exports=SIM;
+  // ===== physics/tune.js =====
+  /* The tuning panel's numbers: one set for the whole game, changed live while you drive. "live" ones are
+     read by the physics every step; "build" ones go into the chassis, so changing them rebuilds the truck in
+     place. Every default leaves the physics exactly as it was, so the baseline is the game as shipped.
+     A set can be copied out as a short code (DSTUNE1.…) and pasted back, and the shipped baseline is
+     TUNE_BASE: once a set is picked as the best one, it goes there. */
+  var TUNE_GROUPS = [
+    ["grip", "Ground grip", "How much grip each surface gives every tyre. The tyre you're on still matters on top of this."],
+    ["slope", "Slopes", "Extra slip on steep loose ground, on top of what the slope already does to the tyres' load."],
+    ["tyre", "Tyres", "How the tyre behaves once it breaks loose."],
+    ["power", "Power", "What the engine puts down. The sound doesn't change."],
+    ["susp", "Suspension", "Springs, shocks and sway bars. Changing these rebuilds the truck where it is."],
+    ["body", "Truck", "Weight, tipping, brakes and steering."],
+    ["air", "Jumps", "How the truck falls once all four tyres leave the ground."]
+  ];
+  /* id, group, label, min, max, step, base, format, kind, note */
+  var TUNE_SPEC = [
+    ["gAll", "grip", "Every surface", 0.5, 1.6, 0.01, 1, "x", "live", "Multiplies all of the ones below."],
+    ["gDirt", "grip", "Dirt", 0.4, 1.6, 0.01, 1, "x", "live", "Ranch roads, the burnout pad, the yard's edges."],
+    ["gTrail", "grip", "Trail", 0.4, 1.6, 0.01, 1, "x", "live", "The trail loop and the hill climb."],
+    ["gGrass", "grip", "Grass", 0.4, 1.6, 0.01, 1, "x", "live", "The open hills."],
+    ["gStrip", "grip", "Drag strip", 0.4, 1.6, 0.01, 1, "x", "live", "The prepped dirt of the eighth mile."],
+    ["gMud", "grip", "Mud", 0.3, 1.8, 0.01, 1, "x", "live", "The bog and the mud track."],
+    ["gRock", "grip", "Rock", 0.4, 1.6, 0.01, 1, "x", "live", "The rock garden."],
+    ["gConcrete", "grip", "Concrete", 0.4, 1.6, 0.01, 1, "x", "live", "The shop's pad."],
+    ["gWater", "grip", "Water", 0.3, 1.6, 0.01, 1, "x", "live", "The creek crossings."],
+    ["slope", "slope", "Slope slip", 0, 1, 0.01, 0, "pct", "live", "0 is off. At 100% loose dirt on a 30° slope keeps about half its grip; rock barely changes."],
+    ["slide", "tyre", "Grip once spinning", 0.6, 1.25, 0.01, 1, "x", "build", "How much grip a spinning or sliding tyre keeps. Raise it and wheelspin hooks up sooner."],
+    ["power", "power", "Engine power", 0.4, 1.6, 0.01, 1, "x", "live", "All gears."],
+    ["low1", "power", "Torque cap in 1st and 2nd", 0.3, 1, 0.01, 1, "pct", "live", "Like a launch controller: 1st is capped at this share of peak torque, 2nd halfway back. The engine still revs and spools."],
+    ["spring", "susp", "Spring stiffness", 0.5, 2, 0.01, 1, "x", "build", "Ride height stays the same; travel and bounce change."],
+    ["damp", "susp", "Shock damping", 0.4, 2.5, 0.01, 1, "x", "build", "Low floats and bounces, high skips over bumps."],
+    ["arb", "susp", "Sway bars", 0, 2.5, 0.01, 1, "x", "build", "Body roll in turns. Low lets the axles twist more on rocks."],
+    ["mass", "body", "Weight", 0.7, 1.4, 0.01, 1, "x", "build", "The springs grow with it, so ride height holds."],
+    ["roll", "body", "Tip-over resistance", 0, 0.9, 0.01, 0.2, "m", "build", "Where cornering forces act on the body. Low tips over easily, high stays planted."],
+    ["brake", "body", "Brakes", 0.5, 1.6, 0.01, 1, "x", "build", ""],
+    ["steerSpd", "body", "Steering speed", 0.5, 2, 0.01, 1, "x", "live", "How fast the wheels turn toward where you point them."],
+    ["lock", "body", "Steering lock", 0.6, 1.3, 0.01, 1, "x", "build", "How far the front wheels turn."],
+    ["airG", "air", "Gravity in the air", 0.6, 1.4, 0.01, 1, "x", "live", "Below 1 floats, above 1 drops. Only while all four tyres are off the ground."]
+  ];
+  var TUNE_BASE = {};
+  for (let s of TUNE_SPEC) TUNE_BASE[s[0]] = s[6];
+  /* the set the physics reads right now */
+  var TUNE = Object.assign({}, TUNE_BASE), TUNE_SURF = { dirt: "gDirt", trail: "gTrail", grass: "gGrass", strip: "gStrip", mud: "gMud", rock: "gRock", concrete: "gConcrete", water: "gWater" };
+  /* how much each surface gives way on a slope at full Slope slip */
+  var SLOPE_LOOSE = { dirt: 1, trail: 0.95, grass: 1.1, mud: 1, water: 0.7, strip: 0.6, rock: 0.3, concrete: 0 };
+  function tuneFill(t) {
+    let o = Object.assign({}, TUNE_BASE);
+    if (t && typeof t == "object") for (let s of TUNE_SPEC) {
+      let v = +t[s[0]];
+      t[s[0]] !== void 0 && isFinite(v) && (o[s[0]] = Math.max(s[3], Math.min(s[4], v)));
+    }
+    return o;
+  }
+  function tuneSet(t) {
+    Object.assign(TUNE, tuneFill(t));
+  }
+  function tuneIsBase(t) {
+    return TUNE_SPEC.every((s) => Math.abs(t[s[0]] - s[6]) < 1e-9);
+  }
+  function tuneEncode(t) {
+    let d = {};
+    for (let s of TUNE_SPEC) Math.abs(t[s[0]] - s[6]) > 1e-9 && (d[s[0]] = +(+t[s[0]]).toFixed(3));
+    return "DSTUNE1." + btoa(JSON.stringify(d)).replace(/=+$/, "");
+  }
+  function tuneDecode(code) {
+    let c = String(code || "").trim();
+    if (c.startsWith("{")) return tuneFill(JSON.parse(c));
+    if (!c.startsWith("DSTUNE1.")) throw new Error("That isn't a Dirt Sleeper tuning code.");
+    let b = c.slice(8);
+    for (; b.length % 4; ) b += "=";
+    return tuneFill(JSON.parse(atob(b)));
+  }
+  function tuneFmt(s, v) {
+    return s[7] === "pct" ? Math.round(v * 100) + "%" : s[7] === "m" ? v.toFixed(2) + " m" : v.toFixed(2) + "×";
+  }
+  /* the surface multiplier, with the slope taken off on loose ground. n: the contact normal */
+  function tuneGrip(surf, n) {
+    let T = TUNE, g = T.gAll * (T[TUNE_SURF[surf]] ?? 1);
+    if (T.slope > 0 && n) {
+      let ny = Math.max(0.05, n[1]), tn = Math.sqrt(Math.max(0, 1 - ny * ny)) / ny, x = Math.max(0, Math.min(1, (tn - 0.12) / 0.58));
+      g *= 1 - T.slope * (SLOPE_LOOSE[surf] ?? 0.5) * x * x * (3 - 2 * x) * 0.55;
+    }
+    return g;
+  }
+
   // src/audio/fx-dsp.js
+  /* The ground and body sounds, rebuilt from scratch. Every one is noise shaped by what the physics is doing:
+     no ringing resonators anywhere (the old pebble and bubble "pings" were what sounded like little chimes).
+     Each frame the game sends, per wheel, contact, surface, rolling speed, slip speed, load and how fast the
+     tread is turning; bumps, landings, bottoming out and body hits come as events. Water has no sound yet:
+     it waits for a recording. */
   function makeFX() {
     let TAU2 = Math.PI * 2, ss = (a, b, x) => {
       let t = Math.max(0, Math.min(1, (x - a) / (b - a)));
       return t * t * (3 - 2 * t);
     };
-    class BP {
+    /* surfaces in the game's order: grass dirt strip trail rock mud concrete water. Per surface: how rough it
+       rolls, how much loose stuff crunches under the tread, how much a spinning tyre throws, how hard it is */
+    let ROUGH = [0.55, 1, 0.7, 1.15, 1.3, 0.45, 0.22, 0.3], LOOSE = [0.35, 1, 0.6, 1.25, 0.45, 0, 0.04, 0], THROW = [0.7, 1, 0.9, 1, 0.35, 0, 0, 0], HARD = [0.1, 0.25, 0.35, 0.3, 0.5, 0.03, 1, 0];
+    /* a state-variable filter (topology-preserving): low, band and high outputs, safe to sweep */
+    class SVF {
       constructor() {
-        this.x1 = 0, this.x2 = 0, this.y1 = 0, this.y2 = 0, this.set(500, 1, 44100);
+        this.c1 = 0, this.c2 = 0, this.lp = 0, this.bp = 0, this.g = 0.05, this.k = 1.4, this.calc();
       }
-      set(f2, q, sr) {
-        let w = TAU2 * Math.min(f2, sr * 0.45) / sr, al = Math.sin(w) / (2 * q), a0 = 1 + al;
-        this.b0 = al / a0, this.a1 = -2 * Math.cos(w) / a0, this.a2 = (1 - al) / a0;
+      set(f, q, sr) {
+        this.g = Math.tan(Math.PI * Math.min(f, sr * 0.45) / sr), this.k = 1 / q, this.calc();
+      }
+      /* cheap retune for low sweeps (below a few hundred Hz tan(x) is x) */
+      setLo(f, q, sr) {
+        this.g = Math.PI * f / sr, this.k = 1 / q, this.calc();
+      }
+      calc() {
+        this.a1 = 1 / (1 + this.g * (this.g + this.k)), this.a2 = this.g * this.a1, this.a3 = this.g * this.a2;
       }
       run(x) {
-        let y = this.b0 * x - this.b0 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2;
-        return this.x2 = this.x1, this.x1 = x, this.y2 = this.y1, this.y1 = y, y;
+        let v3 = x - this.c2, v1 = this.a1 * this.c1 + this.a2 * v3, v2 = this.c2 + this.a2 * this.c1 + this.a3 * v3;
+        return this.c1 = 2 * v1 - this.c1, this.c2 = 2 * v2 - this.c2, this.lp = v2, this.bp = v1, v2;
+      }
+    }
+    /* one-pole low-pass: a = 1 - e^(-2 pi f / sr) */
+    let a1p = (f, sr) => 1 - Math.exp(-TAU2 * f / sr);
+    /* a stream of tiny impacts (grains of dirt, stones, metal on rock), each a burst of noise that dies away in
+       a millisecond or two. Thousands a second fuse into a crunch; a few a second are separate ticks. */
+    class Grains {
+      constructor(sr) {
+        this.sr = sr, this.e = 0, this.d = 0.9;
+      }
+      run(rate, pw, t0, t1) {
+        if (rate > 0 && Math.random() < rate / this.sr) {
+          let a = 0.15 + 0.85 * Math.pow(Math.random(), pw);
+          a > this.e && (this.e = a), this.d = Math.exp(-1 / ((t0 + Math.random() * (t1 - t0)) * this.sr));
+        }
+        return this.e *= this.d;
       }
     }
     class FX {
       constructor(sr) {
-        this.sr = sr, this.p = { lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], wet: 0, speed: 0, cabin: 0, curb: 0, scrape: 0, vol: 1 }, this.g = { sq: [0, 0, 0, 0], rd: 0, hiss: 0, curb: 0, scr: 0 }, this.sq = [0, 1, 2, 3].map((i) => ({ bp: new BP(), bp2: new BP(), drift: 0, f: 0 })), this.road = new BP(), this.road.set(260, 0.7, sr), this.road2 = new BP(), this.road2.set(700, 0.9, sr), this.hissF = new BP(), this.hissF.set(2200, 0.9, sr), this.grit = new BP(), this.grit.set(900, 2.2, sr), this.gritLo = new BP(), this.gritLo.set(180, 1.2, sr), this.seed = 22222, this.b = [0, 0, 0], this.curbPh = 0, this.thumpE = 0, this.thumpLp = 0, this.hits = [], this.grainE = 0, this.grainA = 0, this.hitLp = 0, this.k = 0, this.grvF = new BP(), this.grvF.set(1150, 0.8, sr), this.grvF2 = new BP(), this.grvF2.set(520, 1, sr), this.rollF = new BP(), this.rollF.set(150, 0.7, sr), this.sloshF = new BP(), this.sloshF.set(260, 0.7, sr), this.pings = [], this.roarF = new BP(), this.roarF.set(380, 0.7, sr), this.mudF = new BP(), this.mudF.set(140, 1.6, sr), this.mudF2 = new BP(), this.mudF2.set(520, 3, sr), this.splF = new BP(), this.splF.set(2600, 0.5, sr), this.grE = 0, this.grA = 0, this.mudPh = 0, this.g.grv = 0, this.g.roar = 0, this.g.mud = 0, this.g.spl = 0;
+        this.sr = sr, this.p = {}, this.seed = 22222, this.b = [0, 0, 0], this.brL = 0, this.brR = 0, this.br3 = 0, this.vo = [];
+        this.rumL = new SVF(), this.rumR = new SVF(), this.rumU = new SVF(), this.tread = new SVF(), this.lugPh = 0, this.lugJ = 0, this.hpL = 0, this.hpR = 0;
+        this.cr = new Grains(sr), this.crH = 0, this.crA = 0, this.crB = 0;
+        this.roar = new SVF(), this.roar.set(650, 0.7, sr), this.roarH = 0, this.pel = new Grains(sr), this.pelH = 0, this.pelA = 0, this.pelB = 0, this.jit = 0, this.jitT = 0, this.jitN = 0;
+        this.scg = new Grains(sr), this.scH = 0, this.scA = 0, this.scLo = new SVF(), this.scLo.set(150, 0.7, sr);
+        this.mud = new SVF(), this.mudPh = 0, this.mudJ = 0;
+        this.g = { rumL: 0, rumR: 0, tread: 0, crunch: 0, spin: 0, scr: 0, churn: 0 }, this.lugF = 0, this.mudF = 0, this.T = {};
       }
       set(p) {
         this.p = p;
-      }
-      /* a damped resonator: a pebble ping, a bubble, a mud pop */
-      ping(f2, dec, amp) {
-        if (this.pings.length > 14) return;
-        let w = TAU2 * f2 / this.sr, r = Math.exp(-1 / (dec * this.sr));
-        this.pings.push({ a1: 2 * r * Math.cos(w), a2: r * r, y1: amp * Math.sin(w), y2: 0, n: Math.round(dec * this.sr * 6) });
-      }
-      event(e) {
-        e.type === "hit" && this.hits.push({ t: 0, a: Math.min(1.4, e.a), f: 58 + Math.random() * 24 });
       }
       rnd() {
         let s = this.seed;
         return s ^= s << 13, s ^= s >>> 17, s ^= s << 5, this.seed = s, (s >>> 0) / 4294967296 * 2 - 1;
       }
-      process(L, R2, n) {
-        let p = this.p, g = this.g, sr = this.sr, k = 1 - Math.exp(-1 / (sr * 0.05)), sp = p.speed || 0, cab = p.cabin ? 1 : 0, wet = p.wet || 0, lat = p.lat || [0, 0, 0, 0], lon = p.lon || [0, 0, 0, 0], sqT = [0, 1, 2, 3].map((i) => {
-          let side = ss(1.25, 2.1, lat[i]), spin = ss(2.8, 5.5, lon[i]);
-          return Math.max(side * ss(2, 6, sp), spin * 0.8 * ss(0.5, 3, sp + lon[i])) * Math.min(1.2, (p.load[i] || 0) / 3600) * (1 - 0.95 * wet) * (p.sqK ? p.sqK[i] : 1);
-        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
-        dv !== this.dv && (this.dv = dv, this.grvF.set(dv === "coarse" ? 760 : 1150, 0.8, sr), this.grvF2.set(dv === "coarse" ? 330 : 520, 1, sr));
-        let gRate = dv === "coarse" ? [420, 65] : [700, 110], gDec = dv === "coarse" ? 0.986 : 0.975, gLvl = (dv === "coarse" ? 0.3 : dv === "packed" ? 0.085 : 0.24) * gDirt, pebK = dv === "coarse" ? 2.2 : dv === "packed" ? 0.4 : 1;
-        for (let w = 0; w < 4; w++) {
-          let v = this.sq[w];
-          v.drift += (this.rnd() * 0.4 - v.drift * 0.05) * 0.15;
-          let f2 = (720 + w * 31) * (1 + 0.08 * v.drift) * (1 + 0.12 * Math.min(1, Math.max(0, lat[w] - 1.25)));
-          v.bp.set(f2, 16, sr), v.bp2.set(f2 * 2.02, 14, sr);
+      gain(id) {
+        let X = this.p.mix;
+        return X ? X[id] ? X[id].g ?? 0 : 0 : 1;
+      }
+      ver(id, d) {
+        let X = this.p.mix;
+        return X && X[id] && X[id].v || d;
+      }
+      /* one-shots: a low thud swept down in pitch, a burst of low-passed noise for the attack, and for some a
+         clank or crack of band-passed noise. pan: -1 left, 1 right */
+      push(V) {
+        let sr = this.sr;
+        V.t = 0, V.ph = 0, V.nS = 0, V.nS2 = 0, V.nLa = a1p(V.nLp || 300, sr), V.pan = V.pan || 0, V.life = Math.max(V.tau || 0, V.nT || 0, V.cT || 0, V.sqT || 0) * 6 + 0.02;
+        V.cA && (V.c1 = new SVF(), V.c1.set(V.cf1, V.cq || 1.2, sr), V.c2 = new SVF(), V.c2.set(V.cf2, V.cq || 1.2, sr));
+        V.sqA && (V.sv = new SVF());
+        this.vo.length > 26 && this.vo.shift(), this.vo.push(V);
+      }
+      event(e) {
+        let a = Math.max(0, Math.min(1.4, e.a || 0)), side = e.w === void 0 ? 0 : e.w % 2 === 0 ? -0.35 : 0.35, boomy = this.ver("thump", "tight") === "boomy", gT = this.gain("thump"), gH = this.gain("hits");
+        if (e.type === "bump" && gT > 0) this.push(boomy ? { f0: 80, f1: 42, ft: 0.04, tau: 0.13, sA: 0.55 * a * gT, nA: 0.9 * a * gT, nLp: 220, nT: 0.018, cA: 0.3 * a * gT, cf1: 210, cf2: 520, cq: 1, cT: 0.018, pan: side } : { f0: 100, f1: 55, ft: 0.025, tau: 0.07, sA: 0.5 * a * gT, nA: 1.1 * a * gT, nLp: 320, nT: 0.012, cA: 0.35 * a * gT, cf1: 260, cf2: 640, cq: 1, cT: 0.014, pan: side });
+        else if (e.type === "bottom" && gT > 0) this.push({ f0: 90, f1: 48, ft: 0.03, tau: 0.09, sA: 0.5 * a * gT, nA: 0.8 * a * gT, nLp: 400, nT: 0.015, cA: 0.55 * a * gT, cf1: 380, cf2: 1150, cq: 1.3, cT: 0.025, pan: side });
+        else if (e.type === "land" && gT > 0) this.push({ f0: boomy ? 70 : 88, f1: boomy ? 36 : 46, ft: 0.05, tau: boomy ? 0.2 : 0.12, sA: 0.65 * a * gT, nA: 1 * a * gT, nLp: 260, nT: 0.02, cA: 0.35 * a * gT, cf1: 230, cf2: 560, cq: 1, cT: 0.03 }), this.push({ nA: 1.2 * a * gT, nLp: 120, nT: 0.18 });
+        else if (e.type === "hit" && gH > 0) {
+          let k = e.k;
+          k === "rock" ? this.push({ f0: 130, f1: 60, ft: 0.02, tau: 0.06, sA: 0.45 * a * gH, nA: 0.5 * a * gH, nLp: 900, nT: 0.02, cA: 0.9 * a * gH, cf1: 900, cf2: 2400, cq: 0.9, cT: 0.012 }) : k === "wall" ? this.push({ f0: 75, f1: 40, ft: 0.04, tau: 0.12, sA: 0.55 * a * gH, nA: 0.8 * a * gH, nLp: 500, nT: 0.04, cA: 0.35 * a * gH, cf1: 300, cf2: 800, cq: 0.9, cT: 0.05 }) : this.push({ f0: 85, f1: 45, ft: 0.03, tau: 0.1, sA: 0.55 * a * gH, nA: 0.9 * a * gH, nLp: 400, nT: 0.035 });
         }
+      }
+      process(L, R2, n) {
+        let p = this.p, g = this.g, sr = this.sr, T = this.T, cab = p.cabin ? 1 : 0, C = p.c || [0, 0, 0, 0], S = p.s || [1, 1, 1, 1], V = p.v || [0, 0, 0, 0], SL = p.sl || [0, 0, 0, 0], LD = p.ld || [1, 1, 1, 1], WS = p.ws || V, pitch = p.pitch || 0.05;
+        /* ---- what each sound should be doing this block ---- */
+        let gRoll = this.gain("roll"), gCr = this.gain("crunch"), gSp = this.gain("spin"), gHit = this.gain("hits"), gMud = this.gain("mud"), gravel = this.ver("crunch", "fine") === "gravel", thick = this.ver("mud", "soupy") === "thick", treadOn = this.ver("roll", "rumble") === "tread";
+        let rumL = 0, rumR = 0, tread = 0, lugV = 0, crRate = 0, spin = 0, churn = 0, mudRate = 0, mudLug = 0, nMud = 0, vMax = 0;
+        for (let w = 0; w < 4; w++) {
+          if (!C[w]) continue;
+          let si = S[w] | 0, sp = Math.abs(V[w]), sl = SL[w] || 0, ld = Math.min(1.6, LD[w] ?? 1), r = ROUGH[si] * ss(0.4, 22, sp) * (0.55 + 0.45 * ld) * 0.5;
+          w % 2 === 0 ? rumL += r : rumR += r, tread += HARD[si] * ss(2, 28, sp) * 0.25, lugV = Math.max(lugV, sp), vMax = Math.max(vMax, sp);
+          crRate += LOOSE[si] * (sp * 18 + Math.min(sl, 12) * 12), spin += THROW[si] * ss(1.2, 9, sl);
+          si === 5 && (churn += ss(0.3, 5, sl + 0.3 * sp) * 0.5, mudRate += sp * 1.5 + sl * 3, mudLug = Math.max(mudLug, Math.abs(WS[w])), nMud++);
+        }
+        let cabR = cab ? 1.3 : 1;
+        T.rumL = rumL * gRoll * cabR, T.rumR = rumR * gRoll * cabR, T.tread = treadOn ? tread * gRoll * (cab ? 0.6 : 1) : 0, T.crunch = crRate > 0 ? gCr * (cab ? 0.6 : 1) : 0, T.spin = Math.min(2, spin) * gSp, T.churn = Math.min(1.6, churn) * gMud;
+        let scr = p.scr || 0, scK = p.scrK | 0;
+        T.scr = ss(0.3, 6, scr) * gHit;
+        /* the rumble deepens at a crawl and opens up with speed */
+        let fc = 70 + Math.min(vMax, 40) * 5;
+        this.rumL.set(fc, 0.8, sr), this.rumR.set(fc * 1.04, 0.8, sr), this.rumU.set(fc * 1.9, 0.8, sr);
+        let lugF = pitch > 0 ? lugV / pitch : 0;
+        this.tread.set(Math.max(140, Math.min(900, lugF * 2)), 1.1, sr);
+        this.mud.set(thick ? 180 : 260, 0.8, sr);
+        let mudF = pitch > 0 ? mudLug / Math.max(pitch, 0.06) : 0;
+        /* filters for the grains: high-pass then two low-passes, no resonance */
+        let crHa = a1p(gravel ? 200 : 450, sr), crLa = a1p(cab ? 1500 : gravel ? 2200 : 3e3, sr), pelHa = a1p(900, sr), pelLa = a1p(cab ? 1800 : 3500, sr), scHa = a1p(scK === 1 ? 900 : 450, sr), scLa = a1p(scK === 1 ? 6e3 : 3e3, sr), roarHa = a1p(100, sr);
+        let k = 1 - Math.exp(-1 / (sr * 0.04)), vol = (p.vol ?? 1) * 0.6, hp30 = a1p(30, sr), RUM = 0.17;
         for (let i = 0; i < n; i++) {
-          for (let w = 0; w < 4; w++) g.sq[w] += (sqT[w] - g.sq[w]) * k;
-          g.rd += (rdT - g.rd) * k, g.hiss += (hissT - g.hiss) * k, g.curb += (curbT - g.curb) * k, g.scr += (scrT - g.scr) * k * 2, g.grv += (grvT - g.grv) * k, g.roar += (roarT - g.roar) * k, g.mud += (mudT - g.mud) * k, g.spl += (splT - g.spl) * k;
-          let wn = this.rnd(), b = this.b;
-          b[0] = 0.99765 * b[0] + wn * 0.099046, b[1] = 0.963 * b[1] + wn * 0.2965164, b[2] = 0.57 * b[2] + wn * 1.0526913;
-          let pink = (b[0] + b[1] + b[2] + wn * 0.1848) * 0.12, l = 0, r = 0;
-          for (let w = 0; w < 4; w++) {
-            let a = g.sq[w];
-            if (a < 1e-4) continue;
-            let v2 = this.sq[w], s = (v2.bp.run(wn) * 1 + v2.bp2.run(wn) * 0.35) * a * 0.55 * gSq;
-            w % 2 === 0 ? (l += s * 1.1, r += s * 0.7) : (l += s * 0.7, r += s * 1.1);
+          for (let q in T) g[q] += (T[q] - g[q]) * k;
+          let w = this.rnd(), b = this.b;
+          b[0] = 0.99765 * b[0] + w * 0.099046, b[1] = 0.963 * b[1] + w * 0.2965164, b[2] = 0.57 * b[2] + w * 1.0526913;
+          let pink = (b[0] + b[1] + b[2] + w * 0.1848) * 0.12, l = 0, r = 0;
+          /* tyres rolling: brown noise through a low-pass on each side, the left and right wheels apart */
+          if (g.rumL + g.rumR > 1e-5) {
+            this.brL = this.brL * 0.996 + this.rnd() * 0.08, this.brR = this.brR * 0.996 + this.rnd() * 0.08;
+            let a = this.rumL.run(this.brL), c = this.rumR.run(this.brR);
+            /* nothing below 30 Hz: that's drift, not rumble */
+            this.hpL += hp30 * (a - this.hpL), this.hpR += hp30 * (c - this.hpR), a = (a - this.hpL) * g.rumL * RUM, c = (c - this.hpR) * g.rumR * RUM;
+            /* the upper part of the rumble, the part a phone or laptop speaker can play */
+            let u = this.rumU.run(pink * 2.2), ub = this.rumU.bp * (g.rumL + g.rumR) * 0.5 * RUM * 0.9;
+            l += a + c * 0.45 + ub, r += c + a * 0.45 + ub;
           }
-          let road = ((this.road.run(pink) * 1.6 + this.road2.run(pink) * 0.6) * g.rd * (cab ? 0.7 : 1) * (1 - 0.6 * Math.min(1, lo)) + this.hissF.run(pink * 3) * g.hiss * (cab ? 0.3 : 1)) * gRoll;
-          if (g.grv > 1e-3) {
-            /* dirt under the tread: thousands of tiny grains a second through low-mid bands, so they fuse into a crunch */
-            Math.random() < (gRate[0] + sp * gRate[1]) * g.grv / sr && (this.grE += 0.35 + Math.random() * 0.65), this.grE *= gDec;
-            let gr = wn * this.grE;
-            let cr = this.grvF.run(gr) * 0.9 + this.grvF2.run(gr) * 0.75;
-            this.gl1 = (this.gl1 || 0) + 0.27 * (cr - (this.gl1 || 0)), this.gl2 = (this.gl2 || 0) + 0.27 * (this.gl1 - (this.gl2 || 0)), road += this.gl2 * Math.min(1, g.grv * 1.3) * gLvl * (cab ? 0.6 : 1);
-            /* now and then a pebble flicked into a wheel well */
-            Math.random() < sp * 0.28 * lo * pebK / sr && this.ping((dv === "coarse" ? 1100 : 1500) + Math.random() * 1700, 0.025 + Math.random() * 0.025, (0.03 + Math.random() * 0.06) * (cab ? 0.8 : 0.5) * gDirt);
+          /* the tread: band of noise pulsing at the rate the lugs meet the ground */
+          if (g.tread > 1e-5) {
+            this.lugJ += (this.rnd() * 0.5 - this.lugJ) * 2e-3, this.lugPh += lugF * (1 + 0.15 * this.lugJ) / sr, this.lugPh -= Math.floor(this.lugPh);
+            this.tread.run(w);
+            let am = 0.5 + 0.5 * Math.cos(TAU2 * this.lugPh), y = this.tread.bp * am * g.tread * 0.5;
+            l += y, r += y;
           }
-          lo > 0.01 && (road += this.rollF.run(pink * 2) * ss(1, 25, sp) * lo * 0.32 * (cab ? 0.85 : 1) * gRoll);
-          g.roar > 1e-3 && (road += this.roarF.run(pink * 2.2) * g.roar * (cab ? 0.6 : 1) * gDirt);
-          if (g.mud > 1e-3) {
-            this.mudPh += (thick ? 1.8 + sp * 0.9 : 3 + sp * 1.5) / sr;
-            let lfo = 0.45 + 0.55 * Math.abs(Math.sin(this.mudPh * TAU2 * 0.5)) ** 3;
-            road += (this.mudF.run(wn) * 1.8 + this.mudF2.run(pink) * 0.9 * lfo) * g.mud * lfo * (cab ? 0.6 : 1) * gMud;
-            Math.random() < g.mud * (2 + sp * 1.2) * (thick ? 2.2 : 1) / sr && this.ping(thick ? 70 + Math.random() * 90 : 110 + Math.random() * 190, thick ? 0.06 + Math.random() * 0.06 : 0.04 + Math.random() * 0.05, (0.12 + Math.random() * 0.12) * gMud);
+          /* dirt and gravel under the tread */
+          if (g.crunch > 1e-5) {
+            let e = this.cr.run(crRate * (gravel ? 0.6 : 1), gravel ? 3 : 4, gravel ? 8e-4 : 4e-4, gravel ? 3e-3 : 15e-4), x = w * e;
+            this.crH += crHa * (x - this.crH), x -= this.crH, this.crA += crLa * (x - this.crA), this.crB += crLa * (this.crA - this.crB);
+            let y = this.crB * g.crunch * (gravel ? 1.1 : 1.3);
+            l += y, r += y;
           }
-          if (g.spl > 1e-3) {
-            this.splSw = (this.splSw || 0) * 0.9997 + (Math.random() < 6 / sr ? 0.5 + Math.random() * 0.5 : 0);
-            road += (this.sloshF.run(pink * 2.5) * (0.5 + this.splSw) * 1.1 + this.splF.run(wn) * 0.35) * g.spl * (cab ? 0.55 : 1) * gWat;
-            Math.random() < g.spl * 45 / sr && this.ping(380 + Math.random() * 900, 0.012 + Math.random() * 0.02, (0.05 + Math.random() * 0.05) * gWat);
+          /* wheelspin: an unsteady roar of dirt and the patter of stones on the wheel wells */
+          if (g.spin > 1e-5) {
+            --this.jitN <= 0 && (this.jitN = sr / 14, this.jitT = Math.random()), this.jit += (this.jitT - this.jit) * 3e-3;
+            let ro = this.roar.run(pink * 2.4);
+            this.roarH += roarHa * (ro - this.roarH), ro -= this.roarH;
+            let e = this.pel.run(g.spin * 450, 3.5, 4e-4, 15e-4), x = w * e;
+            this.pelH += pelHa * (x - this.pelH), x -= this.pelH, this.pelA += pelLa * (x - this.pelA), this.pelB += pelLa * (this.pelA - this.pelB);
+            let y = (ro * (0.65 + 0.35 * this.jit) * 0.4 + this.pelB * 0.75) * g.spin;
+            l += y, r += y;
           }
-          for (let q = this.pings.length - 1; q >= 0; q--) {
-            let P = this.pings[q], y = P.a1 * P.y1 - P.a2 * P.y2;
-            P.y2 = P.y1, P.y1 = y, road += y, --P.n <= 0 && this.pings.splice(q, 1);
+          /* the body dragging: stick-slip grains and a low grind */
+          if (g.scr > 1e-5) {
+            let e = this.scg.run(150 + scr * 90, 2, 4e-4, 12e-4), x = w * e;
+            this.scH += scHa * (x - this.scH), x -= this.scH, this.scA += scLa * (x - this.scA), this.br3 = this.br3 * 0.996 + this.rnd() * 0.08;
+            let y = (this.scA * 0.7 + this.scLo.run(this.br3) * 0.6) * g.scr;
+            l += y, r += y;
           }
-          if (l += road, r += road, g.curb > 1e-3) {
-            this.curbPh += Math.max(sp, 1) / 2 / sr, this.curbPh >= 1 && (this.curbPh -= 1, this.thumpE = 1), this.thumpE *= Math.exp(-1 / (sr * 0.03)), this.thumpPh = (this.thumpPh || 0) + 46 / sr, this.thumpLp += (wn - this.thumpLp) * 0.01;
-            let th = (Math.sin(TAU2 * this.thumpPh) * 0.5 + this.thumpLp * 3) * this.thumpE * g.curb * 0.18 * gHit;
-            l += th, r += th;
+          /* mud: low churn slapping at the lug rate, suction, clods hitting the truck */
+          if (g.churn > 1e-5 || nMud) {
+            if (g.churn > 1e-5) {
+              this.mudJ += (this.rnd() * 0.6 - this.mudJ) * 2e-3, this.mudPh += mudF * (1 + 0.18 * this.mudJ) / sr, this.mudPh -= Math.floor(this.mudPh);
+              let c = Math.max(0, Math.cos(TAU2 * this.mudPh)), y = this.mud.run(pink * 3) * (0.35 + 0.65 * c * c) * g.churn * 0.17;
+              l += y, r += y;
+            }
+            if (gMud > 0 && Math.random() < mudRate * (thick ? 1.4 : 1) / sr) {
+              let a = (0.25 + 0.35 * Math.random()) * gMud;
+              this.push({ sqA: a, sqF0: (thick ? 200 : 260) + Math.random() * (thick ? 120 : 160), sqF1: 80 + Math.random() * 50, sqFt: 0.05 + Math.random() * 0.06, sqT: (0.07 + Math.random() * 0.07) * (thick ? 1.4 : 1), pan: Math.random() - 0.5 });
+            }
+            gMud > 0 && Math.random() < g.churn * 6 / sr && this.push({ f0: 110, f1: 65, ft: 0.02, tau: 0.035, sA: (0.12 + 0.18 * Math.random()) * gMud, nA: (0.18 + 0.25 * Math.random()) * gMud, nLp: 500, nT: 0.012, pan: Math.random() - 0.5 });
           }
-          if (g.scr > 1e-3) {
-            Math.random() < (30 + p.scrape * 6) / sr && (this.grainE = 1, this.grainA = 0.4 + Math.random() * 0.6), this.grainE *= Math.exp(-1 / (sr * 6e-3));
-            let sc = (this.grit.run(wn) * this.grainE * this.grainA * 0.9 + this.gritLo.run(pink) * 0.9) * g.scr * 0.45 * gHit;
-            l += sc, r += sc;
+          /* the one-shots */
+          for (let j = this.vo.length - 1; j >= 0; j--) {
+            let Vo = this.vo[j], t = Vo.t, y = 0;
+            if (Vo.sqA) {
+              let f = Vo.sqF1 + (Vo.sqF0 - Vo.sqF1) * Math.exp(-t / Vo.sqFt);
+              Vo.sv.setLo(f, 2.2, sr), Vo.sv.run(this.rnd());
+              y = Vo.sv.bp * Vo.sqA * Math.min(1, t / 8e-3) * Math.exp(-t / Vo.sqT) * 0.7;
+            } else {
+              if (Vo.sA) {
+                let f = Vo.f1 + (Vo.f0 - Vo.f1) * Math.exp(-t / Vo.ft);
+                Vo.ph += f / sr, y += Math.sin(TAU2 * Vo.ph) * Math.exp(-t / Vo.tau) * Vo.sA;
+              }
+              Vo.nS += Vo.nLa * (w - Vo.nS), Vo.nS2 += Vo.nLa * (Vo.nS - Vo.nS2), y += Vo.nS2 * Math.exp(-t / Vo.nT) * Vo.nA * 3;
+              Vo.cA && (y += (Vo.c1.run(w), Vo.c1.bp + (Vo.c2.run(w), Vo.c2.bp)) * Math.exp(-t / Vo.cT) * Vo.cA);
+            }
+            l += y * (1 - Vo.pan), r += y * (1 + Vo.pan), Vo.t += 1 / sr, Vo.t > Vo.life && this.vo.splice(j, 1);
           }
-          for (let h = this.hits.length - 1; h >= 0; h--) {
-            let H = this.hits[h];
-            H.t += 1 / sr;
-            let e = Math.exp(-H.t * 14) * H.a * gHit;
-            this.hitLp += (wn - this.hitLp) * 0.15;
-            let s = (Math.sin(TAU2 * H.f * H.t * (1 - H.t * 1.5)) * 0.9 + this.hitLp * 1.5 * Math.exp(-H.t * 30) + wn * 0.25 * Math.exp(-H.t * 80)) * e;
-            l += s, r += s, H.t > 0.6 && this.hits.splice(h, 1);
-          }
-          let v = (p.vol ?? 1) * 0.55;
-          L[i] = l * v, R2[i] = r * v;
+          L[i] = l * vol, R2[i] = r * vol;
         }
       }
     }
@@ -1397,8 +1572,9 @@ if(typeof module!=='undefined')module.exports=SIM;
   }
 
   // src/audio/game-audio.js
+  /* the Digital Engine lab's rooms: open air (a ground bounce and the slap off a distant wall), a garage, a tunnel */
   function roomIR(ctx, kind) {
-    let sr = ctx.sampleRate, n = Math.round(sr * { street: 0.9, tunnel: 2.4 }[kind]), b = ctx.createBuffer(2, n, sr), seed = 1234567, rnd = () => (seed = seed * 16807 % 2147483647, seed / 2147483647 * 2 - 1);
+    let sr = ctx.sampleRate, n = Math.round(sr * { open: 0.5, garage: 1.2, tunnel: 2.4 }[kind]), b = ctx.createBuffer(2, n, sr), seed = 1234567, rnd = () => (seed = seed * 16807 % 2147483647, seed / 2147483647 * 2 - 1);
     for (let ch = 0; ch < 2; ch++) {
       let X = b.getChannelData(ch), lp = 0;
       if (kind === "tunnel") {
@@ -1412,15 +1588,21 @@ if(typeof module!=='undefined')module.exports=SIM;
           let t = i / sr;
           lp += 0.3 * (rnd() - lp), X[i] += lp * 0.55 * Math.exp(-t * 2.5) * Math.min(1, t / 0.03);
         }
+      } else if (kind === "garage") {
+        for (let [t, a] of [[7e-3, 0.7], [0.013, 0.5], [0.019, 0.45], [0.026, 0.35], [0.034, 0.3], [0.041, 0.28]]) X[Math.round((t + ch * 13e-4) * sr)] += a * (rnd() > 0 ? 1 : -1);
+        for (let i = 0; i < n; i++) {
+          let t = i / sr;
+          lp += 0.45 * (rnd() - lp), X[i] += lp * 0.5 * Math.exp(-t * 5.8) * Math.min(1, t / 0.012);
+        }
       } else {
         X[Math.round((45e-4 + ch * 6e-4) * sr)] += 0.5;
-        for (let [t, a, d] of [[0.052, 0.3, 10], [0.071, 0.24, 12], [0.118, 0.16, 16], [0.176, 0.1, 20], [0.25, 0.06, 26]]) {
-          let s = Math.round((t + ch * 6e-3) * sr);
-          for (let q = 0; q < 90; q++) X[s + q] += a * Math.exp(-q / d) * rnd();
+        for (let [t, a, d] of [[0.085, 0.22, 12], [0.16, 0.12, 18]]) {
+          let s = Math.round((t + ch * 5e-3) * sr);
+          for (let q = 0; q < 80; q++) X[s + q] += a * Math.exp(-q / d) * rnd();
         }
         for (let i = 0; i < n; i++) {
           let t = i / sr;
-          lp += 0.25 * (rnd() - lp), X[i] += lp * 0.16 * Math.exp(-t * 6) * Math.min(1, t / 0.02);
+          lp += 0.25 * (rnd() - lp), X[i] += lp * 0.12 * Math.exp(-t * 9) * Math.min(1, t / 0.02);
         }
       }
     }
@@ -1442,10 +1624,11 @@ class DirtUI extends AudioWorkletProcessor{
   process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
 registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     constructor() {
-      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
+      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.yard = 0, this.shop = 0, this.room = "open", this.mix = mixFill(null), this.applyMixParts();
     }
-    /* call from a user gesture. The graph: each source has its own bus; the engine is tamed on its own
-       compressor so a redline doesn't bury the tyres and the HUD sounds; a limiter only catches peaks at the end. */
+    /* call from a user gesture. The engine runs exactly as the Digital Engine lab plays it: the same synth into
+       the same compressor, with the lab's open-air room (its garage inside the shop). The ground and HUD sounds
+       have their own buses; a limiter catches peaks at the very end. */
     start() {
       return this.starting ? this.starting : (this.starting = (async () => {
         let AC = window.AudioContext || window.webkitAudioContext;
@@ -1461,16 +1644,15 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
         };
         let pre = G(), master = G(this.muted ? 0 : this.vol), lim = ctx.createDynamicsCompressor();
         lim.threshold.value = -1.5, lim.knee.value = 0, lim.ratio.value = 20, lim.attack.value = 1e-3, lim.release.value = 0.12, pre.connect(master), master.connect(lim), lim.connect(ctx.destination), this.master = master, this.lim = lim;
-        let mk = (k) => {
-          let send = G(0), cv = ctx.createConvolver();
-          return cv.buffer = roomIR(ctx, k), send.connect(cv), cv.connect(pre), send;
-        };
-        this.sendS = mk("street"), this.sendT = mk("tunnel");
-        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), uiBus = G();
-        engIn.connect(engBus), engBus.connect(engComp), engComp.connect(engOut);
-        for (let b of [engOut, groundBus]) b.connect(pre), b.connect(this.sendS), b.connect(this.sendT);
-        uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, uiBus });
-        this.meters = { engine: A(), ground: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
+        /* the engine: dry plus the lab's room, through the lab's compressor */
+        let engIn = G(), engComp = ctx.createDynamicsCompressor(), engBus = G(), sendE = G(0), convE = ctx.createConvolver();
+        engComp.threshold.value = -8, engComp.knee.value = 6, engComp.ratio.value = 4, engComp.attack.value = 3e-3, engComp.release.value = 0.15;
+        convE.buffer = roomIR(ctx, "open"), engIn.connect(engComp), engIn.connect(sendE), sendE.connect(convE), convE.connect(engComp), engComp.connect(engBus), engBus.connect(pre);
+        /* the ground sounds share the room, a little drier */
+        let groundBus = G(), sendG = G(0), convG = ctx.createConvolver(), uiBus = G();
+        convG.buffer = convE.buffer, groundBus.connect(pre), groundBus.connect(sendG), sendG.connect(convG), convG.connect(pre), uiBus.connect(pre);
+        Object.assign(this, { engIn, engComp, engBus, sendE, convE, groundBus, sendG, convG, uiBus });
+        this.meters = { engine: A(), ground: A(), ui: A(), master: A() }, engBus.connect(this.meters.engine), groundBus.connect(this.meters.ground), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
         try {
           if (!ctx.audioWorklet) throw new Error("no worklet");
           let src = ENGINE_SRC();
@@ -1482,7 +1664,7 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
           let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), uis = node("dirt-ui");
           eng.connect(engIn), fx.connect(groundBus), uis.connect(uiBus), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.uis = { post: (m) => uis.port.postMessage(m) }, this.kind = "worklet";
         } catch {
-          /* no worklets: one script processor runs all three synths, each into its own bus through a splitter-free trick of three processors */
+          /* no worklets: the same three synths on the main thread, each into its own bus */
           let D = makeDSP(), F = makeFX(), Us = makeUISynth(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), us = new Us(ctx.sampleRate), sp = (fn) => {
             let n = ctx.createScriptProcessor(1024, 1, 2), src = ctx.createConstantSource ? ctx.createConstantSource() : null;
             return src && (src.offset.value = 0, src.connect(n), src.start()), n.onaudioprocess = (ev) => {
@@ -1502,43 +1684,17 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
         ctx.state !== "running" && await ctx.resume(), this.cfg && this.eng.post({ t: "cfg", cfg: this.cfg }), this.ready = !0, this.setMix(this.mix);
       })(), this.starting);
     }
-    /* how loud this engine is at redline, so every engine can sit at the same level in the mix */
-    measure(cfg) {
-      let key = JSON.stringify(cfg);
-      if (this.normCache.has(key)) return this.normCache.get(key);
-      let D = makeDSP(), sr = 16e3, d = new D(sr), n = Math.round(sr * 0.55), L = new Float32Array(n), R2 = new Float32Array(n), s = 0, m = 0;
-      d.configure(cfg);
-      for (let o = 0; o < n; o += 128) {
-        let k = Math.min(128, n - o);
-        d.set({ on: 1, firing: 1, crank: 0, rpm: (cfg.redline || 6e3) * 0.97, load: 1, cutFrac: 0, boost: cfg.fiBoost || 0, nos: 0, speed: 25, gear: 3, twostep: 0, antilag: 0, view: 0, dist: 3, pan: 0, rear: 1, vol: 1 }), d.process(L.subarray(o, o + k), R2.subarray(o, o + k), k);
-      }
-      for (let i = Math.round(sr * 0.2); i < n; i++) s += L[i] * L[i], m++;
-      let db = 10 * Math.log10(Math.max(1e-12, s / m)), norm = Math.max(-16, Math.min(10, -18 - db));
-      return this.normCache.set(key, norm), norm;
-    }
     configure(cfg) {
-      this.cfg = cfg;
-      try {
-        this.engNorm = this.measure(cfg);
-      } catch {
-        this.engNorm = 0;
-      }
-      this.engIn && this.engIn.gain.setTargetAtTime(this.normGain(), this.ctx.currentTime, 0.05), this.ready && this.eng.post({ t: "cfg", cfg });
-    }
-    /* how much of the loudness correction to use: 1 makes every engine equally loud at redline */
-    normGain() {
-      return dbToLin(this.engNorm * Math.max(0, Math.min(1, +this.mix.eng.norm)));
+      this.cfg = cfg, this.ready && this.eng.post({ t: "cfg", cfg });
     }
     applyMixParts() {
       this.mixG = mixFor(this.mix, MIX_GROUND), this.mixU = mixFor(this.mix, MIX_UI), this.uis && this.uis.post({ t: "p", p: { vol: 1, mix: this.mixU } });
     }
-    /* apply a mix: bus faders, the engine's tamer, the limiter, and the per-sound settings */
+    /* apply a mix: bus faders, the limiter, and the per-sound settings */
     setMix(m) {
       if (this.mix = mixFill(m), this.applyMixParts(), !this.ctx) return;
-      let t = this.ctx.currentTime, M = this.mix, set = (g, db) => g && g.gain.setTargetAtTime(dbToLin(db), t, 0.03), tame = Math.max(0, Math.min(1, M.eng.tame ?? 0.55));
-      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
-      let c = this.engComp;
-      c.threshold.value = -6 - 22 * tame, c.ratio.value = 1 + 5 * tame, c.knee.value = 10, c.attack.value = 6e-3, c.release.value = 0.25, this.lim.threshold.value = M.limiter ? -1.5 : 0, this.lim.ratio.value = M.limiter ? 20 : 1, this.engIn.gain.setTargetAtTime(this.normGain(), t, 0.05);
+      let t = this.ctx.currentTime, M = this.mix, set = (g, db) => g && g.gain.setTargetAtTime(dbToLin(db), t, 0.03);
+      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03), this.lim.threshold.value = M.limiter ? -1.5 : 0, this.lim.ratio.value = M.limiter ? 20 : 1;
     }
     /* peak and RMS (dBFS) on each bus, for meters */
     levels() {
@@ -1566,11 +1722,13 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
       if (!this.ready) return;
       for (let e of engineEvents) this.eng.post({ t: "ev", ev: e });
       this.eng.post({ t: "p", p: engineP });
-      for (let e of fxEvents) this.fx.post({ t: "ev", ev: e });
       this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) });
-      /* the space: open range is nearly dry, the shop yard throws back a slap, inside the shop it rings */
-      let t = this.ctx.currentTime, c = cabin ? 0.4 : 1;
-      this.yard += (yard - this.yard) * 0.08, this.shop += (shop - this.shop) * 0.08, this.sendS.gain.setTargetAtTime(c * (0.05 + 0.3 * this.yard) * (1 - this.shop), t, 0.08), this.sendT.gain.setTargetAtTime(0.6 * c * this.shop, t, 0.08);
+      for (let e of fxEvents) this.fx.post({ t: "ev", ev: e });
+      /* the room, as the lab sets it: open air, the garage inside the shop, much less of it from the cab */
+      let t = this.ctx.currentTime, c = cabin ? 0.35 : 1, room = shop > 0.5 ? "garage" : "open";
+      room !== this.room && (this.room = room, this.convE.buffer = roomIR(this.ctx, room), this.convG.buffer = this.convE.buffer), this.yard += (yard - this.yard) * 0.08, this.shop += (shop - this.shop) * 0.08;
+      let send = (room === "garage" ? 0.5 : 0.28 + 0.1 * this.yard) * c;
+      this.sendE.gain.setTargetAtTime(send, t, 0.08), this.sendG.gain.setTargetAtTime(send * 0.6, t, 0.08);
     }
     /* one-shot shop and HUD sounds */
     ui(type, extra) {
@@ -1579,96 +1737,147 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
   };
 
   // ===== audio/ui-sounds.js =====
-  /* The shop and HUD sounds, synthesised live in their own AudioWorklet: the cash register, the cooler
-     chime, the gate tick, medal and trophy fanfares, and the cues for a new best, a challenge starting
-     and a lap. Small bell-like voices; no world ambience (the weather, wildlife and crowd were cut). */
+  /* The shop and HUD sounds, rebuilt with no bells in them: timing beeps (flat, like a scoreboard), woody gate
+     tocks, a ratchet and a drawer for buying parts, a cooler lid, and short synth-brass stabs for finding a
+     cooler, a new best, a medal and a trophy. */
   function makeUISynth() {
     let TAU = Math.PI * 2;
     class UISynth {
       constructor(sr) {
-        this.sr = sr, this.p = {}, this.mix = {}, this.t = 0, this.tones = [];
+        this.sr = sr, this.p = {}, this.mix = {}, this.t = 0, this.vo = [], this.seed = 777;
       }
       set(p) {
         this.p = p, p.mix && (this.mix = p.mix);
       }
-      /* a bell: a sine with a soft inharmonic partial, a click of attack and an exponential tail */
-      tone(at, dur, f, amp, pan = 0) {
-        this.tones.length < 40 && this.tones.push({ at: this.t + at, dur, f, amp, ph: 0, pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan) });
+      rnd() {
+        let s = this.seed;
+        return s ^= s << 13, s ^= s >>> 17, s ^= s << 5, this.seed = s, (s >>> 0) / 4294967296 * 2 - 1;
       }
-      chord(fs, at, dur, amp, step = 0) {
-        fs.forEach((f, i, a) => this.tone(at + i * step, dur, f, amp, (i - (a.length - 1) / 2) * 0.2));
+      add(V) {
+        this.vo.length < 48 && (V.at += this.t, V.ph = 0, V.y = 0, V.y2 = 0, this.vo.push(V));
+      }
+      /* a flat electronic beep: odd harmonics, a quick fade in and out */
+      beep(at, dur, f, amp) {
+        this.add({ k: "beep", at, dur, f, amp });
+      }
+      click(at, amp, f) {
+        this.add({ k: "click", at, dur: 0.012, amp, a: 1 - Math.exp(-TAU * f / this.sr) });
+      }
+      /* a low knock: a sine falling in pitch with a little noise for the attack */
+      thunk(at, amp, f) {
+        this.add({ k: "thunk", at, dur: 0.18, f, amp });
+      }
+      /* a can cracking open */
+      fizz(at, dur, amp) {
+        this.add({ k: "fizz", at, dur, amp });
+      }
+      /* a brassy chord: band-limited saws through a closing low-pass */
+      stab(at, dur, fs, amp, step = 0) {
+        fs.forEach((f, i) => this.add({ k: "stab", at: at + i * step, dur, f, amp }));
+      }
+      buzz(at, dur, f, amp) {
+        this.add({ k: "buzz", at, dur, f, amp });
       }
       event(e) {
         let T = e.type;
-        if (T === "kaching") this.tone(0, 0.8, 2093, 0.07, 0.1), this.tone(0.02, 0.7, 2637, 0.05, -0.1), this.tone(0.05, 0.5, 4186, 0.02);
-        else if (T === "chime") this.tone(0, 0.45, 1319, 0.06), this.tone(0.1, 0.6, 1760, 0.06), this.tone(0.2, 0.8, 2637, 0.03);
-        else if (T === "tick") this.tone(0, 0.05, 1900, 0.09), this.tone(0, 0.07, 950, 0.06);
-        else if (T === "trophy") this.chord([1047, 1319, 1568, 2093], 0, 0.9, 0.05, 0.11);
-        else if (T === "medal") this.chord([1319, 1568, 2093], 0, 0.9, 0.05, 0.11);
-        else if (T === "best") this.chord([1568, 2093, 2637, 3136], 0, 0.55, 0.05, 0.07);
-        else if (T === "go") this.tone(0, 0.18, 1760, 0.07), this.tone(0, 0.2, 880, 0.04);
-        else if (T === "ready") this.tone(0, 0.12, 1175, 0.06);
-        else if (T === "lap") this.tone(0, 0.3, 2349, 0.06), this.tone(0.09, 0.4, 3136, 0.05);
-        else if (T === "miss") this.tone(0, 0.25, 523, 0.06), this.tone(0.12, 0.35, 392, 0.06);
+        if (T === "ready") this.beep(0, 0.12, 660, 0.12);
+        else if (T === "go") this.beep(0, 0.32, 1320, 0.13);
+        else if (T === "tick") this.thunk(0, 0.13, 240), this.click(0, 0.05, 2500);
+        else if (T === "lap") this.beep(0, 0.1, 990, 0.11), this.beep(0.13, 0.16, 1320, 0.12);
+        else if (T === "best") this.stab(0, 0.45, [440, 554, 659], 0.045, 0.06);
+        else if (T === "medal") this.stab(0, 0.6, [392, 494, 587, 784], 0.04, 0.07);
+        else if (T === "trophy") this.thunk(0, 0.16, 90), this.stab(0, 0.9, [349, 440, 523, 698], 0.04, 0.08);
+        else if (T === "kaching") [0, 0.05, 0.1, 0.15].forEach((t, i) => this.click(t, 0.07 - i * 4e-3, 1600 + i * 90)), this.thunk(0.22, 0.13, 140);
+        else if (T === "chime") this.thunk(0, 0.12, 180), this.stab(0.08, 0.32, [523, 784], 0.045, 0.07);
+        else if (T === "miss") this.buzz(0, 0.3, 140, 0.1);
       }
       process(L, R, n) {
-        let dt = 1 / this.sr, g = (this.p.vol ?? 1) * (this.mix.ui ? this.mix.ui.g ?? 1 : 1);
+        let sr = this.sr, dt = 1 / sr, g = (this.p.vol ?? 1) * (this.mix.ui ? this.mix.ui.g ?? 0 : 1);
         for (let i = 0; i < n; i++) {
           this.t += dt;
-          let l = 0, r = 0;
-          for (let j = this.tones.length - 1; j >= 0; j--) {
-            let T = this.tones[j], tt = this.t - T.at;
-            if (tt < 0) continue;
-            if (tt > T.dur) {
-              this.tones.splice(j, 1);
+          let s = 0;
+          for (let j = this.vo.length - 1; j >= 0; j--) {
+            let V = this.vo[j], t = this.t - V.at;
+            if (t < 0) continue;
+            if (t > V.dur + 0.05) {
+              this.vo.splice(j, 1);
               continue;
             }
-            let x = tt / T.dur, env = Math.exp(-x * 4.5) * Math.min(1, tt / 2e-3);
-            T.ph += T.f * dt;
-            let s = (Math.sin(TAU * T.ph) + Math.sin(TAU * T.ph * 2.76) * env * 0.25) * env * T.amp;
-            l += s * T.pl, r += s * T.pr;
+            let y = 0;
+            if (V.k === "beep" || V.k === "buzz") {
+              V.ph += V.f * dt;
+              let ph = TAU * V.ph, top = V.k === "buzz" ? 9 : 5, x = 0;
+              for (let h = 1; h <= top && h * V.f < 7e3; h += 2) x += Math.sin(ph * h) / h;
+              let env = Math.min(1, t / 4e-3) * Math.min(1, Math.max(0, (V.dur - t) / 0.025));
+              V.k === "buzz" && (V.y += 0.2 * (x - V.y), x = V.y * 1.6), y = x * env * V.amp;
+            } else if (V.k === "click") V.y += V.a * (this.rnd() - V.y), y = (this.rnd() - V.y) * Math.exp(-t / 15e-4) * V.amp * 3;
+            else if (V.k === "thunk") {
+              V.ph += V.f * (0.7 + 0.3 * Math.exp(-t / 0.03)) * dt, V.y += 0.08 * (this.rnd() - V.y);
+              y = (Math.sin(TAU * V.ph) * Math.exp(-t / 0.04) + V.y * 2 * Math.exp(-t / 6e-3)) * V.amp * 1.1;
+            } else if (V.k === "fizz") {
+              let w = this.rnd();
+              V.y += 0.35 * (w - V.y);
+              let hp = w - V.y, env = Math.min(1, t / 3e-3) * Math.exp(-t / 0.16) * (0.75 + 0.25 * Math.sin(t * 90));
+              V.y2 += 0.6 * (hp - V.y2), y = V.y2 * env * V.amp * 2.6;
+            } else if (V.k === "stab") {
+              V.ph += V.f * dt;
+              let ph = TAU * V.ph, x = 0;
+              for (let h = 1; h <= 8 && h * V.f < 7e3; h++) x += Math.sin(ph * h) / h;
+              let fc = 900 + 2600 * Math.exp(-t / 0.08), a = 1 - Math.exp(-TAU * fc / sr);
+              V.y += a * (x - V.y), V.y2 += a * (V.y - V.y2);
+              let env = Math.min(1, t / 0.01) * (t < V.dur * 0.6 ? 1 : Math.max(0, 1 - (t - V.dur * 0.6) / (V.dur * 0.4)));
+              y = V.y2 * env * V.amp * 1.6;
+            }
+            s += y;
           }
-          L[i] = l * g, R[i] = r * g;
+          L[i] = s * g, R[i] = s * g;
         }
       }
     }
     return UISynth;
   }
+
   // ===== audio/mix.js =====
-  /* One mix for the whole game: three buses (engine, ground, UI) and a master, and for every sound its level,
-     which version of it plays, and a few character knobs. The sound board edits this object and turns it
-     into a short code; the game reads the same code. Levels are in dB. */
+  /* One mix for the whole game: three buses (engine, ground, UI) and a master, and for every sound whether
+     it plays, its level and which version. The engine is the Digital Engine synth exactly as the lab plays
+     it. Every other sound was rebuilt from scratch; each one stays off in the game until it's approved on
+     the sound board (the board plays them all). Water and gravel are waiting for recordings.
+     The board turns a mix into a short code (DSMIX3.…) the game reads. Levels are in dB. */
   var MIX_SOUNDS = [
-    /* ground: what the tyres and the body make */
-    { id: "dirt", bus: "ground", name: "Dirt under the tyres", vars: [["fine", "Fine dirt"], ["coarse", "Coarse gravel"], ["packed", "Packed clay"]], knobs: [] },
-    { id: "roll", bus: "ground", name: "Rolling rumble", vars: [], knobs: [] },
-    { id: "squeal", bus: "ground", name: "Tyre squeal", vars: [], knobs: [] },
-    { id: "mud", bus: "ground", name: "Mud", vars: [["squelch", "Squelch"], ["thick", "Thick and sucking"]], knobs: [] },
-    { id: "water", bus: "ground", name: "Water splash", vars: [], knobs: [] },
-    { id: "hits", bus: "ground", name: "Bumps and landings", vars: [], knobs: [] },
-    /* the shop and the HUD */
-    { id: "ui", bus: "ui", name: "Shop and HUD sounds", vars: [], knobs: [] }
+    { id: "roll", bus: "ground", name: "Tyres rolling", vars: [["rumble", "Rumble"], ["tread", "Rumble and tread"]], when: "Any ground at any speed: the low rumble that comes up through the chassis. The second version adds the tread's hum, mostly on hard ground." },
+    { id: "crunch", bus: "ground", name: "Dirt under the tread", vars: [["fine", "Fine dirt"], ["gravel", "Gravel"]], when: "Loose ground: the trails, the dirt roads, the strip. A recording will replace this one if you find a good one." },
+    { id: "spin", bus: "ground", name: "Wheelspin", vars: [], when: "Spinning on dirt: launches, burnouts, climbing. A roar of dirt and stones hitting the wheel wells." },
+    { id: "thump", bus: "ground", name: "Suspension", vars: [["tight", "Tight"], ["boomy", "Boomy"]], when: "Every bump the suspension takes, landings, and the clank of bottoming out." },
+    { id: "hits", bus: "ground", name: "Body hits and scrapes", vars: [], when: "The body hitting rocks, tyre walls and trees, and the belly dragging." },
+    { id: "mud", bus: "ground", name: "Mud", vars: [["soupy", "Soupy"], ["thick", "Thick"]], when: "The bog and the mud track: tyres churning, suction, clods hitting the truck." },
+    { id: "ui", bus: "ui", name: "Shop and HUD", vars: [], when: "Countdown beeps, gates, laps, new bests, medals, coolers, buying parts." }
   ];
+  /* the game's mix. A sound goes "on" here once it's approved. */
   var MIX_DEFAULT = {
-    v: 2,
-    bus: { engine: -1, ground: 0, ui: -3, master: 0 },
-    eng: { norm: 0.75, tame: 0.55 },
+    v: 3,
+    bus: { engine: 0, ground: 0, ui: -3, master: 0 },
     limiter: 1,
     s: {
-      dirt: { on: 1, lvl: 0, v: "fine" }, roll: { on: 1, lvl: 0 }, squeal: { on: 1, lvl: 0 }, mud: { on: 1, lvl: 0, v: "squelch" }, water: { on: 1, lvl: 0 }, hits: { on: 1, lvl: 0 },
-      ui: { on: 1, lvl: 0 }
+      roll: { on: 0, lvl: 0, v: "rumble" }, crunch: { on: 0, lvl: 0, v: "fine" }, spin: { on: 0, lvl: 0 }, thump: { on: 0, lvl: 0, v: "tight" }, hits: { on: 0, lvl: 0 }, mud: { on: 0, lvl: 0, v: "soupy" },
+      ui: { on: 0, lvl: 0 }
     }
   };
   var dbToLin = (d) => Math.pow(10, d / 20);
-  /* fill in anything a saved or pasted mix is missing */
-  function mixFill(m) {
-    let D = MIX_DEFAULT, o = JSON.parse(JSON.stringify(D));
-    if (!m || typeof m != "object") return o;
-    for (let k in o.bus) m.bus && m.bus[k] !== void 0 && (o.bus[k] = m.bus[k]);
-    Object.assign(o.eng, m.eng || {}), m.limiter !== void 0 && (o.limiter = m.limiter ? 1 : 0);
+  /* fill in anything a saved or pasted mix is missing. Mixes from before the rebuild (v1, v2) don't carry over. */
+  function mixFill(m, def = MIX_DEFAULT) {
+    let o = JSON.parse(JSON.stringify(def));
+    if (!m || typeof m != "object" || m.v !== 3) return o;
+    for (let k in o.bus) m.bus && isFinite(m.bus[k]) && (o.bus[k] = +m.bus[k]);
+    m.limiter !== void 0 && (o.limiter = m.limiter ? 1 : 0);
     for (let k in o.s) m.s && m.s[k] && Object.assign(o.s[k], m.s[k]);
     return o;
   }
+  /* the board starts with every new sound playing, so you hear them all */
+  var MIX_BOARD = (() => {
+    let m = mixFill(null);
+    for (let k in m.s) m.s[k].on = 1;
+    return m;
+  })();
   /* the per-sound linear gains and settings the DSPs read */
   function mixFor(m, ids) {
     let out = {};
@@ -1678,22 +1887,22 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     }
     return out;
   }
-  var MIX_GROUND = ["dirt", "roll", "squeal", "mud", "water", "hits"], MIX_UI = ["ui"];
-  /* a short code to carry a mix between the sound board and the game */
+  var MIX_GROUND = ["roll", "crunch", "spin", "thump", "hits", "mud"], MIX_UI = ["ui"];
+  /* a short code to carry a mix between the sound board and the game: only what differs from the game's mix */
   function mixEncode(m) {
-    let only = { v: 2, bus: m.bus, eng: m.eng, limiter: m.limiter, s: {} };
+    let only = { v: 3, bus: m.bus, limiter: m.limiter, s: {} };
     for (let k in m.s) {
       let a = m.s[k], d = MIX_DEFAULT.s[k], diff = {};
       for (let q in a) a[q] !== d[q] && (diff[q] = a[q]);
       Object.keys(diff).length && (only.s[k] = diff);
     }
-    let txt = JSON.stringify(only);
-    return "DSMIX1." + btoa(unescape(encodeURIComponent(txt))).replace(/=+$/, "");
+    return "DSMIX3." + btoa(unescape(encodeURIComponent(JSON.stringify(only)))).replace(/=+$/, "");
   }
   function mixDecode(code) {
     let c = String(code || "").trim();
     if (c.startsWith("{")) return mixFill(JSON.parse(c));
-    if (!c.startsWith("DSMIX1.")) throw new Error("That isn't a Dirt Sleeper mix code.");
+    if (c.startsWith("DSMIX1.")) throw new Error("That code is from the old sounds. Make a new one on the sound board.");
+    if (!c.startsWith("DSMIX3.")) throw new Error("That isn't a Dirt Sleeper mix code.");
     let b = c.slice(7);
     for (; b.length % 4; ) b += "=";
     return mixFill(JSON.parse(decodeURIComponent(escape(atob(b)))));
@@ -2565,15 +2774,15 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
   }
   /* the chassis for the physics */
   function buildChassis(b) {
-    let ty = TYRES[b.tyre], sp = optOf(b, "susp"), lift = sp.lift || 0, m = buildMass(b), R = ty.R, hcg = SUV.hcg0 + lift + (R - SUV.R0), sv = b.susp, kMul = { lowered: 1.3, stock: 1, level: 1, lift4: 0.9, lift6: 0.78, lift9: 0.72 }[sv], arbMul = { lowered: 1.4, stock: 1, level: 1, lift4: 0.75, lift6: 0.5, lift9: 0.4 }[sv], droop = { lowered: 0.06, stock: 0.1, level: 0.1, lift4: 0.12, lift6: 0.18, lift9: 0.24 }[sv], bump = { lowered: 0.06, stock: 0.09, level: 0.09, lift4: 0.12, lift6: 0.18, lift9: 0.22 }[sv], kF = 44e3 * kMul * m / 2150, kR = 48e3 * kMul * m / 2150, c0 = Math.max(m * 9.81 * 0.5 / 2 / kF, m * 9.81 * 0.5 / 2 / kR), sh = b.shocks, damp = sh === "bypass" ? 1.35 : 1, cs = Math.sqrt(kF * m / 4), wm = { weld15: 0.85, beadlock17: 1.15, chrome22: 1.2 }[b.wheel] || 1, rr = Object.assign({}, SURF_RR);
+    let T = TUNE, ty = TYRES[b.tyre], sp = optOf(b, "susp"), lift = sp.lift || 0, m = buildMass(b) * T.mass, R = ty.R, hcg = SUV.hcg0 + lift + (R - SUV.R0), sv = b.susp, kMul = { lowered: 1.3, stock: 1, level: 1, lift4: 0.9, lift6: 0.78, lift9: 0.72 }[sv] * T.spring, arbMul = { lowered: 1.4, stock: 1, level: 1, lift4: 0.75, lift6: 0.5, lift9: 0.4 }[sv] * T.arb, droop = { lowered: 0.06, stock: 0.1, level: 0.1, lift4: 0.12, lift6: 0.18, lift9: 0.24 }[sv], bump = { lowered: 0.06, stock: 0.09, level: 0.09, lift4: 0.12, lift6: 0.18, lift9: 0.22 }[sv], kF = 44e3 * kMul * m / 2150, kR = 48e3 * kMul * m / 2150, c0 = Math.max(m * 9.81 * 0.5 / 2 / kF, m * 9.81 * 0.5 / 2 / kR), sh = b.shocks, damp = (sh === "bypass" ? 1.35 : 1) * T.damp, cs = Math.sqrt(kF * m / 4), wm = { weld15: 0.85, beadlock17: 1.15, chrome22: 1.2 }[b.wheel] || 1, rr = Object.assign({}, SURF_RR);
     rr.mud *= TREAD_RR_MUD[ty.tread], rr.water *= TREAD_RR_MUD[ty.tread];
     let low = b.tcase === "low", lk = b.lockers;
     return {
-      name: "truck", mass: m, wb: 2.89, wf: 1.44 / 2.89, hcg, trackF: ty.track, trackR: ty.track, R, Iw: 1.6 * Math.pow(R / SUV.R0, 4) * ty.If * wm, rcH: 0.2,
+      name: "truck", mass: m, wb: 2.89, wf: 1.44 / 2.89, hcg, trackF: ty.track, trackR: ty.track, R, Iw: 1.6 * Math.pow(R / SUV.R0, 4) * ty.If * wm, rcH: T.roll,
       susp: { rest: c0 + droop, travel: c0 + bump, kF, kR, cbF: cs * 0.55 * damp * (sh === "drag" ? 0.9 : 1), crF: cs * 0.85 * damp * (sh === "drag" ? 0.45 : 1), cbR: cs * 0.55 * damp * (sh === "drag" ? 0.5 : 1), crR: cs * 0.85 * damp, arbF: 24e3 * arbMul, arbR: 14e3 * arbMul },
       body: { L: 4.9, W: 1.9, H: 1.86 },
-      tyre: { mu: 1, kPk: ty.kPk, aPk: ty.aPk, slide: ty.slide, slideW: ty.slideW, loadSens: 0.1 },
-      brake: 7200 * R / SUV.R0 * m / 2150, bias: 0.62, hbTorque: 3200 * R / SUV.R0, lock: 0.6,
+      tyre: { mu: 1, kPk: ty.kPk, aPk: ty.aPk, slide: Math.min(1, ty.slide * T.slide), slideW: ty.slideW, loadSens: 0.1 },
+      brake: 7200 * R / SUV.R0 * m / 2150 * T.brake, bias: 0.62, hbTorque: 3200 * R / SUV.R0, lock: 0.6 * T.lock,
       cdA: 1.25 + lift * 0.6 + (b.roof === "basket" || b.roof === "basketSpare" ? 0.1 : b.roof === "expedition" ? 0.13 : 0) + (b.lights ? 0.03 : 0) + (b.spoiler === 2 ? 0.02 : 0) + (ty.w - 0.245) * 0.8,
       clF: 0.03, clR: 0.05,
       diff: { pre: 40, acc: 0.3, dec: 0.15, rLock: !1, fLock: !1, cLock: !1, can: { r: lk >= 1, f: lk >= 2, low } },
@@ -2628,22 +2837,24 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     } catch {
     }
   }
-  var BKEY = "dirt-sleeper-board-mix", CKEY = "dirt-sleeper-board-scene", audio = new GameAudio(), MX = mixFill(rd(BKEY)), solo = /* @__PURE__ */ new Set(), busSolo = /* @__PURE__ */ new Set(), started = !1, revHeld = !1;
+  var BKEY = "dirt-sleeper-board-mix", CKEY = "dirt-sleeper-board-scene-3", audio = new GameAudio(), MX = mixFill(rd(BKEY), MIX_BOARD), solo = /* @__PURE__ */ new Set(), busSolo = /* @__PURE__ */ new Set(), started = !1, revHeld = !1;
   var ENGS = [["stock", "Stock 4.6 V8", {}], ["hot", "Hot 6.2 V8", { engine: "v62", exhaust: "headers", cam: 2, tune: 2, intake: 1 }], ["blown", "Blown big-block", { engine: "bb74", power: "roots", exhaust: "straight", cam: 3, tune: 2 }], ["tt", "Twin-turbo V6", { engine: "tt35", power: "bigturbo", tune: 2, exhaust: "catback" }], ["diesel", "Turbo-diesel six", { engine: "d67", power: "compound", tune: 2, exhaust: "stacks" }]];
   var SCENES = [
-    { id: "shop", n: "Idle in the shop", d: "Engine ticking over inside the metal building.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, space: "shop" } },
-    { id: "trail", n: "Cruising the trail", d: "40 mph on dirt, light throttle.", c: { run: 1, rpm: 0.38, thr: 0.35, view: "out", mph: 40, ground: "dirt", spin: 0, space: "open" } },
-    { id: "strip", n: "Redline on the strip", d: "On the limiter halfway down the eighth mile.", c: { run: 1, rpm: 1, thr: 1, view: "out", mph: 55, ground: "dirt", spin: 0.3, space: "open" } },
-    { id: "burnout", n: "Burnout on the pad", d: "Line lock on, rear tyres buried in the dirt.", c: { run: 1, rpm: 0.85, thr: 1, view: "out", mph: 0, ground: "dirt", spin: 1, space: "open" } },
-    { id: "bog", n: "Mud bog", d: "Wheels spinning in the pit.", c: { run: 1, rpm: 0.75, thr: 0.9, view: "out", mph: 8, ground: "mud", spin: 0.8, space: "open" } },
-    { id: "crawl", n: "Rock crawl", d: "Low range, walking over boulders, heard from the cab.", c: { run: 1, rpm: 0.12, thr: 0.3, view: "cab", mph: 2, ground: "rock", spin: 0.1, space: "open" } },
-    { id: "water", n: "Water crossing", d: "Pushing a bow wave through the creek.", c: { run: 1, rpm: 0.3, thr: 0.4, view: "out", mph: 10, ground: "water", spin: 0, space: "open" } }
+    { id: "shop", n: "Idle in the shop", d: "Engine ticking over inside the metal building.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, bumps: 0, space: "shop", land: 0, scrape: 0 } },
+    { id: "trail", n: "Cruising the trail", d: "40 mph on a dirt road, light throttle, a few bumps.", c: { run: 1, rpm: 0.38, thr: 0.35, view: "out", mph: 40, ground: "dirt", spin: 0, bumps: 0.35, space: "open", land: 0, scrape: 0 } },
+    { id: "gravel", n: "Gravel road", d: "30 mph on the loose trail surface.", c: { run: 1, rpm: 0.32, thr: 0.3, view: "out", mph: 30, ground: "trail", spin: 0, bumps: 0.25, space: "open", land: 0, scrape: 0 } },
+    { id: "strip", n: "Redline on the strip", d: "On the limiter halfway down the eighth mile.", c: { run: 1, rpm: 1, thr: 1, view: "out", mph: 55, ground: "strip", spin: 0.15, bumps: 0.05, space: "open", land: 0, scrape: 0 } },
+    { id: "burnout", n: "Burnout on the pad", d: "Line lock on, rear tyres spinning in the dirt.", c: { run: 1, rpm: 0.85, thr: 1, view: "out", mph: 0, ground: "dirt", spin: 1, bumps: 0, space: "open", land: 0, scrape: 0 } },
+    { id: "jump", n: "Jumps", d: "45 mph over the hills, landing every few seconds.", c: { run: 1, rpm: 0.5, thr: 0.6, view: "out", mph: 45, ground: "dirt", spin: 0, bumps: 0.4, space: "open", land: 1, scrape: 0 } },
+    { id: "bog", n: "Mud bog", d: "Wheels spinning in the pit.", c: { run: 1, rpm: 0.75, thr: 0.9, view: "out", mph: 8, ground: "mud", spin: 0.8, bumps: 0.1, space: "open", land: 0, scrape: 0 } },
+    { id: "crawl", n: "Rock crawl", d: "Low range over the ledges, heard from the cab, the belly touching now and then.", c: { run: 1, rpm: 0.12, thr: 0.3, view: "cab", mph: 2, ground: "rock", spin: 0.1, bumps: 0.8, space: "open", land: 0, scrape: 0.3 } },
+    { id: "water", n: "Water crossing", d: "No sound for the water yet: it's waiting for a recording.", c: { run: 1, rpm: 0.3, thr: 0.4, view: "out", mph: 10, ground: "water", spin: 0, bumps: 0.1, space: "open", land: 0, scrape: 0 } }
   ];
   var CTX = Object.assign({ scene: "trail", eng: "stock" }, SCENES[1].c, rd(CKEY) || {});
-  SCENES.some((q) => q.id === CTX.scene) || Object.assign(CTX, SCENES[1].c, { scene: "trail" });
+  SCENES.some((q) => q.id === CTX.scene) || CTX.scene === null || Object.assign(CTX, SCENES[1].c, { scene: "trail" });
   /* what makes each sound play, so Solo can play it even when the scene wouldn't */
-  var FORCE = { dirt: { ground: "dirt", mph: 25 }, roll: { ground: "dirt", mph: 30 }, squeal: { ground: "concrete", spin: 0.7, mph: 20 }, mud: { ground: "mud", spin: 0.6, mph: 6 }, water: { ground: "water", mph: 12 } };
-  var WHEN = { dirt: "Driving on dirt: the strip, the trails, the burnout pad, the yard.", roll: "Rolling on any ground. Packed clay leans on this.", squeal: "Sliding on the concrete pad.", mud: "The mud pit and the mud track.", water: "Splashing through the creek.", hits: "Bumps, landings, rocks and scrapes.", ui: "Buying parts, coolers, gates, medals, trophies, new bests." };
+  var FORCE = { roll: { ground: "dirt", mph: 30 }, crunch: { ground: "trail", mph: 30 }, spin: { ground: "dirt", spin: 0.8, mph: 4 }, thump: { ground: "dirt", mph: 25, bumps: 0.6 }, hits: { ground: "rock", mph: 3, scrape: 0.5 }, mud: { ground: "mud", spin: 0.6, mph: 6 } };
+  var SIDX = { grass: 0, dirt: 1, strip: 2, trail: 3, rock: 4, mud: 5, concrete: 6, water: 7 };
   /* ---------- the engine ---------- */
   var eng = { rpm: 0, cutT: 0, crankT: -1, spec: null, id: null };
   function setEngine(id) {
@@ -2685,8 +2896,17 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     let load = run ? revHeld ? 1 : c.thr : 0, crank = eng.crankT >= 0 && eng.crankT < 0.9;
     crank && (eng.crankT += dt);
     let rpm = crank ? 230 + 60 * Math.sin(eng.crankT * 38) : eng.rpm, sp = c.mph * 0.447, gr = c.ground, spin = c.spin, ep = { on: run && !crank ? 1 : 0, firing: run && !crank ? 1 : 0, crank: crank ? 1 : 0, crankT: crank ? eng.crankT : 0, rpm: run ? rpm : 0, load: crank ? 0 : load, cutFrac: cut, boost: run ? SIM.steadyBoost(e, rpm) * load : 0, nos: 0, speed: sp, gear: 3, twostep: 0, antilag: 0, view: cab ? 1 : 0, dist: cab ? 1.4 : 6, pan: 0, rear: cab ? 0.35 : 0.7, vol: 1, horn: 0 };
-    let s4 = (v) => [v, v, v, v], fx = { lat: s4(0), lon: s4(spin * 7), load: s4(5300), sqK: s4(gr === "concrete" ? 1 : gr === "rock" ? 0.35 : 0.06), wet: 0, speed: sp, cabin: cab ? 1 : 0, curb: 0, scrape: 0, vol: 1, loose: gr === "dirt" ? 1 : 0, spinLoose: gr === "dirt" ? spin : 0, mud: gr === "mud" ? 1 : 0, spinMud: gr === "mud" ? spin : 0, water: gr === "water" ? 1 : 0 }, fev = hold.hit ? [{ type: "hit", a: 0.9 }] : [];
-    gr === "rock" && Math.random() < dt * 0.8 && fev.push({ type: "hit", a: 0.25 + Math.random() * 0.35 }), hold.hit = 0, audio.update(ep, [], fx, fev, { cabin: cab, shop: c.space === "shop" ? 1 : 0, yard: c.space === "yard" ? 1 : 0 }), meters(dt);
+    /* the wheels: front ones rolling, rear ones spinning by the Wheelspin amount */
+    let on = gr !== "none", si = SIDX[gr] ?? 1, slip = spin * 14, fx = { c: on ? [1, 1, 1, 1] : [0, 0, 0, 0], s: [si, si, si, si], v: [sp, sp, sp, sp], sl: [spin * 2, spin * 2, slip, slip], ld: [1, 1, 1, 1], ws: [sp, sp, sp + slip, sp + slip], pitch: 0.07, speed: sp, cabin: cab ? 1 : 0, vol: 1, scr: 0, scrK: gr === "rock" ? 1 : 0 }, fev = hold.ev || [];
+    hold.ev = [];
+    if (on) {
+      /* bumps under each wheel; a landing every few seconds in the jump scene; the belly scraping now and then */
+      for (let w = 0; w < 4; w++) Math.random() < dt * c.bumps * (1.5 + sp * 0.25) && fev.push({ type: "bump", w, a: 0.08 + 0.7 * Math.random() ** 2 * c.bumps });
+      c.land && (hold.landT = (hold.landT || 0) + dt) > 3.4 && (hold.landT = 0, fev.push({ type: "land", a: 0.85 }), Math.random() < 0.4 && fev.push({ type: "bottom", w: 2, a: 0.6 }));
+      c.scrape && (hold.scrT = Math.max(0, (hold.scrT || 0) - dt), hold.scrT <= 0 && Math.random() < dt * c.scrape * 0.8 && (hold.scrT = 0.6 + Math.random() * 0.8, Math.random() < 0.5 && fev.push({ type: "hit", a: 0.3 + Math.random() * 0.3, k: gr === "rock" ? "rock" : "ground" })), hold.scrT > 0 && (fx.scr = 1.2 + hold.scrT * 2));
+    }
+    hold.scrOnce > 0 && (hold.scrOnce -= dt, fx.scr = 3);
+    audio.update(ep, [], fx, fev, { cabin: cab, shop: c.space === "shop" ? 1 : 0, yard: c.space === "yard" ? 1 : 0 }), meters(dt);
   }
   requestAnimationFrame(frame);
   /* ---------- meters ---------- */
@@ -2764,10 +2984,10 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     let rh = el("div", "row");
     rh.append(el("span", "k", ""), rev), box.appendChild(rh);
     box.appendChild(slider("Throttle", 0, 1, 0.01, CTX.thr, pct, set("thr"), "cThr")), box.appendChild(seg("Listening", [["out", "Outside"], ["cab", "In the cab"]], CTX.view, set("view"))), box.appendChild(slider("Speed", 0, 90, 1, CTX.mph, (v) => v + " mph", set("mph"), "cMph"));
-    box.appendChild(seg("Ground", [["none", "None"], ["dirt", "Dirt"], ["mud", "Mud"], ["water", "Water"], ["rock", "Rock"], ["concrete", "Concrete"]], CTX.ground, set("ground"))), box.appendChild(slider("Wheelspin", 0, 1, 0.01, CTX.spin, pct, set("spin"), "cSpin"));
+    box.appendChild(seg("Ground", [["none", "None"], ["dirt", "Dirt"], ["trail", "Gravel trail"], ["grass", "Grass"], ["strip", "Drag strip"], ["mud", "Mud"], ["rock", "Rock"], ["concrete", "Concrete"], ["water", "Water"]], CTX.ground, set("ground"))), box.appendChild(slider("Wheelspin", 0, 1, 0.01, CTX.spin, pct, set("spin"), "cSpin")), box.appendChild(slider("Bumps", 0, 1, 0.01, CTX.bumps || 0, pct, set("bumps"), "cBumps"));
     box.appendChild(seg("Space", [["open", "Open range"], ["yard", "By the shop"], ["shop", "In the shop"]], CTX.space, set("space")));
   }
-  var BUSES = [["engine", "Engine", "The engine synth, on its own compressor."], ["ground", "Ground and tyres", "Dirt, mud, water, squeal, bumps and landings."], ["ui", "Shop and HUD", "Cash register, chimes, gate ticks, fanfares."], ["master", "Master", "Everything, through the limiter."]];
+  var BUSES = [["engine", "Engine", "The Digital Engine synth exactly as the lab plays it: the same compressor and the same open-air room (its garage inside the shop)."], ["ground", "Ground and body", "Tyres, dirt, wheelspin, suspension, hits, mud."], ["ui", "Shop and HUD", "Beeps, gate tocks, stabs for bests and medals, the cooler, buying parts."], ["master", "Master", "Everything, through the limiter."]];
   function renderBuses() {
     let box = $("buses");
     box.innerHTML = "";
@@ -2782,19 +3002,16 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
       s.appendChild(hd), s.appendChild(el("div", "mm", `<span class="k">Level</span><div class="meter" id="m-${id}"><i></i><b></b></div><span class="db" id="d-${id}">−∞</span>`)), s.appendChild(slider("Fader", -30, 12, 0.5, MX.bus[id] ?? 0, (v) => dB(v) + " dB", (v) => {
         MX.bus[id] = v, push();
       }, "f-" + id));
-      id === "engine" && (s.appendChild(slider("Even out engines", 0, 1, 0.05, MX.eng.norm, pct, (v) => {
-        MX.eng.norm = v, push();
-      }, "f-norm")), s.appendChild(slider("Tame the redline", 0, 1, 0.05, MX.eng.tame, pct, (v) => {
-        MX.eng.tame = v, push();
-      }, "f-tame")), s.appendChild(el("p", "note", 'Pulling the engine down by <b id="gr">0.0 dB</b> right now. "Even out" makes a stock V8 and a blown big-block equally loud at 100%.')));
+      id === "engine" && s.appendChild(el("p", "note", 'The lab\'s compressor is pulling the engine down by <b id="gr">0.0 dB</b> right now.'));
       id === "master" && s.appendChild(seg("Limiter", [[1, "On"], [0, "Off"]], MX.limiter ? 1 : 0, (v) => {
         MX.limiter = v, push();
       })), s.appendChild(el("p", "note", esc(note))), box.appendChild(s);
     }
   }
-  function audition(id, m) {
+  function audition(id) {
     if (!started) return toast("Press Start sound first");
-    id === "hits" ? hold.hit = 1 : id === "ui" && ["kaching", "chime", "tick", "go", "lap", "best", "medal", "trophy"].forEach((t, i) => setTimeout(() => audio.ui(t), i * 800));
+    let at = (t, f) => setTimeout(f, t * 1e3), ev = (e) => (hold.ev = hold.ev || []).push(e);
+    id === "thump" ? ([0, 0.35, 0.6, 0.8].forEach((t, i) => at(t, () => ev({ type: "bump", w: i, a: 0.3 + i * 0.15 }))), at(1.4, () => ev({ type: "land", a: 1 })), at(2.4, () => ev({ type: "bottom", w: 2, a: 0.8 }))) : id === "hits" ? (at(0, () => ev({ type: "hit", a: 0.8, k: "rock" })), at(0.7, () => ev({ type: "hit", a: 0.8, k: "wall" })), at(1.4, () => ev({ type: "hit", a: 0.8, k: "ground" })), at(2, () => hold.scrOnce = 1.2)) : id === "ui" && ["ready", "ready", "go", "tick", "lap", "best", "medal", "trophy", "kaching", "chime", "miss"].forEach((t, i) => at(i * 0.9, () => audio.ui(t)));
   }
   function renderCards() {
     for (let bus of ["ground", "ui"]) {
@@ -2807,11 +3024,12 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
         }, sb.onclick = () => {
           solo.has(S.id) ? solo.delete(S.id) : solo.add(S.id), renderCards(), push();
         }, hd.append(onb, sb);
-        if (["hits", "ui"].includes(S.id)) {
+        if (["thump", "hits", "ui"].includes(S.id)) {
           let pb = el("button", "btn small", "Play");
-          pb.type = "button", pb.onclick = () => audition(S.id, m), hd.appendChild(pb);
+          pb.type = "button", pb.onclick = () => audition(S.id), hd.appendChild(pb);
         }
-        if (c.appendChild(hd), c.appendChild(el("p", "when", esc(WHEN[S.id] || ""))), c.appendChild(slider("Level", -24, 12, 0.5, m.lvl, (v) => dB(v) + " dB", (v) => {
+        let ok = MIX_DEFAULT.s[S.id].on;
+        if (c.appendChild(hd), c.appendChild(el("p", "when", esc(S.when || ""))), c.appendChild(el("p", "status" + (ok ? " ok" : ""), ok ? "In the game" : "New: off in the game until you approve it")), c.appendChild(slider("Level", -24, 12, 0.5, m.lvl, (v) => dB(v) + " dB", (v) => {
           m.lvl = v, push();
         }, "l-" + S.id)), S.vars.length) {
           let vs = el("div", "vars");
@@ -2831,6 +3049,7 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
         }
         box.appendChild(c);
       }
+      bus === "ground" && box.appendChild(el("div", "card off wait", '<div class="hd"><h3>Water</h3></div><p class="when">The creek crossings. Waiting for a recording; gravel will be swapped for one too if you find a good one.</p>'));
     }
   }
   var toastT = 0;
@@ -2875,7 +3094,7 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     if (!b.dataset.arm) return b.dataset.arm = "1", b.textContent = "Click again to reset", setTimeout(() => {
       b.dataset.arm = "", b.textContent = "Reset";
     }, 3e3);
-    b.dataset.arm = "", b.textContent = "Reset", MX = mixFill(null), solo.clear(), busSolo.clear(), renderAll(), push(), toast("Back to the default mix");
+    b.dataset.arm = "", b.textContent = "Reset", MX = mixFill(null, MIX_BOARD), solo.clear(), busSolo.clear(), renderAll(), push(), toast("Back to the board's starting mix");
   };
   window.__board = { audio, get MX() {
     return MX;

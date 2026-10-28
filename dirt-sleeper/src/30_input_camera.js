@@ -19,6 +19,8 @@
   }, Input = class {
     constructor(target = window) {
       this.down = /* @__PURE__ */ new Set(), this.pressed = /* @__PURE__ */ new Set(), this.steer = 0, this.thr = 0, this.brk = 0, this.pad = null, this.usingPad = !1, target.addEventListener("keydown", (e) => {
+        let tg = e.target;
+        if (tg && (tg.tagName === "TEXTAREA" || tg.tagName === "SELECT" || tg.tagName === "INPUT" && tg.type !== "range")) return;
         e.repeat || (this.down.add(e.code), this.pressed.add(e.code), (e.code.startsWith("Arrow") || e.code === "Space") && e.preventDefault(), this.usingPad = !1);
       }), target.addEventListener("keyup", (e) => {
         this.down.delete(e.code);

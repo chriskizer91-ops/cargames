@@ -81,6 +81,9 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
 .card .vars button{border:1px solid var(--edge2);background:transparent;border-radius:999px;padding:5px 10px;font:600 13px/1 var(--body);cursor:pointer}
 .card .vars button.on{background:var(--tag);color:var(--tagInk);border-color:var(--tagEdge)}
 .card .when{font-size:12.5px;color:var(--dim);margin:0}
+.card .status{margin:0;font:700 11px/1.3 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
+.card .status.ok{color:var(--good)}
+.card.wait{border-style:dashed;opacity:.7}
 /* code */
 .code{background:var(--panel);border:1px solid var(--edge);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .code textarea{width:100%;box-sizing:border-box;min-height:64px;background:var(--bg);border:1px solid var(--edge2);border-radius:4px;padding:9px;font:12.5px/1.4 var(--mono);color:var(--ink);resize:vertical;word-break:break-all}
@@ -96,7 +99,7 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
 </style>
 <div class="wrap">
   <header class="bar">
-    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Pick a scene, then choose a version of each sound and set its level. The engine runs underneath so you can check the mix at idle, at redline and mid-burnout. When it sounds right, copy the mix code into the game.</p></div>
+    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Every sound but the engine is new, rebuilt from scratch. Pick a scene, solo a sound, try its versions. The engine runs underneath exactly as the Digital Engine lab plays it. New sounds are off in the game until you approve them; copy the mix code into the game to hear them there.</p></div>
     <div class="ctl">
       <button class="btn go" id="start">Start sound</button>
       <div class="mm"><span class="k">Out</span><div class="meter" id="mMaster"><i></i><b></b></div><span class="db" id="dMaster">−∞</span></div>
@@ -105,10 +108,10 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
   </header>
   <section><p class="eyebrow">Scene</p><div class="scenes" id="scenes"></div><div class="ctx" id="ctx"></div></section>
   <section><p class="eyebrow">Buses</p><div class="buses" id="buses"></div></section>
-  <section class="group" id="g-ground"><p class="eyebrow">Ground and tyres</p><div class="cards" id="c-ground"></div></section>
+  <section class="group" id="g-ground"><p class="eyebrow">Ground and body</p><div class="cards" id="c-ground"></div></section>
   <section class="group" id="g-ui"><p class="eyebrow">Shop and HUD</p><div class="cards" id="c-ui"></div></section>
   <section class="code"><p class="eyebrow" style="margin:0">Mix code</p><textarea id="code" readonly spellcheck="false"></textarea>
-    <ol><li>Press <b>Copy mix code</b>.</li><li>In the game, open <b>Settings</b> (in the shop or from Pause), find <b>Sound mix</b>, paste it and press <b>Use this mix</b>.</li><li>The code holds every level, version and knob on this page. Changes save here automatically.</li></ol></section>
+    <ol><li>Press <b>Copy mix code</b>.</li><li>In the game, press <b>Tab</b> while driving (or Pause → <b>Tuning and sounds</b>), open <b>Sounds</b>, press <b>Paste a code</b>. Settings → Sound mix takes it too.</li><li>The code holds which sounds are on, every level and version. Changes save here automatically.</li></ol></section>
 </div>
 <script>
 (() => {
