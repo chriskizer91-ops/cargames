@@ -130,7 +130,9 @@ function spoiler(K){
 /* ---------- exhaust tips ---------- */
 function exhausts(K){
   const {D,X,pm,dy,pair,L}=K,lk=D.look,Y=y=>y+dy,ex=lk.exhaust||'single';
-  const tipAt=(c,r,dir=[-1,0,0],len=.12)=>{const b=V3.add(c,V3.mul(dir,len));tubeAB(pm,c,b,r,14,MM.CHROME,false);
+  /* each tip's outlet and direction go in D.tips, where the flames on a bang come out */
+  D.tips=[];
+  const tipAt=(c,r,dir=[-1,0,0],len=.12)=>{const b=V3.add(c,V3.mul(dir,len));tubeAB(pm,c,b,r,14,MM.CHROME,false);D.tips.push({p:b,d:V3.norm(dir),r});
     tubeAB(pm,V3.add(b,V3.mul(dir,-.03)),b,r*.82,14,V([.012,.012,.012],MAT.COL),true);};
   if(ex==='single'){tubeAB(pm,[X(3.3),Y(.36),.42],[X(L-.12),Y(.39),.6],.03,8,MM.UNDER);tipAt([X(L-.13),Y(.39),.6],.037);}
   if(ex==='dual')pair(s=>{tubeAB(pm,[X(3.3),Y(.36),s*.42],[X(L-.1),Y(.43),s*.64],.035,8,MM.UNDER);tipAt([X(L-.12),Y(.43),s*.64],.048,[-1,0,0],.16);});

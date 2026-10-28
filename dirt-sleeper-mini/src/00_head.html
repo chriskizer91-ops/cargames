@@ -55,7 +55,28 @@ button{font:inherit;color:inherit}
 .mud input{width:90px;accent-color:#9a6a32}
 .info{margin:0;color:var(--ink-2);font-size:12px;max-width:110ch}
 .info b{color:var(--ink);font-weight:500}
+.info .st{color:var(--ink-3)}
 .spacer{flex:1}
+.inl{display:contents}
+.tabs button[aria-pressed="true"]{color:var(--accent)}
+.tog kbd,.keys kbd{font:600 9.5px/1 var(--f);color:var(--ink-3);border:1px solid var(--edge);border-radius:4px;padding:2px 4px;margin-left:6px}
+.keys kbd{margin:0 1px}
+.tog.on{color:var(--amber);border-color:rgba(255,180,60,.75);background:var(--raised)}
+.tog[data-tone="red"].on{color:var(--accent);border-color:rgba(255,61,90,.75)}
+.tog[data-tone="cyan"].on{color:var(--cyan);border-color:rgba(79,227,255,.75)}
+.tog:disabled{opacity:.35;cursor:default}
+.power{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+.power i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.power[aria-pressed="true"]{border-color:rgba(93,255,122,.6)}
+.power[aria-pressed="true"] i{background:#5dff7a;box-shadow:0 0 8px #5dff7a}
+.pad{position:relative;flex:1 1 240px;min-width:150px;height:40px;border-radius:10px;border:1px solid var(--edge-2);background:var(--panel);overflow:hidden;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.padFill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(255,180,60,.15),rgba(255,180,60,.55) 70%,rgba(255,61,90,.75))}
+.pad span{position:absolute;inset:0;display:grid;place-items:center;font:600 10.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);pointer-events:none;text-align:center;padding:0 8px}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.keys{font-size:11px;color:var(--ink-3);line-height:1.9}
+@media (hover:none),(max-width:720px){.keys{display:none}.tog kbd{display:none}}
+.mud.vol input{accent-color:var(--amber)}
+
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 #err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:500 14px/1.6 var(--f);color:var(--ink-2)}
 </style></head><body>
@@ -68,16 +89,33 @@ button{font:inherit;color:inherit}
 <div id="dock">
   <div class="builds" id="builds"></div>
   <div class="row">
-    <div class="seg" id="views" role="group" aria-label="View"></div>
-    <button class="tog cmp" id="cmp" type="button" aria-pressed="false">All four</button>
+    <div class="seg tabs" id="tabs" role="group" aria-label="Panel"><button type="button" data-v="look" aria-pressed="true">Look</button><button type="button" data-v="engine" aria-pressed="false">Engine</button></div>
+    <div class="inl" data-p="look">
+      <div class="seg" id="views" role="group" aria-label="View"></div>
+      <button class="tog cmp" id="cmp" type="button" aria-pressed="false">All four</button>
+    </div>
+    <div class="inl" data-p="engine" hidden>
+      <button class="tog power" id="power" type="button" aria-pressed="false"><i></i><span id="powerLbl">Start engine</span><kbd>I</kbd></button>
+      <div class="seg" id="segMode" role="group" aria-label="Mode"><button type="button" data-v="free" aria-pressed="true">Free rev</button><button type="button" data-v="drive" aria-pressed="false">Drive</button></div>
+      <div class="seg" id="segListen" role="group" aria-label="Where you listen"></div>
+    </div>
   </div>
-  <div class="row">
+  <div class="row" data-p="look">
     <div class="sw" id="paints" role="group" aria-label="Paint"></div>
     <label class="mud" for="mud">Mud <input id="mud" type="range" min="0" max="1" step="0.01"></label>
     <button class="tog" id="lights" type="button" aria-pressed="false">Lights</button>
     <button class="tog" id="steer" type="button" aria-pressed="false">Steer</button>
     <button class="tog" id="spin" type="button" aria-pressed="false">Spin</button>
     <div class="seg" id="stage" role="group" aria-label="Studio"><button type="button" data-v="dark" aria-pressed="true">Dark bay</button><button type="button" data-v="light" aria-pressed="false">Light cyc</button></div>
+  </div>
+  <div class="row" data-p="engine" hidden>
+    <div class="pad" id="pad" role="slider" tabindex="0" aria-label="Throttle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="padFill" id="padFill"></div><span id="padLbl">Hold to rev</span></div>
+    <div class="btns" id="ebtns"></div>
+  </div>
+  <div class="row" data-p="engine" hidden>
+    <div class="seg" id="segRoom" role="group" aria-label="Room"><button type="button" data-v="open">Open air</button><button type="button" data-v="garage">Garage</button><button type="button" data-v="tunnel">Tunnel</button></div>
+    <label class="mud vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label>
+    <span class="keys" id="keys"><kbd>Space</kbd> throttle · <kbd>1</kbd>–<kbd>9</kbd> part throttle · <kbd>S</kbd> brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>N</kbd> nitrous · <kbd>P</kbd> purge · <kbd>B</kbd> blip · <kbd>V</kbd> where you listen</span>
   </div>
   <p class="info" id="info"></p>
 </div>

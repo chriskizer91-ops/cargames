@@ -22,6 +22,31 @@ Drag to orbit, wheel or pinch to zoom, double-tap to reset. The dock picks the b
 ¾, side, rear ¾, front, rear, top, low, or all four side by side), paint, mud, lights, steering, spin,
 the studio and the dot resolution.
 
+## The engines
+
+Each truck has its engine, and the sound is Digital Engine's synth, unchanged. The Engine tab in the
+dock starts it (or press I) and gives you the lab's car controls: Free rev or Drive, throttle (hold
+Space, 1 to 9 for part throttle, or the pad), brake S, shifts Q and E, nitrous N, purge P, blip B, and
+where you listen (V: behind, cabin, trackside), plus the lab's three rooms and a volume slider.
+
+| Truck | Engine | Peak | Gearbox |
+|---|---|---|---|
+| Stock | 4.6 V8, factory | 287 hp | six-speed auto, 3.73 |
+| Sleeper | twin-turbo 3.5 V6, bigger turbos, 250-shot | 638 hp | race four-speed, trans-brake, 4.56 |
+| Rock & Mud | 7.4 big-block, Roots blower, race cam, 35-shot | 1,027 hp | race four-speed, trans-brake, 5.38 |
+| Race | 7.4 big-block, twin turbos, wild cam, 250-shot | 1,216 hp | six-speed sequential, straight-cut |
+
+- `src/15_de_engine.js`: Digital Engine's `engine-dsp.js` and `engine-sim.js`, byte for byte.
+  `tools/check_de.py` proves it (and the built pages) still match the lab.
+- `src/16_engines.js`: the four engines as Digital Engine specs, built with the lab's own
+  `SIM.makeSpec` from Dirt Sleeper's engine table and bolt-on rules.
+- `src/17_sound.js`: the lab's audio graph (master gain, its compressor, the room convolver and send)
+  and its loop (four sim steps a frame, events, then params). Also the dot-matrix shift lights, tach,
+  gear and speed, the body rocking on revs, wheels turning in Drive, brake lights and exhaust flames
+  when the synth fires a bang.
+- `tools/engine_check.js` runs each engine through the sim and synth offline and reports power,
+  levels, clipping and NaNs (`--wav DIR` writes the audio).
+
 ## How the truck is made
 
 - `src/20_suv.js`: the body is lofted from designed lines (profile, belt, sill, plan) into 27-point

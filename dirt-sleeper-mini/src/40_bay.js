@@ -22,6 +22,12 @@ function setRes(i){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=
 const M4T=(x,y,z)=>{const m=M4.id();m[12]=x;m[13]=y;m[14]=z;return m;};
 const M4RY=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s;m[10]=c;return m;};
 const M4S=(x,y,z)=>{const m=M4.id();m[0]=x;m[5]=y;m[10]=z;return m;};
+const M4RX=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m;};
+const M4RZ=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m;};
+/* a flame for the exhaust tips: unit length along +X, hot at the root, red at the tip */
+let FLAME=null;
+function flameMesh(){if(FLAME)return FLAME;const mb=new MB(),seg=[[0,.18,1,.92,[1,.92,.62],9],[.18,.48,.92,.7,[1,.7,.22],7],[.48,.78,.7,.38,[1,.42,.08],5],[.78,1,.38,.04,[.9,.18,.04],3.5]];
+  for(const [a,b,r0,r1,c,em] of seg)tubeAB(mb,[a,0,0],[b,0,0],r0,10,V(c,MAT.EMIT,em),a===0,r1);return FLAME=mb.build();}
 const CAMS={};
 function camFor(c,asp){
   const th=c.th*PI/180,ph=c.ph*PI/180,t=[0,c.ty,0],e=[c.d*Math.cos(ph)*Math.cos(th),c.ty+c.d*Math.sin(ph),-c.d*Math.cos(ph)*Math.sin(th)];
@@ -38,7 +44,7 @@ function frameUniforms(cam,st){
 function carUniforms(b,i){
   const u=P_LIT.u,p=APP.paint[b.id]||b.paint,dirt=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt,T=truck(i),D=T.D;
   gl.uniform3fv(u.uPaint,lin(p));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
-  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,0);gl.uniform1f(u.uDirt,dirt);gl.uniform1f(u.uGround,0);
+  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,i===APP.build&&ENG.inp&&ENG.inp.brk?1:0);gl.uniform1f(u.uDirt,dirt);gl.uniform1f(u.uGround,0);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
 }
 /* ---------- one view: stage, turntable, truck ---------- */
@@ -51,10 +57,16 @@ function renderOne(i,vp,cam){
   gl.uniformMatrix4fv(u.uM,false,M4.id());drawMesh(st.stage);
   const Mc=M4RY(yaw);gl.uniformMatrix4fv(u.uM,false,Mc);drawMesh(st.table);
   gl.uniform4f(u.uShadow,1e3,1e3,0,0);
-  drawMesh(T.body);
-  const R=b.look.tyre.R,tw=b.look.track/2,st2=APP.steer?.36:0;
+  /* the truck on the turntable is the one whose engine is running: it rocks on its springs */
+  const live=i===APP.build&&!!ENG.sim;let Mb=Mc;
+  if(live){const pv=.62;Mb=M4.mul(Mc,M4.mul(M4T(0,pv+ENG.shake[1],ENG.shake[0]),M4.mul(M4RX(ENG.roll),M4.mul(M4RZ(ENG.pitch),M4T(0,-pv,0)))));}
+  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);
+  if(live&&ENG.flame>.04&&D.tips)for(const tp of D.tips){
+    const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,ENG.flame),fl=(.12+.42*k*ENG.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
+    gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
+  const R=b.look.tyre.R,tw=b.look.track/2,st2=APP.steer?.36:0,wa=live?-ENG.wheelA:0;
   for(const [u0,front] of [[D.uFa,1],[D.uRa,0]])for(const s of [1,-1]){
-    const M=M4.mul(Mc,M4.mul(M4T(D.X(u0),R,s*tw),M4.mul(M4RY(front?st2:0),M4S(1,1,s))));
+    const M=M4.mul(Mc,M4.mul(M4T(D.X(u0),R,s*tw),M4.mul(M4RY(front?st2:0),M4.mul(M4S(1,1,s),M4RZ(wa)))));
     gl.uniformMatrix4fv(u.uM,false,M);drawMesh(T.wheel);}
   return T.tris+st.tris;
 }
@@ -70,7 +82,8 @@ function render(dt){
     for(let q=0;q<4;q++){const x=(q&1)*(W>>1)+4,y=(q<2?0:H>>1)+3;otxt5(BUILDS[q].name.toUpperCase(),x,y,q===APP.build?GR.volt:GR.steel,1);}
     hRect(W>>1,0,1,H,pack(0,0,0,255));hRect(0,H>>1,W,1,pack(0,0,0,255));}
   else{tris=renderOne(APP.build,[0,0,T.w,T.h],camFor(curCam(),T.w/T.h));
-    const b=BUILDS[APP.build],sc=W>=400?2:1;otxt5(b.name.toUpperCase(),5,5,GR.volt,sc,'l',.12);txt3(b.tag.toUpperCase(),5,7+7*sc+2,PAL.ink);}
+    const b=BUILDS[APP.build],sc=W>=400?2:1;otxt5(b.name.toUpperCase(),5,5,GR.volt,sc,'l',.12);txt3(b.tag.toUpperCase(),5,7+7*sc+2,PAL.ink);
+    engineHud();}
   gl.bindVertexArray(null);
   APP.tris=tris;
   present();
@@ -86,11 +99,12 @@ const up=e=>{PT.delete(e.pointerId);if(!PT.size)cv.classList.remove('drag');pinc
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('wheel',e=>{e.preventDefault();APP.camT=null;APP.cam.d=clamp(APP.cam.d*Math.exp(e.deltaY*.0012),3.5,16);},{passive:false});
 cv.addEventListener('dblclick',()=>setView(APP.view||'front34'));
-addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const n=+e.key;if(n>=1&&n<=4){setBuild(n-1);}
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.code==='BracketLeft'||e.code==='BracketRight'){setBuild((APP.build+(e.code==='BracketRight'?1:3))%4);}
   else if(e.key==='c'||e.key==='C')setCompare(!APP.compare);else if(e.key==='l'||e.key==='L')toggle('lights');
   else if(e.key==='ArrowLeft'){APP.cam.th+=6;markView(null);}else if(e.key==='ArrowRight'){APP.cam.th-=6;markView(null);}});
 /* ---------- the dock ---------- */
-function setBuild(i){APP.build=i;for(const [k,el] of [...$('builds').children].entries())el.setAttribute('aria-pressed',String(k===i));syncDock();saveApp();}
+function setBuild(i){APP.build=i;engineFor(i);for(const [k,el] of [...$('builds').children].entries())el.setAttribute('aria-pressed',String(k===i));syncDock();saveApp();}
 function setView(id){const v=VIEWS.find(q=>q[0]===id);if(!v)return;APP.view=id;APP.camT={th:v[2],ph:v[3],d:v[4],ty:v[5]};
   /* go round the short way */
   while(APP.camT.th-APP.cam.th>180)APP.camT.th-=360;while(APP.camT.th-APP.cam.th<-180)APP.camT.th+=360;
@@ -103,7 +117,10 @@ function syncDock(){
   const b=BUILDS[APP.build],p=APP.paint[b.id]||b.paint;
   for(const el of $('paints').children)el.setAttribute('aria-pressed',String(el.dataset.c===p));
   $('mud').value=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt;
-  $('info').innerHTML='<b>'+b.name+'.</b> '+b.blurb+' '+b.specs.map(s=>'<b>'+s[0]+'</b> '+s[1]).join(' · ');
+  if(ENG.tab==='engine'){const e=specOf(APP.build),r=ENGINE_OF[b.id];
+    $('info').innerHTML='<b>'+b.name+' engine.</b> '+r.desc+' <b>'+fmt(Math.round(e.peak.hp))+' hp</b> at '+fmt(Math.round(e.peak.rpm/50)*50)+' rpm · <b>'+fmt(Math.round(e.peak.tq*.7376))+' lb-ft</b> · redline '+fmt(e.redline)+'. <span class="st">'+(ENG.status||'Sound starts when you start the engine.')+'</span>';}
+  else $('info').innerHTML='<b>'+b.name+'.</b> '+b.blurb+' '+b.specs.map(s=>'<b>'+s[0]+'</b> '+s[1]).join(' · ');
+  syncEngineDock();
   requestAnimationFrame(layout);
 }
 function buildDock(){
@@ -122,6 +139,49 @@ function buildDock(){
   for(const x of $('stage').children)x.setAttribute('aria-pressed',String(x.dataset.v===APP.stage));
   syncDock();
 }
+/* ---------- the engine tab ---------- */
+function setTab(v){ENG.tab=v;for(const el of document.querySelectorAll('#dock [data-p]'))el.hidden=el.dataset.p!==v;
+  for(const x of $('tabs').children)x.setAttribute('aria-pressed',String(x.dataset.v===v));saveEng();syncDock();}
+function buildEngineDock(){
+  $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.v);});
+  $('power').addEventListener('click',toggleEngine);
+  $('segMode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setMode(b.dataset.v);syncEngineDock();});
+  const sl=$('segListen');LISTEN.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.dataset.v=String(i);b.textContent=n;sl.appendChild(b);});
+  sl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setListener(+b.dataset.v);syncEngineDock();});
+  $('segRoom').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setRoomKind(b.dataset.v);syncEngineDock();});
+  $('vol').value=ENG.vol;$('vol').addEventListener('input',e=>setVolume(e.target.value));
+  const pad=$('pad'),setPad=e=>{const r=pad.getBoundingClientRect();ENG.pad=clamp((e.clientX-r.left-4)/(r.width-8),0,1);};
+  pad.addEventListener('pointerdown',e=>{e.preventDefault();try{pad.setPointerCapture(e.pointerId);}catch(_){}ENG.padOn=true;setPad(e);});
+  pad.addEventListener('pointermove',e=>{if(ENG.padOn)setPad(e);});
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])pad.addEventListener(ev,()=>{ENG.padOn=false;});
+  const box=$('ebtns');
+  for(const d of ENG_BTNS){const b=document.createElement('button');b.type='button';b.className='tog';if(d.tone)b.dataset.tone=d.tone;
+    b.innerHTML='<span></span><kbd>'+d.k.replace('Key','')+'</kbd>';b.querySelector('span').textContent=d.l;d.el=b;
+    if(d.t==='hold'){const set=v=>{if(!b.disabled)engHold(d,v);};
+      b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}set(true);});
+      for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>set(false));}
+    else b.addEventListener('click',()=>engPress(d));
+    box.appendChild(b);}
+  setTab(ENG.tab);
+}
+function syncEngineDock(){
+  if(!ENG.sim||!$('ebtns').children.length)return;
+  const sim=ENG.sim,e=ENG.spec;
+  for(const x of $('segMode').children)x.setAttribute('aria-pressed',String(x.dataset.v===sim.mode));
+  for(const x of $('segListen').children)x.setAttribute('aria-pressed',String(+x.dataset.v===ENG.listener));
+  for(const x of $('segRoom').children)x.setAttribute('aria-pressed',String(x.dataset.v===ENG.room));
+  for(const d of ENG_BTNS){if(!d.el)continue;d.el.hidden=!!(d.need&&!d.need(e));d.el.disabled=!!(d.drive&&sim.mode!=='drive');}
+  engineLive(true);
+}
+/* the bits that change every frame: the power button, the pad's fill and its label */
+const ELIVE={};
+function engineLive(force){
+  if(!ENG.sim)return;const on=engineOn(),thr=ENG.inp?ENG.inp.thr:0,lbl=on?'Hold to rev · further right, more throttle':'Start the engine first';
+  if(force||ELIVE.on!==on){ELIVE.on=on;$('power').setAttribute('aria-pressed',String(on));$('powerLbl').textContent=on?'Engine on':'Start engine';}
+  if(force||ELIVE.lbl!==lbl){ELIVE.lbl=lbl;$('padLbl').textContent=lbl;}
+  const w=Math.round(thr*100);if(force||ELIVE.w!==w){ELIVE.w=w;$('padFill').style.width=w+'%';$('pad').setAttribute('aria-valuenow',String(w));}
+  if(ELIVE.st!==ENG.status){ELIVE.st=ENG.status;if(ENG.tab==='engine')syncDock();}
+}
 /* ---------- layout: the matrix fits the space between the top bar and the dock ---------- */
 function layout(){
   const sa=getComputedStyle($('sa')),sl=parseFloat(sa.paddingLeft)||0,sr=parseFloat(sa.paddingRight)||0,st=parseFloat(sa.paddingTop)||0;
@@ -135,7 +195,9 @@ function frame(ts){
   if(APP.spin)APP.yaw+=dt*.3;
   if(APP.camT){const k=1-Math.exp(-dt*7),c=APP.cam,t=APP.camT;let done=true;for(const q of ['th','ph','d','ty']){c[q]+=(t[q]-c[q])*k;if(Math.abs(t[q]-c[q])>.01)done=false;}if(done){Object.assign(c,t);APP.camT=null;}}
   const t0=performance.now();
+  try{engineFrame(dt);}catch(e){console.error(e);}
   try{render(dt);}catch(e){console.error(e);}
+  engineLive();
   const ms=performance.now()-t0;APP.frameMs=lerp(APP.frameMs||ms,ms,.1);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps';}
   requestAnimationFrame(frame);
@@ -144,12 +206,12 @@ function frame(ts){
 if(!gl){$('err').style.display='grid';}
 else{
   let r=parseInt(store.get('dsmini-res',-1),10);if(!(r>=0&&r<RES.length)){const d=devicePixelRatio||1;r=!touchy&&innerWidth*d>=1500?2:1;}
-  setRes(r);glInit();buildDock();resize();
+  setRes(r);glInit();engineFor(APP.build);buildDock();buildEngineDock();resize();
   if(APP.view)setView(APP.view);if(APP.camT){Object.assign(APP.cam,APP.camT);APP.camT=null;}
   if(APP.compare)setCompare(true);
   addEventListener('resize',resize);
   requestAnimationFrame(frame);
-  window.__bay={APP,BUILDS,truck,render,setBuild,setView,setCompare,setRes,present,
+  window.__bay={APP,ENG,BUILDS,SIM,specOf,startEngine,setMode,setTab,engineFrame,truck,render,setBuild,setView,setCompare,setRes,present,
     shot(o){Object.assign(APP,o.app||{});if(o.cam)Object.assign(APP.cam,o.cam);APP.camT=null;render(1/60);return true;},
     snap(){render(1/60);return cv.toDataURL('image/png');},bench(n=5){gl.finish();const t=performance.now();for(let i=0;i<n;i++)render(1/60);gl.finish();return (performance.now()-t)/n;}};
 }
