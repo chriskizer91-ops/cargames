@@ -5092,6 +5092,23 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
       }
     }
     carve(creek, 3.5, 5, 6, 1.5);
+    /* ease the mud track's fords: the banks come down to the water at no more than a 1-in-4 */
+    {
+      let r = Math.ceil(16 / cell) + 1;
+      for (let i = 0; i < mudT.N; i += 2) {
+        let cn = creek.nearest(mudT.X[i], mudT.Z[i], 1);
+        if (!cn || cn.d > 14) continue;
+        let [ci, cj] = hIdx(mudT.X[i], mudT.Z[i]);
+        for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+          let ii = ci + di, jj = cj + dj;
+          if (ii < 0 || jj < 0 || ii >= N2 || jj >= N2) continue;
+          let x = x0 + ii * cell, z = z0 + jj * cell, mn = mudT.nearest(x, z, 1), cc = creek.nearest(x, z, 1);
+          if (!mn || !cc || mn.d > 7.5) continue;
+          let [bi, bj] = hIdx(creek.X[cc.i], creek.Z[cc.i]), bed = H[bj * N2 + bi], k = jj * N2 + ii, lim = bed + 0.25 * Math.max(0, cc.d - 1.5), w = 1 - sst(5, 7.5, mn.d);
+          H[k] > lim && (H[k] = H[k] * (1 - w) + lim * w);
+        }
+      }
+    }
     let loopProf = carve(loop, 3.2, 6, 5), climbProf = carve(climb, 4, 8, 4, 0, 0.5);
     /* a couple of kickers on the loop for the brave */
     let kick = [], kicker = (path, s, h, L) => {

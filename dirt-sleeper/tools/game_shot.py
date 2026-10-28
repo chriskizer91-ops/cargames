@@ -25,6 +25,12 @@ async def main():
                 n=s[1]; inp=json.dumps(s[2] if len(s)>2 else None)
                 out=await pg.evaluate(f"(()=>{{const g=window.__game,inp={inp};for(let i=0;i<{n};i++){{if(inp){{g.input.down.clear();for(const k of inp)g.input.down.add(k);}}g.frame(1/60);i%4===3&&g.R.gl.finish();}}if(inp)g.input.down.clear();const t=g.truck;return [g.state,t.p.map(x=>x.toFixed(1)).join(','),t.speed.toFixed(1),g.mode&&g.mode.phase,g.mode&&g.mode.t&&g.mode.t.toFixed(2)].join(' | ');}})()")
                 print('frames',n,out,flush=True)
+            elif s[0]=='canvas':
+                # the 3D view alone, read straight from the canvas in the same task as the frame
+                url=await pg.evaluate("(()=>{const g=window.__game;g.frame(1/60);return document.getElementById('view').toDataURL('image/jpeg',0.88)})()")
+                import base64
+                open(OUT+'/c_'+s[1]+'.jpg','wb').write(base64.b64decode(url.split(',')[1]))
+                print('canvas',s[1],flush=True)
             elif s[0]=='shot':
                 await pg.evaluate("window.__game.frame(1/60)")
                 try:
