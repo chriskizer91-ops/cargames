@@ -28,7 +28,7 @@ if len(sys.argv) > 1:
     lab = '\n'.join(lines[223:1343]) + '\n'
     want = hashlib.sha256(lab.encode()).hexdigest()
     print('lab file      ', want, '(matches the recorded hash)' if want == LAB_SHA256 else '(DIFFERENT from the recorded hash: the lab changed)')
-for rel in ['src/15_de_engine.js', 'dist/model-bay.html', 'dist/model-bay.artifact.html']:
+for rel in ['src/15_de_engine.js', 'dist/model-bay.html', 'dist/model-bay.artifact.html', 'dist/dirt-sleeper-mini.html', 'dist/dirt-sleeper-mini.artifact.html']:
     p = os.path.join(ROOT, rel)
     if not os.path.exists(p):
         continue

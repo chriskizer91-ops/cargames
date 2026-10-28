@@ -135,3 +135,9 @@ function setInst(mesh,data){
 function drawMesh(m){gl.bindVertexArray(m.vao);if(m.ib)gl.drawElements(gl.TRIANGLES,m.n,m.it,0);else gl.drawArrays(gl.TRIANGLES,0,m.n);}
 function drawMeshI(m){if(!m.ni)return;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElementsInstanced(gl.TRIANGLES,m.n,m.it,0,m.ni);else gl.drawArraysInstanced(gl.TRIANGLES,0,m.n,m.ni);}
 function freeMesh(m){if(!m)return;gl.deleteVertexArray(m.vao);for(const b of m.bufs)gl.deleteBuffer(b);if(m.ib)gl.deleteBuffer(m.ib);if(m.inst)gl.deleteBuffer(m.inst);}
+/* small transforms */
+const M4T=(x,y,z)=>{const m=M4.id();m[12]=x;m[13]=y;m[14]=z;return m;};
+const M4RY=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s;m[10]=c;return m;};
+const M4S=(x,y,z)=>{const m=M4.id();m[0]=x;m[5]=y;m[10]=z;return m;};
+const M4RX=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m;};
+const M4RZ=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m;};

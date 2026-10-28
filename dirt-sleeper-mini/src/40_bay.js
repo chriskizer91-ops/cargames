@@ -19,11 +19,6 @@ const stageMesh=k=>STG[k]||(STG[k]=buildStage(k));
 /* ---------- GL state ---------- */
 function setRes(i){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;store.set('dsmini-res',i);$('res').textContent='Dots '+BW+'×'+BH;}
 /* ---------- matrices ---------- */
-const M4T=(x,y,z)=>{const m=M4.id();m[12]=x;m[13]=y;m[14]=z;return m;};
-const M4RY=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s;m[10]=c;return m;};
-const M4S=(x,y,z)=>{const m=M4.id();m[0]=x;m[5]=y;m[10]=z;return m;};
-const M4RX=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m;};
-const M4RZ=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m;};
 /* a flame for the exhaust tips: unit length along +X, hot at the root, red at the tip */
 let FLAME=null;
 function flameMesh(){if(FLAME)return FLAME;const mb=new MB(),seg=[[0,.18,1,.92,[1,.92,.62],9],[.18,.48,.92,.7,[1,.7,.22],7],[.48,.78,.7,.38,[1,.42,.08],5],[.78,1,.38,.04,[.9,.18,.04],3.5]];
@@ -44,7 +39,7 @@ function frameUniforms(cam,st){
 function carUniforms(b,i){
   const u=P_LIT.u,p=APP.paint[b.id]||b.paint,dirt=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt,T=truck(i),D=T.D;
   gl.uniform3fv(u.uPaint,lin(p));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
-  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,i===APP.build&&ENG.inp&&ENG.inp.brk?1:0);gl.uniform1f(u.uDirt,dirt);gl.uniform1f(u.uGround,0);
+  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,i===APP.build&&ENG.inp&&ENG.inp.brk?1:0);gl.uniform1f(u.uDirt,dirt);gl.uniform1f(u.uMudOff,0);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
 }
 /* ---------- one view: stage, turntable, truck ---------- */
@@ -65,6 +60,7 @@ function renderOne(i,vp,cam){
     const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,ENG.flame),fl=(.12+.42*k*ENG.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
   const R=b.look.tyre.R,tw=b.look.track/2,st2=APP.steer?.36:0,wa=live?-ENG.wheelA:0;
+  gl.uniform1f(u.uMudOff,R);
   for(const [u0,front] of [[D.uFa,1],[D.uRa,0]])for(const s of [1,-1]){
     const M=M4.mul(Mc,M4.mul(M4T(D.X(u0),R,s*tw),M4.mul(M4RY(front?st2:0),M4.mul(M4S(1,1,s),M4RZ(wa)))));
     gl.uniformMatrix4fv(u.uM,false,M);drawMesh(T.wheel);}
