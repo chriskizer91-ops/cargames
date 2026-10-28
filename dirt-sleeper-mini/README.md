@@ -7,15 +7,31 @@ Digital Engine's, used exactly as it is.
 
 Two pages come out of `build.sh`:
 
-- `dist/dirt-sleeper-mini.html`: the game. Free roam on Dirt Sleeper's ranch with the four trucks.
+- `dist/dirt-sleeper-mini.html`: the game. Free roam on Dirt Sleeper's ranch and the country round it, with the four trucks.
 - `dist/model-bay.html`: the model bay. The four trucks on a turntable, with their engines.
 
 ## The game
 
-Free roam on the ranch: the shop and its yard, the dirt drag strip, the burnout pad, the mud pit, the
-rock garden, the hill climb up Red Hill, the trail loop with its kickers and creek, and the mud track
-that fords the creek twice. The menu (Esc) picks the truck, the driving level, where to go, the camera
-and the volume.
+Free roam on a mile-square map with the ranch in the middle: the shop and its yard, the dirt drag
+strip, the burnout pad, the mud pit, the rock garden, the hill climb up Red Hill, the trail loop with
+its kickers and creek, and the mud track that fords the creek twice. Round the ranch:
+
+- Gravel county roads with ditches, fences and a power line: the county road east to west below the
+  ranch, Range Road north from a crossroads, the forest road west through the woods and West Road back
+  down. The ranch drive runs out of the yard to the county road.
+- Feed & Fuel at the crossroads: a store with a canopy and pumps, a feed barn with a loading dock,
+  grain bins, stop signs.
+- A home place off the county road at the end of a long lane of muddy ruts (finer than the ground
+  grid, so the wheels sit in them): a white farmhouse with a porch, a red barn, a utility trailer, a
+  swing set and a trampoline.
+- Woods across the north with a two-track trail that splashes through the shallow end of a pond, and a
+  trail up to it from the ranch's trail loop.
+- A paved road course in the south-east: 1.6 km of asphalt with kerbs, gravel traps and tyre walls, a
+  paddock with garages, a pit wall, a grandstand and a start gantry. Laps are timed (over the line,
+  past two checkpoints, over the line again) and the best for each truck and level is kept.
+
+The corner map scrolls with the truck; M (or a tap on it) opens the whole map. The menu (Esc) picks the
+truck, the driving level, where to go, the camera and the volume.
 
 Three driving levels:
 
@@ -27,7 +43,7 @@ Three driving levels:
   flips itself back over if it does go over.
 
 Keys: W/↑ gas, S/↓ brake and reverse, A/D steer, Space handbrake, Q/E shift, N nitrous, L low range,
-K lockers, H horn, J headlights, C camera, R reset, I engine, Esc menu. A game controller works too. On a phone
+K lockers, H horn, J headlights, C camera, M map, R reset, I engine, Esc menu. A game controller works too. On a phone
 or tablet there are on-screen pedals.
 
 - `src/50_physmath.js`, `51_tyre.js`, `52_tune.js`, `53_vehicle.js`: Dirt Sleeper's physics (Shiftlight
@@ -38,10 +54,17 @@ or tablet there are on-screen pedals.
   The Stock runs all-season tyres and the Sleeper street performance tyres; both have the factory
   traction control and a torque converter, so they pull out of muddy ruts the way the real truck does.
   The Rock & Mud has mud tyres, lockers and low range; the Race's slicks still bog in mud and slide on grass.
-- `src/60_ranch.js`: Dirt Sleeper's ranch code, unchanged apart from the trees and two speed-ups that
-  change nothing; its geometry goes through a builder that speaks this renderer's materials.
-- `src/61_ranchmesh.js`: the ground in 64 m tiles, each meshed at 2, 4 and 8 m with skirts, drawn by
-  distance and skipped outside the view; the props in tiles; the sky.
+- `src/59_country.js`: the country round the ranch. It hooks into the ranch build at each stage (the
+  shape of the land, carving, the surface map, the ground in the lane's ruts, the geometry). Roads that
+  cross meet at one level; ditches fill in at junctions.
+- `src/60_ranch.js`: Dirt Sleeper's ranch code. The ranch itself builds the same: its land, trails and
+  surfaces match the old build (apart from the last metre of the old edge hills at its corners), and the
+  speed-ups give the same answers. The edge hills moved out to the mile, the trees are drawn instanced
+  (and on hillsides they are solid now; before, the truck could pass through them), and new surfaces
+  (gravel, asphalt, ruts) carry their own grip and rolling resistance in `54_truckphys.js`.
+- `src/61_ranchmesh.js`: the ground in 64 m tiles, each meshed at 2, 4 and 8 m with skirts; the fine
+  mesh is made only round the truck. Props in tiles, trees instanced (full near, one lump far), the sky.
+  The busiest views draw about 70 to 90 thousand triangles of world, fewer than the ranch alone did.
 - `src/62_fx.js`: dust, mud clods and creek spray, at most 360 at once in one instanced draw.
 - `src/70_game.js`, `71_hud.js`, `72_menus.js`: the loop, the camera, input, the engine sound from the
   powertrain, the dot-matrix HUD and map, and the menu.
@@ -99,6 +122,10 @@ python3 tools/check_de.py                    # the synth is still the lab's
 node tools/engine_check.js                   # each engine through the synth, offline
 node tools/phys_check.js                     # each truck and driving level on flat ground
 node tools/ranch_check.js                    # the ranch: size, tiles, the ground at each area
+node tools/ranch_drive.js [level]            # a driver through the ranch's mud pit, rocks, climb, mud track, a jump
+node tools/country_drive.js [level]          # the home lane, the county road, a timed lap, the woods trail, a ditch
+node tools/world_map.js map.ppm 800          # a top-down map of the whole world
+python3 tools/tri_count.py                   # triangles drawn at spots round the world
 python3 tools/game_shots.py '{"runs":[{"name":"mud","build":2,"place":"mud","keys":["KeyW"],"secs":3}]}' /tmp/g
 python3 tools/shots.py '{"builds":[0,1,2,3],"views":["front34","side","rear34"]}' /tmp/sheet.png
 ```

@@ -3,7 +3,7 @@
    ===================================================================================== */
 function openMenu(first){
   GAME.state='menu';$('menu').hidden=false;syncTouch();
-  $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?'Free roam on the ranch':'Paused';
+  $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?'Free roam: the ranch and the country round it':'Paused';
   syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
 }
 function closeMenu(){
@@ -30,7 +30,7 @@ function buildMenu(){
   $('vol').addEventListener('input',e=>setVolume(e.target.value));
   $('mGo').addEventListener('click',closeMenu);
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
-  $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);MAPBMP=null;layout();});
+  $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
 }
 /* ---------- boot ---------- */
 if(!gl){$('err').style.display='grid';$('loading').hidden=true;}
@@ -40,7 +40,7 @@ else{
   /* let the loading line paint, then build the ranch */
   requestAnimationFrame(()=>setTimeout(()=>{
     try{
-      buildRanchGL();computePlaces();spawnTruck(APP.build,6,4,0);buildMenu();bindTouch();
+      buildRanchGL();computePlaces();mapBitmap();spawnTruck(APP.build,6,4,0);buildMenu();bindTouch();
       $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
     }catch(e){console.error(e);$('loading').textContent='Something went wrong building the ranch: '+e.message;}
   },30));

@@ -4,9 +4,13 @@
    trees), so they drive the same. What it draws goes through MeshBuilderI below instead of
    Shiftlight 3's builder: the same calls, but the vertices carry this renderer's material ids
    (see RMAT and 61_ranchmesh.js). The coarse ground is meshed separately, with levels of detail.
-   Speed-ups that change nothing: the noise hash uses Math.imul and the spatial hashes use number keys.
+   Speed-ups that change nothing: the noise hash uses Math.imul, the spatial hashes use number keys,
+   paths skip buckets with nothing near, and noise terms with no weight aren't worked out.
+   The world is a mile square now: the hills that closed the ranch in have moved out to the new edge,
+   and the country round it (59_country.js) hooks into the build at each stage through X. The
+   trees are drawn instanced in a few shapes; their positions and every random draw are unchanged.
    ===================================================================================== */
-const RMAT={TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,SKY:51,LINE:52};
+const RMAT={TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,SKY:51,LINE:52,GRAVEL:53,ASPHALT:54,RUTS:55};
 const Ranch=(()=>{
 'use strict';
 function rng(seed=1){let s=seed>>>0||1;return ()=>(s^=s<<13,s>>>=0,s^=s>>>17,s^=s<<5,s>>>=0,s/4294967296);}
@@ -17,7 +21,7 @@ const s2l=v=>Math.pow(v/255,2.2);
 function mapVertex(m,c,u,w,ao,out){
   const id=m[0],vr=m[1];
   if(id===16){out[4]=RMAT.TERRAIN;out[0]=c[0]/255;out[1]=c[1]/255;out[2]=c[2]/255;out[3]=ao===undefined?c[3]/255:ao;return;}
-  if(id===17){out[4]=vr===0?RMAT.STRIP:vr===2?RMAT.MUDTRACK:RMAT.TRAIL;out[0]=u;out[1]=w;out[2]=0;out[3]=1;return;}
+  if(id===17){out[4]=vr===0?RMAT.STRIP:vr===2?RMAT.MUDTRACK:vr===3?RMAT.GRAVEL:vr===4?RMAT.ASPHALT:vr===5?RMAT.RUTS:RMAT.TRAIL;out[0]=u;out[1]=w;out[2]=0;out[3]=1;return;}
   if(id===21){out[4]=RMAT.ROCK;out[0]=out[1]=out[2]=1;out[3]=ao===undefined?1:ao;return;}
   if(id===23){out[4]=MAT.EMIT;out[0]=1;out[1]=.62;out[2]=.12;out[3]=.6;return;}
   if(id===7){out[4]=MAT.EMIT;out[0]=1;out[1]=.95;out[2]=.85;out[3]=1.6;return;}
@@ -72,10 +76,10 @@ class ChunkedI{
   mat(id,p1=0,p2=0,p3=0){this.m=[id,p1|0,p2|0,p3|0];return this;}
   col(r,g,b,a=255){this.c=[r|0,g|0,b|0,a|0];return this;}
 }
-  var SURF = ["grass", "dirt", "strip", "trail", "rock", "mud", "concrete", "water"], SF = {};
+  var SURF = ["grass", "dirt", "strip", "trail", "rock", "mud", "concrete", "water", "gravel", "asphalt", "ruts"], SF = {};
   SURF.forEach((n, i) => SF[n] = i);
   var RANCH_DEF = {
-    size: 800, cell: 2,
+    size: 1600, cell: 2,
     pad: { x: 0, z: 0, w: 32, d: 24 },
     shop: { x0: -15, x1: 15, z0: -31, z1: -15, wall: 5.2, peak: 7.6, door: [-5.5, 5.5, 4.4] },
     strip: { x0: -46, start: 0, x1: 300, z: 40, half: 9, lanes: [36, 44], eighth: 201.168, quarter: 402.336 },
@@ -136,9 +140,26 @@ class ChunkedI{
       let k = (Math.floor(X[i] / B) + 2048) * 4096 + Math.floor(Z[i] / B) + 2048;
       hash.has(k) || hash.set(k, []), hash.get(k).push(i);
     }
-    let path = { closed, N: N2, ds, len: L, X, Z };
+    let path = { closed, N: N2, ds, len: L, X, Z }, dil = [], mask = (r) => {
+      /* which 16 m buckets have a point within r buckets: a 256 x 256 grid round the origin */
+      if (dil[r]) return dil[r];
+      let m = new Uint8Array(65536);
+      for (let k of hash.keys()) {
+        let BX = Math.floor(k / 4096) - 2048 + 128, BZ = k - Math.floor(k / 4096) * 4096 - 2048 + 128;
+        for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) {
+          let u = BX + a, w = BZ + b;
+          u >= 0 && w >= 0 && u < 256 && w < 256 && (m[u * 256 + w] = 1);
+        }
+      }
+      return dil[r] = m;
+    };
+    /* (a quick no where no bucket within reach holds a point: the same answers, much faster on the big map) */
     path.nearest = (x, z, r = 2) => {
       let bx = Math.floor(x / B), bz = Math.floor(z / B), best = 1e18, bi = -1;
+      if (r <= 2) {
+        let u = bx + 128, w = bz + 128;
+        if (u < 0 || w < 0 || u > 255 || w > 255 || !mask(r)[u * 256 + w]) return null;
+      }
       for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) {
         let l = hash.get((bx + a + 2048) * 4096 + bz + b + 2048);
         if (l) for (let q of l) {
@@ -169,17 +190,35 @@ class ChunkedI{
       return Math.hypot(dx, dz);
     }, natural = (x, z) => {
       let h = 2.6 * (NZ.fbm(x / 95, z / 95) - 0.5) + 0.9 * (NZ.fbm(x / 23, z / 23) - 0.5), north = sst(-50, -230, z), east = sst(150, 330, x), west = sst(-150, -330, x);
-      h += north * (30 * NZ.ridge(x / 170 + 3.1, z / 170) + 7 * (NZ.fbm(x / 38, z / 38) - 0.4));
-      h += west * 10 * NZ.ridge(x / 120, z / 120 + 7) + east * 6 * NZ.fbm(x / 60, z / 60);
+      /* (terms whose weight is zero are skipped: same land, less work) */
+      north > 0 && (h += north * (30 * NZ.ridge(x / 170 + 3.1, z / 170) + 7 * (NZ.fbm(x / 38, z / 38) - 0.4)) * CTRY.northEase(z));
+      h += (west > 0 ? west * 10 * NZ.ridge(x / 120, z / 120 + 7) : 0) + (east > 0 ? east * 6 * NZ.fbm(x / 60, z / 60) : 0);
       h += HL.amp * Math.exp(-((x - HL.x) ** 2 + (z - HL.z) ** 2) / (2 * HL.sig * HL.sig));
       h += 4 * Math.exp(-((x - 140) ** 2 + (z - 150) ** 2) / (2 * 60 * 60)) - 2 * Math.exp(-((x - 60) ** 2 + (z - 220) ** 2) / (2 * 70 * 70));
-      return h;
+      return h + CTRY.extra(x, z, NZ);
     }, rim = (x, z) => {
+      /* the hills that close the world in, out at its new edge now */
       let e = Math.max(Math.abs(x), Math.abs(z));
-      return sst(320, 400, e) * 70 * (0.6 + 0.4 * NZ.fbm(x / 80, z / 80));
+      return CTRY.rim(x, z, e, NZ);
     };
+    /* the country round the ranch hooks in through X */
+    let X = { D, NZ, N2, cell, x0, z0, H, W, SC, SF, SURF, sst, rectDist, natural, makePath, rng, norm, loop };
+    CTRY.init(X);
+    /* out past the old ranch the land is worked out every 4 m and filled in between (same hills, a third of the work) */
+    let N4 = (N2 - 1) / 2 + 1, L4 = new Float32Array(N4 * N4), inner = (x, z) => Math.abs(x) <= 424 && Math.abs(z) <= 424;
+    for (let j = 0; j < N4; j++) for (let i = 0; i < N4; i++) {
+      let x = x0 + i * 4, z = z0 + j * 4;
+      inner(x, z) && inner(x + 4, z + 4) && inner(x - 4, z - 4) || (L4[j * N4 + i] = natural(x, z));
+    }
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
-      let x = x0 + i * cell, z = z0 + j * cell, h = natural(x, z);
+      let x = x0 + i * cell, z = z0 + j * cell, h;
+      if (inner(x, z)) h = natural(x, z);
+      else {
+        let a = i >> 1, b = j >> 1, fa = (i & 1) * 0.5, fb = (j & 1) * 0.5, a1 = Math.min(N4 - 1, a + 1), b1 = Math.min(N4 - 1, b + 1);
+        h = (L4[b * N4 + a] * (1 - fa) + L4[b * N4 + a1] * fa) * (1 - fb) + (L4[b1 * N4 + a] * (1 - fa) + L4[b1 * N4 + a1] * fa) * fb;
+      }
+      /* (the flats below change nothing outside this box, so they are only worked out inside it) */
+      if (x > -160 && x < 370 && z > -80 && z < 95) {
       /* the pad and the strip are graded flat */
       let dPad = rectDist(x, z, D.pad.x - D.pad.w / 2 - 4, D.pad.z - 34, D.pad.x + D.pad.w / 2 + 4, D.pad.z + D.pad.d / 2 + 4), dStrip = rectDist(x, z, St.x0 - 20, St.z - St.half - 6, St.x1 + 30, St.z + St.half + 6), flat = Math.max(1 - sst(0, 40, dPad), 1 - sst(0, 36, dStrip));
       h = h * (1 - flat) + 0 * flat;
@@ -192,11 +231,15 @@ class ChunkedI{
       /* the mud pit: a soft basin */
       let mr = Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz);
       h -= M.depth * (1 - sst(0.55, 1.15, mr));
+      }
+      h = CTRY.shape(x, z, h);
       H[j * N2 + i] = h + rim(x, z);
     }
     let hIdx = (x, z) => [Math.max(0, Math.min(N2 - 1, Math.round((x - x0) / cell))), Math.max(0, Math.min(N2 - 1, Math.round((z - z0) / cell)))];
     /* ---------- carve the trails: smooth the ground along each path ---------- */
-    let carve = (path, halfW, blend, smoothS, cut = 0, maxG = 0) => {
+    let cStamp = new Int32Array(N2 * N2), cNI = new Int32Array(N2 * N2), cND = new Float64Array(N2 * N2), cRun = 0, carve = (path, halfW, blend, smoothS, cut = 0, maxG = 0) => {
+      /* (each cell's nearest path point is worked out once and kept for this carve: the same answers, sooner) */
+      cRun++;
       let prof = new Float64Array(path.N);
       for (let i = 0; i < path.N; i++) {
         let [ix, iz] = hIdx(path.X[i], path.Z[i]);
@@ -224,10 +267,14 @@ class ChunkedI{
         for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
           let ii = ci + di, jj = cj + dj;
           if (ii < 0 || jj < 0 || ii >= N2 || jj >= N2) continue;
-          let x = x0 + ii * cell, z = z0 + jj * cell, near = path.nearest(x, z, 1);
-          if (!near || near.i !== i) continue;
-          let w = 1 - sst(halfW, halfW + blend, near.d), k = jj * N2 + ii;
-          H[k] = H[k] * (1 - w) + (prof[near.i] - cut * (1 - sst(0, halfW, near.d))) * w;
+          let k = jj * N2 + ii;
+          if (cStamp[k] !== cRun) {
+            let near = path.nearest(x0 + ii * cell, z0 + jj * cell, 1);
+            cStamp[k] = cRun, cNI[k] = near ? near.i : -1, cND[k] = near ? near.d : 0;
+          }
+          if (cNI[k] !== i) continue;
+          let w = 1 - sst(halfW, halfW + blend, cND[k]);
+          H[k] = H[k] * (1 - w) + (prof[i] - cut * (1 - sst(0, halfW, cND[k]))) * w;
         }
       }
       return prof;
@@ -292,6 +339,89 @@ class ChunkedI{
         H[jj * N2 + ii] += rise;
       }
     }
+    /* the country's roads, track, lane and trails, carved the same way but visiting each cell once */
+    let stamp = new Int32Array(N2 * N2), stampN = 0, carveF = (path, halfW, blend, smoothS, cut = 0, maxG = 0, pins = null) => {
+      stampN++;
+      let prof = new Float64Array(path.N);
+      for (let i = 0; i < path.N; i++) {
+        let [ix, iz] = hIdx(path.X[i], path.Z[i]);
+        prof[i] = H[iz * N2 + ix];
+      }
+      for (let pass = 0; pass < 3; pass++) {
+        let o = new Float64Array(path.N);
+        for (let i = 0; i < path.N; i++) {
+          let s = 0, c = 0;
+          for (let k = -smoothS; k <= smoothS; k++) {
+            let q = path.closed ? (i + k + path.N) % path.N : Math.max(0, Math.min(path.N - 1, i + k));
+            s += prof[q], c++;
+          }
+          o[i] = s / c;
+        }
+        prof = o;
+      }
+      if (maxG > 0) {
+        /* limit the grade both ways and take the middle, so climbs and drops are cut alike */
+        let f = prof.slice(), b = prof.slice(), g = maxG * path.ds;
+        for (let i = 1; i < path.N; i++) f[i] = Math.max(f[i - 1] - g, Math.min(f[i - 1] + g, f[i]));
+        for (let i = path.N - 2; i >= 0; i--) b[i] = Math.max(b[i + 1] - g, Math.min(b[i + 1] + g, b[i]));
+        for (let i = 0; i < path.N; i++) prof[i] = (f[i] + b[i]) / 2;
+      }
+      /* where it crosses or meets a road already cut, meet that road at its own level */
+      if (pins) for (let other of pins) {
+        let best = -1, bd = 1e9;
+        for (let i = 0; i <= path.N; i++) {
+          let n = i < path.N ? other.nearest(path.X[i], path.Z[i], 1) : null, d = n ? n.d : 1e9;
+          if ((d < 2.5 || (i === 0 || i === path.N - 1) && d < 9) && d < bd) bd = d, best = i;
+          else if (best >= 0 && (d > 6 || i === path.N)) {
+            /* level across the other road (8 m either side), easing back to its own line over the next 40 m */
+            let [ix, iz] = hIdx(path.X[best], path.Z[best]), lv = H[iz * N2 + ix];
+            for (let j = Math.max(0, best - 48); j <= Math.min(path.N - 1, best + 48); j++) {
+              let w = 1 - sst(8, 48, Math.abs(j - best));
+              prof[j] = prof[j] * (1 - w) + lv * w;
+            }
+            /* and never steeper than the path allows on the way out of the crossing */
+            if (maxG > 0) {
+              let g = maxG * path.ds;
+              for (let j = best + 1; j < path.N; j++) {
+                let c = Math.max(prof[j - 1] - g, Math.min(prof[j - 1] + g, prof[j]));
+                if (c === prof[j] && j > best + 48) break;
+                prof[j] = c;
+              }
+              for (let j = best - 1; j >= 0; j--) {
+                let c = Math.max(prof[j + 1] - g, Math.min(prof[j + 1] + g, prof[j]));
+                if (c === prof[j] && j < best - 48) break;
+                prof[j] = c;
+              }
+            }
+            path.cross || (path.cross = []), path.cross.push([path.X[best], path.Z[best]]), best = -1, bd = 1e9;
+          }
+        }
+      }
+      let r = Math.ceil((halfW + blend) / cell) + 1, rr = halfW + blend > 15 ? 2 : 1;
+      for (let i = 0; i < path.N; i += 2) {
+        let [ci, cj] = hIdx(path.X[i], path.Z[i]);
+        for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+          let ii = ci + di, jj = cj + dj;
+          if (ii < 0 || jj < 0 || ii >= N2 || jj >= N2) continue;
+          let k = jj * N2 + ii;
+          if (stamp[k] === stampN) continue;
+          stamp[k] = stampN;
+          let near = path.nearest(x0 + ii * cell, z0 + jj * cell, rr);
+          if (!near) continue;
+          let w = 1 - sst(halfW, halfW + blend, near.d);
+          /* an open path stops at its ends: nothing past them is cut (a road meets another, it doesn't cap it) */
+          if (!path.closed && (near.i === 0 || near.i === path.N - 1)) {
+            let e = near.i, d2 = path.dir(e ? path.len : 0), out = ((x0 + ii * cell) - path.X[e]) * d2[0] + ((z0 + jj * cell) - path.Z[e]) * d2[1];
+            w *= 1 - sst(0, 3, e ? out : -out);
+          }
+          if (w <= 0) continue;
+          H[k] = H[k] * (1 - w) + (prof[near.i] - cut * (1 - sst(0, halfW, near.d))) * w;
+        }
+      }
+      return prof;
+    };
+    X.carve = carveF;
+    CTRY.carve(X);
     /* ---------- vertex normals and the surface map ---------- */
     let hAt = (i, j) => H[Math.max(0, Math.min(N2 - 1, j)) * N2 + Math.max(0, Math.min(N2 - 1, i))], NRM = new Float32Array(N2 * N2 * 3);
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
@@ -306,11 +436,11 @@ class ChunkedI{
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
       let x = x0 + i * cell, z = z0 + j * cell, k = j * N2 + i, ny = NRM[k * 3 + 1], slope = Math.sqrt(Math.max(0, 1 - ny * ny)) / Math.max(ny, 0.05), n1 = NZ.fbm(x / 21 + 5, z / 21), n2 = NZ.fbm(x / 7, z / 7 + 3);
       let grass = sst(0.32, 0.6, n1 + 0.18), rock = sst(0.6, 1.05, slope + (n2 - 0.5) * 0.35), mud = 0, ao = 1, code = SF.grass;
-      /* worn dirt around the pad, the strip and the pit */
-      let dPad = rectDist(x, z, -D.pad.w / 2, -D.pad.d / 2 - 18, D.pad.w / 2, D.pad.d / 2), dStrip = rectDist(x, z, St.x0 - 6, St.z - St.half, St.x1 + 10, St.z + St.half);
-      grass *= sst(4, 16, dPad) * sst(2, 10, dStrip) * sst(2, 10, rectDist(x, z, -30, 6, 10, St.z));
-      let mr = Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz);
-      mud = 1 - sst(0.75, 1.05, mr + (n2 - 0.5) * 0.25), grass *= sst(0.9, 1.4, mr);
+      /* worn dirt around the pad, the strip and the pit (only near them: elsewhere these change nothing) */
+      let core = x > -190 && x < 360 && z > -60 && z < 100, dPad = core ? rectDist(x, z, -D.pad.w / 2, -D.pad.d / 2 - 18, D.pad.w / 2, D.pad.d / 2) : 1e9, dStrip = core ? rectDist(x, z, St.x0 - 6, St.z - St.half, St.x1 + 10, St.z + St.half) : 1e9;
+      core && (grass *= sst(4, 16, dPad) * sst(2, 10, dStrip) * sst(2, 10, rectDist(x, z, -30, 6, 10, St.z)));
+      let mr = core ? Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz) : 1e9;
+      core && (mud = 1 - sst(0.75, 1.05, mr + (n2 - 0.5) * 0.25), grass *= sst(0.9, 1.4, mr));
       let cn = creek.nearest(x, z, 1);
       cn && cn.d < 9 && (grass *= sst(3, 9, cn.d), rock = Math.max(rock * 0.6, (1 - sst(1, 6, cn.d)) * 0.55));
       /* AO: a little darker in the hollows */
@@ -321,7 +451,7 @@ class ChunkedI{
       dStrip <= 0.5 && (code = SF.strip);
       dPad <= 0 && Math.abs(x) < D.pad.w / 2 && z > -D.pad.d / 2 && (code = SF.concrete);
       /* the burnout pad: bare dirt */
-      let dB = rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2);
+      let dB = core ? rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2) : 1e9;
       dB < 6 && (grass *= sst(1, 6, dB), rock *= sst(1, 6, dB)), dB <= 0 && (code = SF.dirt, mud = 0);
       /* the mud track */
       let mt = mudT.nearest(x, z, 1);
@@ -332,6 +462,7 @@ class ChunkedI{
       td < 7 && (W[k * 4] = Math.max(grass, 1 - sst(3, 7, td)), W[k * 4 + 1] = rock * sst(3, 7, td), grass = W[k * 4]);
       cn && cn.d < 2.6 && H[k] < creekLevel[cn.i] - 0.05 && (code = SF.water);
       td < 7 ? (W[k * 4 + 2] = mud, W[k * 4 + 3] = ao, SC[k] = code) : (W[k * 4] = grass, W[k * 4 + 1] = rock, W[k * 4 + 2] = mud, W[k * 4 + 3] = ao, SC[k] = code);
+      CTRY.surface(X, k, x, z);
     }
     /* ---------- exact height on the triangulated grid (what the renderer draws) ---------- */
     let heightAt = (x, z) => {
@@ -403,6 +534,15 @@ class ChunkedI{
       return { y, n: [-gx / l, 1 / l, -gz / l], surf: SURF[code], code };
     };
     heightAt = (x, z) => inPatch(x, z) ? patchG(x, z).y : baseHeight(x, z), groundAt = (x, z) => inPatch(x, z) ? patchG(x, z) : baseGround(x, z);
+    /* the home lane's ruts: finer than the grid, worked out where the wheels are */
+    {
+      let hB = heightAt, gB = groundAt;
+      heightAt = (x, z) => {
+        let l = CTRY.laneGround(x, z);
+        return l ? l.y : hB(x, z);
+      }, groundAt = (x, z) => CTRY.laneGround(x, z) || gB(x, z);
+    }
+    X.heightAt = (x, z) => heightAt(x, z), X.groundAt = (x, z) => groundAt(x, z);
     /* ---------- geometry ---------- */
     let C2 = new ChunkedI(64), lights = [], colliders = [], R2 = rng(4242);
     {
@@ -585,9 +725,22 @@ class ChunkedI{
       if (mtn && mtn.d < 11 + r) return !1;
       let a = loop.nearest(x, z, 2), b = climb.nearest(x, z, 2), c = creek.nearest(x, z, 2);
       return !(a && a.d < 6 + r || b && b.d < 6 + r || c && c.d < 4);
+    }, trees = [], TNO = { m: 0, c: 0, first: null, tube() {
+      this.m[0] === 20 && !this.first && (this.first = this.c.slice());
+    }, blob() {
+      this.m[0] === 20 && !this.first && (this.first = this.c.slice());
+    } }, pushTree = (x, y, z, kind, sc, v, yaw, js, jy, tint) => {
+      /* one tree for the instanced draw: where, which shape, its size and leaf colour */
+      trees.push(x, y, z, yaw, sc * js, sc * jy, sc * js, v, s2l(tint[0]), s2l(tint[1]), s2l(tint[2]), 0);
+      collideCirc(x, z, 0.35 * sc + 0.15, y + ((kind ? 1.6 : 2.4) + (kind ? 2.2 : 3.4)) * sc);
+    }, addTree = (x, z, kind, sc, R) => {
+      let t = kind ? [52, 74, 46] : R() < 0.5 ? [70, 96, 44] : [88, 104, 50];
+      pushTree(x, heightAt(x, z), z, kind, sc, kind ? 3 + (R() * 2 | 0) : R() * 3 | 0, R() * 6.283, 0.9 + R() * 0.2, 0.92 + R() * 0.2, [t[0] + (R() - 0.5) * 18, t[1] + (R() - 0.5) * 18, t[2] + (R() - 0.5) * 12]);
     }, tree = (x, z, kind, sc) => {
-      /* a trunk and a crown of a few low, rounded clumps (or stacked cones for a pine) */
-      let y = heightAt(x, z), trunkH = (kind ? 1.6 : 2.4) * sc, crownR = (kind ? 2.2 : 3.4) * sc, B = C2.at(x, z), lean = [(R2() - 0.5) * 0.4, 0, (R2() - 0.5) * 0.4];
+      /* Dirt Sleeper's tree: every random number is drawn as before (so what comes after lands where it
+         did), but the tree itself is one of a few shapes drawn instanced, in its own leaf colour */
+      TNO.first = null;
+      let y = heightAt(x, z), trunkH = (kind ? 1.6 : 2.4) * sc, crownR = (kind ? 2.2 : 3.4) * sc, B = TNO, lean = [(R2() - 0.5) * 0.4, 0, (R2() - 0.5) * 0.4];
       B.m = [18, 1, 0, 0], B.c = [110, 90, 72, 255], B.tube([x, y - 0.3, z], [x + lean[0], y + trunkH + crownR * 0.5, z + lean[2]], 0.18 * sc + 0.08, 6, !1, 0.1 * sc + 0.04);
       let tint = kind ? [52, 74, 46] : R2() < 0.5 ? [70, 96, 44] : [88, 104, 50], top = [x + lean[0], y + trunkH, z + lean[2]];
       B.m = [20, kind, 0, 0];
@@ -600,7 +753,9 @@ class ChunkedI{
         B.c = [tint[0] + (R2() - 0.5) * 22 | 0, tint[1] + (R2() - 0.5) * 22 | 0, tint[2] + (R2() - 0.5) * 14 | 0, 255];
         B.blob([top[0] + Math.cos(a) * d, top[1] + crownR * (0.62 + (k ? R2() * 0.35 : 0)), top[2] + Math.sin(a) * d], r, r * 0.82, r, 8, 4);
       }
-      collideCirc(x, z, 0.35 * sc + 0.15, trunkH + crownR);
+      if (CTRY.blocked(x, z, 0.5)) return;
+      let h1 = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1, h2 = Math.abs(Math.sin(x * 39.346 + z * 11.135) * 24634.6345) % 1;
+      pushTree(x, y, z, kind, sc, kind ? 3 + (h1 * 2 | 0) : h1 * 3 | 0, h2 * 6.283, 1, 1, TNO.first || [70, 96, 44]);
     };
     let nTrees = 0;
     for (let tries = 0; tries < 5200 && nTrees < 520; tries++) {
@@ -616,6 +771,7 @@ class ChunkedI{
       let y = heightAt(x, z), B = C2.at(x, z);
       C2.mat(21).col(255, 255, 255, 255), B.m = [21, 0, 0, 0], B.c = [255, 255, 255, 255];
       let seg = 9, rings = 6, ix = [], sq = 0.55 + R2() * 0.35, rot = R2() * 6.28;
+      if (CTRY.blocked(x, z, r)) return;
       for (let j = 0; j <= rings; j++) {
         let ph = j / rings * Math.PI, row = [];
         for (let i = 0; i <= seg; i++) {
@@ -676,11 +832,14 @@ class ChunkedI{
         box([x, y + 1.6, z], [0.07, 1.6, 0.07], 18, [150, 120, 90, 255], 0), box([x - 0.32, y + 2.9, z], [0.32, 0.22, 0.02], 8, [255, 110, 26, 255], 0), collideCirc(x, z, 0.15, y + 3);
       }
     }
+    /* ---------- the country round the ranch ---------- */
+    Object.assign(X, { C2, box, collideBox, collideCirc, metal, ribbon, rock, addTree, rng });
+    CTRY.geometry(X);
     let geo = C2;
     return {
       geo, lights, steam: [], info: { xw: [] }, gridP: { x0: x0, z0: z0, size: D.size, cell: 8 },
       N: N2, cell, x0, z0, H, SC, W, NRM, heightAt, groundAt, strip, loop, climb, creek, creekLevel, gates, mud: M, hill: HL, kick, colliders: gridColliders(colliders), loopProf, climbProf, D,
-      burn: BU, mudTrack: mudT, rocks: RG
+      burn: BU, mudTrack: mudT, rocks: RG, trees: new Float32Array(trees), country: CTRY.info()
     };
   }
   /* a bucket grid over the colliders so the hull only checks what is near */
@@ -744,7 +903,7 @@ class ChunkedI{
     }
     /* trees, posts, walls and bales: push the hull back out */
     wall(P) {
-      let best = null, bound = 395;
+      let best = null, bound = 790;
       if (Math.abs(P[0]) > bound || Math.abs(P[2]) > bound) {
         let ax = Math.abs(P[0]) - bound, az = Math.abs(P[2]) - bound;
         return ax > az ? { pen: ax, n: [-Math.sign(P[0]), 0, 0] } : { pen: az, n: [0, 0, -Math.sign(P[2])] };
@@ -764,5 +923,5 @@ class ChunkedI{
       }
       return best;
     }
-  };return {SURF,SF,RANCH_DEF,buildRanch,RanchWorld,makePath,MeshBuilderI,rng};
+  };return {SURF,SF,RANCH_DEF,buildRanch,RanchWorld,makePath,MeshBuilderI,rng,s2l};
 })();

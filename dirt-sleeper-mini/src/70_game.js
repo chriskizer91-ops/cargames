@@ -31,6 +31,10 @@ function computePlaces(){
     ['climb','Hill climb',...at(W.climb,3),dirYaw(W.climb,3)],
     ['loop','Trail loop',...at(W.loop,6),dirYaw(W.loop,6)],
     ['mudtrack','Mud track',...at(W.mudTrack,8),dirYaw(W.mudTrack,8)]];
+  /* out in the country */
+  const C=W.country,T=C.track,wn=C.woods.nearest(-250,-520,2).s;
+  PLACES.push(['home','Home',-468,630,Math.atan2(16,10)],['lane','The lane',...at(C.lane,8),dirYaw(C.lane,8)],['store','Feed & Fuel',506,387,PI],
+    ['track','Race track',...at(T,T.len-40),dirYaw(T,T.len-40)],['county','County road',300,401,0],['pond','The pond',-60,-474,PI/2],['woods','Woods trail',...at(C.woods,wn),dirYaw(C.woods,wn)]);
 }
 /* the name of the place the truck is in */
 function placeName(x,z){
@@ -47,12 +51,28 @@ function placeName(x,z){
   if(near(W.creek,7))return 'The creek';
   if(near(W.loop,8))return 'Trail loop';
   if(Math.hypot(x-D.hill.x,z-D.hill.z)<70)return 'Red Hill';
-  return 'Open range';
+  /* out in the country */
+  const C=W.country,P=C.pond,pd=C.paddock;
+  if(x>-530&&x<-440&&z>610&&z<690)return 'Home';
+  if(near(C.lane,6))return 'The lane';
+  if(x>396&&x<566&&z>316&&z<420)return 'Feed & Fuel';
+  if(x>pd.x0-5&&x<pd.x1+5&&z>pd.z0-5&&z<pd.z1+3)return 'The paddock';
+  {const n=C.track.nearest(x,z,2);if(n&&n.d<30)return n.s<150||n.s>C.track.len-130?'Race track: the straight':'Race track';}
+  if(Math.hypot((x-P.x)/P.rx,(z-P.z)/P.rz)<1.5)return 'The pond';
+  if(near(C.woods,8)||near(C.conn,8))return 'Woods trail';
+  if(near(C.drive,7))return 'Ranch drive';
+  if(near(C.cr,9))return 'County road';
+  if(near(C.range,9))return z<-560?'Forest road':x<0?'West road':'Range road';
+  if(z<-430)return 'The woods';
+  if(Math.abs(x)>740||Math.abs(z)>740)return 'Edge of the map';
+  if(z>410)return 'The fields';
+  return Math.abs(x)<400&&Math.abs(z)<400?'Open range':'Open country';
 }
 function say(t,k=2.4,col){GAME.msgs.push({t,k,a:0,t0:APP.t,col});if(GAME.msgs.length>3)GAME.msgs.shift();}
 
 /* ---------- the truck on the ground ---------- */
 function placeTruck(x,z,yaw){
+  LAP.on=false;LAP.s=-1;
   const t=GAME.truck,W=RANCH.W,y=W.heightAt(x,z);
   t.place([x,y+.05,z],yaw);t.hint=-1;
   for(const w of t.wheels){w.comp=0;w.ang=0;w.w=0;}
@@ -95,7 +115,7 @@ function soundUpdate(c){
 
 /* ---------- keyboard, game controller and the touch pedals (Dirt Sleeper's input) ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lock:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lock:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -109,7 +129,7 @@ function pollInput(dt){
   INPUT.steer+=clamp(tgt-INPUT.steer,-rate*dt,rate*dt);
   INPUT.thr+=clamp((keyOn('thr')?1:0)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
   out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
-  for(const k of ['up','down','cam','reset','menu','low','lock','lights','ign','purge'])out[k]=keyHit(k);
+  for(const k of ['up','down','cam','reset','menu','low','lock','lights','ign','purge','map'])out[k]=keyHit(k);
   const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const p of pads)if(p&&p.connected){gp=p;break;}
   if(gp){const dz=(v,d=.08)=>Math.abs(v)<d?0:(v-Math.sign(v)*d)/(1-d),sx=dz(gp.axes[0]||0),rt=gp.buttons[7]?gp.buttons[7].value:0,lt=gp.buttons[6]?gp.buttons[6].value:0;
     if(Math.abs(sx)>0||rt>.02||lt>.02||gp.buttons.some(b=>b.pressed))INPUT.usingPad=true;
@@ -125,6 +145,9 @@ function syncTouch(){const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='d
   const e=GAME.truck.pt.e,c=GAME.truck.c.diff.can;$('tNos').hidden=!e.nosKw;$('tLow').hidden=!c.low;}
 function bindTouch(){
   if(matchMedia('(pointer: coarse)').matches)enableTouch();addEventListener('touchstart',enableTouch,{passive:true,once:true});
+  /* a tap on the corner map opens the big map; any tap closes it */
+  cv.addEventListener('pointerdown',e=>{if(GAME.state!=='drive')return;const hx=(e.clientX-RECT.x)/RECT.w*W,hy=(e.clientY-RECT.y)/RECT.h*H,[x0,y0,s]=miniRect();
+    if(APP.bigMap)APP.bigMap=false;else if(hx>=x0-2&&hx<=x0+s+2&&hy>=y0-2&&hy<=y0+s+2)APP.bigMap=true;});
   for(const b of document.querySelectorAll('#touch .tb')){const k=TOUCH_KEY[b.dataset.k];
     const on=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}INPUT.down.add(k);INPUT.pressed.add(k);b.classList.add('on');},off=e=>{e.preventDefault();INPUT.down.delete(k);b.classList.remove('on');};
     b.addEventListener('pointerdown',on);for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,off);b.addEventListener('contextmenu',e=>e.preventDefault());}
@@ -142,6 +165,7 @@ function step(dt){
     if(inp.low)say(setLow(t,!t.low)?(t.low?'Low range':'High range'):'No low range on this truck',1.4);
     if(inp.lock)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this truck',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
+    if(inp.map)APP.bigMap=!APP.bigMap;
     if(inp.ign)toggleEngine();
     if(inp.purge&&ENG.audio&&pt.e.nosKw)ENG.audio.port.post({t:'ev',ev:{type:'purge'}});
     drive=inp;
@@ -158,12 +182,30 @@ function step(dt){
     if(APP.level==='kids'&&GAME.flipT>1.2){resetTruck();say('Back on its wheels',1.6);}
     else if(GAME.flipT>2&&!GAME.flipSaid){GAME.flipSaid=true;say(GAME.touch?'Rolled it. Tap Reset to flip back over.':'Rolled it. Press R to flip back over.',4);}}
   else{GAME.flipT=0;GAME.flipSaid=false;}
-  /* mud builds up on the paint in the bog and on the mud track; the creek washes some off */
-  let mud=0,water=0;for(const w of t.wheels)if(w.contact){if(w.surf==='mud')mud++;else if(w.surf==='water')water++;}
+  /* mud builds up on the paint in the bog, on the mud track and in the lane's ruts; the creek and the pond wash some off */
+  let mud=0,water=0;for(const w of t.wheels)if(w.contact){if(w.surf==='mud')mud++;else if(w.surf==='ruts')mud+=.6;else if(w.surf==='water')water++;}
   GAME.dirt=clamp(GAME.dirt+dt*(mud*.025*Math.min(1,t.speed/3+.3)-water*.02*Math.min(1,t.speed/4)),0,1);
   fxEmit(dt,t);fxStep(dt);
   const ev=t.takeEvents();if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
+  lapStep(dt,t);
+}
+/* ---------- lap times on the road course: over the line, past two checkpoints, over the line again ---------- */
+const LAP={on:false,t0:0,cp:0,s:-1,best:{},offT:0};
+try{LAP.best=JSON.parse(store.get('dsmini-laps','{}'))||{};}catch(e){}
+const fmtLap=t=>Math.floor(t/60)+':'+(t%60).toFixed(2).padStart(5,'0');
+const lapKey=()=>BUILDS[APP.build].id+':'+APP.level;
+function lapStep(dt,t){
+  const T=RANCH.W.country.track,n=T.nearest(t.p[0],t.p[2],2);
+  if(!n||n.d>16){if(LAP.on&&(LAP.offT+=dt)>8){LAP.on=false;say('Lap abandoned',1.6);}LAP.s=-1;return;}
+  LAP.offT=0;const s=n.s,L=T.len,p=LAP.s;LAP.s=s;if(p<0)return;
+  if(p>L-60&&s<60){
+    if(LAP.on&&LAP.cp>=2){const lt=GAME.time-LAP.t0,k=lapKey(),b=LAP.best[k];
+      if(!b||lt<b){LAP.best[k]=lt;store.set('dsmini-laps',JSON.stringify(LAP.best));say('LAP '+fmtLap(lt)+(b?'  BEST':''),3.5);}else say('LAP '+fmtLap(lt),3);}
+    else if(!LAP.on)say('LAP STARTED',1.4);
+    LAP.on=true;LAP.t0=GAME.time;LAP.cp=0;}
+  else if(p<60&&s>L-60)LAP.on=false;
+  if(LAP.on){if(LAP.cp===0&&p<L/3&&s>=L/3)LAP.cp=1;else if(LAP.cp===1&&p<2*L/3&&s>=2*L/3)LAP.cp=2;}
 }
 
 /* ---------- the camera ---------- */

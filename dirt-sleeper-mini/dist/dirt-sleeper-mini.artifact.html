@@ -97,7 +97,7 @@ h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform
 </div>
 <div id="menu">
   <div class="mwrap">
-    <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free roam on the ranch</span><h1>Dirt Sleeper Mini</h1></div><span class="status" id="mStatus"></span></div>
+    <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free roam: the ranch and the country round it</span><h1>Dirt Sleeper Mini</h1></div><span class="status" id="mStatus"></span></div>
     <section><h2>Truck</h2><div class="cards" id="mTrucks"></div></section>
     <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
     <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
@@ -107,10 +107,10 @@ h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform
     </section>
     <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button></div>
     <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> handbrake · <kbd>Q</kbd> <kbd>E</kbd> shift ·
-      <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
+      <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
   </div>
 </div>
-<div id="loading">Building the ranch</div>
+<div id="loading">Building the ranch and the country round it</div>
 <div id="err">This needs WebGL2, which this browser has turned off.</div>
 <script>
 (()=>{
@@ -180,7 +180,7 @@ const fwdOf=a=>[Math.cos(a),0,-Math.sin(a)],leftOf=a=>[-Math.sin(a),0,-Math.cos(
    ===================================================================================== */
 const F5SRC=`& 01100 10010 10100 01000 10101 10010 01101|A 01110 10001 10001 11111 10001 10001 10001|B 11110 10001 10001 11110 10001 10001 11110|C 01110 10001 10000 10000 10000 10001 01110|D 11110 10001 10001 10001 10001 10001 11110|E 11111 10000 10000 11110 10000 10000 11111|F 11111 10000 10000 11110 10000 10000 10000|G 01110 10001 10000 10111 10001 10001 01111|H 10001 10001 10001 11111 10001 10001 10001|I 01110 00100 00100 00100 00100 00100 01110|J 00111 00010 00010 00010 00010 10010 01100|K 10001 10010 10100 11000 10100 10010 10001|L 10000 10000 10000 10000 10000 10000 11111|M 10001 11011 10101 10101 10001 10001 10001|N 10001 10001 11001 10101 10011 10001 10001|O 01110 10001 10001 10001 10001 10001 01110|P 11110 10001 10001 11110 10000 10000 10000|Q 01110 10001 10001 10001 10101 10010 01101|R 11110 10001 10001 11110 10100 10010 10001|S 01111 10000 10000 01110 00001 00001 11110|T 11111 00100 00100 00100 00100 00100 00100|U 10001 10001 10001 10001 10001 10001 01110|V 10001 10001 10001 10001 10001 01010 00100|W 10001 10001 10001 10101 10101 10101 01010|X 10001 10001 01010 00100 01010 10001 10001|Y 10001 10001 01010 00100 00100 00100 00100|Z 11111 00001 00010 00100 01000 10000 11111|0 01110 10001 10011 10101 11001 10001 01110|1 00100 01100 00100 00100 00100 00100 01110|2 01110 10001 00001 00010 00100 01000 11111|3 11111 00010 00100 00010 00001 10001 01110|4 00010 00110 01010 10010 11111 00010 00010|5 11111 10000 11110 00001 00001 10001 01110|6 00110 01000 10000 11110 10001 10001 01110|7 11111 00001 00010 00100 01000 01000 01000|8 01110 10001 10001 01110 10001 10001 01110|9 01110 10001 10001 01111 00001 00010 01100|! 00100 00100 00100 00100 00100 00000 00100|. 00000 00000 00000 00000 00000 01100 01100|, 00000 00000 00000 00000 01100 00100 01000|: 00000 01100 01100 00000 01100 01100 00000|- 00000 00000 00000 11111 00000 00000 00000|+ 00000 00100 00100 11111 00100 00100 00000|? 01110 10001 00001 00010 00100 00000 00100|' 00100 00100 01000 00000 00000 00000 00000|/ 00001 00001 00010 00100 01000 10000 10000|> 01000 00100 00010 00001 00010 00100 01000|< 00010 00100 01000 10000 01000 00100 00010|x 00000 00000 10001 01010 00100 01010 10001|$ 00100 01111 10100 01110 00101 11110 00100|% 11001 11010 00010 00100 01000 01011 10011|# 01010 01010 11111 01010 11111 01010 01010|( 00010 00100 01000 01000 01000 00100 00010|) 01000 00100 00010 00010 00010 00100 01000|= 00000 00000 11111 00000 11111 00000 00000|* 00000 00100 10101 01110 10101 00100 00000|^ 00100 01110 10101 00100 00100 00100 00100|~ 00100 00100 00100 00100 10101 01110 00100|[ 00010 00110 01110 11110 01110 00110 00010|] 01000 01100 01110 01111 01110 01100 01000|@ 00100 00100 11111 01110 01110 11011 10001|" 01010 01010 00000 00000 00000 00000 00000|_ 00000 00000 00000 00000 00000 00000 00000`;
 const G5={};for(const ln of F5SRC.split('|')){const p=ln.trim().split(/\s+/);G5[p[0]==='_'?' ':p[0]]=p.slice(1).map(r=>parseInt(r,2));}
-const F3SRC=`A 010 101 111 101 101|B 110 101 110 101 110|C 011 100 100 100 011|D 110 101 101 101 110|E 111 100 110 100 111|F 111 100 110 100 100|G 011 100 101 101 011|H 101 101 111 101 101|I 111 010 010 010 111|J 001 001 001 101 010|K 101 101 110 101 101|L 100 100 100 100 111|M 101 111 111 101 101|N 110 101 101 101 101|O 010 101 101 101 010|P 110 101 110 100 100|Q 010 101 101 110 011|R 110 101 110 101 101|S 011 100 010 001 110|T 111 010 010 010 010|U 101 101 101 101 111|V 101 101 101 101 010|W 101 101 111 111 101|X 101 101 010 101 101|Y 101 101 010 010 010|Z 111 001 010 100 111|0 111 101 101 101 111|1 010 110 010 010 111|2 111 001 111 100 111|3 111 001 011 001 111|4 101 101 111 001 001|5 111 100 111 001 111|6 111 100 111 101 111|7 111 001 001 010 010|8 111 101 111 101 111|9 111 101 111 001 111|x 000 101 010 101 000|+ 000 010 111 010 000|- 000 000 111 000 000|: 0 1 0 1 0|. 0 0 0 0 1|, 0 0 0 1 1|! 1 1 1 0 1|/ 001 001 010 100 100|' 1 1 0 0 0|> 100 010 001 010 100|< 001 010 100 010 001|? 111 001 011 000 010|( 01 10 10 10 01|) 10 01 01 01 10|% 101 001 010 100 101|# 101 111 101 111 101|$ 011 110 010 011 110|^ 010 111 010 010 010|~ 010 010 010 111 010|[ 001 011 111 011 001|] 100 110 111 110 100|= 000 111 000 111 000|* 010 111 010 101 000|@ 010 111 111 010 101|" 101 101 000 000 000`;
+const F3SRC=`A 010 101 111 101 101|B 110 101 110 101 110|C 011 100 100 100 011|D 110 101 101 101 110|E 111 100 110 100 111|F 111 100 110 100 100|G 011 100 101 101 011|H 101 101 111 101 101|I 111 010 010 010 111|J 001 001 001 101 010|K 101 101 110 101 101|L 100 100 100 100 111|M 101 111 111 101 101|N 110 101 101 101 101|O 010 101 101 101 010|P 110 101 110 100 100|Q 010 101 101 110 011|R 110 101 110 101 101|S 011 100 010 001 110|T 111 010 010 010 010|U 101 101 101 101 111|V 101 101 101 101 010|W 101 101 111 111 101|X 101 101 010 101 101|Y 101 101 010 010 010|Z 111 001 010 100 111|0 111 101 101 101 111|1 010 110 010 010 111|2 111 001 111 100 111|3 111 001 011 001 111|4 101 101 111 001 001|5 111 100 111 001 111|6 111 100 111 101 111|7 111 001 001 010 010|8 111 101 111 101 111|9 111 101 111 001 111|x 000 101 010 101 000|+ 000 010 111 010 000|- 000 000 111 000 000|: 0 1 0 1 0|. 0 0 0 0 1|, 0 0 0 1 1|! 1 1 1 0 1|/ 001 001 010 100 100|' 1 1 0 0 0|> 100 010 001 010 100|< 001 010 100 010 001|? 111 001 011 000 010|( 01 10 10 10 01|) 10 01 01 01 10|% 101 001 010 100 101|# 101 111 101 111 101|$ 011 110 010 011 110|^ 010 111 010 010 010|~ 010 010 010 111 010|[ 001 011 111 011 001|] 100 110 111 110 100|= 000 111 000 111 000|* 010 111 010 101 000|@ 010 111 111 010 101|" 101 101 000 000 000|& 010 101 010 101 011`;
 const G3={};for(const ln of F3SRC.split('|')){const p=ln.trim().split(/\s+/);G3[p[0]]=p.slice(1);}
 function tw5(s,sc=1){return s.length*6*sc-sc;}
 function tw3(s,sc=1){let w=0;for(const ch of s){const gg=G3[ch]||G3[ch.toUpperCase()];w+=((gg?gg[0].length:3)+1)*sc;}return Math.max(0,w-sc);}
@@ -553,9 +553,10 @@ uniform mat4 uM;uniform mat4 uVP;uniform float uInst;
 out vec3 vP;out vec3 vN;out vec4 vC;out float vMat;out vec3 vL;
 void main(){
   if(uInst>.5){
-    /* instanced bits (dust, mud, spray): position and yaw, size, colour and glow per instance */
+    /* instanced bits (dust, mud, spray, trees): position and yaw, size, colour and glow per instance;
+       a vertex whose colour alpha is 2 keeps its own colour (tree trunks) */
     float c=cos(iA.w),s=sin(iA.w);vec3 q=aPos*iB.xyz;vec3 w=iA.xyz+vec3(c*q.x+s*q.z,q.y,-s*q.x+c*q.z);
-    vN=normalize(vec3(c*aNrm.x+s*aNrm.z,aNrm.y,-s*aNrm.x+c*aNrm.z));vC=iC;vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);return;}
+    vN=normalize(vec3(c*aNrm.x+s*aNrm.z,aNrm.y,-s*aNrm.x+c*aNrm.z));vC=aCol.a>1.5?vec4(aCol.rgb,0.):vec4(iC.rgb*aCol.rgb,iC.a);vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);return;}
   vec3 w=(uM*vec4(aPos,1.)).xyz;vN=normalize(mat3(uM)*aNrm);vC=aCol;vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);}`;
 const FS_LIT=GLSL_COMMON+`
 in vec3 vP;in vec3 vN;in vec4 vC;in float vMat;in vec3 vL;out vec4 o;
@@ -700,6 +701,35 @@ void main(){
       vec3 Rw=reflect(-V,Nw);float Fw=.03+.97*pow(1.-max(dot(Nw,V),0.),5.);alb=vec3(.025,.03,.018);spec=1.;shin=200.;add+=env(Rw)*(.08+.9*Fw);
     }
     else if(m==52){alb=vec3(.7,.68,.63);}
+    else if(m==53){
+      /* gravel: a county road (two worn wheel tracks, loose stone down the middle and the edges, the
+         verge closing in) or a loose bed (the traps at the track, the yard at home); alpha = road half width */
+      float d=vC.g,ad=abs(d),hw=em,n1=vn(wp*1.7),n2=vn(wp*9.),n3=vn(wp*31.);
+      vec3 gc=mix(vec3(.16,.145,.12),vec3(.27,.245,.205),n1)*(.7+.42*n2)*(.78+.36*n3);
+      if(vC.b<.5){float tr=exp(-pow((ad-1.5)/.55,2.));gc=mix(gc,gc*vec3(.8,.78,.76),tr*.85);
+        float edge=smoothstep(hw-.6,hw+.3,ad+(n1-.5)*.9);gc=mix(gc,mix(dirtCol(wp),grassCol(wp),smoothstep(.25,.7,vn(wp*.35))),edge);}
+      alb=gc;spec=.05;shin=14.;em=0.;
+    }
+    else if(m==54){
+      /* asphalt: dark and fine grained, rubber down the middle, white edge lines, red and white kerbs where
+         it bends (blue slot), grass beyond, a chequered band at the line; alpha = half width */
+      float sx=vC.r,d=vC.g,ad=abs(d),hw=em,n2=vn(wp*7.),n3=vn(wp*41.);
+      vec3 ac=vec3(.05,.05,.056)*(.82+.28*n2)*(.88+.22*n3);ac*=1.-.2*exp(-pow(d/2.4,2.));
+      ac=mix(ac,vec3(.6,.6,.58),step(hw-.45,ad)*step(ad,hw-.2));
+      if(ad>hw){vec3 kc=mix(vec3(.46,.03,.025),vec3(.64,.63,.6),step(.5,fract(sx/1.6)));ac=mix(grassCol(wp),kc,smoothstep(.35,.45,vC.b)*step(ad,hw+1.5));}
+      else if(sx<1.6){ac=mix(vec3(.015),vec3(.64),mod(floor(sx/.8)+floor((d+hw)/.8),2.));}
+      alb=ac;spec=.2;shin=36.;add+=env(R)*F*.1;em=0.;
+    }
+    else if(m==55){
+      /* the home lane: mud in the ruts with water lying in the deep spots, grass on the crown and the verges (blue = rut depth) */
+      float sx=vC.r,d=vC.g,ad=abs(d),dep=vC.b,n2=vn(vec2(sx,d)*2.3),n3=vn(vec2(sx*.7,d*3.));
+      vec3 md=mix(vec3(.14,.09,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*vn(vec2(sx,d)*8.));
+      float rut=exp(-pow((ad-.82)/.3,2.)),gr=max(1.-smoothstep(.2,.48,ad+(n2-.5)*.22),smoothstep(1.55,2.25,ad+(n2-.5)*.5));
+      alb=mix(md,grassCol(wp)*.92,gr*(.7+.3*n2));spec=.22;shin=36.;
+      float pud=rut*smoothstep(.15,.19,dep+(n3-.5)*.05);
+      if(pud>0.){alb=mix(alb,vec3(.06,.045,.03),pud*.85);spec=mix(spec,1.,pud);shin=140.;add+=env(R)*F*pud*.75;}
+      em=0.;
+    }
     alb*=sh;add*=sh;
   }
   if(dirty){float k=mud(vL,h);if(k>0.){alb=mix(alb,mudCol(vL,h),k);spec*=1.-.8*k;add*=1.-.85*k;}}
@@ -3498,12 +3528,13 @@ const HCG0=.74;                 /* centre of gravity above the ground, factory t
 /* grip per tread and surface, rolling resistance, and how much more the bog drags each tread (Dirt Sleeper) */
 /* allseason: the factory P245/65R17s, which get an AWD truck down a muddy country lane every spring.
    perf: the sleeper's street-legal performance tyres, a touch better on hard ground, much the same off it. */
+/* gravel: the county roads (loose stone over a hard base); asphalt: the road course; ruts: the home lane's wet mud */
 const TREAD_MU={
-  allseason:{concrete:1,strip:.84,dirt:.77,trail:.75,grass:.68,rock:.82,mud:.47,water:.47},
-  perf:{concrete:1.08,strip:.92,dirt:.75,trail:.72,grass:.64,rock:.8,mud:.43,water:.45},
-  mud:{concrete:.9,strip:.88,dirt:.86,trail:.86,grass:.8,rock:.9,mud:.68,water:.56},
-  slick:{concrete:1.25,strip:.95,dirt:.62,trail:.52,grass:.45,rock:.62,mud:.24,water:.3}};
-const SURF_RR={concrete:.012,strip:.02,dirt:.024,trail:.028,grass:.034,rock:.022,mud:.14,water:.09},TREAD_RR_MUD={allseason:1,perf:1.05,mud:.8,slick:1.35};
+  allseason:{concrete:1,strip:.84,dirt:.77,trail:.75,grass:.68,rock:.82,mud:.47,water:.47,gravel:.72,asphalt:1.02,ruts:.52},
+  perf:{concrete:1.08,strip:.92,dirt:.75,trail:.72,grass:.64,rock:.8,mud:.43,water:.45,gravel:.7,asphalt:1.12,ruts:.47},
+  mud:{concrete:.9,strip:.88,dirt:.86,trail:.86,grass:.8,rock:.9,mud:.68,water:.56,gravel:.8,asphalt:.92,ruts:.7},
+  slick:{concrete:1.25,strip:.95,dirt:.62,trail:.52,grass:.45,rock:.62,mud:.24,water:.3,gravel:.5,asphalt:1.32,ruts:.27}};
+const SURF_RR={concrete:.012,strip:.02,dirt:.024,trail:.028,grass:.034,rock:.022,mud:.14,water:.09,gravel:.026,asphalt:.011,ruts:.065},TREAD_RR_MUD={allseason:1,perf:1.05,mud:.8,slick:1.35};
 /* the running gear per build: tyre, ride, shocks, lockers, low range */
 const RUNNING={
   stock:  {tyre:{tread:'allseason',kPk:.12,aPk:.15,slide:.82,slideW:.65,If:1},susp:'stock',  shocks:'stock', lockers:0,low:false,wm:1,   etc:1},
@@ -3517,14 +3548,14 @@ function buildChassis(b){
   const T=TUNE,rn=RUNNING[b.id]||RUNNING.stock,ty=rn.tyre,eg=ENGINE_OF[b.id]||ENGINE_OF.stock,sp=SUSP[rn.susp],R=b.look.tyre.R;
   const m=eg.mass*T.mass,hcg=cgOf(b)[1],kMul=sp.k*T.spring,arbMul=sp.arb*T.arb,kF=44e3*kMul*m/2150,kR=48e3*kMul*m/2150;
   const c0=Math.max(m*9.81*.5/2/kF,m*9.81*.5/2/kR),damp=(rn.shocks==='bypass'?1.35:1)*T.damp,cs=Math.sqrt(kF*m/4),rr=Object.assign({},SURF_RR);
-  rr.mud*=TREAD_RR_MUD[ty.tread];rr.water*=TREAD_RR_MUD[ty.tread];
+  rr.mud*=TREAD_RR_MUD[ty.tread];rr.water*=TREAD_RR_MUD[ty.tread];rr.ruts*=TREAD_RR_MUD[ty.tread];
   return {name:b.id,mass:m,wb:SUVB.wb,wf:1.44/2.89,hcg,trackF:b.look.track,trackR:b.look.track,R,Iw:1.6*Math.pow(R/.375,4)*ty.If*rn.wm,rcH:T.roll,
     susp:{rest:c0+sp.droop,travel:c0+sp.bump,kF,kR,cbF:cs*.55*damp,crF:cs*.85*damp,cbR:cs*.55*damp,crR:cs*.85*damp,arbF:24e3*arbMul,arbR:14e3*arbMul},
     body:{L:4.92,W:1.9,H:1.86},
     tyre:{mu:1,kPk:ty.kPk,aPk:ty.aPk,slide:Math.min(1,ty.slide*T.slide),slideW:ty.slideW,loadSens:.1},
     brake:7200*R/.375*m/2150*T.brake,bias:.62,hbTorque:3200*R/.375,lock:.6*T.lock,cdA:eg.cdA,clF:.03,clR:.05,
     diff:{pre:40,acc:.3,dec:.15,rLock:false,fLock:false,cLock:false,etc:rn.etc||0,can:{r:rn.lockers>=1,f:rn.lockers>=2,low:rn.low}},
-    surfMu:TREAD_MU[ty.tread],surfRR:rr,surfDrag:{mud:.06*TREAD_RR_MUD[ty.tread]**1.5,water:.018*TREAD_RR_MUD[ty.tread]},tread:ty.tread};
+    surfMu:TREAD_MU[ty.tread],surfRR:rr,surfDrag:{mud:.06*TREAD_RR_MUD[ty.tread]**1.5,water:.018*TREAD_RR_MUD[ty.tread],ruts:.012*TREAD_RR_MUD[ty.tread]},tread:ty.tread};
 }
 /* a build on four wheels: the Vehicle with this truck's tyres, surfaces, lockers, low range and a hull the shape of its body */
 function makeTruck(i,world){
@@ -3550,14 +3581,367 @@ class FlatWorld{
 }
 
 /* =====================================================================================
+   THE COUNTRY AROUND THE RANCH. The world is a mile square now, four times the ranch, with the
+   ranch in the middle as it was. Round it: gravel county roads with a crossroads and a feed and
+   fuel store, a home place at the end of a long rutted mud lane, woods with a trail and a pond
+   to the north, and a paved road course in the south-east. The ranch build calls in here at each
+   stage: the shape of the land, carving, the surface map, the ground in the lane's ruts, and the
+   geometry. x runs east, z runs south (north is up on the map), in metres.
+   ===================================================================================== */
+const CTRY=(()=>{
+'use strict';
+const sst=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
+const DEF={
+  /* the county road, east to west below the ranch, edge to edge */
+  cr:[[-796,392],[-640,394],[-480,401],[-330,404],[-180,397],[-36,402],[120,407],[300,401],[480,400],[640,395],[796,398]],
+  /* Range Road north from the track gate through the crossroads, the forest road west through the
+     woods, then West Road south to the county road: one long gravel road */
+  range:[[480,452],[480,400],[484,300],[476,160],[468,0],[480,-160],[498,-300],[488,-440],[470,-560],[430,-640],[340,-680],[220,-690],[80,-664],
+    [-60,-682],[-200,-700],[-340,-684],[-470,-650],[-545,-580],[-570,-460],[-562,-300],[-576,-120],[-562,80],[-568,250],[-565,392]],
+  /* the ranch drive: out of the yard, round the west end of the strip, down to the county road */
+  drive:[[-18,14],[-46,22],[-68,42],[-76,90],[-66,170],[-50,250],[-40,330],[-36,402]],
+  /* the home lane: two muddy ruts from the county road to the house */
+  lane:[[-331,411],[-334,450],[-352,505],[-388,548],[-428,584],[-458,614]],
+  home:{x:-480,z:645},
+  store:{x:480,z:400},
+  pond:{x:-60,z:-540,rx:60,rz:38,depth:.9},
+  woods:[[-60,-514],[-140,-504],[-250,-520],[-340,-570],[-400,-640],[-380,-720],[-290,-762],[-180,-750],[-80,-770],[40,-760],[130,-730],[150,-680],[130,-620],[80,-566],[20,-518],[-60,-514]],
+  conn:[[-46,-304],[-58,-352],[-82,-410],[-114,-462],[-140,-500]],
+  /* the road course, starting at the line on the main straight and running clockwise on the map */
+  track:[[420,505],[514,505],[588,506],[651,514],[698,546],[716,595],[709,644],[685,690],[640,715],[588,711],[551,685],[516,652],[469,634],[424,643],[387,674],[343,708],[279,722],[214,717],[166,694],[142,650],[145,599],[170,552],[212,514],[272,505],[346,505],[420,505]],
+  paddock:{x0:340,z0:452,x1:570,z1:495},
+  joins:[[-36,402],[-330,404],[480,400],[-565,400],[480,452]],
+  TRACK_HALF:6,ROAD_HALF:4.1,DRIVE_HALF:2.8
+};
+let S=null;
+/* a path's direction that wraps round a closed loop */
+function dirW(p,s){const L=p.len,w=v=>p.closed?((v%L)+L)%L:Math.max(0,Math.min(L,v)),a=p.at(w(s-2)),b=p.at(w(s+2)),l=Math.hypot(b[0]-a[0],b[1]-a[1])||1;return [(b[0]-a[0])/l,(b[1]-a[1])/l];}
+/* where (x, z) sits on a path: arc length and signed offset (positive to the right of travel) */
+function onPath(p,x,z,r=1){const n=p.nearest(x,z,r);if(!n)return null;const c=p.at(n.s),d=dirW(p,n.s);
+  return {s:n.s+(x-c[0])*d[0]+(z-c[1])*d[1],off:(x-c[0])*-d[1]+(z-c[1])*d[0],d:n.d,dx:d[0],dz:d[1]};}
+
+/* ---------- the land: softer hills in the far north, gentle rolls in the south, the rim moved out ---------- */
+const northEase=z=>1-.45*sst(-430,-600,z);
+function extra(x,z,NZ){const s=sst(330,470,z);return s>0?s*9*(NZ.fbm(x/210+4,z/210)-.5):0;}
+function rim(x,z,e,NZ){const w=sst(745,795,e);if(w<=0)return 0;
+  /* gaps where the county road runs off the edge of the map */
+  const gap=Math.exp(-Math.pow((z-396)/38,2))*sst(640,740,Math.abs(x));
+  return w*70*(.6+.4*NZ.fbm(x/80,z/80))*(1-gap);}
+function init(X){
+  const mp=X.makePath;S={X};
+  for(const k of ['cr','range','drive','lane','conn'])S[k]=mp(DEF[k],false);
+  S.woods=mp(DEF.woods,true);S.track=mp(DEF.track,true);
+  const nat=X.natural,avg=(cx,cz,r)=>{let s=0,n=0;for(let a=-r;a<=r;a+=r/4)for(let b=-r;b<=r;b+=r/4){s+=nat(cx+a,cz+b);n++;}return s/n;};
+  const P=DEF.pond,lo=[];for(let a=-1;a<=1.001;a+=.2)for(let b=-1;b<=1.001;b+=.2)if(a*a+b*b<=1)lo.push(nat(P.x+a*P.rx,P.z+b*P.rz));lo.sort((a,b)=>a-b);
+  S.Lw=lo[Math.floor(lo.length*.3)];S.Lh=avg(DEF.home.x,DEF.home.z,30);S.Ls=avg(DEF.store.x,DEF.store.z,50);
+  const pd=DEF.paddock;S.Lp=avg((pd.x0+pd.x1)/2,(pd.z0+pd.z1)/2+20,60);
+  /* kerbs where the track bends, gravel traps on the outside of the big corners (one value a metre) */
+  const T=S.track,n=Math.ceil(T.len)+1,k=new Float32Array(n);S.kerb=new Float32Array(n);S.trap=new Float32Array(n);S.trapSide=new Int8Array(n);
+  for(let i=0;i<n;i++){const a=dirW(T,i-7),b=dirW(T,i+7);k[i]=(a[0]*b[1]-a[1]*b[0])/14;}
+  const at=i=>k[((i%n)+n)%n];
+  for(let i=0;i<n;i++){let kb=0,tr=0,sd=0;
+    for(let j=-6;j<=6;j++)kb=Math.max(kb,sst(1/190,1/110,Math.abs(at(i+j))));
+    for(let j=-34;j<=6;j++){const v=sst(1/120,1/70,Math.abs(at(i+j)));if(v>tr){tr=v;sd=at(i+j)>0?-1:1;}}
+    S.kerb[i]=kb;S.trap[i]=tr;S.trapSide[i]=sd;}
+  S.keep=[[DEF.home.x-40,DEF.home.z-30,DEF.home.x+40,DEF.home.z+40],[400,312,560,392],[pd.x0-6,pd.z0-6,pd.x1+6,pd.z1+4],[372,512,478,536]];
+}
+const kerbAt=s=>S.kerb[Math.max(0,Math.min(S.kerb.length-1,Math.round(((s%S.track.len)+S.track.len)%S.track.len)))];
+const trapAt=s=>{const i=Math.max(0,Math.min(S.trap.length-1,Math.round(((s%S.track.len)+S.track.len)%S.track.len)));return [S.trap[i],S.trapSide[i]];};
+/* flatten the pond's hollow, the home yard, the crossroads and the paddock */
+const rdist=(x,z,x0,z0,x1,z1)=>Math.hypot(Math.max(x0-x,0,x-x1),Math.max(z0-z,0,z-z1));
+function shape(x,z,h){
+  const P=DEF.pond,dx=(x-P.x)/P.rx,dz=(z-P.z)/P.rz;let w;
+  if(dx>-3.4&&dx<3.4&&dz>-3.4&&dz<3.4){const r=Math.hypot(dx,dz);if(r<3.4){const bank=S.Lw+.12+1.1*sst(1,2.2,r),bed=r<1?S.Lw+.12-(P.depth+.12)*(1-sst(.3,1,r)):bank;w=1-sst(2.1,3.4,r);h=h*(1-w)+bed*w;}}
+  const hx=x-DEF.home.x,hz=z-DEF.home.z;if(hx>-75&&hx<75&&hz>-75&&hz<75){w=1-sst(40,75,Math.hypot(hx,hz));if(w>0)h=h*(1-w)+S.Lh*w;}
+  if(x>366&&x<596&&z>286&&z<450){w=1-sst(0,30,rdist(x,z,396,316,566,420));if(w>0)h=h*(1-w)+S.Ls*w;}
+  const pd=DEF.paddock;if(x>pd.x0-50&&x<pd.x1+50&&z>pd.z0-48&&z<580){w=1-sst(0,40,rdist(x,z,pd.x0-10,pd.z0-8,pd.x1+10,540));if(w>0)h=h*(1-w)+S.Lp*w;}
+  return h;
+}
+/* ---------- carving the roads, the track, the lane and the woods trails ---------- */
+function carve(X){
+  /* in order; each later one meets the roads before it at their level where they cross */
+  S.trackProf=X.carve(S.track,8,12,16,0,.06);
+  X.carve(S.cr,DEF.ROAD_HALF+.3,8,10,0,.09);
+  X.carve(S.range,DEF.ROAD_HALF+.3,8,10,0,.1,[S.cr]);
+  X.carve(S.drive,DEF.DRIVE_HALF+.3,6,6,0,.12,[S.cr]);
+  X.carve(S.lane,2.6,5,6,0,.14,[S.cr]);
+  X.carve(S.woods,3.2,6,5,0,.3,[S.range]);X.carve(S.conn,3.2,6,5,0,.3,[S.woods,X.loop]);
+  S.joins=DEF.joins.concat(...[S.range,S.drive,S.lane,S.woods,S.conn].map(p=>p.cross||[]));
+  /* ditches along the county road and Range Road, filled in at the junctions */
+  const {H,N2,cell,x0,z0}=X;
+  for(const [p,half] of [[S.cr,DEF.ROAD_HALF],[S.range,DEF.ROAD_HALF]]){const done=new Uint8Array(N2*N2),r=Math.ceil((half+5)/cell)+1;
+    for(let i=0;i<p.N;i+=2){const ci=Math.round((p.X[i]-x0)/cell),cj=Math.round((p.Z[i]-z0)/cell);
+      for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const ii=ci+di,jj=cj+dj;if(ii<0||jj<0||ii>=N2||jj>=N2)continue;const k=jj*N2+ii;if(done[k])continue;done[k]=1;
+        const x=x0+ii*cell,z=z0+jj*cell,n=p.nearest(x,z,1);if(!n)continue;let jd=1e9;for(const J of S.joins)jd=Math.min(jd,Math.hypot(x-J[0],z-J[1]));
+        const u=(n.d-half-.6)/3.6;if(u<=0||u>=1)continue;let kd=1e9;for(const R of S.keep)kd=Math.min(kd,rdist(x,z,R[0],R[1],R[2],R[3]));H[k]-=.5*Math.sin(u*Math.PI)*sst(14,24,jd)*sst(0,6,kd);}}}
+  /* the lane: keep the ground it was carved to, then tuck the coarse ground under the ruts */
+  S.H0=H.slice();
+  {const done=new Uint8Array(N2*N2),r=Math.ceil(4/cell)+1,p=S.lane;
+    for(let i=0;i<p.N;i+=2){const ci=Math.round((p.X[i]-x0)/cell),cj=Math.round((p.Z[i]-z0)/cell);
+      for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const ii=ci+di,jj=cj+dj;if(ii<0||jj<0||ii>=N2||jj>=N2)continue;const k=jj*N2+ii;if(done[k])continue;done[k]=1;
+        const n=p.nearest(x0+ii*cell,z0+jj*cell,1);if(n&&n.d<3.2)H[k]-=.26*(1-sst(1.7,3.2,n.d));}}}
+  S.N2=N2;S.cell=cell;S.x0=x0;S.z0=z0;
+}
+/* ---------- the surface map ---------- */
+let ROADS=null,NEED=null;
+/* which 16 m buckets have anything new near them (the rest only get the woods' floor) */
+function needMask(){NEED=new Uint8Array(65536);const B=16,P=DEF.pond,mark=(x,z,r)=>{const bx=Math.floor(x/B)+128,bz=Math.floor(z/B)+128;for(let a=-r;a<=r;a++)for(let b=-r;b<=r;b++){const u=bx+a,w=bz+b;if(u>=0&&w>=0&&u<256&&w<256)NEED[u*256+w]=1;}};
+  for(const [p,r] of [[S.cr,1],[S.range,1],[S.drive,1],[S.lane,1],[S.woods,1],[S.conn,1],[S.track,2]])for(let i=0;i<p.N;i+=4)mark(p.X[i],p.Z[i],r);
+  for(let x=P.x-P.rx*1.5;x<=P.x+P.rx*1.5;x+=B)for(let z=P.z-P.rz*1.5;z<=P.z+P.rz*1.5;z+=B)mark(x,z,1);
+  for(const R of [[490,334,556,392],[410,336,452,368],[DEF.paddock.x0,DEF.paddock.z0,DEF.paddock.x1,DEF.paddock.z1],[-482,620,-452,648]])for(let x=R[0];x<=R[2]+B;x+=B)for(let z=R[1];z<=R[3]+B;z+=B)mark(x,z,1);}
+function surface(X,k,x,z){
+  const W=X.W,SC=X.SC,SF=X.SF,H=X.H;
+  if(!NEED)needMask();
+  if(!NEED[(Math.floor(x/16)+128)*256+Math.floor(z/16)+128]){const wd=sst(-390,-470,z);if(wd>0){W[k*4]*=1-.35*wd;W[k*4+3]*=1-.16*wd;}return;}
+  let g=W[k*4],r=W[k*4+1],m=W[k*4+2],ao=W[k*4+3],code=SC[k];
+  if(!ROADS)ROADS=[[S.cr,DEF.ROAD_HALF],[S.range,DEF.ROAD_HALF],[S.drive,DEF.DRIVE_HALF]];
+  /* the woods: a shaded, leafy floor */
+  const wd=sst(-390,-470,z);if(wd>0){g*=1-.35*wd;ao*=1-.16*wd;}
+  /* the pond: water over the deep part, a muddy ring at the edge */
+  const P=DEF.pond,pr=Math.abs(x-P.x)<P.rx*1.4&&Math.abs(z-P.z)<P.rz*1.4?Math.hypot((x-P.x)/P.rx,(z-P.z)/P.rz):9;
+  if(pr<1.4){m=Math.max(m,(1-sst(.9,1.25,pr))*.75);g*=sst(.95,1.3,pr);r*=sst(1,1.3,pr);
+    if(pr<1.1&&H[k]<S.Lw-.04){code=SF.water;g=0;m=0;}else if(pr<1.15)code=SF.mud;}
+  /* gravel roads with grass verges */
+  for(let q=0;q<3;q++){const p=ROADS[q][0],half=ROADS[q][1],n=p.nearest(x,z,1);if(!n||n.d>half+5)continue;
+    g*=sst(half-.6,half+3,n.d);r*=sst(half,half+4,n.d);m*=sst(half,half+3,n.d);if(n.d<half+.2)code=SF.gravel;}
+  /* the lane */
+  {const n=S.lane.nearest(x,z,1);if(n&&n.d<5){g=Math.max(g,1-sst(1.6,4.5,n.d));r*=sst(2.5,5,n.d);m*=sst(2,4,n.d);if(n.d<1.9)code=SF.ruts;else if(n.d<2.6)code=SF.grass;}}
+  /* the woods trails, like the ranch's: a two-track with a grassy verge */
+  for(let q=0;q<2;q++){const n=(q?S.conn:S.woods).nearest(x,z,1);if(!n||n.d>7)continue;
+    g=Math.max(g,1-sst(3,7,n.d));r*=sst(3,7,n.d);if(n.d<2.6&&code!==SF.water)code=SF.trail;}
+  /* the track: mown grass round it, kerbs, gravel traps */
+  {const q=onPath(S.track,x,z,2);if(q&&q.d<34){
+    g=Math.max(g*.4,1-sst(10,30,q.d));r*=sst(12,30,q.d);m=0;
+    const ad=Math.abs(q.off),[tr,sd]=trapAt(q.s);
+    if(ad<DEF.TRACK_HALF+.3)code=SF.asphalt;
+    else if(ad<DEF.TRACK_HALF+1.6&&kerbAt(q.s)>.4)code=SF.asphalt;
+    else if(tr>.3&&Math.sign(q.off)===sd&&ad<DEF.TRACK_HALF+1.6+18)code=SF.gravel,g=0;
+    else code=SF.grass;}}
+  /* the store's apron, the paddock, the home yard's gravel */
+  const pd=DEF.paddock;
+  if(x>=490&&x<=556&&z>=334&&z<=392||x>=410&&x<=452&&z>=336&&z<=368||x>=pd.x0&&x<=pd.x1&&z>=pd.z0&&z<=pd.z1)code=SF.concrete,g=0,r=0,m=0;
+  if(x>=-482&&x<=-452&&z>=620&&z<=648)code=SF.gravel,g=0,r=0,m=0;
+  W[k*4]=g;W[k*4+1]=r;W[k*4+2]=m;W[k*4+3]=ao;SC[k]=code;
+}
+/* is (x, z) where something new now runs? (the ranch's own trees and rocks keep off it) */
+function blocked(x,z,r){
+  for(const [p,w] of [[S.drive,DEF.DRIVE_HALF+4],[S.conn,6],[S.cr,9],[S.range,9]]){const n=p.nearest(x,z,2);if(n&&n.d<w+r)return true;}
+  return false;
+}
+/* ---------- the lane's ruts: the ground under the wheels, finer than the 2 m grid ---------- */
+function rutDepth(s,side){const N=S.X.NZ;return .07+.15*sst(.3,.72,N.fbm(s/26+3.1,1.7))+.05*(N.fbm(s/8,side*4.3)-.5);}
+function rutP(off,s){const a=Math.abs(off);if(a>=2.5)return 0;const dep=rutDepth(s,off<0?-1:1);
+  let y=-dep*Math.exp(-Math.pow((a-.82)/.27,2))+.07*Math.exp(-Math.pow((a-1.42)/.3,2))+.03*(1-sst(.2,.5,a));return y*(1-sst(1.9,2.5,a))*sst(0,8,s)*sst(S.lane.len,S.lane.len-6,s);}
+function h0At(x,z){const {N2,cell,x0,z0}=S,H=S.H0;let fx=(x-x0)/cell,fz=(z-z0)/cell,i=Math.floor(fx),j=Math.floor(fz);fx-=i;fz-=j;
+  const h00=H[j*N2+i],h10=H[j*N2+i+1],h01=H[(j+1)*N2+i],h11=H[(j+1)*N2+i+1];
+  return fx>fz?[h00+(h10-h00)*fx+(h11-h10)*fz,(h10-h00)/cell,(h11-h10)/cell]:[h00+(h11-h01)*fx+(h01-h00)*fz,(h11-h01)/cell,(h01-h00)/cell];}
+function laneGround(x,z){
+  const q=onPath(S.lane,x,z,1);if(!q||q.d>2.5||q.s<-1||q.s>S.lane.len+1)return null;
+  const [b,gx0,gz0]=h0At(x,z),e=.04,p=rutP(q.off,q.s),dpo=(rutP(q.off+e,q.s)-rutP(q.off-e,q.s))/(2*e),dps=(rutP(q.off,q.s+.5)-rutP(q.off,q.s-.5));
+  const gx=gx0+dpo*-q.dz+dps*q.dx,gz=gz0+dpo*q.dx+dps*q.dz,l=Math.hypot(gx,1,gz),a=Math.abs(q.off);
+  const surf=a<.42||a>1.85?'grass':'ruts';
+  return {y:b+p,n:[-gx/l,1/l,-gz/l],surf,code:surf==='ruts'?S.X.SF.ruts:S.X.SF.grass,off:q.off,s:q.s};
+}
+/* ---------- geometry ---------- */
+function geometry(X){
+  const C2=X.C2,Rg=X.rng(777),box=X.box,cb=X.collideBox,cc=X.collideCirc,hAt=X.heightAt,gAt=X.groundAt;
+  /* a band draped along a path: offsets across, a channel function for the two spare colour slots */
+  const band=(path,offs,variant,s0,s1,step,lift,chan,yAt)=>{C2.mat(17,variant).col(255,255,255,255);let prev=null;const L=path.len;
+    for(let s=s0;s<=s1+1e-6;s+=step){const ss=Math.min(s,s1),sw=path.closed?((ss%L)+L)%L:Math.max(0,Math.min(L,ss)),c=path.at(sw),d=dirW(path,sw),row=[];
+      for(const off of offs){const x=c[0]-d[1]*off,z=c[1]+d[0]*off,g=yAt?yAt(x,z):gAt(x,z);row.push([x,g.y+lift,z,off,g.n]);}
+      if(prev){const B=C2.at(c[0],c[1]),vt=(p,s)=>{const i=B.v([p[0],p[1],p[2]],p[4],s,p[3]);if(chan){const v=chan(s,p[3]);B.C[i*4+2]=v[0];B.C[i*4+3]=v[1];}return i;};
+        const a=prev.map(p=>vt(p,prev.s)),b=row.map(p=>vt(p,ss));for(let k=0;k<offs.length-1;k++)B.quad(a[k],a[k+1],b[k+1],b[k]);}
+      prev=row;prev.s=ss;}};
+  const across=(h,n)=>{const o=[];for(let i=0;i<=n;i++)o.push(-h+2*h*i/n);return o;};
+  /* the gravel roads */
+  band(S.cr,across(DEF.ROAD_HALF+.4,8),3,0,S.cr.len,2,.035,()=>[0,DEF.ROAD_HALF]);
+  band(S.range,across(DEF.ROAD_HALF+.4,8),3,0,S.range.len,2,.035,()=>[0,DEF.ROAD_HALF]);
+  band(S.drive,across(DEF.DRIVE_HALF+.4,6),3,0,S.drive.len,1.5,.035,()=>[0,DEF.DRIVE_HALF]);
+  /* the woods trails, drawn like the ranch's */
+  X.ribbon(S.woods,3.4,1);X.ribbon(S.conn,3.4,1);
+  /* the lane: fine rows, every vertex on the rut profile */
+  {const offs=[-2.5,-2.1,-1.8,-1.55,-1.32,-1.12,-.96,-.82,-.68,-.52,-.32,0,.32,.52,.68,.82,.96,1.12,1.32,1.55,1.8,2.1,2.5];
+    band(S.lane,offs,5,0,S.lane.len,.6,.02,(s,off)=>[Math.abs(off)>2.2?0:rutDepth(s,off<0?-1:1),1],(x,z)=>laneGround(x,z)||gAt(x,z));}
+  /* the track: asphalt with kerbs, then the gravel traps */
+  {const T=S.track,hw=DEF.TRACK_HALF;
+    band(T,[-hw-1.6,-hw-.8,-hw,-hw*.66,-hw*.33,0,hw*.33,hw*.66,hw,hw+.8,hw+1.6],4,0,T.len,2,.04,s=>[kerbAt(s),hw]);
+    let s0=-1;for(let s=0;s<=T.len;s+=2){const [tr,sd]=trapAt(s),on=tr>.3;
+      if(on&&s0<0)s0=s;if((!on||s+2>T.len)&&s0>=0){const sdm=trapAt((s0+s)/2)[1],o=[hw+1.6,hw+5,hw+9,hw+13.5,hw+19.6].map(v=>v*sdm);if(sdm<0)o.reverse();
+        band(T,o,3,s0,s,2,.03,()=>[1,0]);tyreWall(T,s0,s,sdm*(hw+21));s0=-1;}}}
+  /* tyre stacks along a line beside the track */
+  function tyreWall(T,s0,s1,off){for(let s=s0;s<=s1;s+=.8){const c=T.at(((s%T.len)+T.len)%T.len),d=dirW(T,s),x=c[0]-d[1]*off,z=c[1]+d[0]*off,y=hAt(x,z);
+    C2.mat(8).col(22,22,24,255);C2.at(x,z).tube([x,y-.05,z],[x,y+.78,z],.36,9,!0);C2.mat(8).col(200,200,200,255);C2.at(x,z).tube([x,y+.52,z],[x,y+.56,z],.365,9,!1);cc(x,z,.42,y+.8);}}
+  /* the pond's water */
+  {const P=DEF.pond,B=C2.at(P.x,P.z),seg=36,rings=[0,.3,.6,.85,1,1.12,1.25];C2.mat(24).col(255,255,255,255);B.m=[24,0,0,0];B.c=[255,255,255,255];const ix=[];
+    for(const r of rings){const row=[];for(let i=0;i<=seg;i++){const a=i/seg*Math.PI*2,x=P.x+Math.cos(a)*P.rx*r,z=P.z+Math.sin(a)*P.rz*r;row.push(B.v([x,S.Lw,z],[0,1,0],x,z));}ix.push(row);}
+    for(let j=0;j<rings.length-1;j++)for(let i=0;i<seg;i++)B.quad(ix[j][i],ix[j][i+1],ix[j+1][i+1],ix[j+1][i]);}
+  /* flat things laid on the ground: a grid draped over it */
+  const pad=(x0,z0,x1,z1,mat,variant,chan,lift=.04,st=2)=>{C2.mat(mat,variant).col(255,255,255,255);
+    for(let z=z0;z<z1-1e-6;z+=st)for(let x=x0;x<x1-1e-6;x+=st){const B=C2.at(x+st/2,z+st/2),xa=x,xb=Math.min(x1,x+st),za=z,zb=Math.min(z1,z+st),
+      q=[[xa,za],[xb,za],[xb,zb],[xa,zb]].map(([px,pz])=>{const g=gAt(px,pz),i=B.v([px,g.y+lift,pz],g.n,px,pz);if(chan){const v=chan(px,pz);B.C[i*4]=v[0];B.C[i*4+1]=v[1];B.C[i*4+2]=v[2];B.C[i*4+3]=v[3];}return i;});
+      B.quad(q[0],q[3],q[2],q[1]);}};
+  /* glowing panels: a box whose faces light up */
+  const glow=(c,h,rgb,em)=>{const B=C2.at(c[0],c[2]),n0=B.nv;C2.mat(8).col(255,255,255,255);B.m=[8,0,0,0];B.box(c,[1,0,0],[0,1,0],[0,0,1],h,0);
+    for(let i=n0;i<B.nv;i++){B.M[i]=MAT.EMIT;B.C[i*4]=rgb[0];B.C[i*4+1]=rgb[1];B.C[i*4+2]=rgb[2];B.C[i*4+3]=em;}};
+  /* a building with a gable roof: walls as a box, gable ends, two roof slopes with an overhang */
+  const gable=(x0,z0,x1,z1,y0,wall,peak,alongX,wallMat,wallCol,roofCol,ov=.5)=>{
+    const cx=(x0+x1)/2,cz=(z0+z1)/2;box([cx,y0+wall/2,cz],[(x1-x0)/2,wall/2,(z1-z0)/2],wallMat,wallCol,0);
+    const B=C2.at(cx,cz),yt=y0+wall,yp=y0+peak;B.m=[wallMat,0,0,0];B.c=wallCol.slice();
+    if(alongX){for(const x of [x0,x1]){const n=[x<cx?-1:1,0,0];B.tri(B.v([x,yt,z0],n),B.v([x,yt,z1],n),B.v([x,yp,cz],n));}}
+    else{for(const z of [z0,z1]){const n=[0,0,z<cz?-1:1];B.tri(B.v([x0,yt,z],n),B.v([x1,yt,z],n),B.v([cx,yp,z],n));}}
+    B.m=[19,1,0,0];B.c=roofCol.concat(255).slice(0,4);
+    if(alongX){const hz=(z1-z0)/2,sl=(yp-yt)/hz;for(const sd of [-1,1]){const ze=cz+sd*(hz+ov),ye=yt-ov*sl,nn=X.norm([0,hz,sd*(yp-yt)]);
+        B.quadP([x0-ov,ye,ze],[x1+ov,ye,ze],[x1+ov,yp+.02,cz],[x0-ov,yp+.02,cz],[[0,0],[x1-x0,0],[x1-x0,hz],[0,hz]],nn);}}
+    else{const hx=(x1-x0)/2,sl=(yp-yt)/hx;for(const sd of [-1,1]){const xe=cx+sd*(hx+ov),ye=yt-ov*sl,nn=X.norm([sd*(yp-yt),hx,0]);
+        B.quadP([xe,ye,z0-ov],[xe,ye,z1+ov],[cx,yp+.02,z1+ov],[cx,yp+.02,z0-ov],[[0,0],[z1-z0,0],[z1-z0,hx],[0,hx]],nn);}}
+    cb(x0-.2,z0-.2,x1+.2,z1+.2,y0+peak);};
+  const post=(x,z,h,r,col,mat=8)=>{const y=hAt(x,z);C2.mat(mat).col(...col);C2.at(x,z).tube([x,y-.2,z],[x,y+h,z],r,6,!1);return y;};
+  /* ---------- the home place ---------- */
+  {const L=S.Lh;
+    /* the gravel by the house */
+    pad(-482,620,-452,648,17,3,(x,z)=>[x,z,1,0]);
+    /* the house: white siding, a grey roof, a porch across the front (north), a brick chimney */
+    gable(-499,646,-485,656,L,3.1,5.6,true,18,[236,232,222,255],[78,82,88]);
+    box([-492,L+.25,644.3],[7,.25,1.6],18,[150,130,110,255]);
+    for(const x of [-498.6,-494,-490,-485.4])box([x,L+1.6,643],[.09,1.35,.09],18,[240,238,232,255]);
+    {const B=C2.at(-492,644),sl=.35;B.m=[19,1,0,0];B.c=[78,82,88,255];B.quadP([-499.4,L+2.95,642.2],[-484.6,L+2.95,642.2],[-484.6,L+2.95+sl,646],[-499.4,L+2.95+sl,646],undefined,X.norm([0,3.8,-sl]));}
+    box([-487.5,L+5.2,651],[.45,1.2,.45],8,[130,58,44,255]);
+    for(const x of [-496.5,-489,-486.8])box([x,L+1.65,645.93],[.55,.65,.04],8,[26,32,40,255]);
+    box([-492,L+1.15,645.93],[.48,1.05,.05],8,[96,52,34,255]);
+    for(const x of [-497,-492,-487])box([x,L+1.65,656.07],[.55,.65,.04],8,[26,32,40,255]);
+    for(const z of [648.5,653.5])box([-499.07,L+1.65,z],[.04,.65,.55],8,[26,32,40,255]),box([-484.93,L+1.65,z],[.04,.65,.55],8,[26,32,40,255]);
+    glow([-492,L+2.7,645.4],[.12,.08,.12],[1,.85,.6],1.2);
+    /* the red barn, doors to the north */
+    gable(-472,652,-452,670,L,4.6,7.4,false,19,[150,42,32,255],[214,214,210]);
+    box([-462,L+2.1,651.9],[3.4,2.1,.06],19,[120,32,24,255]);box([-462,L+2.1,651.84],[3.5,.08,.04],8,[230,230,230,255]);
+    /* the utility trailer beside the barn: frame, deck, rails, wheels, tongue */
+    {const tx=-446,tz=640,y=hAt(tx,tz);box([tx,y+.62,tz],[1.05,.06,2.4],18,[150,120,90,255]);box([tx,y+.52,tz],[1.1,.05,2.5],8,[34,34,36,255]);
+      for(const sx of [-1.08,1.08])box([tx+sx,y+.95,tz],[.04,.3,2.45],8,[40,40,42,255]);box([tx,y+.95,tz+2.45],[1.08,.3,.04],8,[40,40,42,255]);
+      for(const sx of [-1.25,1.25]){C2.mat(8).col(20,20,22,255);C2.at(tx,tz).tube([tx+sx-.12,y+.33,tz+.3],[tx+sx+.12,y+.33,tz+.3],.33,10,!0);}
+      C2.mat(8).col(34,34,36,255);C2.at(tx,tz).tube([tx-.9,y+.5,tz-2.4],[tx,y+.45,tz-4],.05,5,!0);C2.at(tx,tz).tube([tx+.9,y+.5,tz-2.4],[tx,y+.45,tz-4],.05,5,!0);
+      cb(tx-1.3,tz-2.6,tx+1.3,tz+2.6,y+1.3);}
+    /* a swing set and a trampoline out back for the kids */
+    {const sx=-500,sz=668,y=hAt(sx,sz);C2.mat(8).col(60,110,170,255);const Bs=C2.at(sx,sz);
+      for(const dx of [-2.2,2.2]){Bs.tube([sx+dx,y+2.4,sz],[sx+dx-.5,y,sz-1.1],.05,5,!0);Bs.tube([sx+dx,y+2.4,sz],[sx+dx+.5,y,sz-1.1],.05,5,!0);
+        Bs.tube([sx+dx,y+2.4,sz],[sx+dx-.5,y,sz+1.1],.05,5,!0);Bs.tube([sx+dx,y+2.4,sz],[sx+dx+.5,y,sz+1.1],.05,5,!0);}
+      Bs.tube([sx-2.3,y+2.4,sz],[sx+2.3,y+2.4,sz],.06,6,!0);C2.mat(8).col(30,30,30,255);
+      for(const dx of [-1,1]){for(const e of [-.22,.22])Bs.tube([sx+dx+e,y+2.38,sz],[sx+dx+e,y+.5,sz],.012,3,!1);box([sx+dx,y+.48,sz],[.26,.03,.12],8,[200,40,40,255]);}
+      cb(sx-2.8,sz-1.3,sx+2.8,sz+1.3,y+2.5);
+      const tx=-486,tz=670,ty=hAt(tx,tz);C2.mat(8).col(20,20,22,255);C2.at(tx,tz).tube([tx,ty+.86,tz],[tx,ty+.9,tz],2,16,!0);
+      C2.mat(8).col(40,120,60,255);C2.at(tx,tz).tube([tx,ty+.9,tz],[tx,ty+.93,tz],2.25,16,!1);
+      for(let a=0;a<6;a++){const px=tx+Math.cos(a)*2.1,pz=tz+Math.sin(a)*2.1;C2.mat(8).col(70,70,74,255);C2.at(tx,tz).tube([px,ty,pz],[px,ty+.9,pz],.04,4,!1);}
+      cc(tx,tz,2.3,ty+1);}
+    /* the mailbox where the lane meets the road */
+    {const mx=-322,mz=410.5,y=post(mx,mz,1.05,.05,[120,96,72,255],18);C2.mat(8).col(40,40,44,255);C2.at(mx,mz).tube([mx,y+1.18,mz-.26],[mx,y+1.18,mz+.26],.13,8,!0);cc(mx,mz,.2,y+1.3);}
+    /* a pasture fence down the east side of the lane's last stretch, a gate post at the road */
+    for(let s=10;s<S.lane.len-8;s+=4.5){const c=S.lane.at(s),d=dirW(S.lane,s);for(const sd of [1]){const x=c[0]-d[1]*sd*5.2,z=c[1]+d[0]*sd*5.2;post(x,z,1.15,.07,[120,98,76,255],18);}}
+  }
+  /* ---------- the crossroads: Feed & Fuel ---------- */
+  {const L=S.Ls;
+    pad(490,334,556,392,4,0,null,.05);pad(410,336,452,368,4,0,null,.05);
+    /* the store, flat roofed, windows across its front */
+    box([535,L+2.4,344],[15,2.4,8],19,[208,196,170,255]);box([535,L+4.9,344],[15.3,.12,8.3],8,[120,40,34,255]);
+    for(let x=523;x<=547;x+=4)box([x,L+1.7,352.05],[1.5,1,.05],8,[22,30,38,255]);box([535,L+1.25,352.06],[1,1.25,.06],8,[40,50,60,255]);
+    box([535,L+3.25,353.3],[15,.08,1.3],19,[120,40,34,255]);cb(519.6,335.6,550.4,352.4,5);
+    box([524,L+.7,353.4],[1.4,.7,.5],8,[230,234,240,255]);box([546,L+.9,353.6],[.8,.9,.6],8,[150,150,156,255]);
+    /* the canopy and two pump islands */
+    box([508,L+5.4,371],[12.5,.35,11.5],8,[232,232,228,255]);box([508,L+5.02,371],[12.5,.04,11.5],8,[190,40,30,255]);
+    for(const x of [498,518])for(const z of [362,380]){box([x,L+2.5,z],[.22,2.5,.22],8,[220,220,220,255]);cc(x,z,.4,L+5.5);}
+    for(const [x,z] of [[503,366],[513,366],[503,376],[513,376]])glow([x,L+4.98,z],[1.6,.03,.5],[1,.96,.88],1.4);
+    for(const z of [367.5,374.5]){box([508,L+.12,z],[5.5,.12,.9],4,[255,255,255,255]);cb(502.4,z-1,513.6,z+1,1.8);
+      for(const x of [505,511]){box([x,L+.95,z],[.42,.85,.32],8,[176,34,26,255]);glow([x,L+1.35,z-.33],[.26,.18,.02],[.85,.9,1],.9);}}
+    /* the sign at the corner: a tall pole and a lit panel, no name on it */
+    {const y=post(494,389,8.2,.16,[200,200,204,255]);box([494,y+8.6,389],[1.8,1.1,.22],8,[200,36,28,255]);glow([494,y+8.4,388.76],[1.6,.6,.02],[1,.9,.55],1.1);glow([494,y+8.4,389.24],[1.6,.6,.02],[1,.9,.55],1.1);cc(494,389,.3,y+9.7);}
+    /* the feed barn across Range Road: green walls, open front, a loading dock, feed and hay */
+    {const x0=412,x1=448,z0=338,z1=360,wl=5.4;
+      X.metal(x0,z0,x1,z0,L,L+wl,[70,104,78]);X.metal(x0,z1,x0,z0,L,L+wl,[70,104,78]);X.metal(x1,z0,x1,z1,L,L+wl,[70,104,78]);
+      X.metal(x0,z1,424,z1,L,L+wl,[70,104,78]);X.metal(436,z1,x1,z1,L,L+wl,[70,104,78]);X.metal(424,z1,436,z1,L+4,L+wl,[70,104,78]);
+      cb(x0-.3,z0-.3,x1+.3,z0+.3,L+wl);cb(x0-.3,z0,x0+.3,z1,L+wl);cb(x1-.3,z0,x1+.3,z1,L+wl);cb(x0,z1-.3,424,z1+.3,L+wl);cb(436,z1-.3,x1,z1+.3,L+wl);
+      const B=C2.at(430,349),cz=(z0+z1)/2,rise=2.4;B.m=[19,0,0,0];B.c=[70,104,78,255];
+      for(const x of [x0,x1]){const n=[x<430?-1:1,0,0];B.tri(B.v([x,L+wl,z0],n),B.v([x,L+wl,z1],n),B.v([x,L+wl+rise,cz],n));}
+      B.m=[19,1,0,0];B.c=[226,226,222,255];for(const sd of [-1,1]){const ze=cz+sd*11.6,nn=X.norm([0,11,sd*rise]);B.quadP([x0-.5,L+wl-.13,ze],[x1+.5,L+wl-.13,ze],[x1+.5,L+wl+rise+.02,cz],[x0-.5,L+wl+rise+.02,cz],undefined,nn);}
+      box([430,L+.45,363.5],[16,.45,2.4],4,[255,255,255,255]);cb(414,361.1,446,365.9,L+.9);
+      for(const [px,pz] of [[416,364],[419,364],[441,364.5],[444,364]]){box([px,L+1.05,pz],[.6,.08,.5],18,[160,130,96,255]);for(let k=0;k<3;k++)box([px,L+1.3+k*.28,pz],[.55,.13,.45],8,[214,204,176,255]);}
+      for(const [hx,hz] of [[452,346],[452,349],[452,352]])for(let k=0;k<3;k++)box([hx,L+.4+k*.8,hz],[.6,.4,1.2],22,[255,255,255,255]);cb(451,344.6,453,353.4,L+2.4);
+      /* grain bins out back */
+      for(const bx of [420,438]){const bz=322,y=L;C2.mat(19,0).col(196,198,202,255);const Bb=C2.at(bx,bz);Bb.m=[19,0,0,0];Bb.c=[196,198,202,255];
+        Bb.tube([bx,y-.2,bz],[bx,y+7.2,bz],5,20,!1);Bb.tube([bx,y+7.2,bz],[bx,y+9.6,bz],5.15,20,!0,.35);cc(bx,bz,5.2,y+9.6);}}
+    /* stop signs on Range Road */
+    for(const [sx,sz,fz] of [[473,391,-1],[487,409,1]]){const y=post(sx,sz,2.1,.04,[190,190,194,255]);C2.mat(8).col(196,24,22,255);C2.at(sx,sz).tube([sx,y+2.3,sz-fz*.02],[sx,y+2.3,sz+fz*.02],.38,8,!0);}
+  }
+  /* ---------- the track: paddock, garages, pit wall, grandstand, the start gantry ---------- */
+  {const L=S.Lp,pd=DEF.paddock,T=S.track;
+    pad(pd.x0,pd.z0,pd.x1,pd.z1,4,0,null,.05,4);
+    box([410,L+2.4,466],[50,2.4,6],19,[196,198,204,255]);box([410,L+4.9,466],[50.4,.12,6.4],8,[60,62,66,255]);cb(359.6,459.6,460.4,472.4,5);
+    for(let x=365;x<460;x+=10)box([x,L+1.6,472.06],[3.6,1.6,.06],19,[150,154,160,255]);
+    for(let x=340;x<540;x+=4){box([x+2,L+.45,497],[2,.45,.28],8,[220,220,216,255]);}cb(340,496.6,540,497.4,L+.9);
+    for(let r=0;r<6;r++)box([425,L+.35+r*.5,518+r*1],[44,.07,.45],18,[176,150,116,255]),box([425,L+.18+r*.5,518.3+r*1],[44,.2+r*.25,.05],8,[110,110,116,255]);
+    box([425,L+4.6,524],[44.5,.1,4],8,[200,36,28,255]);for(const x of [381,425,469])box([x,L+2.3,526],[.12,2.3,.12],8,[90,90,96,255]);cb(380,517,470,527,L+3.2);
+    /* the gantry over the line */
+    {const c=T.at(0),d=dirW(T,0);for(const sd of [-1,1]){const x=c[0]-d[1]*sd*8.2,z=c[1]+d[0]*sd*8.2,y=post(x,z,6.6,.22,[60,62,66,255]);cc(x,z,.45,y+7);}
+      const y=hAt(c[0],c[1]);box([c[0],y+6.9,c[1]],[.35,.4,8.4],8,[40,40,44,255]);for(let k=-2;k<=2;k++)glow([c[0]-.37,y+6.9,c[1]+k*.8],[.04,.16,.16],[1,.08,.04],1.8);}
+    /* a flag pole at each end of the straight */
+    for(const x of [338,548]){const y=post(x,494,7,.06,[220,220,220,255]);box([x+.7,y+6.4,494],[.7,.45,.02],8,[30,30,30,255]);cc(x,494,.2,y+7);}
+  }
+  /* ---------- fences and a power line along the county road ---------- */
+  {const p=S.cr,nearJ=(x,z,r)=>S.joins.some(J=>Math.hypot(x-J[0],z-J[1])<r),inKeep=(x,z)=>S.keep.some(R=>x>R[0]-4&&x<R[2]+4&&z>R[1]-4&&z<R[3]+4);
+    for(const sd of [-1,1]){let prev=null;for(let s=6;s<p.len-6;s+=5){const c=p.at(s),d=dirW(p,s),x=c[0]-d[1]*sd*7.6,z=c[1]+d[0]*sd*7.6;
+      if(nearJ(x,z,16)||inKeep(x,z)){prev=null;continue;}const y=post(x,z,1.15,.06,[118,96,74,255],18);
+      if(prev){const B=C2.at(x,z);B.m=[8,0,0,0];B.c=[70,70,72,255];for(const h of [.62,1.02]){const a=[prev[0],prev[1]+h,prev[2]],b=[x,y+h,z];B.quadP(a,b,[b[0],b[1]+.025,b[2]],[a[0],a[1]+.025,a[2]],undefined,[-d[1],0,d[0]]);}}
+      prev=[x,y,z];}}
+    let pp=null;for(let s=20;s<p.len-10;s+=60){const c=p.at(s),d=dirW(p,s);let off=-11;const x=c[0]-d[1]*off,z=c[1]+d[0]*off;if(nearJ(x,z,14)||inKeep(x,z)){pp=null;continue;}
+      const y=post(x,z,9,.14,[92,74,58,255],18);box([x,y+8.6,z],[Math.abs(d[1])*1.2+.08,.08,Math.abs(d[0])*1.2+.08],18,[92,74,58,255]);cc(x,z,.3,y+9);
+      const tops=[-1.05,0,1.05].map(o=>[x-d[1]*o,y+8.75,z+d[0]*o]);
+      if(pp){const B=C2.at(x,z);B.m=[8,0,0,0];B.c=[30,30,32,255];for(let w=0;w<3;w++){const a=pp[w],b=tops[w];let q=a;for(let k=1;k<=6;k++){const t=k/6,m=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t-1.2*4*t*(1-t),a[2]+(b[2]-a[2])*t];B.tube(q,m,.022,3,!1);q=m;}}}
+      pp=tops;}}
+  /* ---------- trees: the woods, groves, windbreaks, shade round the house ---------- */
+  const CL=[[S.cr,10],[S.range,10],[S.drive,8],[S.lane,7],[S.woods,6.5],[S.conn,6.5]];
+  const clear=(x,z,r)=>{
+    if(Math.abs(x)>772||Math.abs(z)>772)return false;
+    /* the road course and its infield stay open */
+    if(x>84&&x<774&&z>470&&z<780)return false;
+    if(Math.hypot((x-DEF.pond.x)/DEF.pond.rx,(z-DEF.pond.z)/DEF.pond.rz)<1.3)return false;
+    for(const R of S.keep)if(x>R[0]-r&&x<R[2]+r&&z>R[1]-r&&z<R[3]+r)return false;
+    for(const [p,w] of CL){const n=p.nearest(x,z,1);if(n&&n.d<w+r)return false;}
+    return true;};
+  const old=(x,z)=>Math.abs(x)<372&&Math.abs(z)<372;
+  let nT=0;const N=X.NZ;
+  for(let t=0;t<60000&&nT<3800;t++){const x=(Rg()-.5)*1560,z=(Rg()-.5)*1560;if(old(x,z))continue;
+    const woods=sst(-380,-470,z),dens=N.fbm(x/70+31,z/70),grove=N.fbm(x/110-7,z/110+5);
+    let p=woods>0?woods*(dens>.36?.9:.25):grove>.6?.55*(x<-380?1:.6):.012;if(Rg()>p)continue;
+    const k=(Math.round((z-X.z0)/X.cell))*X.N2+Math.round((x-X.x0)/X.cell);if(X.W[k*4+1]>.6||X.SC[k]===X.SF.water)continue;
+    if(!clear(x,z,2))continue;
+    const pine=z<-470?Rg()<.55:x<-420?Rg()<.4:Rg()<.12;X.addTree(x,z,pine?1:0,.8+Rg()*.6,Rg);nT++;}
+  /* windbreak rows on the south side of the county road */
+  for(const [xa,xb] of [[-760,-380],[-280,-80],[40,400],[560,770]])for(let x=xa;x<xb;x+=7+Rg()*5){const c=S.cr.nearest(x,400,4),z=(c?S.cr.Z[c.i]:400)+19+Rg()*4;if(clear(x,z,1.5)&&Rg()<.8)X.addTree(x,z,Rg()<.3?1:0,.85+Rg()*.4,Rg);}
+  /* big shade trees round the house */
+  for(const [x,z,s] of [[-506,642,1.5],[-505,660,1.35],[-476,635,1.25],[-490,676,1.45],[-446,664,1.2],[-515,672,1.3]])X.addTree(x,z,0,s,Rg);
+  /* along the lane, a tree here and there */
+  for(let s=30;s<S.lane.len-20;s+=26+Rg()*20){const c=S.lane.at(s),d=dirW(S.lane,s),sd=Rg()<.5?-1:1,x=c[0]-d[1]*sd*(9+Rg()*6),z=c[1]+d[0]*sd*(9+Rg()*6);if(clear(x,z,1))X.addTree(x,z,0,1+Rg()*.4,Rg);}
+  /* ---------- boulders in the woods, round bales in the fields ---------- */
+  for(let t=0,n=0;t<4000&&n<70;t++){const x=(Rg()-.5)*1540,z=-470-Rg()*300;if(!clear(x,z,2.5))continue;X.rock(x,z,.5+Rg()*1.4);n++;}
+  const bale=(x,z,a)=>{const y=hAt(x,z),dx=Math.cos(a)*.75,dz=Math.sin(a)*.75;C2.mat(22).col(255,255,255,255);C2.at(x,z).tube([x-dx,y+.62,z-dz],[x+dx,y+.62,z+dz],.62,12,!0);cc(x,z,.9,y+1.25);};
+  for(const [x0b,z0b,nx,nz] of [[-720,470,6,4],[-260,660,5,3],[600,-300,4,5],[-700,-100,3,6]])for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){
+    const x=x0b+i*24+(Rg()-.5)*6,z=z0b+j*26+(Rg()-.5)*6;if(Rg()<.7&&clear(x,z,3))bale(x,z,Rg()*3);}
+}
+/* things the game needs to know about the new places */
+function info(){return {cr:S.cr,range:S.range,drive:S.drive,lane:S.lane,woods:S.woods,conn:S.conn,track:S.track,pond:Object.assign({level:S.Lw},DEF.pond),home:DEF.home,store:DEF.store,paddock:DEF.paddock,DEF};}
+return {DEF,init,northEase,extra,rim,shape,carve,surface,blocked,laneGround,geometry,info,onPath,dirW};
+})();
+
+/* =====================================================================================
    THE RANCH, from Dirt Sleeper. The land, the trails, the strip, the mud pit, the burnout pad,
    the creek and the rock garden are shaped by Dirt Sleeper's own code (unchanged apart from the
    trees), so they drive the same. What it draws goes through MeshBuilderI below instead of
    Shiftlight 3's builder: the same calls, but the vertices carry this renderer's material ids
    (see RMAT and 61_ranchmesh.js). The coarse ground is meshed separately, with levels of detail.
-   Speed-ups that change nothing: the noise hash uses Math.imul and the spatial hashes use number keys.
+   Speed-ups that change nothing: the noise hash uses Math.imul, the spatial hashes use number keys,
+   paths skip buckets with nothing near, and noise terms with no weight aren't worked out.
+   The world is a mile square now: the hills that closed the ranch in have moved out to the new edge,
+   and the country round it (59_country.js) hooks into the build at each stage through X. The
+   trees are drawn instanced in a few shapes; their positions and every random draw are unchanged.
    ===================================================================================== */
-const RMAT={TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,SKY:51,LINE:52};
+const RMAT={TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,SKY:51,LINE:52,GRAVEL:53,ASPHALT:54,RUTS:55};
 const Ranch=(()=>{
 'use strict';
 function rng(seed=1){let s=seed>>>0||1;return ()=>(s^=s<<13,s>>>=0,s^=s>>>17,s^=s<<5,s>>>=0,s/4294967296);}
@@ -3568,7 +3952,7 @@ const s2l=v=>Math.pow(v/255,2.2);
 function mapVertex(m,c,u,w,ao,out){
   const id=m[0],vr=m[1];
   if(id===16){out[4]=RMAT.TERRAIN;out[0]=c[0]/255;out[1]=c[1]/255;out[2]=c[2]/255;out[3]=ao===undefined?c[3]/255:ao;return;}
-  if(id===17){out[4]=vr===0?RMAT.STRIP:vr===2?RMAT.MUDTRACK:RMAT.TRAIL;out[0]=u;out[1]=w;out[2]=0;out[3]=1;return;}
+  if(id===17){out[4]=vr===0?RMAT.STRIP:vr===2?RMAT.MUDTRACK:vr===3?RMAT.GRAVEL:vr===4?RMAT.ASPHALT:vr===5?RMAT.RUTS:RMAT.TRAIL;out[0]=u;out[1]=w;out[2]=0;out[3]=1;return;}
   if(id===21){out[4]=RMAT.ROCK;out[0]=out[1]=out[2]=1;out[3]=ao===undefined?1:ao;return;}
   if(id===23){out[4]=MAT.EMIT;out[0]=1;out[1]=.62;out[2]=.12;out[3]=.6;return;}
   if(id===7){out[4]=MAT.EMIT;out[0]=1;out[1]=.95;out[2]=.85;out[3]=1.6;return;}
@@ -3623,10 +4007,10 @@ class ChunkedI{
   mat(id,p1=0,p2=0,p3=0){this.m=[id,p1|0,p2|0,p3|0];return this;}
   col(r,g,b,a=255){this.c=[r|0,g|0,b|0,a|0];return this;}
 }
-  var SURF = ["grass", "dirt", "strip", "trail", "rock", "mud", "concrete", "water"], SF = {};
+  var SURF = ["grass", "dirt", "strip", "trail", "rock", "mud", "concrete", "water", "gravel", "asphalt", "ruts"], SF = {};
   SURF.forEach((n, i) => SF[n] = i);
   var RANCH_DEF = {
-    size: 800, cell: 2,
+    size: 1600, cell: 2,
     pad: { x: 0, z: 0, w: 32, d: 24 },
     shop: { x0: -15, x1: 15, z0: -31, z1: -15, wall: 5.2, peak: 7.6, door: [-5.5, 5.5, 4.4] },
     strip: { x0: -46, start: 0, x1: 300, z: 40, half: 9, lanes: [36, 44], eighth: 201.168, quarter: 402.336 },
@@ -3687,9 +4071,26 @@ class ChunkedI{
       let k = (Math.floor(X[i] / B) + 2048) * 4096 + Math.floor(Z[i] / B) + 2048;
       hash.has(k) || hash.set(k, []), hash.get(k).push(i);
     }
-    let path = { closed, N: N2, ds, len: L, X, Z };
+    let path = { closed, N: N2, ds, len: L, X, Z }, dil = [], mask = (r) => {
+      /* which 16 m buckets have a point within r buckets: a 256 x 256 grid round the origin */
+      if (dil[r]) return dil[r];
+      let m = new Uint8Array(65536);
+      for (let k of hash.keys()) {
+        let BX = Math.floor(k / 4096) - 2048 + 128, BZ = k - Math.floor(k / 4096) * 4096 - 2048 + 128;
+        for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) {
+          let u = BX + a, w = BZ + b;
+          u >= 0 && w >= 0 && u < 256 && w < 256 && (m[u * 256 + w] = 1);
+        }
+      }
+      return dil[r] = m;
+    };
+    /* (a quick no where no bucket within reach holds a point: the same answers, much faster on the big map) */
     path.nearest = (x, z, r = 2) => {
       let bx = Math.floor(x / B), bz = Math.floor(z / B), best = 1e18, bi = -1;
+      if (r <= 2) {
+        let u = bx + 128, w = bz + 128;
+        if (u < 0 || w < 0 || u > 255 || w > 255 || !mask(r)[u * 256 + w]) return null;
+      }
       for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) {
         let l = hash.get((bx + a + 2048) * 4096 + bz + b + 2048);
         if (l) for (let q of l) {
@@ -3720,17 +4121,35 @@ class ChunkedI{
       return Math.hypot(dx, dz);
     }, natural = (x, z) => {
       let h = 2.6 * (NZ.fbm(x / 95, z / 95) - 0.5) + 0.9 * (NZ.fbm(x / 23, z / 23) - 0.5), north = sst(-50, -230, z), east = sst(150, 330, x), west = sst(-150, -330, x);
-      h += north * (30 * NZ.ridge(x / 170 + 3.1, z / 170) + 7 * (NZ.fbm(x / 38, z / 38) - 0.4));
-      h += west * 10 * NZ.ridge(x / 120, z / 120 + 7) + east * 6 * NZ.fbm(x / 60, z / 60);
+      /* (terms whose weight is zero are skipped: same land, less work) */
+      north > 0 && (h += north * (30 * NZ.ridge(x / 170 + 3.1, z / 170) + 7 * (NZ.fbm(x / 38, z / 38) - 0.4)) * CTRY.northEase(z));
+      h += (west > 0 ? west * 10 * NZ.ridge(x / 120, z / 120 + 7) : 0) + (east > 0 ? east * 6 * NZ.fbm(x / 60, z / 60) : 0);
       h += HL.amp * Math.exp(-((x - HL.x) ** 2 + (z - HL.z) ** 2) / (2 * HL.sig * HL.sig));
       h += 4 * Math.exp(-((x - 140) ** 2 + (z - 150) ** 2) / (2 * 60 * 60)) - 2 * Math.exp(-((x - 60) ** 2 + (z - 220) ** 2) / (2 * 70 * 70));
-      return h;
+      return h + CTRY.extra(x, z, NZ);
     }, rim = (x, z) => {
+      /* the hills that close the world in, out at its new edge now */
       let e = Math.max(Math.abs(x), Math.abs(z));
-      return sst(320, 400, e) * 70 * (0.6 + 0.4 * NZ.fbm(x / 80, z / 80));
+      return CTRY.rim(x, z, e, NZ);
     };
+    /* the country round the ranch hooks in through X */
+    let X = { D, NZ, N2, cell, x0, z0, H, W, SC, SF, SURF, sst, rectDist, natural, makePath, rng, norm, loop };
+    CTRY.init(X);
+    /* out past the old ranch the land is worked out every 4 m and filled in between (same hills, a third of the work) */
+    let N4 = (N2 - 1) / 2 + 1, L4 = new Float32Array(N4 * N4), inner = (x, z) => Math.abs(x) <= 424 && Math.abs(z) <= 424;
+    for (let j = 0; j < N4; j++) for (let i = 0; i < N4; i++) {
+      let x = x0 + i * 4, z = z0 + j * 4;
+      inner(x, z) && inner(x + 4, z + 4) && inner(x - 4, z - 4) || (L4[j * N4 + i] = natural(x, z));
+    }
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
-      let x = x0 + i * cell, z = z0 + j * cell, h = natural(x, z);
+      let x = x0 + i * cell, z = z0 + j * cell, h;
+      if (inner(x, z)) h = natural(x, z);
+      else {
+        let a = i >> 1, b = j >> 1, fa = (i & 1) * 0.5, fb = (j & 1) * 0.5, a1 = Math.min(N4 - 1, a + 1), b1 = Math.min(N4 - 1, b + 1);
+        h = (L4[b * N4 + a] * (1 - fa) + L4[b * N4 + a1] * fa) * (1 - fb) + (L4[b1 * N4 + a] * (1 - fa) + L4[b1 * N4 + a1] * fa) * fb;
+      }
+      /* (the flats below change nothing outside this box, so they are only worked out inside it) */
+      if (x > -160 && x < 370 && z > -80 && z < 95) {
       /* the pad and the strip are graded flat */
       let dPad = rectDist(x, z, D.pad.x - D.pad.w / 2 - 4, D.pad.z - 34, D.pad.x + D.pad.w / 2 + 4, D.pad.z + D.pad.d / 2 + 4), dStrip = rectDist(x, z, St.x0 - 20, St.z - St.half - 6, St.x1 + 30, St.z + St.half + 6), flat = Math.max(1 - sst(0, 40, dPad), 1 - sst(0, 36, dStrip));
       h = h * (1 - flat) + 0 * flat;
@@ -3743,11 +4162,15 @@ class ChunkedI{
       /* the mud pit: a soft basin */
       let mr = Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz);
       h -= M.depth * (1 - sst(0.55, 1.15, mr));
+      }
+      h = CTRY.shape(x, z, h);
       H[j * N2 + i] = h + rim(x, z);
     }
     let hIdx = (x, z) => [Math.max(0, Math.min(N2 - 1, Math.round((x - x0) / cell))), Math.max(0, Math.min(N2 - 1, Math.round((z - z0) / cell)))];
     /* ---------- carve the trails: smooth the ground along each path ---------- */
-    let carve = (path, halfW, blend, smoothS, cut = 0, maxG = 0) => {
+    let cStamp = new Int32Array(N2 * N2), cNI = new Int32Array(N2 * N2), cND = new Float64Array(N2 * N2), cRun = 0, carve = (path, halfW, blend, smoothS, cut = 0, maxG = 0) => {
+      /* (each cell's nearest path point is worked out once and kept for this carve: the same answers, sooner) */
+      cRun++;
       let prof = new Float64Array(path.N);
       for (let i = 0; i < path.N; i++) {
         let [ix, iz] = hIdx(path.X[i], path.Z[i]);
@@ -3775,10 +4198,14 @@ class ChunkedI{
         for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
           let ii = ci + di, jj = cj + dj;
           if (ii < 0 || jj < 0 || ii >= N2 || jj >= N2) continue;
-          let x = x0 + ii * cell, z = z0 + jj * cell, near = path.nearest(x, z, 1);
-          if (!near || near.i !== i) continue;
-          let w = 1 - sst(halfW, halfW + blend, near.d), k = jj * N2 + ii;
-          H[k] = H[k] * (1 - w) + (prof[near.i] - cut * (1 - sst(0, halfW, near.d))) * w;
+          let k = jj * N2 + ii;
+          if (cStamp[k] !== cRun) {
+            let near = path.nearest(x0 + ii * cell, z0 + jj * cell, 1);
+            cStamp[k] = cRun, cNI[k] = near ? near.i : -1, cND[k] = near ? near.d : 0;
+          }
+          if (cNI[k] !== i) continue;
+          let w = 1 - sst(halfW, halfW + blend, cND[k]);
+          H[k] = H[k] * (1 - w) + (prof[i] - cut * (1 - sst(0, halfW, cND[k]))) * w;
         }
       }
       return prof;
@@ -3843,6 +4270,89 @@ class ChunkedI{
         H[jj * N2 + ii] += rise;
       }
     }
+    /* the country's roads, track, lane and trails, carved the same way but visiting each cell once */
+    let stamp = new Int32Array(N2 * N2), stampN = 0, carveF = (path, halfW, blend, smoothS, cut = 0, maxG = 0, pins = null) => {
+      stampN++;
+      let prof = new Float64Array(path.N);
+      for (let i = 0; i < path.N; i++) {
+        let [ix, iz] = hIdx(path.X[i], path.Z[i]);
+        prof[i] = H[iz * N2 + ix];
+      }
+      for (let pass = 0; pass < 3; pass++) {
+        let o = new Float64Array(path.N);
+        for (let i = 0; i < path.N; i++) {
+          let s = 0, c = 0;
+          for (let k = -smoothS; k <= smoothS; k++) {
+            let q = path.closed ? (i + k + path.N) % path.N : Math.max(0, Math.min(path.N - 1, i + k));
+            s += prof[q], c++;
+          }
+          o[i] = s / c;
+        }
+        prof = o;
+      }
+      if (maxG > 0) {
+        /* limit the grade both ways and take the middle, so climbs and drops are cut alike */
+        let f = prof.slice(), b = prof.slice(), g = maxG * path.ds;
+        for (let i = 1; i < path.N; i++) f[i] = Math.max(f[i - 1] - g, Math.min(f[i - 1] + g, f[i]));
+        for (let i = path.N - 2; i >= 0; i--) b[i] = Math.max(b[i + 1] - g, Math.min(b[i + 1] + g, b[i]));
+        for (let i = 0; i < path.N; i++) prof[i] = (f[i] + b[i]) / 2;
+      }
+      /* where it crosses or meets a road already cut, meet that road at its own level */
+      if (pins) for (let other of pins) {
+        let best = -1, bd = 1e9;
+        for (let i = 0; i <= path.N; i++) {
+          let n = i < path.N ? other.nearest(path.X[i], path.Z[i], 1) : null, d = n ? n.d : 1e9;
+          if ((d < 2.5 || (i === 0 || i === path.N - 1) && d < 9) && d < bd) bd = d, best = i;
+          else if (best >= 0 && (d > 6 || i === path.N)) {
+            /* level across the other road (8 m either side), easing back to its own line over the next 40 m */
+            let [ix, iz] = hIdx(path.X[best], path.Z[best]), lv = H[iz * N2 + ix];
+            for (let j = Math.max(0, best - 48); j <= Math.min(path.N - 1, best + 48); j++) {
+              let w = 1 - sst(8, 48, Math.abs(j - best));
+              prof[j] = prof[j] * (1 - w) + lv * w;
+            }
+            /* and never steeper than the path allows on the way out of the crossing */
+            if (maxG > 0) {
+              let g = maxG * path.ds;
+              for (let j = best + 1; j < path.N; j++) {
+                let c = Math.max(prof[j - 1] - g, Math.min(prof[j - 1] + g, prof[j]));
+                if (c === prof[j] && j > best + 48) break;
+                prof[j] = c;
+              }
+              for (let j = best - 1; j >= 0; j--) {
+                let c = Math.max(prof[j + 1] - g, Math.min(prof[j + 1] + g, prof[j]));
+                if (c === prof[j] && j < best - 48) break;
+                prof[j] = c;
+              }
+            }
+            path.cross || (path.cross = []), path.cross.push([path.X[best], path.Z[best]]), best = -1, bd = 1e9;
+          }
+        }
+      }
+      let r = Math.ceil((halfW + blend) / cell) + 1, rr = halfW + blend > 15 ? 2 : 1;
+      for (let i = 0; i < path.N; i += 2) {
+        let [ci, cj] = hIdx(path.X[i], path.Z[i]);
+        for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+          let ii = ci + di, jj = cj + dj;
+          if (ii < 0 || jj < 0 || ii >= N2 || jj >= N2) continue;
+          let k = jj * N2 + ii;
+          if (stamp[k] === stampN) continue;
+          stamp[k] = stampN;
+          let near = path.nearest(x0 + ii * cell, z0 + jj * cell, rr);
+          if (!near) continue;
+          let w = 1 - sst(halfW, halfW + blend, near.d);
+          /* an open path stops at its ends: nothing past them is cut (a road meets another, it doesn't cap it) */
+          if (!path.closed && (near.i === 0 || near.i === path.N - 1)) {
+            let e = near.i, d2 = path.dir(e ? path.len : 0), out = ((x0 + ii * cell) - path.X[e]) * d2[0] + ((z0 + jj * cell) - path.Z[e]) * d2[1];
+            w *= 1 - sst(0, 3, e ? out : -out);
+          }
+          if (w <= 0) continue;
+          H[k] = H[k] * (1 - w) + (prof[near.i] - cut * (1 - sst(0, halfW, near.d))) * w;
+        }
+      }
+      return prof;
+    };
+    X.carve = carveF;
+    CTRY.carve(X);
     /* ---------- vertex normals and the surface map ---------- */
     let hAt = (i, j) => H[Math.max(0, Math.min(N2 - 1, j)) * N2 + Math.max(0, Math.min(N2 - 1, i))], NRM = new Float32Array(N2 * N2 * 3);
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
@@ -3857,11 +4367,11 @@ class ChunkedI{
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
       let x = x0 + i * cell, z = z0 + j * cell, k = j * N2 + i, ny = NRM[k * 3 + 1], slope = Math.sqrt(Math.max(0, 1 - ny * ny)) / Math.max(ny, 0.05), n1 = NZ.fbm(x / 21 + 5, z / 21), n2 = NZ.fbm(x / 7, z / 7 + 3);
       let grass = sst(0.32, 0.6, n1 + 0.18), rock = sst(0.6, 1.05, slope + (n2 - 0.5) * 0.35), mud = 0, ao = 1, code = SF.grass;
-      /* worn dirt around the pad, the strip and the pit */
-      let dPad = rectDist(x, z, -D.pad.w / 2, -D.pad.d / 2 - 18, D.pad.w / 2, D.pad.d / 2), dStrip = rectDist(x, z, St.x0 - 6, St.z - St.half, St.x1 + 10, St.z + St.half);
-      grass *= sst(4, 16, dPad) * sst(2, 10, dStrip) * sst(2, 10, rectDist(x, z, -30, 6, 10, St.z));
-      let mr = Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz);
-      mud = 1 - sst(0.75, 1.05, mr + (n2 - 0.5) * 0.25), grass *= sst(0.9, 1.4, mr);
+      /* worn dirt around the pad, the strip and the pit (only near them: elsewhere these change nothing) */
+      let core = x > -190 && x < 360 && z > -60 && z < 100, dPad = core ? rectDist(x, z, -D.pad.w / 2, -D.pad.d / 2 - 18, D.pad.w / 2, D.pad.d / 2) : 1e9, dStrip = core ? rectDist(x, z, St.x0 - 6, St.z - St.half, St.x1 + 10, St.z + St.half) : 1e9;
+      core && (grass *= sst(4, 16, dPad) * sst(2, 10, dStrip) * sst(2, 10, rectDist(x, z, -30, 6, 10, St.z)));
+      let mr = core ? Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz) : 1e9;
+      core && (mud = 1 - sst(0.75, 1.05, mr + (n2 - 0.5) * 0.25), grass *= sst(0.9, 1.4, mr));
       let cn = creek.nearest(x, z, 1);
       cn && cn.d < 9 && (grass *= sst(3, 9, cn.d), rock = Math.max(rock * 0.6, (1 - sst(1, 6, cn.d)) * 0.55));
       /* AO: a little darker in the hollows */
@@ -3872,7 +4382,7 @@ class ChunkedI{
       dStrip <= 0.5 && (code = SF.strip);
       dPad <= 0 && Math.abs(x) < D.pad.w / 2 && z > -D.pad.d / 2 && (code = SF.concrete);
       /* the burnout pad: bare dirt */
-      let dB = rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2);
+      let dB = core ? rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2) : 1e9;
       dB < 6 && (grass *= sst(1, 6, dB), rock *= sst(1, 6, dB)), dB <= 0 && (code = SF.dirt, mud = 0);
       /* the mud track */
       let mt = mudT.nearest(x, z, 1);
@@ -3883,6 +4393,7 @@ class ChunkedI{
       td < 7 && (W[k * 4] = Math.max(grass, 1 - sst(3, 7, td)), W[k * 4 + 1] = rock * sst(3, 7, td), grass = W[k * 4]);
       cn && cn.d < 2.6 && H[k] < creekLevel[cn.i] - 0.05 && (code = SF.water);
       td < 7 ? (W[k * 4 + 2] = mud, W[k * 4 + 3] = ao, SC[k] = code) : (W[k * 4] = grass, W[k * 4 + 1] = rock, W[k * 4 + 2] = mud, W[k * 4 + 3] = ao, SC[k] = code);
+      CTRY.surface(X, k, x, z);
     }
     /* ---------- exact height on the triangulated grid (what the renderer draws) ---------- */
     let heightAt = (x, z) => {
@@ -3954,6 +4465,15 @@ class ChunkedI{
       return { y, n: [-gx / l, 1 / l, -gz / l], surf: SURF[code], code };
     };
     heightAt = (x, z) => inPatch(x, z) ? patchG(x, z).y : baseHeight(x, z), groundAt = (x, z) => inPatch(x, z) ? patchG(x, z) : baseGround(x, z);
+    /* the home lane's ruts: finer than the grid, worked out where the wheels are */
+    {
+      let hB = heightAt, gB = groundAt;
+      heightAt = (x, z) => {
+        let l = CTRY.laneGround(x, z);
+        return l ? l.y : hB(x, z);
+      }, groundAt = (x, z) => CTRY.laneGround(x, z) || gB(x, z);
+    }
+    X.heightAt = (x, z) => heightAt(x, z), X.groundAt = (x, z) => groundAt(x, z);
     /* ---------- geometry ---------- */
     let C2 = new ChunkedI(64), lights = [], colliders = [], R2 = rng(4242);
     {
@@ -4136,9 +4656,22 @@ class ChunkedI{
       if (mtn && mtn.d < 11 + r) return !1;
       let a = loop.nearest(x, z, 2), b = climb.nearest(x, z, 2), c = creek.nearest(x, z, 2);
       return !(a && a.d < 6 + r || b && b.d < 6 + r || c && c.d < 4);
+    }, trees = [], TNO = { m: 0, c: 0, first: null, tube() {
+      this.m[0] === 20 && !this.first && (this.first = this.c.slice());
+    }, blob() {
+      this.m[0] === 20 && !this.first && (this.first = this.c.slice());
+    } }, pushTree = (x, y, z, kind, sc, v, yaw, js, jy, tint) => {
+      /* one tree for the instanced draw: where, which shape, its size and leaf colour */
+      trees.push(x, y, z, yaw, sc * js, sc * jy, sc * js, v, s2l(tint[0]), s2l(tint[1]), s2l(tint[2]), 0);
+      collideCirc(x, z, 0.35 * sc + 0.15, y + ((kind ? 1.6 : 2.4) + (kind ? 2.2 : 3.4)) * sc);
+    }, addTree = (x, z, kind, sc, R) => {
+      let t = kind ? [52, 74, 46] : R() < 0.5 ? [70, 96, 44] : [88, 104, 50];
+      pushTree(x, heightAt(x, z), z, kind, sc, kind ? 3 + (R() * 2 | 0) : R() * 3 | 0, R() * 6.283, 0.9 + R() * 0.2, 0.92 + R() * 0.2, [t[0] + (R() - 0.5) * 18, t[1] + (R() - 0.5) * 18, t[2] + (R() - 0.5) * 12]);
     }, tree = (x, z, kind, sc) => {
-      /* a trunk and a crown of a few low, rounded clumps (or stacked cones for a pine) */
-      let y = heightAt(x, z), trunkH = (kind ? 1.6 : 2.4) * sc, crownR = (kind ? 2.2 : 3.4) * sc, B = C2.at(x, z), lean = [(R2() - 0.5) * 0.4, 0, (R2() - 0.5) * 0.4];
+      /* Dirt Sleeper's tree: every random number is drawn as before (so what comes after lands where it
+         did), but the tree itself is one of a few shapes drawn instanced, in its own leaf colour */
+      TNO.first = null;
+      let y = heightAt(x, z), trunkH = (kind ? 1.6 : 2.4) * sc, crownR = (kind ? 2.2 : 3.4) * sc, B = TNO, lean = [(R2() - 0.5) * 0.4, 0, (R2() - 0.5) * 0.4];
       B.m = [18, 1, 0, 0], B.c = [110, 90, 72, 255], B.tube([x, y - 0.3, z], [x + lean[0], y + trunkH + crownR * 0.5, z + lean[2]], 0.18 * sc + 0.08, 6, !1, 0.1 * sc + 0.04);
       let tint = kind ? [52, 74, 46] : R2() < 0.5 ? [70, 96, 44] : [88, 104, 50], top = [x + lean[0], y + trunkH, z + lean[2]];
       B.m = [20, kind, 0, 0];
@@ -4151,7 +4684,9 @@ class ChunkedI{
         B.c = [tint[0] + (R2() - 0.5) * 22 | 0, tint[1] + (R2() - 0.5) * 22 | 0, tint[2] + (R2() - 0.5) * 14 | 0, 255];
         B.blob([top[0] + Math.cos(a) * d, top[1] + crownR * (0.62 + (k ? R2() * 0.35 : 0)), top[2] + Math.sin(a) * d], r, r * 0.82, r, 8, 4);
       }
-      collideCirc(x, z, 0.35 * sc + 0.15, trunkH + crownR);
+      if (CTRY.blocked(x, z, 0.5)) return;
+      let h1 = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1, h2 = Math.abs(Math.sin(x * 39.346 + z * 11.135) * 24634.6345) % 1;
+      pushTree(x, y, z, kind, sc, kind ? 3 + (h1 * 2 | 0) : h1 * 3 | 0, h2 * 6.283, 1, 1, TNO.first || [70, 96, 44]);
     };
     let nTrees = 0;
     for (let tries = 0; tries < 5200 && nTrees < 520; tries++) {
@@ -4167,6 +4702,7 @@ class ChunkedI{
       let y = heightAt(x, z), B = C2.at(x, z);
       C2.mat(21).col(255, 255, 255, 255), B.m = [21, 0, 0, 0], B.c = [255, 255, 255, 255];
       let seg = 9, rings = 6, ix = [], sq = 0.55 + R2() * 0.35, rot = R2() * 6.28;
+      if (CTRY.blocked(x, z, r)) return;
       for (let j = 0; j <= rings; j++) {
         let ph = j / rings * Math.PI, row = [];
         for (let i = 0; i <= seg; i++) {
@@ -4227,11 +4763,14 @@ class ChunkedI{
         box([x, y + 1.6, z], [0.07, 1.6, 0.07], 18, [150, 120, 90, 255], 0), box([x - 0.32, y + 2.9, z], [0.32, 0.22, 0.02], 8, [255, 110, 26, 255], 0), collideCirc(x, z, 0.15, y + 3);
       }
     }
+    /* ---------- the country round the ranch ---------- */
+    Object.assign(X, { C2, box, collideBox, collideCirc, metal, ribbon, rock, addTree, rng });
+    CTRY.geometry(X);
     let geo = C2;
     return {
       geo, lights, steam: [], info: { xw: [] }, gridP: { x0: x0, z0: z0, size: D.size, cell: 8 },
       N: N2, cell, x0, z0, H, SC, W, NRM, heightAt, groundAt, strip, loop, climb, creek, creekLevel, gates, mud: M, hill: HL, kick, colliders: gridColliders(colliders), loopProf, climbProf, D,
-      burn: BU, mudTrack: mudT, rocks: RG
+      burn: BU, mudTrack: mudT, rocks: RG, trees: new Float32Array(trees), country: CTRY.info()
     };
   }
   /* a bucket grid over the colliders so the hull only checks what is near */
@@ -4295,7 +4834,7 @@ class ChunkedI{
     }
     /* trees, posts, walls and bales: push the hull back out */
     wall(P) {
-      let best = null, bound = 395;
+      let best = null, bound = 790;
       if (Math.abs(P[0]) > bound || Math.abs(P[2]) > bound) {
         let ax = Math.abs(P[0]) - bound, az = Math.abs(P[2]) - bound;
         return ax > az ? { pen: ax, n: [-Math.sign(P[0]), 0, 0] } : { pen: az, n: [0, 0, -Math.sign(P[2])] };
@@ -4315,40 +4854,67 @@ class ChunkedI{
       }
       return best;
     }
-  };return {SURF,SF,RANCH_DEF,buildRanch,RanchWorld,makePath,MeshBuilderI,rng};
+  };return {SURF,SF,RANCH_DEF,buildRanch,RanchWorld,makePath,MeshBuilderI,rng,s2l};
 })();
 
 /* =====================================================================================
-   THE RANCH ON THE GPU. The ground is cut into 64 m tiles, each meshed three times (every 2 m,
+   THE WORLD ON THE GPU. The ground is cut into 64 m tiles, each meshed three times (every 2 m,
    4 m and 8 m) with a skirt hanging from its edges so tiles of different detail never show a
-   crack; near tiles get the fine mesh, far ones the coarse. Everything else Dirt Sleeper's
-   ranch code drew comes in tiles too. Tiles behind the camera or past the fog are skipped.
+   crack; near tiles get the fine mesh, far ones the coarse. On the mile-square map the fine
+   meshes are made only for the tiles round the truck and let go behind it. Everything else the
+   ranch code drew comes in tiles too, and the trees are drawn instanced, full shape near and a
+   single lump far. Tiles behind the camera or past the fog are skipped.
    ===================================================================================== */
-const RANCH={W:null,world:null,ground:[],props:[],sky:null,tris:0,ms:0};
-const LOD_STEP=[1,2,4],LOD_DIST=[150,290];
+const RANCH={W:null,world:null,ground:[],props:[],sky:null,tris:0,ms:0,trees:null,lod0:0};
+const LOD_STEP=[1,2,4],LOD_DIST=[150,290],TREE_NEAR=95;
+/* one ground tile at one level of detail: every st-th grid point, skirts hanging off its edges */
+function groundMesh(W,t,st){
+  const N=W.N,H=W.H,NR=W.NRM,WT=W.W,{i0,j0,i1,j1}=t,P=[],Nn=[],C=[],M=[],I=[],grid=[];let nv=0;
+  const put=(i,j,drop)=>{const k=j*N+i;P.push(W.x0+i*W.cell,H[k]-drop,W.z0+j*W.cell);Nn.push(NR[k*3],NR[k*3+1],NR[k*3+2]);C.push(WT[k*4],WT[k*4+1],WT[k*4+2],WT[k*4+3]);M.push(RMAT.TERRAIN);return nv++;};
+  const is=[],js=[];for(let i=i0;i<i1;i+=st)is.push(i);is.push(i1);for(let j=j0;j<j1;j+=st)js.push(j);js.push(j1);
+  for(const j of js){const row=[];for(const i of is)row.push(put(i,j,0));grid.push(row);}
+  for(let b=0;b<js.length-1;b++)for(let a=0;a<is.length-1;a++){const p=grid[b][a],q=grid[b][a+1],r=grid[b+1][a],s=grid[b+1][a+1];I.push(p,s,q,p,r,s);}
+  /* skirts: each edge drops 1.5 m so a coarser neighbour can't open a gap */
+  const edge=(list,flip)=>{for(let e=0;e<list.length-1;e++){const [ia,ja]=list[e],[ib,jb]=list[e+1],a=grid[ja][ia],b=grid[jb][ib];
+    const c=put(is[ia],js[ja],1.5),d=put(is[ib],js[jb],1.5);if(flip)I.push(a,c,b,b,c,d);else I.push(a,b,c,b,d,c);}};
+  const nx=is.length-1,ny=js.length-1,top=[],bot=[],lef=[],rig=[];
+  for(let a=0;a<=nx;a++){top.push([a,0]);bot.push([a,ny]);}for(let b=0;b<=ny;b++){lef.push([0,b]);rig.push([nx,b]);}
+  edge(top,false);edge(bot,true);edge(lef,true);edge(rig,false);
+  const m=makeMesh({pos:new Float32Array(P),nrm:new Float32Array(Nn),col:new Float32Array(C),mat:new Float32Array(M),idx:new Uint32Array(I)});m.tris=I.length/3;return m;
+}
+/* the trees: three broadleaf shapes and two pines, each near (full) and far (one lump), drawn instanced */
+function treeShapes(){
+  const out=[],R=Ranch.rng(11),mk=fn=>{const B=new Ranch.MeshBuilderI();fn(B);
+    for(let i=0;i<B.nv;i++)if(B.M[i]===RMAT.WOOD)B.C[i*4+3]=2;
+    const m=makeMesh({pos:new Float32Array(B.P),nrm:new Float32Array(B.N),col:new Float32Array(B.C),mat:new Float32Array(B.M),idx:new Uint32Array(B.idx)});m.tris=B.idx.length/3;return m;};
+  const leaf=(B,k)=>{B.m=[20,k,0,0];const v=235+R()*40;B.c=[v,v*(.96+R()*.08),v*(.94+R()*.1),255];};
+  for(let v=0;v<3;v++){const th=2.4,cr=3.4,crowns=[];
+    for(let k=0;k<3;k++){const a=R()*6.28,d=k?cr*(.35+R()*.25):0,r=cr*(k?.55+R()*.2:.78);crowns.push([Math.cos(a)*d,th+cr*(.62+(k?R()*.35:0)),Math.sin(a)*d,r]);}
+    out.push([mk(B=>{B.m=[18,1,0,0];B.c=[110,90,72,255];B.tube([0,-.3,0],[0,th+cr*.5,0],.26,6,false,.14);for(const c of crowns){leaf(B,0);B.blob([c[0],c[1],c[2]],c[3],c[3]*.82,c[3],7,4);}}),
+      mk(B=>{B.m=[18,1,0,0];B.c=[110,90,72,255];B.tube([0,-.3,0],[0,th+.6,0],.26,4,false,.16);leaf(B,0);B.blob([0,th+cr*.85,0],cr*1.05,cr*.92,cr*1.05,6,3);})]);}
+  for(let v=0;v<2;v++){const th=1.6,cr=2.2*(.92+v*.16);
+    out.push([mk(B=>{B.m=[18,1,0,0];B.c=[110,90,72,255];B.tube([0,-.3,0],[0,th+cr*.5,0],.22,6,false,.1);for(let k=0;k<3;k++){leaf(B,1);const r=cr*(1-k*.26),y0=th-.4+k*cr*.62;B.tube([0,y0,0],[0,y0+cr*1.15,0],r,7,true,.05);}}),
+      mk(B=>{B.m=[18,1,0,0];B.c=[110,90,72,255];B.tube([0,-.3,0],[0,th,0],.22,4,false,.12);leaf(B,1);B.tube([0,th-.4,0],[0,th-.4+cr*2.45,0],cr*1.02,5,true,.05);})]);}
+  return out;
+}
+function buildTrees(W){
+  const T=W.trees,n=T.length/12,tiles=new Map(),S=64;
+  for(let i=0;i<n;i++){const x=T[i*12],y=T[i*12+1],z=T[i*12+2],k=Math.floor(x/S)+','+Math.floor(z/S);let t=tiles.get(k);
+    if(!t)tiles.set(k,t={mn:[1e9,1e9,1e9],mx:[-1e9,-1e9,-1e9],list:[]});t.list.push(i);
+    t.mn[0]=Math.min(t.mn[0],x-6);t.mn[1]=Math.min(t.mn[1],y-1);t.mn[2]=Math.min(t.mn[2],z-6);t.mx[0]=Math.max(t.mx[0],x+6);t.mx[1]=Math.max(t.mx[1],y+14);t.mx[2]=Math.max(t.mx[2],z+6);}
+  const counts=[0,0,0,0,0];for(let i=0;i<n;i++)counts[T[i*12+7]|0]++;
+  return {T,n,tiles:[...tiles.values()],shapes:treeShapes(),buf:counts.map(c=>[new Float32Array(Math.max(1,c)*12),new Float32Array(Math.max(1,c)*12)]),cnt:[[0,0],[0,0],[0,0],[0,0],[0,0]]};
+}
 function buildRanchGL(){
   const t0=performance.now(),W=Ranch.buildRanch(),t1=performance.now();
   RANCH.W=W;RANCH.world=new Ranch.RanchWorld(W);
-  const N=W.N,TS=32,nt=Math.ceil((N-1)/TS),H=W.H,NR=W.NRM,WT=W.W;
+  /* ground tiles: the middle and far meshes now, the fine one when the truck comes near */
+  const N=W.N,TS=32,nt=Math.ceil((N-1)/TS),H=W.H;
   for(let tj=0;tj<nt;tj++)for(let ti=0;ti<nt;ti++){
     const i0=ti*TS,j0=tj*TS,i1=Math.min(N-1,i0+TS),j1=Math.min(N-1,j0+TS);
     let ymin=1e9,ymax=-1e9;for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const h=H[j*N+i];if(h<ymin)ymin=h;if(h>ymax)ymax=h;}
-    const tile={mn:[W.x0+i0*W.cell,ymin-1.6,W.z0+j0*W.cell],mx:[W.x0+i1*W.cell,ymax,W.z0+j1*W.cell],lod:[]};
-    for(const st of LOD_STEP){
-      const P=[],Nn=[],C=[],M=[],I=[],grid=[];let nv=0;
-      const put=(i,j,drop)=>{const k=j*N+i;P.push(W.x0+i*W.cell,H[k]-drop,W.z0+j*W.cell);Nn.push(NR[k*3],NR[k*3+1],NR[k*3+2]);C.push(WT[k*4],WT[k*4+1],WT[k*4+2],WT[k*4+3]);M.push(RMAT.TERRAIN);return nv++;};
-      const is=[],js=[];for(let i=i0;i<i1;i+=st)is.push(i);is.push(i1);for(let j=j0;j<j1;j+=st)js.push(j);js.push(j1);
-      for(const j of js){const row=[];for(const i of is)row.push(put(i,j,0));grid.push(row);}
-      for(let b=0;b<js.length-1;b++)for(let a=0;a<is.length-1;a++){const p=grid[b][a],q=grid[b][a+1],r=grid[b+1][a],s=grid[b+1][a+1];I.push(p,s,q,p,r,s);}
-      /* skirts: each edge drops 1.5 m so a coarser neighbour can't open a gap */
-      const edge=(list,flip)=>{for(let e=0;e<list.length-1;e++){const [ia,ja]=list[e],[ib,jb]=list[e+1],a=grid[ja][ia],b=grid[jb][ib];
-        const c=put(is[ia],js[ja],1.5),d=put(is[ib],js[jb],1.5);if(flip)I.push(a,c,b,b,c,d);else I.push(a,b,c,b,d,c);}};
-      const nx=is.length-1,ny=js.length-1,top=[],bot=[],lef=[],rig=[];
-      for(let a=0;a<=nx;a++){top.push([a,0]);bot.push([a,ny]);}for(let b=0;b<=ny;b++){lef.push([0,b]);rig.push([nx,b]);}
-      edge(top,false);edge(bot,true);edge(lef,true);edge(rig,false);
-      tile.lod.push(makeMesh({pos:new Float32Array(P),nrm:new Float32Array(Nn),col:new Float32Array(C),mat:new Float32Array(M),idx:new Uint32Array(I)}));
-      tile.lod[tile.lod.length-1].tris=I.length/3;
-    }
+    const tile={i0,j0,i1,j1,mn:[W.x0+i0*W.cell,ymin-1.6,W.z0+j0*W.cell],mx:[W.x0+i1*W.cell,ymax,W.z0+j1*W.cell],lod:[null,null,null]};
+    tile.lod[1]=groundMesh(W,tile,LOD_STEP[1]);tile.lod[2]=groundMesh(W,tile,LOD_STEP[2]);
     RANCH.ground.push(tile);
   }
   for(const B of W.geo.tiles.values()){
@@ -4356,6 +4922,7 @@ function buildRanchGL(){
     const m=makeMesh({pos:new Float32Array(B.P),nrm:new Float32Array(B.N),col:new Float32Array(B.C),mat:new Float32Array(B.M),idx:new Uint32Array(B.idx)});
     m.tris=B.idx.length/3;RANCH.props.push({mesh:m,mn:B.mn,mx:B.mx,big:B.mx[0]-B.mn[0]>90||B.mx[2]-B.mn[2]>90});
   }
+  RANCH.trees=buildTrees(W);
   /* the sky: an inside-out dome that follows the camera */
   {const mb=new Ranch.MeshBuilderI();mb.m=[0,0,0,0];const seg=28,rings=14,ix=[];
     for(let j=0;j<=rings;j++){const ph=j/rings*Math.PI,row=[];for(let i=0;i<=seg;i++){const th=i/seg*TAU,n=[Math.sin(ph)*Math.cos(th),Math.cos(ph),Math.sin(ph)*Math.sin(th)];row.push(mb.v([n[0]*900,n[1]*900,n[2]*900],n));}ix.push(row);}
@@ -4370,14 +4937,31 @@ function frustum(m){const r=(a,b,c,d)=>{const l=Math.hypot(a,b,c);return [a/l,b/
     r(m[3]-m[1],m[7]-m[5],m[11]-m[9],m[15]-m[13]),r(m[3]+m[2],m[7]+m[6],m[11]+m[10],m[15]+m[14]),r(m[3]-m[2],m[7]-m[6],m[11]-m[10],m[15]-m[14])];}
 function boxVisible(F,mn,mx){for(const p of F){const x=p[0]>0?mx[0]:mn[0],y=p[1]>0?mx[1]:mn[1],z=p[2]>0?mx[2]:mn[2];if(p[0]*x+p[1]*y+p[2]*z+p[3]<0)return false;}return true;}
 const boxDist=(e,mn,mx)=>{let s=0;for(let k=0;k<3;k+=2){const d=Math.max(mn[k]-e[k],0,e[k]-mx[k]);s+=d*d;}return Math.sqrt(s);};
-/* draw the sky, the ground and the props; uM must be identity on entry */
+/* draw the sky, the ground, the props and the trees; uM must be identity on entry */
 function drawRanch(cam,maxD=420){
-  const u=P_LIT.u,F=frustum(cam.VP),e=cam.eye;let tris=0;
+  const u=P_LIT.u,F=frustum(cam.VP),e=cam.eye;let tris=0,built=0;
   gl.uniformMatrix4fv(u.uM,false,M4T(e[0],e[1],e[2]));gl.depthMask(false);drawMesh(RANCH.sky);gl.depthMask(true);
   gl.uniformMatrix4fv(u.uM,false,M4.id());
-  for(const t of RANCH.ground){const d=boxDist(e,t.mn,t.mx);if(d>maxD||!boxVisible(F,t.mn,t.mx))continue;
-    const m=t.lod[d<LOD_DIST[0]?0:d<LOD_DIST[1]?1:2];drawMesh(m);tris+=m.tris;}
-  for(const p of RANCH.props){const d=boxDist(e,p.mn,p.mx);if(d>maxD-40||!boxVisible(F,p.mn,p.mx))continue;drawMesh(p.mesh);tris+=p.mesh.tris;}
+  for(const t of RANCH.ground){const d=boxDist(e,t.mn,t.mx);
+    /* the fine mesh is made a little before it's needed (a few a frame) and let go well after */
+    if(d<LOD_DIST[0]+50){if(!t.lod[0]&&built<3){t.lod[0]=groundMesh(RANCH.W,t,LOD_STEP[0]);built++;RANCH.lod0++;}}
+    else if(t.lod[0]&&d>LOD_DIST[0]+140){freeMesh(t.lod[0]);t.lod[0]=null;RANCH.lod0--;}
+    if(d>maxD||!boxVisible(F,t.mn,t.mx))continue;
+    const m=t.lod[d<LOD_DIST[0]?0:d<LOD_DIST[1]?1:2]||t.lod[1];drawMesh(m);tris+=m.tris;}
+  const tg=tris;for(const p of RANCH.props){const d=boxDist(e,p.mn,p.mx);if(d>maxD-40||!boxVisible(F,p.mn,p.mx))continue;drawMesh(p.mesh);tris+=p.mesh.tris;}
+  const tt=drawTrees(cam,F,maxD-40);RANCH.stat={ground:tg,props:tris-tg,trees:tt};
+  return tris+tt;
+}
+/* sort the trees in view into near and far for each shape, then one instanced draw for each */
+function drawTrees(cam,F,maxD){
+  const TR=RANCH.trees,T=TR.T,e=cam.eye,nn=TREE_NEAR*TREE_NEAR,md=maxD*maxD;let tris=0;
+  for(const c of TR.cnt){c[0]=0;c[1]=0;}
+  for(const t of TR.tiles){if(boxDist(e,t.mn,t.mx)>maxD||!boxVisible(F,t.mn,t.mx))continue;
+    for(const i of t.list){const o=i*12,dx=T[o]-e[0],dz=T[o+2]-e[2],d2=dx*dx+dz*dz;if(d2>md)continue;
+      const v=T[o+7]|0,l=d2<nn?0:1,b=TR.buf[v][l],k=TR.cnt[v][l]++*12;for(let q=0;q<12;q++)b[k+q]=T[o+q];}}
+  gl.uniform1f(P_LIT.u.uInst,1);
+  for(let v=0;v<5;v++)for(let l=0;l<2;l++){const n=TR.cnt[v][l];if(!n)continue;const m=TR.shapes[v][l];setInst(m,TR.buf[v][l].subarray(0,n*12));drawMeshI(m);tris+=m.tris*n;}
+  gl.uniform1f(P_LIT.u.uInst,0);
   return tris;
 }
 
@@ -4387,7 +4971,7 @@ function drawRanch(cam,maxD=420){
    pile up and slow the game down, however hard the truck tumbles.
    ===================================================================================== */
 const FX_MAX=360,FX=[],FX_BUF=new Float32Array(FX_MAX*12);let FX_MESH=null;
-const FX_COL={dirt:[.36,.22,.12],trail:[.4,.27,.15],strip:[.42,.3,.2],grass:[.3,.26,.14],rock:[.36,.3,.26],concrete:[.4,.39,.37],mud:[.12,.08,.045],water:[.62,.7,.78]};
+const FX_COL={dirt:[.36,.22,.12],trail:[.4,.27,.15],strip:[.42,.3,.2],grass:[.3,.26,.14],rock:[.36,.3,.26],concrete:[.4,.39,.37],mud:[.12,.08,.045],water:[.62,.7,.78],gravel:[.46,.43,.38],asphalt:[.3,.3,.3],ruts:[.13,.085,.05]};
 const fxCount=n=>Math.floor(n)+(Math.random()<n%1?1:0);
 function fxAdd(kind,p,v,size,life,col){
   if(FX.length>=FX_MAX)return;
@@ -4400,11 +4984,11 @@ function fxEmit(dt,t){
   for(const w of t.wheels){
     if(!w.contact)continue;const surf=w.surf,col=FX_COL[surf]||FX_COL.dirt,spin=Math.abs(w.w*R-w.vl),roll=Math.abs(w.vl);
     const back=[-w.f[0],-w.f[1],-w.f[2]],sgnv=w.w*R>=0?1:-1,cp=w.cp;
-    if(surf==='mud'){const n=fxCount((spin*2.2+roll*.5)*dt);for(let k=0;k<n;k++){
+    if(surf==='mud'||surf==='ruts'){const n=fxCount((spin*2.2+roll*.5)*(surf==='ruts'?.7:1)*dt);for(let k=0;k<n;k++){
         const sp=2+spin*.5;fxAdd('mud',[cp[0]+(Math.random()-.5)*.3,cp[1]+.15,cp[2]+(Math.random()-.5)*.3],[back[0]*sp*sgnv+(Math.random()-.5)*2,1.5+Math.random()*2.5+spin*.15,back[2]*sp*sgnv+(Math.random()-.5)*2],.07+Math.random()*.08,1.2,col);}}
     else if(surf==='water'){const n=fxCount(roll*1.6*dt+spin*.6*dt);for(let k=0;k<n;k++){
         const side=w.r,s=(Math.random()<.5?-1:1)*(1+roll*.15);fxAdd('water',[cp[0],cp[1]+.2,cp[2]],[side[0]*s+back[0]*.6,2+Math.random()*2.5+roll*.12,side[2]*s+back[2]*.6],.06+Math.random()*.06,.8,col);}}
-    else if(surf!=='concrete'){const k0=surf==='rock'?.3:surf==='grass'?.5:1,n=fxCount((Math.max(0,spin-1.5)*1.4+Math.max(0,roll-4)*.25)*k0*dt);
+    else if(surf!=='concrete'&&surf!=='asphalt'){const k0=surf==='rock'?.3:surf==='grass'?.5:surf==='gravel'?.8:1,n=fxCount((Math.max(0,spin-1.5)*1.4+Math.max(0,roll-4)*.25)*k0*dt);
       for(let k=0;k<n;k++)fxAdd('dust',[cp[0]+(Math.random()-.5)*.4,cp[1]+.1,cp[2]+(Math.random()-.5)*.4],[back[0]*spin*.25*sgnv+(Math.random()-.5),.6+Math.random()*.8,back[2]*spin*.25*sgnv+(Math.random()-.5)],.12+Math.random()*.1,1.6+Math.random(),col);}
   }
 }
@@ -4461,6 +5045,10 @@ function computePlaces(){
     ['climb','Hill climb',...at(W.climb,3),dirYaw(W.climb,3)],
     ['loop','Trail loop',...at(W.loop,6),dirYaw(W.loop,6)],
     ['mudtrack','Mud track',...at(W.mudTrack,8),dirYaw(W.mudTrack,8)]];
+  /* out in the country */
+  const C=W.country,T=C.track,wn=C.woods.nearest(-250,-520,2).s;
+  PLACES.push(['home','Home',-468,630,Math.atan2(16,10)],['lane','The lane',...at(C.lane,8),dirYaw(C.lane,8)],['store','Feed & Fuel',506,387,PI],
+    ['track','Race track',...at(T,T.len-40),dirYaw(T,T.len-40)],['county','County road',300,401,0],['pond','The pond',-60,-474,PI/2],['woods','Woods trail',...at(C.woods,wn),dirYaw(C.woods,wn)]);
 }
 /* the name of the place the truck is in */
 function placeName(x,z){
@@ -4477,12 +5065,28 @@ function placeName(x,z){
   if(near(W.creek,7))return 'The creek';
   if(near(W.loop,8))return 'Trail loop';
   if(Math.hypot(x-D.hill.x,z-D.hill.z)<70)return 'Red Hill';
-  return 'Open range';
+  /* out in the country */
+  const C=W.country,P=C.pond,pd=C.paddock;
+  if(x>-530&&x<-440&&z>610&&z<690)return 'Home';
+  if(near(C.lane,6))return 'The lane';
+  if(x>396&&x<566&&z>316&&z<420)return 'Feed & Fuel';
+  if(x>pd.x0-5&&x<pd.x1+5&&z>pd.z0-5&&z<pd.z1+3)return 'The paddock';
+  {const n=C.track.nearest(x,z,2);if(n&&n.d<30)return n.s<150||n.s>C.track.len-130?'Race track: the straight':'Race track';}
+  if(Math.hypot((x-P.x)/P.rx,(z-P.z)/P.rz)<1.5)return 'The pond';
+  if(near(C.woods,8)||near(C.conn,8))return 'Woods trail';
+  if(near(C.drive,7))return 'Ranch drive';
+  if(near(C.cr,9))return 'County road';
+  if(near(C.range,9))return z<-560?'Forest road':x<0?'West road':'Range road';
+  if(z<-430)return 'The woods';
+  if(Math.abs(x)>740||Math.abs(z)>740)return 'Edge of the map';
+  if(z>410)return 'The fields';
+  return Math.abs(x)<400&&Math.abs(z)<400?'Open range':'Open country';
 }
 function say(t,k=2.4,col){GAME.msgs.push({t,k,a:0,t0:APP.t,col});if(GAME.msgs.length>3)GAME.msgs.shift();}
 
 /* ---------- the truck on the ground ---------- */
 function placeTruck(x,z,yaw){
+  LAP.on=false;LAP.s=-1;
   const t=GAME.truck,W=RANCH.W,y=W.heightAt(x,z);
   t.place([x,y+.05,z],yaw);t.hint=-1;
   for(const w of t.wheels){w.comp=0;w.ang=0;w.w=0;}
@@ -4525,7 +5129,7 @@ function soundUpdate(c){
 
 /* ---------- keyboard, game controller and the touch pedals (Dirt Sleeper's input) ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lock:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lock:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -4539,7 +5143,7 @@ function pollInput(dt){
   INPUT.steer+=clamp(tgt-INPUT.steer,-rate*dt,rate*dt);
   INPUT.thr+=clamp((keyOn('thr')?1:0)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
   out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
-  for(const k of ['up','down','cam','reset','menu','low','lock','lights','ign','purge'])out[k]=keyHit(k);
+  for(const k of ['up','down','cam','reset','menu','low','lock','lights','ign','purge','map'])out[k]=keyHit(k);
   const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const p of pads)if(p&&p.connected){gp=p;break;}
   if(gp){const dz=(v,d=.08)=>Math.abs(v)<d?0:(v-Math.sign(v)*d)/(1-d),sx=dz(gp.axes[0]||0),rt=gp.buttons[7]?gp.buttons[7].value:0,lt=gp.buttons[6]?gp.buttons[6].value:0;
     if(Math.abs(sx)>0||rt>.02||lt>.02||gp.buttons.some(b=>b.pressed))INPUT.usingPad=true;
@@ -4555,6 +5159,9 @@ function syncTouch(){const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='d
   const e=GAME.truck.pt.e,c=GAME.truck.c.diff.can;$('tNos').hidden=!e.nosKw;$('tLow').hidden=!c.low;}
 function bindTouch(){
   if(matchMedia('(pointer: coarse)').matches)enableTouch();addEventListener('touchstart',enableTouch,{passive:true,once:true});
+  /* a tap on the corner map opens the big map; any tap closes it */
+  cv.addEventListener('pointerdown',e=>{if(GAME.state!=='drive')return;const hx=(e.clientX-RECT.x)/RECT.w*W,hy=(e.clientY-RECT.y)/RECT.h*H,[x0,y0,s]=miniRect();
+    if(APP.bigMap)APP.bigMap=false;else if(hx>=x0-2&&hx<=x0+s+2&&hy>=y0-2&&hy<=y0+s+2)APP.bigMap=true;});
   for(const b of document.querySelectorAll('#touch .tb')){const k=TOUCH_KEY[b.dataset.k];
     const on=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}INPUT.down.add(k);INPUT.pressed.add(k);b.classList.add('on');},off=e=>{e.preventDefault();INPUT.down.delete(k);b.classList.remove('on');};
     b.addEventListener('pointerdown',on);for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,off);b.addEventListener('contextmenu',e=>e.preventDefault());}
@@ -4572,6 +5179,7 @@ function step(dt){
     if(inp.low)say(setLow(t,!t.low)?(t.low?'Low range':'High range'):'No low range on this truck',1.4);
     if(inp.lock)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this truck',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
+    if(inp.map)APP.bigMap=!APP.bigMap;
     if(inp.ign)toggleEngine();
     if(inp.purge&&ENG.audio&&pt.e.nosKw)ENG.audio.port.post({t:'ev',ev:{type:'purge'}});
     drive=inp;
@@ -4588,12 +5196,30 @@ function step(dt){
     if(APP.level==='kids'&&GAME.flipT>1.2){resetTruck();say('Back on its wheels',1.6);}
     else if(GAME.flipT>2&&!GAME.flipSaid){GAME.flipSaid=true;say(GAME.touch?'Rolled it. Tap Reset to flip back over.':'Rolled it. Press R to flip back over.',4);}}
   else{GAME.flipT=0;GAME.flipSaid=false;}
-  /* mud builds up on the paint in the bog and on the mud track; the creek washes some off */
-  let mud=0,water=0;for(const w of t.wheels)if(w.contact){if(w.surf==='mud')mud++;else if(w.surf==='water')water++;}
+  /* mud builds up on the paint in the bog, on the mud track and in the lane's ruts; the creek and the pond wash some off */
+  let mud=0,water=0;for(const w of t.wheels)if(w.contact){if(w.surf==='mud')mud++;else if(w.surf==='ruts')mud+=.6;else if(w.surf==='water')water++;}
   GAME.dirt=clamp(GAME.dirt+dt*(mud*.025*Math.min(1,t.speed/3+.3)-water*.02*Math.min(1,t.speed/4)),0,1);
   fxEmit(dt,t);fxStep(dt);
   const ev=t.takeEvents();if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
+  lapStep(dt,t);
+}
+/* ---------- lap times on the road course: over the line, past two checkpoints, over the line again ---------- */
+const LAP={on:false,t0:0,cp:0,s:-1,best:{},offT:0};
+try{LAP.best=JSON.parse(store.get('dsmini-laps','{}'))||{};}catch(e){}
+const fmtLap=t=>Math.floor(t/60)+':'+(t%60).toFixed(2).padStart(5,'0');
+const lapKey=()=>BUILDS[APP.build].id+':'+APP.level;
+function lapStep(dt,t){
+  const T=RANCH.W.country.track,n=T.nearest(t.p[0],t.p[2],2);
+  if(!n||n.d>16){if(LAP.on&&(LAP.offT+=dt)>8){LAP.on=false;say('Lap abandoned',1.6);}LAP.s=-1;return;}
+  LAP.offT=0;const s=n.s,L=T.len,p=LAP.s;LAP.s=s;if(p<0)return;
+  if(p>L-60&&s<60){
+    if(LAP.on&&LAP.cp>=2){const lt=GAME.time-LAP.t0,k=lapKey(),b=LAP.best[k];
+      if(!b||lt<b){LAP.best[k]=lt;store.set('dsmini-laps',JSON.stringify(LAP.best));say('LAP '+fmtLap(lt)+(b?'  BEST':''),3.5);}else say('LAP '+fmtLap(lt),3);}
+    else if(!LAP.on)say('LAP STARTED',1.4);
+    LAP.on=true;LAP.t0=GAME.time;LAP.cp=0;}
+  else if(p<60&&s>L-60)LAP.on=false;
+  if(LAP.on){if(LAP.cp===0&&p<L/3&&s>=L/3)LAP.cp=1;else if(LAP.cp===1&&p<2*L/3&&s>=2*L/3)LAP.cp=2;}
 }
 
 /* ---------- the camera ---------- */
@@ -4692,31 +5318,52 @@ function frame(ts){
 }
 
 /* =====================================================================================
-   THE DOT-MATRIX HUD: the truck and where it is (top left), a map of the ranch (top right),
+   THE DOT-MATRIX HUD: the truck and where it is (top left), a map round the truck (top right; M for the whole mile),
    Shiftlight 2's shift lights, tach, gear and speed (bottom right), what the truck is doing
    (bottom left), and messages in the middle.
    ===================================================================================== */
-const MAPC={grass:[54,84,30],dirt:[120,70,38],strip:[176,140,100],trail:[150,104,62],rock:[112,96,84],mud:[46,32,18],concrete:[150,148,144],water:[60,120,190]};
+const MAPC={grass:[54,84,30],dirt:[120,70,38],strip:[176,140,100],trail:[150,104,62],rock:[112,96,84],mud:[46,32,18],concrete:[150,148,144],water:[60,120,190],gravel:[178,168,146],asphalt:[46,46,52],ruts:[84,58,32]};
 let MAPBMP=null;
-/* the map, drawn once at the size it is shown: surface colour shaded by slope, the trails picked out */
-function mapBitmap(n){
-  if(MAPBMP&&MAPBMP.n===n)return MAPBMP;
-  const W=RANCH.W,span=760,px=new Uint32Array(n*n);
+/* the whole map, made once: surface colour shaded by slope and height, the trees darker; the corner map
+   and the big map both read from it */
+function mapBitmap(){
+  if(MAPBMP)return MAPBMP;
+  const W=RANCH.W,span=W.D.size,n=512,px=new Uint32Array(n*n),T=W.trees;
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){
     const x=-span/2+(i+.5)/n*span,z=-span/2+(j+.5)/n*span,g=W.groundAt(x,z),c=MAPC[g.surf]||MAPC.dirt,sh=.62+.5*clamp(g.n[0]*.6-g.n[2]*.5+g.n[1]*.5,0,1),hh=clamp(.8+g.y/120,.75,1.25);
     px[j*n+i]=pack(c[0]*sh*hh,c[1]*sh*hh,c[2]*sh*hh,235);}
+  const tc=pack(26,46,20,235);for(let k=0;k<T.length;k+=12){const i=Math.floor((T[k]+span/2)/span*n),j=Math.floor((T[k+2]+span/2)/span*n);if(i>=0&&j>=0&&i<n-1&&j<n-1)px[j*n+i]=px[j*n+i+1]=px[(j+1)*n+i]=px[(j+1)*n+i+1]=tc;}
   return MAPBMP={n,px,span};
 }
+const MINI_SPAN=480;
+/* the truck: a blinking arrow pointing where it faces */
+function mapArrow(mx,my,k=1){const t=GAME.truck,F=mcol(qmat(t.q),0),fl=Math.hypot(F[0],F[2])||1,fx=F[0]/fl,fz=F[2]/fl,col=(APP.t*4|0)%2?PAL.white:PAL.gold;
+  hLine(mx-fx*2.5*k-fz*1.8*k,my-fz*2.5*k+fx*1.8*k,mx+fx*3*k,my+fz*3*k,col);hLine(mx-fx*2.5*k+fz*1.8*k,my-fz*2.5*k-fx*1.8*k,mx+fx*3*k,my+fz*3*k,col);hDisc(mx,my,1.1,col);}
+/* the corner map: about 480 m round the truck, north up, scrolling as it drives */
 function drawMap(x0,y0,size){
-  const t=GAME.truck,n=size*HS,B=mapBitmap(n),X0=x0*HS,Y0=y0*HS;
+  const t=GAME.truck,B=mapBitmap(),n=size*HS,X0=x0*HS,Y0=y0*HS,sc=B.n/B.span,mpp=MINI_SPAN/n,off=pack(8,8,12,235),h=B.span/2;
   hRect(x0-1,y0-1,size+2,size+2,pack(0,0,0,200));
-  for(let j=0;j<n;j++){const o=(Y0+j)*BW+X0;if(Y0+j<0||Y0+j>=BH)continue;for(let i=0;i<n;i++)HB[o+i]=B.px[j*n+i];}
-  /* the truck: a blinking arrow pointing where it faces */
-  const mx=x0+(t.p[0]+B.span/2)/B.span*size,my=y0+(t.p[2]+B.span/2)/B.span*size,F=mcol(qmat(t.q),0),fl=Math.hypot(F[0],F[2])||1,fx=F[0]/fl,fz=F[2]/fl;
-  const col=(APP.t*4|0)%2?PAL.white:PAL.gold;
-  hLine(mx-fx*2.5-fz*1.8,my-fz*2.5+fx*1.8,mx+fx*3,my+fz*3,col);hLine(mx-fx*2.5+fz*1.8,my-fz*2.5-fx*1.8,mx+fx*3,my+fz*3,col);hDisc(mx,my,1.1,col);
+  for(let j=0;j<n;j++){const Y=Y0+j;if(Y<0||Y>=BH)continue;const o=Y*BW+X0,bz=Math.floor((t.p[2]+(j+.5-n/2)*mpp+h)*sc);
+    for(let i=0;i<n;i++){const bx=Math.floor((t.p[0]+(i+.5-n/2)*mpp+h)*sc);HB[o+i]=bx<0||bz<0||bx>=B.n||bz>=B.n?off:B.px[bz*B.n+bx];}}
+  mapArrow(x0+size/2,y0+size/2);
   hFrame(x0-1,y0-1,size+2,size+2,pack(255,255,255,60));
+  txt3('N',x0+size/2-1,y0+1,pack(255,255,255,150));
 }
+/* the big map (M, or tap the corner map): the whole mile, the places, where the truck is */
+const MAPLBL={shop:'RANCH',climb:'RED HILL',mudtrack:'MUD TRACK',home:'HOME',store:'FEED+FUEL',track:'TRACK',pond:'POND',woods:'WOODS'};
+function drawBigMap(){
+  const B=mapBitmap(),size=Math.min(H-14,W-14)|0,x0=Math.round((W-size)/2),y0=Math.round((H-size)/2),n=size*HS,X0=x0*HS,Y0=y0*HS,f=B.n/n;
+  hRect(0,0,W,H,pack(0,0,0,110));hRect(x0-2,y0-2,size+4,size+4,pack(0,0,0,225));
+  for(let j=0;j<n;j++){const Y=Y0+j;if(Y<0||Y>=BH)continue;const o=Y*BW+X0,row=Math.min(B.n-1,Math.floor((j+.5)*f))*B.n;for(let i=0;i<n;i++)HB[o+i]=B.px[row+Math.min(B.n-1,Math.floor((i+.5)*f))];}
+  const toM=(x,z)=>[x0+(x+B.span/2)/B.span*size,y0+(z+B.span/2)/B.span*size];
+  for(const p of PLACES){const [mx,my]=toM(p[2],p[3]);hDisc(mx,my,1,PAL.gold);}
+  for(const p of PLACES){const l=MAPLBL[p[0]];if(!l)continue;const [mx,my]=toM(p[2],p[3]);otxt3(l,mx+3,my-2,PAL.ink);}
+  const t=GAME.truck,[tx,ty]=toM(t.p[0],t.p[2]);mapArrow(tx,ty,1.3);
+  hFrame(x0-2,y0-2,size+4,size+4,pack(255,255,255,70));
+  otxt3(GAME.touch?'TAP TO CLOSE':'M TO CLOSE',x0+3,y0+size-8,PAL.dim);otxt3('1 MILE',x0+size-3,y0+size-8,PAL.dim,1,'r');
+}
+/* where the corner map sits, for taps */
+const miniRect=()=>{const ms=Math.round(H*.27);return [W-ms-5,13,ms,ms];};
 const tch0=()=>GAME.touch;
 function drawHud(c){
   const t=GAME.truck,pt=t.pt,e=pt.e,b=BUILDS[APP.build],sc=W>=400?2:1,on=pt.st!=='off',rpm=on?Math.max(0,pt.rpmOut||0):0;
@@ -4725,8 +5372,9 @@ function drawHud(c){
   otxt3(GAME.place.toUpperCase(),5,7+7*sc+2,PAL.ink);
   otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':''),5,7+7*sc+10,APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:PAL.dim);
   /* top right: the map */
-  const ms=Math.round(H*.27);drawMap(W-ms-5,13,ms);
+  const [mx0,my0,ms]=miniRect();drawMap(mx0,my0,ms);
   if(GAME.state!=='drive')return;
+  if(APP.bigMap){drawBigMap();return;}
   /* shift lights, tach, gear, speed */
   engShiftLights(Math.round(W/2-45),tch0()?H-9:3,e,rpm,pt.running);
   /* with touch pedals in the bottom corners the instruments move up to the top middle */
@@ -4744,6 +5392,9 @@ function drawHud(c){
   let x=4;const yc=GAME.touch?7+7*sc+20:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
   if(!on){const msg=GAME.touch?'TAP GAS TO START':'PRESS W OR I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-26,GR.steel,1,'c');}
   else if(pt.st==='crank')otxt3('CRANKING',W/2,H-22,PAL.amber,1,'c');
+  /* a lap under way on the road course */
+  if(LAP.on){const lt=GAME.time-LAP.t0,b=LAP.best[lapKey()],y=tch?H-24:14;
+    otxt5('LAP '+fmtLap(lt),W/2,y,GR.volt,1,'c');if(b)otxt3('BEST '+fmtLap(b),W/2,y+9,PAL.dim,1,'c');}
   /* messages */
   let y=Math.round(H*.3);
   for(let i=GAME.msgs.length-1;i>=0;i--){const m=GAME.msgs[i];m.a=APP.t-m.t0;if(m.a>m.k){GAME.msgs.splice(i,1);continue;}
@@ -4756,7 +5407,7 @@ function drawHud(c){
    ===================================================================================== */
 function openMenu(first){
   GAME.state='menu';$('menu').hidden=false;syncTouch();
-  $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?'Free roam on the ranch':'Paused';
+  $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?'Free roam: the ranch and the country round it':'Paused';
   syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
 }
 function closeMenu(){
@@ -4783,7 +5434,7 @@ function buildMenu(){
   $('vol').addEventListener('input',e=>setVolume(e.target.value));
   $('mGo').addEventListener('click',closeMenu);
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
-  $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);MAPBMP=null;layout();});
+  $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
 }
 /* ---------- boot ---------- */
 if(!gl){$('err').style.display='grid';$('loading').hidden=true;}
@@ -4793,7 +5444,7 @@ else{
   /* let the loading line paint, then build the ranch */
   requestAnimationFrame(()=>setTimeout(()=>{
     try{
-      buildRanchGL();computePlaces();spawnTruck(APP.build,6,4,0);buildMenu();bindTouch();
+      buildRanchGL();computePlaces();mapBitmap();spawnTruck(APP.build,6,4,0);buildMenu();bindTouch();
       $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
     }catch(e){console.error(e);$('loading').textContent='Something went wrong building the ranch: '+e.message;}
   },30));

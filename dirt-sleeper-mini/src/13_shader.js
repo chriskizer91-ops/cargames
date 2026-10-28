@@ -57,9 +57,10 @@ uniform mat4 uM;uniform mat4 uVP;uniform float uInst;
 out vec3 vP;out vec3 vN;out vec4 vC;out float vMat;out vec3 vL;
 void main(){
   if(uInst>.5){
-    /* instanced bits (dust, mud, spray): position and yaw, size, colour and glow per instance */
+    /* instanced bits (dust, mud, spray, trees): position and yaw, size, colour and glow per instance;
+       a vertex whose colour alpha is 2 keeps its own colour (tree trunks) */
     float c=cos(iA.w),s=sin(iA.w);vec3 q=aPos*iB.xyz;vec3 w=iA.xyz+vec3(c*q.x+s*q.z,q.y,-s*q.x+c*q.z);
-    vN=normalize(vec3(c*aNrm.x+s*aNrm.z,aNrm.y,-s*aNrm.x+c*aNrm.z));vC=iC;vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);return;}
+    vN=normalize(vec3(c*aNrm.x+s*aNrm.z,aNrm.y,-s*aNrm.x+c*aNrm.z));vC=aCol.a>1.5?vec4(aCol.rgb,0.):vec4(iC.rgb*aCol.rgb,iC.a);vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);return;}
   vec3 w=(uM*vec4(aPos,1.)).xyz;vN=normalize(mat3(uM)*aNrm);vC=aCol;vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);}`;
 const FS_LIT=GLSL_COMMON+`
 in vec3 vP;in vec3 vN;in vec4 vC;in float vMat;in vec3 vL;out vec4 o;
@@ -204,6 +205,35 @@ void main(){
       vec3 Rw=reflect(-V,Nw);float Fw=.03+.97*pow(1.-max(dot(Nw,V),0.),5.);alb=vec3(.025,.03,.018);spec=1.;shin=200.;add+=env(Rw)*(.08+.9*Fw);
     }
     else if(m==52){alb=vec3(.7,.68,.63);}
+    else if(m==53){
+      /* gravel: a county road (two worn wheel tracks, loose stone down the middle and the edges, the
+         verge closing in) or a loose bed (the traps at the track, the yard at home); alpha = road half width */
+      float d=vC.g,ad=abs(d),hw=em,n1=vn(wp*1.7),n2=vn(wp*9.),n3=vn(wp*31.);
+      vec3 gc=mix(vec3(.16,.145,.12),vec3(.27,.245,.205),n1)*(.7+.42*n2)*(.78+.36*n3);
+      if(vC.b<.5){float tr=exp(-pow((ad-1.5)/.55,2.));gc=mix(gc,gc*vec3(.8,.78,.76),tr*.85);
+        float edge=smoothstep(hw-.6,hw+.3,ad+(n1-.5)*.9);gc=mix(gc,mix(dirtCol(wp),grassCol(wp),smoothstep(.25,.7,vn(wp*.35))),edge);}
+      alb=gc;spec=.05;shin=14.;em=0.;
+    }
+    else if(m==54){
+      /* asphalt: dark and fine grained, rubber down the middle, white edge lines, red and white kerbs where
+         it bends (blue slot), grass beyond, a chequered band at the line; alpha = half width */
+      float sx=vC.r,d=vC.g,ad=abs(d),hw=em,n2=vn(wp*7.),n3=vn(wp*41.);
+      vec3 ac=vec3(.05,.05,.056)*(.82+.28*n2)*(.88+.22*n3);ac*=1.-.2*exp(-pow(d/2.4,2.));
+      ac=mix(ac,vec3(.6,.6,.58),step(hw-.45,ad)*step(ad,hw-.2));
+      if(ad>hw){vec3 kc=mix(vec3(.46,.03,.025),vec3(.64,.63,.6),step(.5,fract(sx/1.6)));ac=mix(grassCol(wp),kc,smoothstep(.35,.45,vC.b)*step(ad,hw+1.5));}
+      else if(sx<1.6){ac=mix(vec3(.015),vec3(.64),mod(floor(sx/.8)+floor((d+hw)/.8),2.));}
+      alb=ac;spec=.2;shin=36.;add+=env(R)*F*.1;em=0.;
+    }
+    else if(m==55){
+      /* the home lane: mud in the ruts with water lying in the deep spots, grass on the crown and the verges (blue = rut depth) */
+      float sx=vC.r,d=vC.g,ad=abs(d),dep=vC.b,n2=vn(vec2(sx,d)*2.3),n3=vn(vec2(sx*.7,d*3.));
+      vec3 md=mix(vec3(.14,.09,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*vn(vec2(sx,d)*8.));
+      float rut=exp(-pow((ad-.82)/.3,2.)),gr=max(1.-smoothstep(.2,.48,ad+(n2-.5)*.22),smoothstep(1.55,2.25,ad+(n2-.5)*.5));
+      alb=mix(md,grassCol(wp)*.92,gr*(.7+.3*n2));spec=.22;shin=36.;
+      float pud=rut*smoothstep(.15,.19,dep+(n3-.5)*.05);
+      if(pud>0.){alb=mix(alb,vec3(.06,.045,.03),pud*.85);spec=mix(spec,1.,pud);shin=140.;add+=env(R)*F*pud*.75;}
+      em=0.;
+    }
     alb*=sh;add*=sh;
   }
   if(dirty){float k=mud(vL,h);if(k>0.){alb=mix(alb,mudCol(vL,h),k);spec*=1.-.8*k;add*=1.-.85*k;}}

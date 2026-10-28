@@ -4,7 +4,7 @@
    pile up and slow the game down, however hard the truck tumbles.
    ===================================================================================== */
 const FX_MAX=360,FX=[],FX_BUF=new Float32Array(FX_MAX*12);let FX_MESH=null;
-const FX_COL={dirt:[.36,.22,.12],trail:[.4,.27,.15],strip:[.42,.3,.2],grass:[.3,.26,.14],rock:[.36,.3,.26],concrete:[.4,.39,.37],mud:[.12,.08,.045],water:[.62,.7,.78]};
+const FX_COL={dirt:[.36,.22,.12],trail:[.4,.27,.15],strip:[.42,.3,.2],grass:[.3,.26,.14],rock:[.36,.3,.26],concrete:[.4,.39,.37],mud:[.12,.08,.045],water:[.62,.7,.78],gravel:[.46,.43,.38],asphalt:[.3,.3,.3],ruts:[.13,.085,.05]};
 const fxCount=n=>Math.floor(n)+(Math.random()<n%1?1:0);
 function fxAdd(kind,p,v,size,life,col){
   if(FX.length>=FX_MAX)return;
@@ -17,11 +17,11 @@ function fxEmit(dt,t){
   for(const w of t.wheels){
     if(!w.contact)continue;const surf=w.surf,col=FX_COL[surf]||FX_COL.dirt,spin=Math.abs(w.w*R-w.vl),roll=Math.abs(w.vl);
     const back=[-w.f[0],-w.f[1],-w.f[2]],sgnv=w.w*R>=0?1:-1,cp=w.cp;
-    if(surf==='mud'){const n=fxCount((spin*2.2+roll*.5)*dt);for(let k=0;k<n;k++){
+    if(surf==='mud'||surf==='ruts'){const n=fxCount((spin*2.2+roll*.5)*(surf==='ruts'?.7:1)*dt);for(let k=0;k<n;k++){
         const sp=2+spin*.5;fxAdd('mud',[cp[0]+(Math.random()-.5)*.3,cp[1]+.15,cp[2]+(Math.random()-.5)*.3],[back[0]*sp*sgnv+(Math.random()-.5)*2,1.5+Math.random()*2.5+spin*.15,back[2]*sp*sgnv+(Math.random()-.5)*2],.07+Math.random()*.08,1.2,col);}}
     else if(surf==='water'){const n=fxCount(roll*1.6*dt+spin*.6*dt);for(let k=0;k<n;k++){
         const side=w.r,s=(Math.random()<.5?-1:1)*(1+roll*.15);fxAdd('water',[cp[0],cp[1]+.2,cp[2]],[side[0]*s+back[0]*.6,2+Math.random()*2.5+roll*.12,side[2]*s+back[2]*.6],.06+Math.random()*.06,.8,col);}}
-    else if(surf!=='concrete'){const k0=surf==='rock'?.3:surf==='grass'?.5:1,n=fxCount((Math.max(0,spin-1.5)*1.4+Math.max(0,roll-4)*.25)*k0*dt);
+    else if(surf!=='concrete'&&surf!=='asphalt'){const k0=surf==='rock'?.3:surf==='grass'?.5:surf==='gravel'?.8:1,n=fxCount((Math.max(0,spin-1.5)*1.4+Math.max(0,roll-4)*.25)*k0*dt);
       for(let k=0;k<n;k++)fxAdd('dust',[cp[0]+(Math.random()-.5)*.4,cp[1]+.1,cp[2]+(Math.random()-.5)*.4],[back[0]*spin*.25*sgnv+(Math.random()-.5),.6+Math.random()*.8,back[2]*spin*.25*sgnv+(Math.random()-.5)],.12+Math.random()*.1,1.6+Math.random(),col);}
   }
 }

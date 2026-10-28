@@ -4,7 +4,7 @@ const fs=require('fs'),path=require('path'),vm=require('vm');
 const src=f=>fs.readFileSync(path.join(__dirname,'..','src',f),'utf8');
 const ctx={console,Math,Array,Object,Float32Array,Float64Array,Int32Array,Uint8Array,Uint16Array,Uint32Array,Number,String,JSON,Set,Map,isFinite,isNaN,performance};
 vm.createContext(ctx);
-vm.runInContext('const MAT={COL:0,EMIT:15};'+src('60_ranch.js')+'\nthis.Ranch=Ranch;',ctx);
+vm.runInContext('const MAT={COL:0,EMIT:15};'+src('59_country.js')+src('60_ranch.js')+'\nthis.Ranch=Ranch;',ctx);
 const t0=performance.now(),W=ctx.Ranch.buildRanch(),ms=performance.now()-t0;
 let tiles=0,tris=0,verts=0,maxT=0;for(const B of W.geo.tiles.values()){if(!B.idx.length)continue;tiles++;tris+=B.idx.length/3;verts+=B.nv;maxT=Math.max(maxT,B.idx.length/3);}
 console.log(`built in ${ms.toFixed(0)} ms: grid ${W.N}x${W.N} at ${W.cell} m, prop tiles ${tiles}, ${verts} verts, ${tris} tris (largest tile ${maxT})`);

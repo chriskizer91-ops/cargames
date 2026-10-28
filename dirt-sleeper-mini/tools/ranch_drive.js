@@ -12,7 +12,7 @@ const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};const 
 const SUVB={L:4.92,ovF:.93,wb:2.89,R0:.378};const MAT={COL:0,EMIT:15};
 const BUILDS=[{id:'stock',name:'Stock',look:{lift:0,track:1.6,roof:'bars',tyre:{R:.378}}},{id:'sleeper',name:'Sleeper',look:{lift:-.05,track:1.62,roof:'rails',tyre:{R:.372}}},
  {id:'crawler',name:'Rock & Mud',look:{lift:.15,track:1.74,roof:'rack',tyre:{R:.47}}},{id:'race',name:'Race',look:{lift:-.1,track:1.76,roof:'none',tyre:{R:.345}}}];`;
-vm.runInContext(stub+src('15_de_engine.js')+src('16_engines.js')+src('50_physmath.js')+src('51_tyre.js')+src('52_tune.js')+src('53_vehicle.js')+src('54_truckphys.js')+src('60_ranch.js')+
+vm.runInContext(stub+src('15_de_engine.js')+src('16_engines.js')+src('50_physmath.js')+src('51_tyre.js')+src('52_tune.js')+src('53_vehicle.js')+src('54_truckphys.js')+src('59_country.js')+src('60_ranch.js')+
   '\nthis.makeTruck=makeTruck;this.qmat=qmat;this.mcol=mcol;this.Ranch=Ranch;this.setLow=setLow;this.setLockers=setLockers;',ctx);
 const {makeTruck,qmat,mcol,Ranch}=ctx,DT=1/240,level=process.argv[2]||'real';
 const W=Ranch.buildRanch(),world=new Ranch.RanchWorld(W),D=W.D;

@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")"
 COMMON="10_core 11_display 12_gl 13_shader 14_loft 15_de_engine 16_engines 17_audio 18_instruments 20_suv 21_faces 22_parts 23_wheels 24_builds"
 BAY="$COMMON 30_stage 39_bayengine 40_bay"
-GAME="$COMMON 50_physmath 51_tyre 52_tune 53_vehicle 54_truckphys 60_ranch 61_ranchmesh 62_fx 70_game 71_hud 72_menus"
+GAME="$COMMON 50_physmath 51_tyre 52_tune 53_vehicle 54_truckphys 59_country 60_ranch 61_ranchmesh 62_fx 70_game 71_hud 72_menus"
 page() { out="$1"; head="$2"; shift 2
   { cat "src/$head"; for m in "$@"; do if [ -f "src/$m.js" ]; then cat "src/$m.js"; echo; fi; done; cat src/99_tail.html; } > "dist/$out"
   echo "dist/$out $(wc -c < "dist/$out") bytes"; }
