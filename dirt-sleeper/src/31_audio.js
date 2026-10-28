@@ -19,7 +19,7 @@
     }
     class FX {
       constructor(sr) {
-        this.sr = sr, this.p = { lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], wet: 0, speed: 0, cabin: 0, curb: 0, scrape: 0, vol: 1 }, this.g = { sq: [0, 0, 0, 0], rd: 0, hiss: 0, wind: 0, curb: 0, scr: 0 }, this.sq = [0, 1, 2, 3].map((i) => ({ bp: new BP(), bp2: new BP(), drift: 0, f: 0 })), this.road = new BP(), this.road.set(260, 0.7, sr), this.road2 = new BP(), this.road2.set(700, 0.9, sr), this.hissF = new BP(), this.hissF.set(2200, 0.9, sr), this.windF = new BP(), this.windF.set(520, 0.6, sr), this.grit = new BP(), this.grit.set(900, 2.2, sr), this.gritLo = new BP(), this.gritLo.set(180, 1.2, sr), this.seed = 22222, this.b = [0, 0, 0], this.curbPh = 0, this.thumpE = 0, this.thumpLp = 0, this.hits = [], this.grainE = 0, this.grainA = 0, this.hitLp = 0, this.k = 0, this.grvF = new BP(), this.grvF.set(1150, 0.8, sr), this.grvF2 = new BP(), this.grvF2.set(520, 1, sr), this.rollF = new BP(), this.rollF.set(150, 0.7, sr), this.sloshF = new BP(), this.sloshF.set(260, 0.7, sr), this.pings = [], this.roarF = new BP(), this.roarF.set(380, 0.7, sr), this.mudF = new BP(), this.mudF.set(140, 1.6, sr), this.mudF2 = new BP(), this.mudF2.set(520, 3, sr), this.splF = new BP(), this.splF.set(2600, 0.5, sr), this.grE = 0, this.grA = 0, this.mudPh = 0, this.g.grv = 0, this.g.roar = 0, this.g.mud = 0, this.g.spl = 0;
+        this.sr = sr, this.p = { lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], wet: 0, speed: 0, cabin: 0, curb: 0, scrape: 0, vol: 1 }, this.g = { sq: [0, 0, 0, 0], rd: 0, hiss: 0, curb: 0, scr: 0 }, this.sq = [0, 1, 2, 3].map((i) => ({ bp: new BP(), bp2: new BP(), drift: 0, f: 0 })), this.road = new BP(), this.road.set(260, 0.7, sr), this.road2 = new BP(), this.road2.set(700, 0.9, sr), this.hissF = new BP(), this.hissF.set(2200, 0.9, sr), this.grit = new BP(), this.grit.set(900, 2.2, sr), this.gritLo = new BP(), this.gritLo.set(180, 1.2, sr), this.seed = 22222, this.b = [0, 0, 0], this.curbPh = 0, this.thumpE = 0, this.thumpLp = 0, this.hits = [], this.grainE = 0, this.grainA = 0, this.hitLp = 0, this.k = 0, this.grvF = new BP(), this.grvF.set(1150, 0.8, sr), this.grvF2 = new BP(), this.grvF2.set(520, 1, sr), this.rollF = new BP(), this.rollF.set(150, 0.7, sr), this.sloshF = new BP(), this.sloshF.set(260, 0.7, sr), this.pings = [], this.roarF = new BP(), this.roarF.set(380, 0.7, sr), this.mudF = new BP(), this.mudF.set(140, 1.6, sr), this.mudF2 = new BP(), this.mudF2.set(520, 3, sr), this.splF = new BP(), this.splF.set(2600, 0.5, sr), this.grE = 0, this.grA = 0, this.mudPh = 0, this.g.grv = 0, this.g.roar = 0, this.g.mud = 0, this.g.spl = 0;
       }
       set(p) {
         this.p = p;
@@ -41,7 +41,7 @@
         let p = this.p, g = this.g, sr = this.sr, k = 1 - Math.exp(-1 / (sr * 0.05)), sp = p.speed || 0, cab = p.cabin ? 1 : 0, wet = p.wet || 0, lat = p.lat || [0, 0, 0, 0], lon = p.lon || [0, 0, 0, 0], sqT = [0, 1, 2, 3].map((i) => {
           let side = ss(1.25, 2.1, lat[i]), spin = ss(2.8, 5.5, lon[i]);
           return Math.max(side * ss(2, 6, sp), spin * 0.8 * ss(0.5, 3, sp + lon[i])) * Math.min(1.2, (p.load[i] || 0) / 3600) * (1 - 0.95 * wet) * (p.sqK ? p.sqK[i] : 1);
-        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gWind = G("speedwind"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, windT = Math.min(1.2, (sp / 55) ** 2) * 0.35, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
+        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
         dv !== this.dv && (this.dv = dv, this.grvF.set(dv === "coarse" ? 760 : 1150, 0.8, sr), this.grvF2.set(dv === "coarse" ? 330 : 520, 1, sr));
         let gRate = dv === "coarse" ? [420, 65] : [700, 110], gDec = dv === "coarse" ? 0.986 : 0.975, gLvl = (dv === "coarse" ? 0.3 : dv === "packed" ? 0.085 : 0.24) * gDirt, pebK = dv === "coarse" ? 2.2 : dv === "packed" ? 0.4 : 1;
         for (let w = 0; w < 4; w++) {
@@ -52,7 +52,7 @@
         }
         for (let i = 0; i < n; i++) {
           for (let w = 0; w < 4; w++) g.sq[w] += (sqT[w] - g.sq[w]) * k;
-          g.rd += (rdT - g.rd) * k, g.hiss += (hissT - g.hiss) * k, g.wind += (windT - g.wind) * k, g.curb += (curbT - g.curb) * k, g.scr += (scrT - g.scr) * k * 2, g.grv += (grvT - g.grv) * k, g.roar += (roarT - g.roar) * k, g.mud += (mudT - g.mud) * k, g.spl += (splT - g.spl) * k;
+          g.rd += (rdT - g.rd) * k, g.hiss += (hissT - g.hiss) * k, g.curb += (curbT - g.curb) * k, g.scr += (scrT - g.scr) * k * 2, g.grv += (grvT - g.grv) * k, g.roar += (roarT - g.roar) * k, g.mud += (mudT - g.mud) * k, g.spl += (splT - g.spl) * k;
           let wn = this.rnd(), b = this.b;
           b[0] = 0.99765 * b[0] + wn * 0.099046, b[1] = 0.963 * b[1] + wn * 0.2965164, b[2] = 0.57 * b[2] + wn * 1.0526913;
           let pink = (b[0] + b[1] + b[2] + wn * 0.1848) * 0.12, l = 0, r = 0;
@@ -89,9 +89,7 @@
             let P = this.pings[q], y = P.a1 * P.y1 - P.a2 * P.y2;
             P.y2 = P.y1, P.y1 = y, road += y, --P.n <= 0 && this.pings.splice(q, 1);
           }
-          l += road, r += road;
-          let wind = this.windF.run(pink) * g.wind * (cab ? 0.45 : 1) * gWind;
-          if (l += wind * 1.05, r += wind * 0.95, g.curb > 1e-3) {
+          if (l += road, r += road, g.curb > 1e-3) {
             this.curbPh += Math.max(sp, 1) / 2 / sr, this.curbPh >= 1 && (this.curbPh -= 1, this.thumpE = 1), this.thumpE *= Math.exp(-1 / (sr * 0.03)), this.thumpPh = (this.thumpPh || 0) + 46 / sr, this.thumpLp += (wn - this.thumpLp) * 0.01;
             let th = (Math.sin(TAU2 * this.thumpPh) * 0.5 + this.thumpLp * 3) * this.thumpE * g.curb * 0.18 * gHit;
             l += th, r += th;
@@ -157,16 +155,16 @@ class ShiftlightFX extends AudioWorkletProcessor{
   constructor(){super();this.d=new FXDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
   process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
 registerProcessor('shiftlight-fx',ShiftlightFX);
-const AMBDSP=(${makeAmb.toString()})();
-class DirtAmb extends AudioWorkletProcessor{
-  constructor(){super();this.d=new AMBDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
-  process(i,o){const w=o[0],u=o[1];this.d.process(w[0],w[1]||w[0],w[0].length,u?u[0]:null,u?(u[1]||u[0]):null);return true;}}
-registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
+const UIDSP=(${makeUISynth.toString()})();
+class DirtUI extends AudioWorkletProcessor{
+  constructor(){super();this.d=new UIDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
+  process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
+registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     constructor() {
-      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.ambVol = 1, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
+      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
     }
     /* call from a user gesture. The graph: each source has its own bus; the engine is tamed on its own
-       compressor so a redline doesn't push the world down; a limiter only catches peaks at the end. */
+       compressor so a redline doesn't bury the tyres and the HUD sounds; a limiter only catches peaks at the end. */
     start() {
       return this.starting ? this.starting : (this.starting = (async () => {
         let AC = window.AudioContext || window.webkitAudioContext;
@@ -187,11 +185,11 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           return cv.buffer = roomIR(ctx, k), send.connect(cv), cv.connect(pre), send;
         };
         this.sendS = mk("street"), this.sendT = mk("tunnel");
-        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), worldBus = G(), uiBus = G();
+        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), uiBus = G();
         engIn.connect(engBus), engBus.connect(engComp), engComp.connect(engOut);
         for (let b of [engOut, groundBus]) b.connect(pre), b.connect(this.sendS), b.connect(this.sendT);
-        worldBus.connect(pre), uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, worldBus, uiBus });
-        this.meters = { engine: A(), ground: A(), world: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), worldBus.connect(this.meters.world), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
+        uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, uiBus });
+        this.meters = { engine: A(), ground: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
         try {
           if (!ctx.audioWorklet) throw new Error("no worklet");
           let src = ENGINE_SRC();
@@ -200,24 +198,24 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           } catch {
             await ctx.audioWorklet.addModule("data:application/javascript;charset=utf-8," + encodeURIComponent(src));
           }
-          let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), amb = node("dirt-amb", 2);
-          eng.connect(engIn), fx.connect(groundBus), amb.connect(worldBus, 0), amb.connect(uiBus, 1), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.amb = { post: (m) => amb.port.postMessage(m) }, this.kind = "worklet";
+          let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), uis = node("dirt-ui");
+          eng.connect(engIn), fx.connect(groundBus), uis.connect(uiBus), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.uis = { post: (m) => uis.port.postMessage(m) }, this.kind = "worklet";
         } catch {
           /* no worklets: one script processor runs all three synths, each into its own bus through a splitter-free trick of three processors */
-          let D = makeDSP(), F = makeFX(), Am = makeAmb(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), am = new Am(ctx.sampleRate), sp = (fn) => {
+          let D = makeDSP(), F = makeFX(), Us = makeUISynth(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), us = new Us(ctx.sampleRate), sp = (fn) => {
             let n = ctx.createScriptProcessor(1024, 1, 2), src = ctx.createConstantSource ? ctx.createConstantSource() : null;
             return src && (src.offset.value = 0, src.connect(n), src.start()), n.onaudioprocess = (ev) => {
               let b = ev.outputBuffer;
               fn(b.getChannelData(0), b.getChannelData(1), b.length);
             }, n;
           };
-          sp((L, R2, n) => d.process(L, R2, n)).connect(engIn), sp((L, R2, n) => f2.process(L, R2, n)).connect(groundBus), sp((L, R2, n) => am.process(L, R2, n)).connect(worldBus);
+          sp((L, R2, n) => d.process(L, R2, n)).connect(engIn), sp((L, R2, n) => f2.process(L, R2, n)).connect(groundBus), sp((L, R2, n) => us.process(L, R2, n)).connect(uiBus);
           this.eng = { post: (m) => {
             m.t === "cfg" ? d.configure(m.cfg) : m.t === "p" ? d.set(m.p) : m.t === "ev" && d.event(m.ev);
           } }, this.fx = { post: (m) => {
             m.t === "p" ? f2.set(m.p) : m.t === "ev" && f2.event(m.ev);
-          } }, this.amb = { post: (m) => {
-            m.t === "p" ? am.set(m.p) : m.t === "ev" && am.event(m.ev);
+          } }, this.uis = { post: (m) => {
+            m.t === "p" ? us.set(m.p) : m.t === "ev" && us.event(m.ev);
           } }, this.kind = "main thread";
         }
         ctx.state !== "running" && await ctx.resume(), this.cfg && this.eng.post({ t: "cfg", cfg: this.cfg }), this.ready = !0, this.setMix(this.mix);
@@ -251,13 +249,13 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       return dbToLin(this.engNorm * Math.max(0, Math.min(1, +this.mix.eng.norm)));
     }
     applyMixParts() {
-      this.mixG = mixFor(this.mix, MIX_GROUND), this.mixW = mixFor(this.mix, MIX_WORLD);
+      this.mixG = mixFor(this.mix, MIX_GROUND), this.mixU = mixFor(this.mix, MIX_UI), this.uis && this.uis.post({ t: "p", p: { vol: 1, mix: this.mixU } });
     }
     /* apply a mix: bus faders, the engine's tamer, the limiter, and the per-sound settings */
     setMix(m) {
       if (this.mix = mixFill(m), this.applyMixParts(), !this.ctx) return;
       let t = this.ctx.currentTime, M = this.mix, set = (g, db) => g && g.gain.setTargetAtTime(dbToLin(db), t, 0.03), tame = Math.max(0, Math.min(1, M.eng.tame ?? 0.55));
-      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.worldBus, M.bus.world), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
+      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
       let c = this.engComp;
       c.threshold.value = -6 - 22 * tame, c.ratio.value = 1 + 5 * tame, c.knee.value = 10, c.attack.value = 6e-3, c.release.value = 0.25, this.lim.threshold.value = M.limiter ? -1.5 : 0, this.lim.ratio.value = M.limiter ? 20 : 1, this.engIn.gain.setTargetAtTime(this.normGain(), t, 0.05);
     }
@@ -283,25 +281,19 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       this.ctx && (on ? this.ctx.suspend() : this.ctx.resume());
     }
     /* once per frame */
-    update(engineP, engineEvents, fxP, fxEvents, { cabin = !1, yard = 0, shop = 0, amb = null, ambEvents = [] } = {}) {
+    update(engineP, engineEvents, fxP, fxEvents, { cabin = !1, yard = 0, shop = 0 } = {}) {
       if (!this.ready) return;
       for (let e of engineEvents) this.eng.post({ t: "ev", ev: e });
       this.eng.post({ t: "p", p: engineP });
       for (let e of fxEvents) this.fx.post({ t: "ev", ev: e });
-      if (this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) }), amb) {
-        for (let e of ambEvents) this.amb.post({ t: "ev", ev: e });
-        this.amb.post({ t: "p", p: Object.assign({ vol: this.ambVol, uiVol: 1, mix: this.mixW }, amb) });
-      }
+      this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) });
       /* the space: open range is nearly dry, the shop yard throws back a slap, inside the shop it rings */
       let t = this.ctx.currentTime, c = cabin ? 0.4 : 1;
       this.yard += (yard - this.yard) * 0.08, this.shop += (shop - this.shop) * 0.08, this.sendS.gain.setTargetAtTime(c * (0.05 + 0.3 * this.yard) * (1 - this.shop), t, 0.08), this.sendT.gain.setTargetAtTime(0.6 * c * this.shop, t, 0.08);
     }
-    /* one-shot shop and HUD sounds, or a world event (thunder, a bird, a cheer) */
+    /* one-shot shop and HUD sounds */
     ui(type, extra) {
-      this.ready && this.amb && this.amb.post({ t: "ev", ev: Object.assign({ type }, extra || {}) });
-    }
-    setAmbVolume(v) {
-      this.ambVol = v;
+      this.ready && this.uis && this.uis.post({ t: "ev", ev: Object.assign({ type }, extra || {}) });
     }
   };
 

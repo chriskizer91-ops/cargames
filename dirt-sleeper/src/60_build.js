@@ -252,15 +252,29 @@
       { v: "stock", n: "Factory privacy glass", d: "", price: 0 },
       { v: "limo", n: "Limo tint", d: "Nobody can see who's driving.", price: 250, loud: 2 }
     ] }
-  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["looks", "Looks"], ["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
+  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["builds", "Trucks"], ["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
   var STOCK_BUILD = Object.fromEntries(SLOTS.map((s) => [s.id, s.opts.find((o) => !o.price && (s.id !== "susp" || o.v === "stock")).v]));
   STOCK_BUILD.susp = "stock";
-  /* three finished looks, one click each: only the parts you can see (and the wheels, tyres and ride height under them) */
-  var LOOKS = [
-    { id: "classic", name: "Classic Sleeper", blurb: "Bronze-grey paint, the chrome twin-bar face, six-spoke alloys, factory cladding and the little lip. Looks like it's going to church.", build: { paint: "bronze", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "stock18", tyre: "street32", susp: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0 } },
-    { id: "street", name: "Street Sleeper", blurb: "Gunmetal, dropped two inches on 20-inch ten-spokes with red calipers. Split-mesh face, smoked lamps, LED tails, a splitter, a diffuser, a big roof spoiler and red pinstripes.", build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", livery: 0, tint: "limo", wheel: "street20", tyre: "street32", susp: "lowered", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "diffuser", hood: "stock", snorkel: 0 } },
-    { id: "backcountry", name: "Backcountry", blurb: "Canyon stone on bronze discs and all-terrains, a leveling kit, wide black flares, quad round lamps, recovery shackles and the expedition rack.", build: { paint: "stone", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "bronze17", tyre: "at33", susp: "level", flares: 2, sides: "cladding", spoiler: 0, roof: "expedition", front: "recovery", rear: "stock", hood: "stock", snorkel: 0 } }
+  /* the four trucks: the factory truck, and the best arrangement of parts for a sleeper, for mud and for
+     racing, each found by running the game's own physics over the strip, the bog and the climb. Free play
+     picks one at the start; the campaign earns them, or you buy the parts. */
+  var BUILDS = [
+    { id: "starter", name: "Starter", role: "As it left the factory", blurb: "Bronze-grey, 4.6 V8, six-speed auto, 32-inch highway tyres. Everything else is up to you.", build: {}, earn: null },
+    { id: "sleeper", name: "Sleeper", role: "Looks like church, runs sevens", blurb: "Midnight black with the chrome twin-bar face and factory alloys on all-terrains. Underneath: the twin-turbo V6 with bigger turbos and a 250-shot, a race four-speed with a trans-brake, 4.56 gears and a gutted cabin.",
+      build: { paint: "black", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", tint: "limo", wheel: "stock18", tyre: "at33", susp: "stock", shocks: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0, lights: 0, engine: "tt35", power: "bigturbo", nos: 4, intake: 2, exhaust: "headers", cam: 0, tune: 2, trans: "race4", axle: 4.56, tcase: "awd", lockers: 0, interior: "gutted" },
+      earn: { kind: "drag", id: "prof", text: "Beat The Professor on the strip" } },
+    { id: "mudder", name: "Mudder", role: "Built for the bog", blurb: "Safety orange on a six-inch lift and 40-inch swampers. A blown big-block through a race four-speed, 5.38 gears, low range, lockers front and rear, a snorkel, wide flares and a light bar.",
+      build: { paint: "orange", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", tint: "stock", wheel: "beadlock17", tyre: "sw40", susp: "lift6", shocks: "bypass", flares: 2, sides: "sliders", spoiler: 0, roof: "none", front: "recovery", rear: "stock", hood: "stock", snorkel: 1, lights: 1, engine: "bb74", power: "roots", nos: 1, intake: 2, exhaust: "headers", cam: 2, tune: 2, trans: "race4", axle: 5.38, tcase: "low", lockers: 2, interior: "gutted" },
+      earn: { kind: "medal", run: "bog", m: 3, text: "Win gold in the Mud Bog" } },
+    { id: "racer", name: "Racer", role: "Built for the dirt drags", blurb: "Gunmetal with red pinstripes, split-mesh face, a big roof spoiler and wheelie bars. A twin-turbo big-block on a 250-shot through a race four-speed to paddle tyres on 20-inch ten-spokes.",
+      build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", tint: "limo", wheel: "street20", tyre: "paddle35", susp: "level", shocks: "bypass", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "wheelie", hood: "scoop", snorkel: 0, lights: 0, engine: "bb74", power: "twin", nos: 4, intake: 2, exhaust: "straight", cam: 3, tune: 2, trans: "race4", axle: 3.73, tcase: "awd", lockers: 0, interior: "gutted" },
+      earn: { kind: "drag", id: "ghost", text: "Beat The Ghost" } }
   ];
+  /* a preset as a complete build (everything it doesn't name is factory) */
+  function presetBuild(id, keep) {
+    let B = BUILDS.find((q) => q.id === id) || BUILDS[0];
+    return Object.assign({}, STOCK_BUILD, B.build, keep ? { number: keep.number } : {});
+  }
   function optOf(b, id) {
     return SLOT[id].opts.find((o) => o.v === b[id]) || SLOT[id].opts[0];
   }

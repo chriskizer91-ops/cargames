@@ -1,9 +1,0 @@
-const fs=require('fs');const s=fs.readFileSync(__dirname+'/../src/33_ambience.js','utf8');
-const A=new Function(s+';return makeAmb')()();const SR=48000;
-const wav=(name,L,R)=>{const n=L.length,b=Buffer.alloc(44+n*4);b.write('RIFF',0);b.writeUInt32LE(36+n*4,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(2,22);b.writeUInt32LE(SR,24);b.writeUInt32LE(SR*4,28);b.writeUInt16LE(4,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n*4,40);for(let i=0;i<n;i++){b.writeInt16LE(Math.max(-32767,Math.min(32767,Math.round(L[i]*32767))),44+i*4);b.writeInt16LE(Math.max(-32767,Math.min(32767,Math.round(R[i]*32767))),46+i*4);}fs.writeFileSync(__dirname+'/'+name+'.wav',b);};
-const cases={rain_out:{rain:.7,storm:1,wind:.4},rain_cab:{rain:.7,cabin:1,wind:.4},night:{crickets:1,wind:.15},day:{birds:1,wind:.25},creek:{creek:1,birds:.6},crowd:{crowd:.8}};
-for(const [k,p] of Object.entries(cases)){const a=new A(SR);a.set(p);if(k==='crowd')a.event({type:'cheer',a:1});if(k==='rain_out')a.event({type:'thunder',dist:.2});
- const N=SR*6,L=new Float32Array(N),R=new Float32Array(N);const t0=Date.now();for(let o=0;o<N;o+=128)a.process(L.subarray(o,o+128),R.subarray(o,o+128),128);const ms=Date.now()-t0;
- let pk=0,rms=0;for(let i=SR;i<N;i++){pk=Math.max(pk,Math.abs(L[i]),Math.abs(R[i]));rms+=L[i]*L[i];}
- console.log(k.padEnd(9),'peak',pk.toFixed(3),'rms',Math.sqrt(rms/(N-SR)).toFixed(4),'cpu',(ms/6/10).toFixed(1)+'%','nan',L.some(isNaN));wav('amb_'+k,L,R);}
-{const a=new A(SR);a.set({});['kaching','chime','tick','trophy'].forEach((t,i)=>setTimeout(()=>{},0));const N=SR*4,L=new Float32Array(N),R=new Float32Array(N);let o=0;for(const t of ['kaching','chime','tick','trophy']){a.event({type:t});for(let j=0;j<SR;j+=128,o+=128)a.process(L.subarray(o,o+128),R.subarray(o,o+128),128);}let pk=0;for(const x of L)pk=Math.max(pk,Math.abs(x));console.log('ui        peak',pk.toFixed(3));wav('amb_ui',L,R);}

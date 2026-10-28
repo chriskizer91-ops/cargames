@@ -68,6 +68,16 @@ void matRibbon(inout Surf s,inout float ssr,inout vec2 g,vec2 uv,uvec4 m){
     chalk*=1.0-wear*.75;
     alb=mix(alb,vec3(.7,.68,.63),chalk);rough=mix(rough,.96,chalk);
     g+=vnd(uv*4.).yz*4.*.0012*(1.0-burn);
+  }else if(m.y==2u){
+    /* the mud track: churned and wet, four ruts cut deep by every lap, water lying in them, drier clods on the crown */
+    float n3=vn(uv*vec2(.9,2.2)),n4=vn(uv*7.);
+    vec3 mud=mix(vec3(.13,.085,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*n4);
+    float rut=0.;for(int i=0;i<4;i++){float c=(float(i)-1.5)*1.55+(vn(vec2(sx*.08,float(i)*3.))-.5)*.7;rut=max(rut,exp(-pow((d-c)/.34,2.)));}
+    float edge=smoothstep(3.8,4.9,ad+(n3-.5)*1.2),clod=smoothstep(.55,.8,vn(uv*vec2(3.,5.)))*(1.0-rut);
+    alb=mix(mud*(1.0+clod*.45),dirtCol(wp)*.85,edge*.6);rough=mix(.5,.85,clod);
+    float pud=rut*smoothstep(.45,.6,fbm(vec2(sx*.15,d*.6)))*(1.0-edge);
+    alb=mix(alb,vec3(.07,.05,.03),pud*.8);rough=mix(rough,.12,pud);ssr=max(ssr,pud*.45);
+    vec3 tr=vnd(vec2(sx*3.,d*9.));g+=tr.yz*.04*(1.0-pud)+vec2(0.,-rut*sign(d)*.02);
   }else{
     /* a two-track: packed ruts, a grassy crown, grass closing in at the verges */
     float rut=exp(-pow((ad-.86)/.3,2.));float crown=1.0-smoothstep(.18,.45,ad);float verge=smoothstep(1.9,3.3,ad+(n2-.5)*.8);

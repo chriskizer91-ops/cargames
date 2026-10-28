@@ -14,7 +14,7 @@ async def main():
             if tag=='desk':
                 await pg.click('#start'); await pg.wait_for_timeout(2500)
                 print('audio', await pg.evaluate("[window.__board.audio.kind, window.__board.audio.ctx&&window.__board.audio.ctx.state, window.__board.audio.ready].join(' ')"))
-                for sc in ['Idle in the shop','Cruising the trail','Redline on the strip','Night at the creek','Storm, in the cab','Mud bog','Just the world']:
+                for sc in ['Idle in the shop','Cruising the trail','Redline on the strip','Burnout on the pad','Mud bog','Rock crawl','Water crossing']:
                     await pg.click(f'.tag:has-text("{sc}")'); await pg.wait_for_timeout(2600)
                     lv=await pg.evaluate("(()=>{const L=window.__board.audio.levels();const o={};for(const k in L)o[k]=Array.isArray(L[k])?L[k].map(x=>+x.toFixed(1)):+L[k].toFixed(1);return JSON.stringify(o)})()")
                     print(sc.ljust(22), lv)

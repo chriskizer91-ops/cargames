@@ -96,7 +96,7 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
 </style>
 <div class="wrap">
   <header class="bar">
-    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Pick a scene, then choose a version of each sound and set its level. The engine runs underneath so you can check the mix at idle and at redline. When it sounds right, copy the mix code into the game.</p></div>
+    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Pick a scene, then choose a version of each sound and set its level. The engine runs underneath so you can check the mix at idle, at redline and mid-burnout. When it sounds right, copy the mix code into the game.</p></div>
     <div class="ctl">
       <button class="btn go" id="start">Start sound</button>
       <div class="mm"><span class="k">Out</span><div class="meter" id="mMaster"><i></i><b></b></div><span class="db" id="dMaster">−∞</span></div>
@@ -106,7 +106,6 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
   <section><p class="eyebrow">Scene</p><div class="scenes" id="scenes"></div><div class="ctx" id="ctx"></div></section>
   <section><p class="eyebrow">Buses</p><div class="buses" id="buses"></div></section>
   <section class="group" id="g-ground"><p class="eyebrow">Ground and tyres</p><div class="cards" id="c-ground"></div></section>
-  <section class="group" id="g-world"><p class="eyebrow">The world</p><div class="cards" id="c-world"></div></section>
   <section class="group" id="g-ui"><p class="eyebrow">Shop and HUD</p><div class="cards" id="c-ui"></div></section>
   <section class="code"><p class="eyebrow" style="margin:0">Mix code</p><textarea id="code" readonly spellcheck="false"></textarea>
     <ol><li>Press <b>Copy mix code</b>.</li><li>In the game, open <b>Settings</b> (in the shop or from Pause), find <b>Sound mix</b>, paste it and press <b>Use this mix</b>.</li><li>The code holds every level, version and knob on this page. Changes save here automatically.</li></ol></section>

@@ -4,24 +4,24 @@
     let e = document.createElement(tag);
     return cls && (e.className = cls), html !== void 0 && (e.innerHTML = html), e;
   }, esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  var CAT_CAM = { looks: { yaw: 0.72, pitch: 0.1, dist: 8.4, y: 0.3 }, engine: { yaw: 0.55, pitch: 0.22, dist: 7.4, y: 0.4 }, drive: { yaw: 2.6, pitch: 0.08, dist: 7.6, y: 0.1 }, chassis: { yaw: 1.62, pitch: 0.05, dist: 8.4, y: 0.1 }, wheels: { yaw: 0.85, pitch: 0.06, dist: 7.2, y: -0.1 }, body: { yaw: 0.9, pitch: 0.2, dist: 8.6, y: 0.35 }, paint: { yaw: 1.35, pitch: 0.12, dist: 8.8, y: 0.3 } };
+  var CAT_CAM = { builds: { yaw: 0.72, pitch: 0.1, dist: 8.4, y: 0.3 }, engine: { yaw: 0.55, pitch: 0.22, dist: 7.4, y: 0.4 }, drive: { yaw: 2.6, pitch: 0.08, dist: 7.6, y: 0.1 }, chassis: { yaw: 1.62, pitch: 0.05, dist: 8.4, y: 0.1 }, wheels: { yaw: 0.85, pitch: 0.06, dist: 7.2, y: -0.1 }, body: { yaw: 0.9, pitch: 0.2, dist: 8.6, y: 0.35 }, paint: { yaw: 1.35, pitch: 0.12, dist: 8.8, y: 0.3 } };
   function makeUI() {
-    let U = { touchHorn: !1, cat: "looks", open: null, committed: null, preview: null, revBtn: 0, idleT: 0, camTo: null, passCache: /* @__PURE__ */ new Map(), passT: 0, touch: !1, lastCam: null };
-    let layers = ["title", "garage", "hud", "pause", "result", "events"];
+    let U = { touchHorn: !1, touchLock: !1, repSkip: !1, cat: "builds", open: null, committed: null, preview: null, revBtn: 0, idleT: 0, camTo: null, passCache: /* @__PURE__ */ new Map(), passT: 0, touch: !1, lastCam: null };
+    let layers = ["title", "garage", "hud", "pause", "result", "events", "pick", "replay"];
     U.show = (name) => {
       for (let l of layers) $(l).hidden = l !== name;
-      $("touch").hidden = !(name === "hud" && U.touch), name === "garage" && (renderGarage(), U.cash()), name === "hud" && (U.cash(), hudBuild()), name === "title" && renderTitle();
+      $("touch").hidden = !(name === "hud" && U.touch), name === "garage" && (renderGarage(), U.cash()), name === "hud" && (U.cash(), hudBuild()), name === "title" && renderTitle(), name === "pick" && renderPick();
     };
     /* ---------- the title: campaign or free play ---------- */
     function renderTitle() {
       let box = $("modes"), c = hasSave("campaign"), won = c ? RIVALS.filter((r) => (c.wins || {})[r.id]).length : 0, tro = c ? Object.keys(c.trophies || {}).length : 0;
       box.innerHTML = "";
       let card = (cls, eyebrow, title, text, extra, label, gm) => {
-        let d = el("div", "mode " + cls, `<span class="eyebrow">${eyebrow}</span><h3>${title}</h3><p>${text}</p>${extra}`), b = el("button", "btn " + (gm === "campaign" ? "go" : ""), label);
+        let d = el("div", "mode " + cls, `<span class="eyebrow">${eyebrow}</span><h3>${title}</h3><p>${text}</p>${extra}`), b = el("button", "btn " + (gm === "free" ? "go" : ""), label);
         b.onclick = () => chooseMode(gm), d.appendChild(b), box.appendChild(d);
       };
-      card("camp", "Campaign", "Earn it", "Start with $2,500 and the truck as it left the factory. Win drags and medals, buy the parts, fill the trophy case.", c ? `<p class="prog">${fmt$(c.cash)} · ${won}/${RIVALS.length} racers beaten · ${tro}/${TROPHIES.length} trophies</p>` : "", c ? "Continue the campaign" : "Start the campaign", "campaign");
-      card("free", "Free play", "Everything unlocked", "Every part in the shop, every racer and every run, no prices. Try any build you like. Nothing here counts toward the campaign.", "", "Play free", "free");
+      card("free", "Free play", "Pick a truck and drive", "Four trucks to start from: the factory truck, a sleeper, a mudder and a racer. Burnout pad, mud track, rock garden, the strip and the trails, every part in the shop with no prices.", "", "Play free", "free");
+      card("camp", "Campaign", "Earn it", "Start with $2,500 and the truck as it left the factory. Win drags and medals, buy the parts, earn the other three trucks, fill the trophy case.", c ? `<p class="prog">${fmt$(c.cash)} · ${won}/${RIVALS.length} racers beaten · ${tro}/${TROPHIES.length} trophies</p>` : "", c ? "Continue the campaign" : "Start the campaign", "campaign");
     }
     /* ---------- toasts ---------- */
     U.toast = (text, kind = "", dur = 2.2) => {
@@ -69,31 +69,51 @@
       else U.committed = Object.assign({}, SV.build), U.preview = { slot: slot.id, v: o.v, o, notes }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>${esc(o.n)}</b>${fmt$(o.price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < o.price, $("buyGo").textContent = SV.cash < o.price ? "Not enough" : "Buy " + fmt$(o.price);
       renderSlots(), renderSheet();
     }
-    /* a look: every part it changes, and the ones you'd have to buy */
-    function lookParts(lk) {
-      let b = U.preview && U.committed ? U.committed : SV.build, out = [];
-      for (let id in lk.build) b[id] !== lk.build[id] && out.push({ slot: id, v: lk.build[id], o: SLOT[id].opts.find((o) => o.v === lk.build[id]) });
+    /* a preset truck: every part it changes, and the ones you'd have to buy */
+    function buildParts(B) {
+      let b = U.preview && U.committed ? U.committed : SV.build, full = presetBuild(B.id, b), out = [];
+      for (let s2 of SLOTS) s2.id !== "number" && b[s2.id] !== full[s2.id] && out.push({ slot: s2.id, v: full[s2.id], o: SLOT[s2.id].opts.find((o) => o.v === full[s2.id]) });
       return out;
     }
-    function pickLook(lk) {
+    function pickBuild(B, quiet) {
       revert();
-      let parts = lookParts(lk);
-      if (!parts.length) return U.toast(`${lk.name} is already on the truck`, "", 1.8);
-      let b = Object.assign({}, SV.build, lk.build), notes = fixBuild(b, null), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0);
-      if (!missing.length) applyBuild(b), U.committed = null, persist(), U.toast(`${lk.name}`, "go", 1.6), notes.forEach((n) => U.toast(n, "", 2.5));
-      else U.committed = Object.assign({}, SV.build), U.preview = { look: lk.id, items: missing, o: { n: lk.name, price }, notes }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>${esc(lk.name)}</b>${missing.length} part${missing.length > 1 ? "s" : ""} · ${fmt$(price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < price, $("buyGo").textContent = SV.cash < price ? "Not enough" : "Buy all " + fmt$(price);
+      let parts = buildParts(B);
+      if (!parts.length) return quiet || U.toast(`The ${B.name} is already the truck you have`, "", 1.8);
+      let b = presetBuild(B.id, SV.build), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0);
+      if (!missing.length) applyBuild(b), U.committed = null, persist(), quiet || U.toast(`The ${B.name}`, "go", 1.6);
+      else U.committed = Object.assign({}, SV.build), U.preview = { build: B.id, items: missing, o: { n: "The " + B.name, price }, notes: [] }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>The ${esc(B.name)}</b>${missing.length} part${missing.length > 1 ? "s" : ""} · ${fmt$(price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < price, $("buyGo").textContent = SV.cash < price ? "Not enough" : "Buy all " + fmt$(price);
       renderSlots(), renderSheet();
     }
-    function renderLooks(box) {
+    U.pickBuild = pickBuild;
+    function buildStats(B) {
+      let b = presetBuild(B.id, SV.build), n = buildNumbers(b), r = pass(b);
+      return `<span class="chips"><span>${Math.round(n.hp)} hp</span><span>${r.et.toFixed(2)} s eighth</span><span>${(n.clearance / 2.54).toFixed(1)} in clearance</span></span>`;
+    }
+    function renderBuilds(box) {
       let list = el("div", "opts looks");
-      list.appendChild(el("p", "looknote", FREE() ? "One click puts the whole look on. Engine and drivetrain stay as they are." : "Try a look on, then buy the parts you don't have yet in one go. Engine and drivetrain stay as they are."));
-      for (let lk of LOOKS) {
-        let parts = lookParts(lk), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0), tr = U.preview && U.preview.look === lk.id, on = !parts.length, t = el("button", "tag look" + (on ? " on" : ""));
-        t.innerHTML = `<span class="t">${esc(lk.name)}</span><span class="p">${FREE() || !missing.length ? "" : fmt$(price)}</span><span class="d">${esc(lk.blurb)}</span><span class="st">${tr ? '<i class="stamp try">Trying on</i>' : on ? '<i class="stamp fit">Fitted</i>' : FREE() ? "" : missing.length ? `<i class="stamp own">${missing.length} part${missing.length > 1 ? "s" : ""} to buy</i>` : '<i class="stamp own">All in the shop</i>'}</span>`;
-        t.onclick = () => pickLook(lk), list.appendChild(t);
+      list.appendChild(el("p", "looknote", FREE() ? "Four complete trucks. One click puts the whole thing on, engine to paint; change any part after." : "The factory truck, and three you earn: each one's parts go into the shop when you do. Or try one on now and buy the parts you're missing."));
+      for (let B of BUILDS) {
+        let parts = buildParts(B), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0), tr = U.preview && U.preview.build === B.id, on = !parts.length, earned = FREE() || SV.builds[B.id], t = el("button", "tag look" + (on ? " on" : ""));
+        let st = tr ? '<i class="stamp try">Trying on</i>' : on ? '<i class="stamp fit">On the truck</i>' : FREE() ? "" : earned ? '<i class="stamp own">In the shop</i>' : `<i class="stamp no">${esc(B.earn.text)}</i>${missing.length ? `<i class="stamp own">or buy ${missing.length} part${missing.length > 1 ? "s" : ""}</i>` : ""}`;
+        t.innerHTML = `<span class="t">${esc(B.name)}<small>${esc(B.role)}</small></span><span class="p">${FREE() || !missing.length ? "" : fmt$(price)}</span><span class="d">${esc(B.blurb)}</span>${buildStats(B)}<span class="st">${st}</span>`;
+        t.onclick = () => pickBuild(B), list.appendChild(t);
       }
       box.appendChild(list);
     }
+    /* ---------- the truck picker that opens free play ---------- */
+    function renderPick() {
+      let box = $("pickCards");
+      box.innerHTML = "";
+      let cur = BUILDS.find((B) => !buildParts(B).length);
+      for (let B of BUILDS) {
+        let c = el("button", "pcard" + (cur === B ? " on" : ""));
+        c.innerHTML = `<span class="eyebrow">${esc(B.role)}</span><span class="n">${esc(B.name)}</span>${buildStats(B)}`, c.onclick = () => {
+          pickBuild(B, !0), renderPick();
+        }, box.appendChild(c);
+      }
+      $("pickBlurb").textContent = cur ? cur.blurb : "Your own build, from the shop.";
+    }
+    $("pickDrive").onclick = () => startEvent("roam"), $("pickShop").onclick = () => enterGarage(), $("pickBack").onclick = () => goTitle();
     function buy() {
       let p = U.preview;
       if (!p || SV.cash < p.o.price) return;
@@ -115,7 +135,7 @@
     function renderSlots() {
       let box = $("slots"), b = SV.build, scroll = box.scrollTop;
       box.innerHTML = "";
-      if (U.cat === "looks") return renderLooks(box), void (box.scrollTop = scroll);
+      if (U.cat === "builds") return renderBuilds(box), void (box.scrollTop = scroll);
       for (let s of SLOTS.filter((q) => q.cat === U.cat)) {
         let cur = optOf(b, s.id), w = el("div", "slot" + (U.open === s.id ? " open" : "")), hd = el("button", "hd", `<span class="nm">${esc(s.name)}</span><span class="cur">${esc(cur.n)}</span>`);
         hd.onclick = () => {
@@ -183,7 +203,7 @@
     {
       let drag = null, pts = /* @__PURE__ */ new Map();
       canvas.addEventListener("pointerdown", (e) => {
-        state !== "garage" && state !== "title" || (pts.set(e.pointerId, [e.clientX, e.clientY]), drag = { x: e.clientX, y: e.clientY }, U.idleT = 0, U.camTo = null, canvas.setPointerCapture(e.pointerId));
+        state !== "garage" && state !== "title" && state !== "pick" || (pts.set(e.pointerId, [e.clientX, e.clientY]), drag = { x: e.clientX, y: e.clientY }, U.idleT = 0, U.camTo = null, canvas.setPointerCapture(e.pointerId));
       }), canvas.addEventListener("pointermove", (e) => {
         if (!drag || !cam.orbit || !pts.has(e.pointerId)) return;
         let o = cam.orbit;
@@ -200,7 +220,7 @@
         pts.delete(e.pointerId), pts.size || (drag = null);
       };
       canvas.addEventListener("pointerup", up), canvas.addEventListener("pointercancel", up), canvas.addEventListener("wheel", (e) => {
-        cam.orbit && (state === "garage" || state === "title") && (e.preventDefault(), cam.orbit.dist = clamp(cam.orbit.dist * (1 + e.deltaY * 1e-3), 4.5, 16), U.idleT = 0);
+        cam.orbit && (state === "garage" || state === "title" || state === "pick") && (e.preventDefault(), cam.orbit.dist = clamp(cam.orbit.dist * (1 + e.deltaY * 1e-3), 4.5, 16), U.idleT = 0);
       }, { passive: !1 });
     }
     /* ---------- the race board ---------- */
@@ -283,12 +303,32 @@
         g.onclick = () => {
           m.hidden = !0, audio.suspend(!1), enterGarage();
         }, acts.appendChild(g);
+        if (FREE()) {
+          let ct = el("button", "btn", "Change truck");
+          ct.onclick = () => {
+            m.hidden = !0, audio.suspend(!1), openPicker();
+          }, acts.appendChild(ct);
+        }
         let tt = el("button", "btn ghost", "Title screen");
         tt.onclick = () => {
           m.hidden = !0, audio.suspend(!1), goTitle();
         }, acts.appendChild(tt);
       }
       p.appendChild(acts);
+      if (!fromShop && mode && mode.kind === "roam") {
+        let go = el("div", "set goto");
+        go.appendChild(el("span", "k", "Go to"));
+        let gs = el("div", "seg");
+        for (let A of AREAS) {
+          let b = el("button", "", esc(A.name));
+          b.onclick = () => {
+            m.hidden = !0, audio.suspend(!1), state = "drive", ui.show("hud"), goTo(A.id), last = performance.now();
+          }, gs.appendChild(b);
+        }
+        go.appendChild(gs), p.appendChild(go);
+        let B = SV.best, bl = el("div", "bests");
+        bl.innerHTML = `<span class="eyebrow">Your bests</span><div class="bgrid"><div><b>${B.burn ? B.burn.toLocaleString("en-US") : "—"}</b><span>Burnout${B.burnT ? ` · ${B.burnT.toFixed(1)} s` : ""}</span></div><div><b>${B.jump ? B.jump.toFixed(2) + " s" : "—"}</b><span>Longest air${B.jumpD ? ` · ${distTxt(B.jumpD)}` : ""}</span></div><div><b>${B.mudlap ? B.mudlap.toFixed(2) + " s" : "—"}</b><span>Mud track lap</span></div><div><b>${B.rock ? B.rock.toFixed(1) + " s" : "—"}</b><span>Rock garden</span></div></div>`, p.appendChild(bl);
+      }
       let S = SV.settings;
       p.appendChild(seg("Assists", [["easy", "Easy"], ["arcade", "Arcade"], ["sport", "Sport"], ["sim", "Sim"]], S.assist, (v) => {
         S.assist = v, truck.setAssists(v), persist();
@@ -304,10 +344,6 @@
       let vol = el("div", "set");
       vol.innerHTML = `<span class="k">Volume</span><input type="range" id="sVol" min="0" max="1" step="0.05" value="${S.vol}">`, p.appendChild(vol), vol.querySelector("input").oninput = (e) => {
         S.vol = +e.target.value, audio.setVolume(S.vol), persist();
-      };
-      let av = el("div", "set");
-      av.innerHTML = `<span class="k">Ambience</span><input type="range" id="sAmb" min="0" max="1.5" step="0.05" value="${S.amb ?? 1}">`, p.appendChild(av), av.querySelector("input").oninput = (e) => {
-        S.amb = +e.target.value, audio.setAmbVolume(S.amb), persist();
       };
       /* a mix from the sound board */
       let mx = el("div", "set mixset"), custom = !!readKey(MIX_KEY);
@@ -332,7 +368,7 @@
           }
           SV = freshSave(gm), persist(), rebuildTruck(!1), m.hidden = !0, audio.suspend(!1), goTitle(), U.toast(gm === "free" ? "Free play reset" : "Campaign reset", "", 2);
         })()) : (rb.dataset.arm = "1", rb.textContent = FREE() ? "Tap again to reset free play" : "Tap again to erase the campaign");
-      }, p.appendChild(rs), p.appendChild(el("p", "keys", "<b>W/↑</b> gas · <b>S/↓</b> brake, hold to reverse · <b>A D</b> steer · <b>Space</b> handbrake · <b>Shift</b> nitrous · <b>L</b> low range · <b>K</b> lockers · <b>F</b> light bar · <b>H</b> horn · <b>C</b> camera · <b>B</b> look back · <b>R</b> flip/reset · <b>T</b> time of day (free roam) · <b>Esc</b> pause")), m.appendChild(p), m.hidden = !1;
+      }, p.appendChild(rs), p.appendChild(el("p", "keys", "<b>W/↑</b> gas · <b>S/↓</b> brake, hold to reverse · <b>A D</b> steer · <b>Space</b> handbrake · <b>Shift</b> nitrous · <b>G</b> line lock (hold with gas for a burnout) · <b>Y</b> instant replay · <b>L</b> low range · <b>K</b> lockers · <b>F</b> lights · <b>H</b> horn · <b>C</b> camera · <b>B</b> look back · <b>R</b> flip/reset · <b>T</b> time of day (free roam) · <b>Esc</b> pause")), m.appendChild(p), m.hidden = !1;
     }
     U.openPause = openPause;
     let showPause = U.show;
@@ -351,7 +387,7 @@
         let s = el("span", "ind", label);
         s.id = id, inds.appendChild(s);
       };
-      b.tcase === "low" && add2("iLow", "LOW"), b.lockers && add2("iLock", "LOCK"), b.lights && add2("iBar", "BAR"), b.nos && add2("iNos", "NOS");
+      add2("iLL", "LINE LOCK"), b.tcase === "low" && add2("iLow", "LOW"), b.lockers && add2("iLock", "LOCK"), (b.lights || b.roof === "expedition") && add2("iBar", "BAR"), b.nos && add2("iNos", "NOS");
       $("hUnits").textContent = SV.settings.units === "kmh" ? "KM/H" : "MPH";
     }
     function drawTach(pt, e) {
@@ -390,7 +426,7 @@
         let q = $(id);
         q && q.classList.toggle("on", !!on);
       };
-      tog("iLow", truck.low), tog("iLock", truck.locked), tog("iBar", lightsOn), tog("iNos", pt.nosOn);
+      tog("iLow", truck.low), tog("iLock", truck.locked), tog("iBar", lightsOn), tog("iNos", pt.nosOn), tog("iLL", input.key("linelock") || U.touchLock);
       let ev = $("hEvt"), m = mode;
       if (!m) return ev.hidden = !0;
       let html = "";
@@ -401,7 +437,17 @@
         let g = m.gates[m.next] || m.gates[0], dist = g ? Math.hypot(g.x - truck.p[0], g.z - truck.p[2]) : 0, tt = m.started ? m.t + (m.missed + m.resets) * 5 : 0, tot = m.kind === "trail" ? m.gates.length : 1, cur = m.kind === "trail" ? Math.min(m.next, tot) : 0;
         html = `<div class="big">${m.done ? m.result.time ? m.result.time.toFixed(2) : "DNF" : tt.toFixed(1)}</div><div class="sm">${arrowSvg(bearing(g.x, g.z))}${m.started ? m.kind === "trail" ? `Gate ${cur}/${tot}` : "To the summit" : "To the start gate"} · ${Math.round(dist)} m</div>`;
       } else if (m.kind === "bog") html = `<div class="big">${m.started ? m.t.toFixed(1) : "Mud bog"}</div><div class="sm">${m.started ? `${Math.round(m.dist || 0)} of ${Math.round(m.x0 - m.x1)} m` : "Floor it into the pit"}</div>`;
-      else if (m.kind === "roam") {
+      else if (m.kind === "roam" && RS && (RS.boShow || RS.mud.run || RS.rock.run)) {
+        let R2 = RS;
+        if (R2.boShow) {
+          let B = R2.boShow, pb = SV.best.burn || 0, k = clamp(B.pts / Math.max(pb, 1500), 0, 1);
+          html = `<div class="big">${Math.round(B.pts).toLocaleString("en-US")}<small> pts</small></div><div class="bo"><i style="width:${(k * 100).toFixed(1)}%"></i></div><div class="sm">Burnout ${B.t.toFixed(1)} s${pb ? ` · best ${pb.toLocaleString("en-US")}` : ""}</div>`;
+        } else if (R2.mud.run) html = `<div class="big">${R2.mud.t.toFixed(1)}</div><div class="sm">Mud track · checkpoint ${R2.mud.cp}/2${SV.best.mudlap ? ` · best ${SV.best.mudlap.toFixed(2)}` : ""}</div>`;
+        else {
+          let K = R2.rock, gs = W.gates.filter((q) => q.tag === "rock"), g = gs[K.next] || gs[gs.length - 1];
+          html = `<div class="big">${(K.t + K.hits * 3).toFixed(1)}</div><div class="sm">${arrowSvg(bearing(g.x, g.z))}Rock garden · ${K.next === 1 ? "to the top" : "to the east flags"}${K.hits ? ` · ${K.hits} hit${K.hits > 1 ? "s" : ""}` : ""}${SV.best.rock ? ` · best ${SV.best.rock.toFixed(1)}` : ""}</div>`;
+        }
+      } else if (m.kind === "roam") {
         let best = null;
         COOLERS.forEach((c, i) => {
           if (SV.coolers.includes(i)) return;
@@ -411,6 +457,12 @@
       }
       setH("hEvt", html), ev.hidden = !html;
     }
+    /* ---------- the replay banner ---------- */
+    U.replayInfo = (rate, kind) => {
+      $("repWhat").textContent = { jump: "Big air", launch: "The launch", burnout: "Burnout", instant: "Instant replay" }[kind] || "Replay", $("repRate").textContent = rate.toFixed(2).replace(/0$/, "") + "×";
+    }, $("repSkip").onclick = () => {
+      U.repSkip = !0;
+    };
     /* ---------- the result ---------- */
     U.result = (res) => {
       let m = $("result");
@@ -443,6 +495,7 @@
         btn("Try again", "go", () => startEvent(res.kind)), btn("Shop", "", () => enterGarage());
       }
       res.free && side.appendChild(el("p", "note", "Free play: results don't earn money or trophies."));
+      for (let B of res.newBuilds || []) side.appendChild(el("div", "trophy got", `<b>Unlocked: the ${esc(B.name)}</b><span>Its parts are in the shop now. Find it under Trucks.</span>`));
       for (let t of res.trophies || []) side.appendChild(el("div", "trophy got", `<b>Trophy: ${esc(t.name)}</b><span>${esc(t.d)}</span>`));
       side.appendChild(acts), wrap.appendChild(side), m.appendChild(wrap), U.show("result"), U.cash(), acts.querySelector(".go") && acts.querySelector(".go").focus();
     };
@@ -461,7 +514,7 @@
     }
     /* ---------- per frame ---------- */
     U.frame = (dt) => {
-      if (state === "garage" || state === "title") {
+      if (state === "garage" || state === "title" || state === "pick") {
         let o = cam.orbit;
         if (o) {
           if (U.idleT += dt, U.camTo) {

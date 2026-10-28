@@ -21,18 +21,19 @@
   var BKEY = "dirt-sleeper-board-mix", CKEY = "dirt-sleeper-board-scene", audio = new GameAudio(), MX = mixFill(rd(BKEY)), solo = /* @__PURE__ */ new Set(), busSolo = /* @__PURE__ */ new Set(), started = !1, revHeld = !1;
   var ENGS = [["stock", "Stock 4.6 V8", {}], ["hot", "Hot 6.2 V8", { engine: "v62", exhaust: "headers", cam: 2, tune: 2, intake: 1 }], ["blown", "Blown big-block", { engine: "bb74", power: "roots", exhaust: "straight", cam: 3, tune: 2 }], ["tt", "Twin-turbo V6", { engine: "tt35", power: "bigturbo", tune: 2, exhaust: "catback" }], ["diesel", "Turbo-diesel six", { engine: "d67", power: "compound", tune: 2, exhaust: "stacks" }]];
   var SCENES = [
-    { id: "shop", n: "Idle in the shop", d: "Engine ticking over inside the metal building.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, rain: 0, time: "day", creek: 0, crowd: 0, space: "shop", storm: 0, wind: 0.1 } },
-    { id: "trail", n: "Cruising the trail", d: "40 mph on dirt, light throttle, birds out.", c: { run: 1, rpm: 0.38, thr: 0.35, view: "out", mph: 40, ground: "dirt", spin: 0, rain: 0, time: "day", creek: 0, crowd: 0, space: "open", storm: 0, wind: 0.3 } },
-    { id: "strip", n: "Redline on the strip", d: "On the limiter, the Friday night crowd watching.", c: { run: 1, rpm: 1, thr: 1, view: "out", mph: 55, ground: "dirt", spin: 0.3, rain: 0, time: "night", creek: 0, crowd: 0.9, space: "open", storm: 0, wind: 0.15 } },
-    { id: "creek", n: "Night at the creek", d: "Idling by the water, insects all around.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, rain: 0, time: "night", creek: 1, crowd: 0, space: "open", storm: 0, wind: 0.1 } },
-    { id: "storm", n: "Storm, in the cab", d: "Rain on the roof, thunder, 30 mph on dirt.", c: { run: 1, rpm: 0.3, thr: 0.3, view: "cab", mph: 30, ground: "dirt", spin: 0, rain: 1, time: "day", creek: 0, crowd: 0, space: "open", storm: 1, wind: 0.6 } },
-    { id: "bog", n: "Mud bog", d: "Wheels spinning in the pit.", c: { run: 1, rpm: 0.75, thr: 0.9, view: "out", mph: 8, ground: "mud", spin: 0.8, rain: 0.4, time: "day", creek: 0, crowd: 0, space: "open", storm: 0, wind: 0.3 } },
-    { id: "world", n: "Just the world", d: "Engine off. Only the ranch.", c: { run: 0, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, rain: 0, time: "day", creek: 0.5, crowd: 0, space: "open", storm: 0, wind: 0.35 } }
+    { id: "shop", n: "Idle in the shop", d: "Engine ticking over inside the metal building.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, space: "shop" } },
+    { id: "trail", n: "Cruising the trail", d: "40 mph on dirt, light throttle.", c: { run: 1, rpm: 0.38, thr: 0.35, view: "out", mph: 40, ground: "dirt", spin: 0, space: "open" } },
+    { id: "strip", n: "Redline on the strip", d: "On the limiter halfway down the eighth mile.", c: { run: 1, rpm: 1, thr: 1, view: "out", mph: 55, ground: "dirt", spin: 0.3, space: "open" } },
+    { id: "burnout", n: "Burnout on the pad", d: "Line lock on, rear tyres buried in the dirt.", c: { run: 1, rpm: 0.85, thr: 1, view: "out", mph: 0, ground: "dirt", spin: 1, space: "open" } },
+    { id: "bog", n: "Mud bog", d: "Wheels spinning in the pit.", c: { run: 1, rpm: 0.75, thr: 0.9, view: "out", mph: 8, ground: "mud", spin: 0.8, space: "open" } },
+    { id: "crawl", n: "Rock crawl", d: "Low range, walking over boulders, heard from the cab.", c: { run: 1, rpm: 0.12, thr: 0.3, view: "cab", mph: 2, ground: "rock", spin: 0.1, space: "open" } },
+    { id: "water", n: "Water crossing", d: "Pushing a bow wave through the creek.", c: { run: 1, rpm: 0.3, thr: 0.4, view: "out", mph: 10, ground: "water", spin: 0, space: "open" } }
   ];
   var CTX = Object.assign({ scene: "trail", eng: "stock" }, SCENES[1].c, rd(CKEY) || {});
+  SCENES.some((q) => q.id === CTX.scene) || Object.assign(CTX, SCENES[1].c, { scene: "trail" });
   /* what makes each sound play, so Solo can play it even when the scene wouldn't */
-  var FORCE = { rain: { rain: 0.8 }, roof: { rain: 0.8, view: "cab" }, thunder: { rain: 0.5, storm: 1 }, wind: { wind: 0.6 }, birds: { birds: 1 }, daybugs: { dayBugs: 1 }, nightbugs: { crickets: 1 }, creek: { creek: 1 }, crowd: { crowd: 0.8 }, dirt: { ground: "dirt", mph: 25 }, roll: { ground: "dirt", mph: 30 }, squeal: { ground: "concrete", spin: 0.7, mph: 20 }, mud: { ground: "mud", spin: 0.6, mph: 6 }, water: { ground: "water", mph: 12 }, speedwind: { mph: 70 } };
-  var WHEN = { dirt: "Driving on dirt: the strip, the trails, the yard.", roll: "Rolling on any ground. Packed clay leans on this.", squeal: "Sliding on the concrete pad.", mud: "In the mud pit.", water: "Splashing through the creek.", speedwind: "Air rushing past at speed.", hits: "Bumps, landings and scrapes.", rain: "Storm Coming weather.", roof: "Rain, heard from the Driver camera.", thunder: "Storm Coming weather.", wind: "Always there. Stronger up high and in a storm.", birds: "Afternoon. A few at golden hour.", daybugs: "Afternoon.", nightbugs: "Golden hour and night.", creek: "Near the creek.", crowd: "Drag races, with a cheer at the finish.", ui: "Buying parts, coolers, gates, medals, trophies." };
+  var FORCE = { dirt: { ground: "dirt", mph: 25 }, roll: { ground: "dirt", mph: 30 }, squeal: { ground: "concrete", spin: 0.7, mph: 20 }, mud: { ground: "mud", spin: 0.6, mph: 6 }, water: { ground: "water", mph: 12 } };
+  var WHEN = { dirt: "Driving on dirt: the strip, the trails, the burnout pad, the yard.", roll: "Rolling on any ground. Packed clay leans on this.", squeal: "Sliding on the concrete pad.", mud: "The mud pit and the mud track.", water: "Splashing through the creek.", hits: "Bumps, landings, rocks and scrapes.", ui: "Buying parts, coolers, gates, medals, trophies, new bests." };
   /* ---------- the engine ---------- */
   var eng = { rpm: 0, cutT: 0, crankT: -1, spec: null, id: null };
   function setEngine(id) {
@@ -47,7 +48,7 @@
       for (let k in m.s) solo.has(k) || (m.s[k].on = 0);
       busSolo.has("engine") || (m.bus.engine = -120);
     }
-    if (busSolo.size) for (let b of ["engine", "ground", "world", "ui"]) busSolo.has(b) || (m.bus[b] = -120);
+    if (busSolo.size) for (let b of ["engine", "ground", "ui"]) busSolo.has(b) || (m.bus[b] = -120);
     return m;
   }
   var saveT = 0;
@@ -55,34 +56,34 @@
     audio.setMix(effMix()), $("code").value = mixEncode(MX), clearTimeout(saveT), saveT = setTimeout(() => wr(BKEY, MX), 250);
   }
   function scene() {
-    let c = Object.assign({}, CTX), day = c.time === "day" ? 1 : 0, dusk = c.time === "dusk" ? 1 : 0, night = c.time === "night" ? 1 : 0, wet = c.rain > 0.05, a = { rain: c.rain, storm: c.storm, wind: c.wind, birds: (day + dusk * 0.2) * (wet ? 0.15 : 1), dayBugs: (day + dusk * 0.1) * (wet ? 0 : 1), crickets: (night + dusk * 0.5) * (wet ? 0.3 : 1), creek: c.creek, crowd: c.crowd };
+    let c = Object.assign({}, CTX);
     for (let k of solo) {
       let f = FORCE[k];
-      if (f) for (let q in f) q in a ? a[q] = Math.max(a[q], f[q]) : c[q] = f[q];
+      if (f) for (let q in f) c[q] = f[q];
     }
-    return { c, a };
+    return { c };
   }
   /* ---------- per frame ---------- */
   var last = performance.now(), hold = {};
   function frame(now) {
     let dt = Math.min(0.05, (now - last) / 1e3);
     if (last = now, requestAnimationFrame(frame), !started) return;
-    let { c, a } = scene(), e = eng.spec, run = !!c.run, cab = c.view === "cab", target = run ? revHeld ? e.limiterRpm + 60 : e.idle + (e.limiterRpm - e.idle) * c.rpm : 0;
+    let { c } = scene(), e = eng.spec, run = !!c.run, cab = c.view === "cab", target = run ? revHeld ? e.limiterRpm + 60 : e.idle + (e.limiterRpm - e.idle) * c.rpm : 0;
     eng.rpm += (target - eng.rpm) * Math.min(1, dt * (target > eng.rpm ? 3.5 : 2.2));
     let cut = 0;
     eng.rpm >= e.limiterRpm - 40 ? (eng.cutT += dt, cut = eng.cutT % 0.09 < 0.035 ? 1 : 0, cut && (eng.rpm -= 900 * dt)) : eng.cutT = 0;
     let load = run ? revHeld ? 1 : c.thr : 0, crank = eng.crankT >= 0 && eng.crankT < 0.9;
     crank && (eng.crankT += dt);
     let rpm = crank ? 230 + 60 * Math.sin(eng.crankT * 38) : eng.rpm, sp = c.mph * 0.447, gr = c.ground, spin = c.spin, ep = { on: run && !crank ? 1 : 0, firing: run && !crank ? 1 : 0, crank: crank ? 1 : 0, crankT: crank ? eng.crankT : 0, rpm: run ? rpm : 0, load: crank ? 0 : load, cutFrac: cut, boost: run ? SIM.steadyBoost(e, rpm) * load : 0, nos: 0, speed: sp, gear: 3, twostep: 0, antilag: 0, view: cab ? 1 : 0, dist: cab ? 1.4 : 6, pan: 0, rear: cab ? 0.35 : 0.7, vol: 1, horn: 0 };
-    let s4 = (v) => [v, v, v, v], fx = { lat: s4(0), lon: s4(spin * 7), load: s4(5300), sqK: s4(gr === "concrete" ? 1 : 0.06), wet: c.rain > 0.05 ? 0.6 : 0, speed: sp, cabin: cab ? 1 : 0, curb: 0, scrape: 0, vol: 1, loose: gr === "dirt" ? 1 : 0, spinLoose: gr === "dirt" ? spin : 0, mud: gr === "mud" ? 1 : 0, spinMud: gr === "mud" ? spin : 0, water: gr === "water" ? 1 : 0 }, fev = hold.hit ? [{ type: "hit", a: 0.9 }] : [];
-    hold.hit = 0, audio.update(ep, [], fx, fev, { cabin: cab, shop: c.space === "shop" ? 1 : 0, yard: c.space === "yard" ? 1 : 0, amb: Object.assign({ cabin: cab ? 1 : 0 }, a), ambEvents: [] }), meters(dt);
+    let s4 = (v) => [v, v, v, v], fx = { lat: s4(0), lon: s4(spin * 7), load: s4(5300), sqK: s4(gr === "concrete" ? 1 : gr === "rock" ? 0.35 : 0.06), wet: 0, speed: sp, cabin: cab ? 1 : 0, curb: 0, scrape: 0, vol: 1, loose: gr === "dirt" ? 1 : 0, spinLoose: gr === "dirt" ? spin : 0, mud: gr === "mud" ? 1 : 0, spinMud: gr === "mud" ? spin : 0, water: gr === "water" ? 1 : 0 }, fev = hold.hit ? [{ type: "hit", a: 0.9 }] : [];
+    gr === "rock" && Math.random() < dt * 0.8 && fev.push({ type: "hit", a: 0.25 + Math.random() * 0.35 }), hold.hit = 0, audio.update(ep, [], fx, fev, { cabin: cab, shop: c.space === "shop" ? 1 : 0, yard: c.space === "yard" ? 1 : 0 }), meters(dt);
   }
   requestAnimationFrame(frame);
   /* ---------- meters ---------- */
   var peaks = {};
   function meters(dt) {
     let L = audio.levels();
-    for (let k of ["engine", "ground", "world", "ui", "master"]) {
+    for (let k of ["engine", "ground", "ui", "master"]) {
       let m = $("m-" + k), d = $("d-" + k), v = L[k];
       if (!m || !v) continue;
       let [pk, rms] = v, w = (x) => Math.max(0, Math.min(100, (x + 60) / 60 * 100));
@@ -153,12 +154,10 @@
     let rh = el("div", "row");
     rh.append(el("span", "k", ""), rev), box.appendChild(rh);
     box.appendChild(slider("Throttle", 0, 1, 0.01, CTX.thr, pct, set("thr"), "cThr")), box.appendChild(seg("Listening", [["out", "Outside"], ["cab", "In the cab"]], CTX.view, set("view"))), box.appendChild(slider("Speed", 0, 90, 1, CTX.mph, (v) => v + " mph", set("mph"), "cMph"));
-    box.appendChild(seg("Ground", [["none", "None"], ["dirt", "Dirt"], ["mud", "Mud"], ["water", "Water"], ["concrete", "Concrete"]], CTX.ground, set("ground"))), box.appendChild(slider("Wheelspin", 0, 1, 0.01, CTX.spin, pct, set("spin"), "cSpin"));
-    box.appendChild(seg("Time", [["day", "Afternoon"], ["dusk", "Golden hour"], ["night", "Night"]], CTX.time, set("time"))), box.appendChild(slider("Rain", 0, 1, 0.01, CTX.rain, pct, set("rain"), "cRain")), box.appendChild(seg("Thunder", [[0, "No"], [1, "Yes"]], CTX.storm ? 1 : 0, set("storm")));
-    box.appendChild(slider("Wind", 0, 1, 0.01, CTX.wind, pct, set("wind"), "cWind")), box.appendChild(slider("Creek nearby", 0, 1, 0.01, CTX.creek, pct, set("creek"), "cCreek")), box.appendChild(slider("Crowd", 0, 1, 0.01, CTX.crowd, pct, set("crowd"), "cCrowd"));
+    box.appendChild(seg("Ground", [["none", "None"], ["dirt", "Dirt"], ["mud", "Mud"], ["water", "Water"], ["rock", "Rock"], ["concrete", "Concrete"]], CTX.ground, set("ground"))), box.appendChild(slider("Wheelspin", 0, 1, 0.01, CTX.spin, pct, set("spin"), "cSpin"));
     box.appendChild(seg("Space", [["open", "Open range"], ["yard", "By the shop"], ["shop", "In the shop"]], CTX.space, set("space")));
   }
-  var BUSES = [["engine", "Engine", "The engine synth, on its own compressor."], ["ground", "Ground and tyres", "Dirt, mud, water, squeal, wind from speed."], ["world", "The world", "Weather, birds, insects, creek, crowd."], ["ui", "Shop and HUD", "Cash register, chimes, gate ticks, fanfares."], ["master", "Master", "Everything, through the limiter."]];
+  var BUSES = [["engine", "Engine", "The engine synth, on its own compressor."], ["ground", "Ground and tyres", "Dirt, mud, water, squeal, bumps and landings."], ["ui", "Shop and HUD", "Cash register, chimes, gate ticks, fanfares."], ["master", "Master", "Everything, through the limiter."]];
   function renderBuses() {
     let box = $("buses");
     box.innerHTML = "";
@@ -185,10 +184,10 @@
   }
   function audition(id, m) {
     if (!started) return toast("Press Start sound first");
-    id === "thunder" ? audio.ui("thunder", { kind: m.v }) : id === "birds" ? audio.ui("bird", { kind: m.v }) : id === "crowd" ? audio.ui("cheer", { a: 1 }) : id === "hits" ? hold.hit = 1 : id === "ui" && ["kaching", "chime", "tick", "medal", "trophy"].forEach((t, i) => setTimeout(() => audio.ui(t), i * 900));
+    id === "hits" ? hold.hit = 1 : id === "ui" && ["kaching", "chime", "tick", "go", "lap", "best", "medal", "trophy"].forEach((t, i) => setTimeout(() => audio.ui(t), i * 800));
   }
   function renderCards() {
-    for (let bus of ["ground", "world", "ui"]) {
+    for (let bus of ["ground", "ui"]) {
       let box = $("c-" + bus);
       box.innerHTML = "";
       for (let S of MIX_SOUNDS.filter((q) => q.bus === bus)) {
@@ -198,7 +197,7 @@
         }, sb.onclick = () => {
           solo.has(S.id) ? solo.delete(S.id) : solo.add(S.id), renderCards(), push();
         }, hd.append(onb, sb);
-        if (["thunder", "birds", "crowd", "hits", "ui"].includes(S.id)) {
+        if (["hits", "ui"].includes(S.id)) {
           let pb = el("button", "btn small", "Play");
           pb.type = "button", pb.onclick = () => audition(S.id, m), hd.appendChild(pb);
         }
@@ -209,7 +208,7 @@
           for (let [v, t] of S.vars) {
             let b = el("button", m.v === v ? "on" : "", esc(t));
             b.type = "button", b.onclick = () => {
-              m.v = v, [...vs.children].forEach((q) => q.classList.toggle("on", q === b)), push(), (S.id === "thunder" || S.id === "birds") && audition(S.id, m);
+              m.v = v, [...vs.children].forEach((q) => q.classList.toggle("on", q === b)), push();
             }, vs.appendChild(b);
           }
           c.appendChild(vs);

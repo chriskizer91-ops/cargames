@@ -332,7 +332,7 @@
       for (let wh of W2) {
         let hpW = add(p, mvec(M, wh.hp));
         wh.hpW = hpW;
-        let hit = this.world.raycast(hpW, down, s.rest + R2 + 0.3, wh.hint), comp = -1;
+        let hit = this.world.wheelContact ? this.world.wheelContact(hpW, down, wh.front && this.steer ? mvec(M, [Math.cos(this.steer), 0, Math.sin(this.steer)]) : mcol(M, 0), R2, s.rest + R2 + 0.3) : this.world.raycast(hpW, down, s.rest + R2 + 0.3, wh.hint), comp = -1;
         if (hit && (wh.hint = hit.i, comp = s.rest - (hit.t - R2)), comp <= 0) {
           wh.contact = !1, wh.Fz = 0, wh.comp = 0, wh.len = hit ? Math.min(s.rest, hit.t - R2) : s.rest;
           continue;
@@ -340,7 +340,7 @@
         let rate = clamp((comp - wh.comp) / dt, -4, 4);
         wh.comp = comp, wh.len = s.rest - comp, wh.contact = !0, nContact++;
         let Fs = wh.k * comp + (rate > 0 ? wh.cb : wh.cr) * rate;
-        comp > s.travel && (Fs += (comp - s.travel) * wh.k * 14 + Math.max(0, rate) * wh.cb * 2), wh.Fz = Math.max(0, Fs), wh.cp = hit.p, wh.n = hit.n, wh.surf = hit.surf;
+        comp > s.travel && (Fs += (comp - s.travel) * wh.k * 14 + Math.max(0, rate) * wh.cb * 2), wh.Fz = Math.max(0, Fs), wh.cp = hit.p, wh.n = hit.n, wh.surf = hit.surf, wh.off = hit.off || 0;
       }
       for (let [l, r, k] of [[0, 1, s.arbF], [2, 3, s.arbR]]) {
         let d = (W2[l].contact ? W2[l].comp : 0) - (W2[r].contact ? W2[r].comp : 0), f2 = k * d;
@@ -365,10 +365,12 @@
           fmax += wh.Fz * this.tyre.mu * lf * wetMu * this._smu(wh.surf);
         }
       }
-      pt.step(dt, { thr, brk, nos: !!inp.nos }, W2, { tc: aid.tc && !this.drift.on, escThr, fmax, mass: m }), pt.auto && pt.autoShift(brk, this.air, this.drift.on), this.absOn = !1;
+      /* line lock: the fronts are held on the brakes and the drive goes to the rear axle alone */
+      pt.drvAll || (pt.drvAll = pt.drv), pt.drv = inp.lock && pt.drvAll.length === 4 ? [2, 3] : pt.drvAll, pt.step(dt, { thr, brk, nos: !!inp.nos }, W2, { tc: aid.tc && !this.drift.on && !inp.lock, escThr: inp.lock ? 1 : escThr, fmax, mass: m }), pt.auto && pt.autoShift(brk, this.air, this.drift.on), this.absOn = !1;
       let hold = this.speed < 0.4 && thr < 0.05 && !this.rev && pt.running;
       for (let wh of W2) {
         let Tb = brk * c.brake * (wh.front ? c.bias : 1 - c.bias) / 2;
+        inp.lock && wh.front && (Tb = Math.max(Tb, c.brake * 0.75));
         if (aid.abs && brk > 0.1 && this.speed > 2.5 && wh.kap < -0.1) {
           let k = clamp(1 - (-wh.kap - 0.1) * 7, 0.2, 1);
           Tb *= k, k < 0.95 && (this.absOn = !0);
@@ -384,7 +386,14 @@
         torque[0] += t[0], torque[1] += t[1], torque[2] += t[2];
       };
       for (let wh of W2)
-        wh.contact && (apply(scale(U, wh.Fz), wh.hpW), apply(add(scale(wh.f, wh.Fx - (wh.vd || 0)), scale(wh.r, wh.Fy)), madd(wh.cp, wh.n, c.rcH)));
+        if (wh.contact) {
+          apply(scale(U, wh.Fz), wh.hpW), apply(add(scale(wh.f, wh.Fx - (wh.vd || 0)), scale(wh.r, wh.Fy)), madd(wh.cp, wh.n, c.rcH));
+          /* a tyre against a ledge face: the face pushes back as well as up */
+          if (wh.off) {
+            let nu = dot2(wh.n, U), k = wh.Fz / Math.max(0.5, nu) * 0.6;
+            apply([(wh.n[0] - U[0] * nu) * k, (wh.n[1] - U[1] * nu) * k, (wh.n[2] - U[2] * nu) * k], wh.cp);
+          }
+        }
       let sp = this.speed, dr = 0.5 * RHO * c.cdA * sp;
       apply([-v[0] * dr, -v[1] * dr, -v[2] * dr], p);
       let q2 = 0.5 * RHO * vb[0] * vb[0];

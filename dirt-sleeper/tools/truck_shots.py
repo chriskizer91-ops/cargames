@@ -27,7 +27,7 @@ async def main():
         await pg.evaluate(f"window.__game.setEnv({json.dumps(env)})")
         files = []
         for bi in builds:
-            await pg.evaluate("(b)=>{const g=window.__game;if(b.look)b=Object.assign({},g.LOOKS.find(l=>l.id===b.look).build,b.extra||{});g.applyBuild(Object.assign({},g.SVnow.build,b));for(const id of ['garage','hud','title','toasts'])document.getElementById(id)&&(document.getElementById(id).hidden=true);}", bi['build'])
+            await pg.evaluate("(b)=>{const g=window.__game;if(b.look){g.applyBuild(Object.assign(g.presetBuild(b.look,g.SVnow.build),b.extra||{}));}else g.applyBuild(Object.assign({},g.SVnow.build,b));for(const id of ['garage','hud','title','toasts'])document.getElementById(id)&&(document.getElementById(id).hidden=true);}", bi['build'])
             row = []
             for k, (yaw, pitch, dist) in enumerate(angles):
                 await pg.evaluate(f"(()=>{{const g=window.__game;g.cam.orbit={{yaw:{yaw},pitch:{pitch},dist:{dist},y:0.25,fov:0.62,cut:!0}};for(let i=0;i<14;i++)g.frame(1/60);}})()")

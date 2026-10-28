@@ -3,9 +3,9 @@
 # followed by the source modules, all inside one script scope.
 set -e
 cd "$(dirname "$0")"
-GAME="10_sl3_render 11_sl3_car 12_sl3_env_fx 13_math3 14_dsp 15_sim 20_tyre 21_powertrain_vehicle 22_cars 30_input_camera 31_audio 33_ambience 34_mix 40_world 41_worldmat 50_suvmesh 51_suvrender 60_build 61_truck 71_events 70_game 80_ui 90_boot"
+GAME="10_sl3_render 11_sl3_car 12_sl3_env_fx 13_math3 14_dsp 15_sim 20_tyre 21_powertrain_vehicle 22_cars 30_input_camera 31_audio 33_uisynth 34_mix 40_world 41_worldmat 50_suvmesh 51_suvrender 60_build 61_truck 71_events 70_game 80_ui 90_boot"
 { cat shell/game-head.html; for m in $GAME; do cat "src/$m.js"; done; } > dist/dirt-sleeper.html
-BOARD="13_math3 14_dsp 15_sim 31_audio 33_ambience 34_mix 50_suvmesh 60_build 95_board"
+BOARD="13_math3 14_dsp 15_sim 31_audio 33_uisynth 34_mix 50_suvmesh 60_build 95_board"
 { cat shell/board-head.html; for m in $BOARD; do cat "src/$m.js"; done; } > dist/sound-board.html
 # a full HTML document around the page, for opening the file locally or in tests
 for f in dist/*.html; do
