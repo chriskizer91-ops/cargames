@@ -373,7 +373,7 @@
     return {
       id: 1, self: !0, p: truck.p, q: truck.q, look: buildLook(b), paint: SUV_PAINTS[b.paint], style: buildStyle(b),
       wheels: truck.wheels.map((w) => ({ hp: w.hp, len: w.len, steer: w.front ? truck.steer : 0, ang: w.ang, disc: w.disc })),
-      lamps: [night || lightsOn ? 1 : 0, night || lightsOn ? 1 : 0, truck.brkIn > 0.05 ? 1 : 0, truck.rev ? 1 : 0], dirt: SV.dirt, mud: SV.mud, bar: lightsOn && b.lights >= 1 ? 1 : 0, pods: lightsOn && b.lights >= 2 ? 1 : 0
+      lamps: [night || lightsOn ? 1 : 0, night || lightsOn ? 1 : 0, truck.brkIn > 0.05 ? 1 : 0, truck.rev ? 1 : 0], dirt: SV.dirt, mud: SV.mud, bar: lightsOn && (b.lights >= 1 || b.roof === "expedition") ? 1 : 0, pods: lightsOn && b.lights >= 2 ? 1 : 0
     };
   }
   function step(dt) {

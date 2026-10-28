@@ -4,9 +4,9 @@
     let e = document.createElement(tag);
     return cls && (e.className = cls), html !== void 0 && (e.innerHTML = html), e;
   }, esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  var CAT_CAM = { engine: { yaw: 0.55, pitch: 0.22, dist: 7.4, y: 0.4 }, drive: { yaw: 2.6, pitch: 0.08, dist: 7.6, y: 0.1 }, chassis: { yaw: 1.62, pitch: 0.05, dist: 8.4, y: 0.1 }, wheels: { yaw: 0.85, pitch: 0.06, dist: 7.2, y: -0.1 }, body: { yaw: 0.9, pitch: 0.2, dist: 8.6, y: 0.35 }, paint: { yaw: 1.35, pitch: 0.12, dist: 8.8, y: 0.3 } };
+  var CAT_CAM = { looks: { yaw: 0.72, pitch: 0.1, dist: 8.4, y: 0.3 }, engine: { yaw: 0.55, pitch: 0.22, dist: 7.4, y: 0.4 }, drive: { yaw: 2.6, pitch: 0.08, dist: 7.6, y: 0.1 }, chassis: { yaw: 1.62, pitch: 0.05, dist: 8.4, y: 0.1 }, wheels: { yaw: 0.85, pitch: 0.06, dist: 7.2, y: -0.1 }, body: { yaw: 0.9, pitch: 0.2, dist: 8.6, y: 0.35 }, paint: { yaw: 1.35, pitch: 0.12, dist: 8.8, y: 0.3 } };
   function makeUI() {
-    let U = { touchHorn: !1, cat: "engine", open: null, committed: null, preview: null, revBtn: 0, idleT: 0, camTo: null, passCache: /* @__PURE__ */ new Map(), passT: 0, touch: !1, lastCam: null };
+    let U = { touchHorn: !1, cat: "looks", open: null, committed: null, preview: null, revBtn: 0, idleT: 0, camTo: null, passCache: /* @__PURE__ */ new Map(), passT: 0, touch: !1, lastCam: null };
     let layers = ["title", "garage", "hud", "pause", "result", "events"];
     U.show = (name) => {
       for (let l of layers) $(l).hidden = l !== name;
@@ -69,10 +69,37 @@
       else U.committed = Object.assign({}, SV.build), U.preview = { slot: slot.id, v: o.v, o, notes }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>${esc(o.n)}</b>${fmt$(o.price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < o.price, $("buyGo").textContent = SV.cash < o.price ? "Not enough" : "Buy " + fmt$(o.price);
       renderSlots(), renderSheet();
     }
+    /* a look: every part it changes, and the ones you'd have to buy */
+    function lookParts(lk) {
+      let b = U.preview && U.committed ? U.committed : SV.build, out = [];
+      for (let id in lk.build) b[id] !== lk.build[id] && out.push({ slot: id, v: lk.build[id], o: SLOT[id].opts.find((o) => o.v === lk.build[id]) });
+      return out;
+    }
+    function pickLook(lk) {
+      revert();
+      let parts = lookParts(lk);
+      if (!parts.length) return U.toast(`${lk.name} is already on the truck`, "", 1.8);
+      let b = Object.assign({}, SV.build, lk.build), notes = fixBuild(b, null), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0);
+      if (!missing.length) applyBuild(b), U.committed = null, persist(), U.toast(`${lk.name}`, "go", 1.6), notes.forEach((n) => U.toast(n, "", 2.5));
+      else U.committed = Object.assign({}, SV.build), U.preview = { look: lk.id, items: missing, o: { n: lk.name, price }, notes }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>${esc(lk.name)}</b>${missing.length} part${missing.length > 1 ? "s" : ""} · ${fmt$(price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < price, $("buyGo").textContent = SV.cash < price ? "Not enough" : "Buy all " + fmt$(price);
+      renderSlots(), renderSheet();
+    }
+    function renderLooks(box) {
+      let list = el("div", "opts looks");
+      list.appendChild(el("p", "looknote", FREE() ? "One click puts the whole look on. Engine and drivetrain stay as they are." : "Try a look on, then buy the parts you don't have yet in one go. Engine and drivetrain stay as they are."));
+      for (let lk of LOOKS) {
+        let parts = lookParts(lk), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0), tr = U.preview && U.preview.look === lk.id, on = !parts.length, t = el("button", "tag look" + (on ? " on" : ""));
+        t.innerHTML = `<span class="t">${esc(lk.name)}</span><span class="p">${FREE() || !missing.length ? "" : fmt$(price)}</span><span class="d">${esc(lk.blurb)}</span><span class="st">${tr ? '<i class="stamp try">Trying on</i>' : on ? '<i class="stamp fit">Fitted</i>' : FREE() ? "" : missing.length ? `<i class="stamp own">${missing.length} part${missing.length > 1 ? "s" : ""} to buy</i>` : '<i class="stamp own">All in the shop</i>'}</span>`;
+        t.onclick = () => pickLook(lk), list.appendChild(t);
+      }
+      box.appendChild(list);
+    }
     function buy() {
       let p = U.preview;
       if (!p || SV.cash < p.o.price) return;
-      audio.ui("kaching"), SV.cash -= p.o.price, SV.spent = (SV.spent || 0) + p.o.price, SV.spent >= 4e4 && award("spender"), (SV.owned[p.slot] = SV.owned[p.slot] || []).push(p.v), U.preview = null, U.committed = null, $("buybar").hidden = !0, persist(), U.cash(), U.toast(`Fitted: ${p.o.n}`, "go", 1.6), p.notes.forEach((n) => U.toast(n, "", 2.5)), renderSlots(), renderSheet();
+      audio.ui("kaching"), SV.cash -= p.o.price, SV.spent = (SV.spent || 0) + p.o.price, SV.spent >= 4e4 && award("spender");
+      for (let it of p.items || [{ slot: p.slot, v: p.v }]) (SV.owned[it.slot] = SV.owned[it.slot] || []).push(it.v);
+      U.preview = null, U.committed = null, $("buybar").hidden = !0, persist(), U.cash(), U.toast(`Fitted: ${p.o.n}`, "go", 1.6), p.notes.forEach((n) => U.toast(n, "", 2.5)), renderSlots(), renderSheet();
     }
     function renderGarage() {
       let cats = $("cats");
@@ -88,6 +115,7 @@
     function renderSlots() {
       let box = $("slots"), b = SV.build, scroll = box.scrollTop;
       box.innerHTML = "";
+      if (U.cat === "looks") return renderLooks(box), void (box.scrollTop = scroll);
       for (let s of SLOTS.filter((q) => q.cat === U.cat)) {
         let cur = optOf(b, s.id), w = el("div", "slot" + (U.open === s.id ? " open" : "")), hd = el("button", "hd", `<span class="nm">${esc(s.name)}</span><span class="cur">${esc(cur.n)}</span>`);
         hd.onclick = () => {

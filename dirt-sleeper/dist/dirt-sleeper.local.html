@@ -87,6 +87,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--hivis2);ou
 .stamp.fit{color:#1f6b1a}.stamp.own{color:#5a4a35}.stamp.no{color:#a3261a}.stamp.try{color:#c24a00}
 .tag.on{outline:3px solid var(--hivis);outline-offset:1px}
 .tag.blocked{opacity:.62;cursor:not-allowed}
+.looknote{margin:0 0 2px;font-size:13.5px;line-height:1.35;color:var(--dim)}
+.tag.look .t{font:800 20px/1.05 var(--display);text-transform:uppercase;letter-spacing:.01em}
 .buybar{flex:none;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--edge);background:var(--panel2)}
 .buybar .what{flex:1;min-width:0;font-size:14px}
 .buybar .what b{display:block;font:800 18px/1.1 var(--display);text-transform:uppercase}
@@ -5744,44 +5746,79 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
      ground at stock ride height and z to the right; the renderer shifts it so the origin is the centre
      of mass. Bolt-on parts are generated with the body so a build is one mesh. */
   var SUV = {
-    /* stations: x, bottom, half width, shoulder height, beltline (top of the body side), crown above it */
+    /* stations: x, bottom, half width, shoulder height, beltline (top of the body side), crown above it.
+       A tall, nearly upright face and tail, the hood held high to the nose, and hips over both axles. */
     st: [
-      [-2.42, 0.47, 0.7, 0.6, 0.9, 0],
-      [-2.4, 0.44, 0.8, 0.64, 1.02, 0.03],
-      [-2.35, 0.43, 0.865, 0.7, 1.1, 0.02],
-      [-2.26, 0.42, 0.9, 0.76, 1.15, 0.01],
-      [-2.05, 0.42, 0.918, 0.8, 1.16, 0],
-      [-1.75, 0.44, 0.934, 0.84, 1.16, 0],
-      [-1.44, 0.46, 0.944, 0.85, 1.16, 0],
-      [-1.1, 0.4, 0.93, 0.855, 1.155, 0],
-      [-0.8, 0.32, 0.915, 0.86, 1.15, 0],
-      [-0.4, 0.31, 0.912, 0.86, 1.145, 0],
-      [0, 0.31, 0.912, 0.86, 1.14, 0],
-      [0.4, 0.31, 0.914, 0.86, 1.135, 0],
-      [0.8, 0.32, 0.918, 0.86, 1.125, 0],
-      [0.95, 0.34, 0.922, 0.86, 1.105, 0.045],
-      [1.18, 0.44, 0.934, 0.855, 1.075, 0.06],
-      [1.45, 0.46, 0.944, 0.85, 1.045, 0.066],
-      [1.72, 0.44, 0.934, 0.84, 1.02, 0.066],
-      [2, 0.4, 0.918, 0.78, 1, 0.062],
-      [2.22, 0.38, 0.905, 0.68, 0.985, 0.056],
-      [2.34, 0.38, 0.878, 0.62, 0.962, 0.046],
-      [2.41, 0.39, 0.83, 0.6, 0.928, 0.034],
-      [2.45, 0.41, 0.75, 0.58, 0.885, 0.02],
-      [2.47, 0.44, 0.6, 0.58, 0.84, 0]
+      [-2.47, 0.48, 0.76, 0.64, 1.0, 0],
+      [-2.46, 0.45, 0.85, 0.66, 1.08, 0.01],
+      [-2.43, 0.43, 0.9, 0.72, 1.13, 0.01],
+      [-2.36, 0.42, 0.922, 0.77, 1.155, 0.005],
+      [-2.2, 0.42, 0.934, 0.8, 1.16, 0],
+      [-1.82, 0.44, 0.95, 0.83, 1.16, 0],
+      [-1.44, 0.46, 0.958, 0.84, 1.16, 0],
+      [-1.08, 0.4, 0.94, 0.85, 1.155, 0],
+      [-0.8, 0.32, 0.918, 0.86, 1.15, 0],
+      [-0.4, 0.31, 0.914, 0.86, 1.145, 0],
+      [0, 0.31, 0.914, 0.86, 1.14, 0],
+      [0.4, 0.31, 0.916, 0.86, 1.135, 0],
+      [0.8, 0.32, 0.92, 0.86, 1.128, 0],
+      [0.95, 0.34, 0.926, 0.86, 1.116, 0.04],
+      [1.18, 0.44, 0.946, 0.855, 1.1, 0.05],
+      [1.45, 0.46, 0.96, 0.85, 1.088, 0.055],
+      [1.72, 0.44, 0.948, 0.845, 1.077, 0.055],
+      [2, 0.42, 0.936, 0.835, 1.067, 0.05],
+      [2.22, 0.4, 0.928, 0.82, 1.058, 0.045],
+      [2.36, 0.4, 0.92, 0.8, 1.05, 0.038],
+      [2.44, 0.41, 0.898, 0.78, 1.036, 0.028],
+      [2.49, 0.42, 0.85, 0.76, 1.012, 0.018],
+      [2.515, 0.43, 0.75, 0.74, 0.985, 0.01],
+      [2.53, 0.45, 0.56, 0.72, 0.95, 0]
     ],
     /* greenhouse rows: x, roof height, roof half width */
     gh: [[-2.315, 1.165, 0.705], [-2.275, 1.35, 0.715], [-2.21, 1.55, 0.725], [-2.1, 1.745, 0.735], [-1.8, 1.785, 0.745], [-1.2, 1.8, 0.752], [-0.5, 1.792, 0.758], [-0.1, 1.762, 0.765], [0.12, 1.685, 0.772], [0.36, 1.52, 0.782], [0.6, 1.32, 0.792], [0.815, 1.13, 0.8]],
-    axF: 1.45, axR: -1.44, R0: 0.375, archR: 0.462, mirror: [0.66, 1.15, 0.965], hcg0: 0.74
+    axF: 1.45, axR: -1.44, R0: 0.375, archR: 0.462, mirror: [0.6, 1.2, 1.0], hcg0: 0.74,
+    nose: 2.53, tail: -2.47
   };
+  /* the raised centre of the hood, by x */
+  var hoodDome = (x) => 0.032 * Math.max(0, Math.min(1, (x - 1.0) / 0.22)) * Math.max(0, Math.min(1, (2.44 - x) / 0.16));
   /* Catmull-Rom through an array of numbers */
   function crA(a, t) {
     let n = a.length, i = Math.max(0, Math.min(n - 2, Math.floor(t))), f = t - i, p0 = a[Math.max(0, i - 1)], p1 = a[i], p2 = a[i + 1], p3 = a[Math.min(n - 1, i + 2)];
     return 0.5 * (2 * p1 + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (-p0 + 3 * p1 - 3 * p2 + p3) * f * f * f);
   }
+  /* triangles and quads from existing vertices, wound to face the way their normals point */
+  function _vp(B, i) {
+    return [B.f[i * 9], B.f[i * 9 + 1], B.f[i * 9 + 2]];
+  }
+  function _vn(B, i) {
+    return [B.s[i * 18 + 6], B.s[i * 18 + 7], B.s[i * 18 + 8]];
+  }
+  var _ad = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  function face3(B, a, b, c, n) {
+    let pa = _vp(B, a), g = cross(sub(_vp(B, b), pa), sub(_vp(B, c), pa)), nn = n || _ad(_ad(_vn(B, a), _vn(B, b)), _vn(B, c));
+    dot(g, nn) >= 0 ? B.tri(a, b, c) : B.tri(a, c, b);
+  }
+  function face4(B, a, b, c, d) {
+    let pa = _vp(B, a), g = cross(sub(_vp(B, b), pa), sub(_vp(B, d), pa)), g2 = cross(sub(_vp(B, d), _vp(B, c)), sub(_vp(B, b), _vp(B, c))), nn = _ad(_ad(_vn(B, a), _vn(B, b)), _ad(_vn(B, c), _vn(B, d)));
+    dot(_ad(g, g2), nn) >= 0 ? B.quad(a, b, c, d) : B.quad(a, d, c, b);
+  }
+  /* a rounded box (superellipsoid): centre, unit axes, half sizes; e near 0 is a box, 1 an ellipsoid */
+  function rbox3(B, c, ax, ay, az, h, e = 0.3, nu = 20, nv = 10) {
+    let f = (w, m) => Math.sign(w) * Math.pow(Math.abs(w), m), grid = [];
+    for (let j = 0; j <= nv; j++) {
+      let v = -Math.PI / 2 + Math.PI * j / nv, cv = Math.cos(v), sv = Math.sin(v), row = [];
+      for (let i = 0; i <= nu; i++) {
+        let u = -Math.PI + 2 * Math.PI * i / nu, cu = Math.cos(u), su = Math.sin(u), l = [f(cv, e) * f(cu, e) * h[0], f(sv, e) * h[1], f(cv, e) * f(su, e) * h[2]], n = [f(cv, 2 - e) * f(cu, 2 - e) / h[0], f(sv, 2 - e) / h[1], f(cv, 2 - e) * f(su, 2 - e) / h[2]];
+        (Math.abs(n[0]) + Math.abs(n[1]) + Math.abs(n[2]) < 1e-9) && (n = [0, sv, 0]);
+        row.push(B.v([c[0] + ax[0] * l[0] + ay[0] * l[1] + az[0] * l[2], c[1] + ax[1] * l[0] + ay[1] * l[1] + az[1] * l[2], c[2] + ax[2] * l[0] + ay[2] * l[1] + az[2] * l[2]], [ax[0] * n[0] + ay[0] * n[1] + az[0] * n[2], ax[1] * n[0] + ay[1] * n[1] + az[1] * n[2], ax[2] * n[0] + ay[2] * n[1] + az[2] * n[2]], i / nu, j / nv));
+      }
+      grid.push(row);
+    }
+    for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) face4(B, grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]);
+  }
   /* the build's visual description, with what the parts imply filled in */
   function suvLook(b) {
-    let L = Object.assign({ lift: 0, tireR: SUV.R0, tireW: 0.245, rim: 18, wheel: "stock", tread: "street", trackF: 1.56, trackR: 1.56, front: "stock", rear: "stock", roof: "rails", lightbar: 0, ditch: 0, pods: 0, flares: 0, hood: "stock", snorkel: 0, sides: "boards", exhaust: "stock", spoiler: 0, wheelie: 0, chute: 0, stacks: 0 }, b || {});
+    let L = Object.assign({ lift: 0, tireR: SUV.R0, tireW: 0.245, rim: 18, wheel: "stock", tread: "street", trackF: 1.56, trackR: 1.56, front: "stock", rear: "stock", roof: "rails", lightbar: 0, ditch: 0, pods: 0, flares: 0, hood: "stock", snorkel: 0, sides: "cladding", exhaust: "stock", spoiler: 1, wheelie: 0, chute: 0, stacks: 0, accent: 0, calipers: 0 }, b || {});
     /* the arches are trimmed for big tyres */
     L.archR = Math.max(SUV.archR, L.tireR + 0.05 - L.lift * 0.35);
     return L;
@@ -5791,8 +5828,8 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
     for (let i = 0; i < ns - 1; i++) for (let k = 0; k < SUBX; k++) sx.push(i + k / SUBX);
     sx.push(ns - 1);
     let prm = (t, j) => crA(st.map((s) => s[j]), t), profile = (t) => {
-      let yb = prm(t, 1), w = prm(t, 2), ym = prm(t, 3), yt = prm(t, 4), c = prm(t, 5);
-      return smooth2([[0, yb], [w * 0.8, yb], [w * 0.925, yb + 0.05], [w * 0.982, yb + (ym - yb) * 0.42], [w, ym], [w * 0.99, ym + (yt - ym) * 0.5], [w * 0.962, yt - 0.03], [w * 0.905, yt - 0.004 + c * 0.5], [w * 0.62, yt + c * 0.9 + 0.012], [w * 0.3, yt + c + 0.017], [0, yt + c + 0.02]], 3);
+      let yb = prm(t, 1), w = prm(t, 2), ym = prm(t, 3), yt = prm(t, 4), c = prm(t, 5), d = hoodDome(prm(t, 0));
+      return smooth2([[0, yb], [w * 0.8, yb], [w * 0.925, yb + 0.05], [w * 0.982, yb + (ym - yb) * 0.42], [w, ym], [w * 0.995, ym + (yt - ym) * 0.55], [w * 0.975, yt - 0.024], [w * 0.925, yt - 0.003 + c * 0.5], [w * 0.66, yt + c * 0.88 + 0.011], [w * 0.47, yt + c * 0.95 + 0.014], [w * 0.38, yt + c + 0.016 + d * 0.85], [w * 0.22, yt + c + 0.019 + d], [0, yt + c + 0.02 + d]], 3);
     };
     /* ---------- the body shell ---------- */
     B.mat(0);
@@ -5883,11 +5920,17 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
       B.tube(c, [c[0] + 0.24, c[1] - 0.14, c[2]], 0.026, 5, !1);
     }
     /* ---------- mirrors ---------- */
+    /* big housings on a black sail: painted caps with rounded edges, black lower halves, an amber repeater */
     for (let s of [-1, 1]) {
-      let [mx, my, mz] = SUV.mirror, c = [mx, Y(my), mz * s];
-      B.mat(0), B.box(c, [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.07, 0.085, 0.11]), B.mat(2, 70), B.box([c[0] + 0.05, c[1] - 0.06, c[2] - 0.1 * s], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.04, 0.025, 0.06]), B.mat(13);
-      let zz = [c[2] - 0.09, c[2] + 0.09];
-      B.quadP([c[0] - 0.072, c[1] - 0.07, zz[0]], [c[0] - 0.072, c[1] - 0.07, zz[1]], [c[0] - 0.072, c[1] + 0.07, zz[1]], [c[0] - 0.072, c[1] + 0.07, zz[0]], void 0, [-1, 0, 0]);
+      let [mx, my, mz] = SUV.mirror, c = [mx, Y(my), mz * s], ax = norm([1, 0, -0.12 * s]), az = norm([0.12 * s, 0, 1]);
+      B.mat(2, 70), B.box([mx + 0.07, Y(my - 0.085), s * 0.905], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.085, 0.045, 0.035]);
+      B.mat(2, 70), B.box([c[0] + 0.02, c[1] - 0.075, c[2] - 0.075 * s], ax, [0, 1, 0], az, [0.03, 0.02, 0.08]);
+      B.mat(0), rbox3(B, [c[0] + 0.012, c[1] + 0.03, c[2]], ax, [0, 1, 0], az, [0.066, 0.085, 0.145], 0.32);
+      B.mat(2, 60), rbox3(B, [c[0] + 0.008, c[1] - 0.035, c[2]], ax, [0, 1, 0], az, [0.062, 0.04, 0.14], 0.32);
+      B.mat(9, 1), B.box([c[0] + 0.07, c[1] - 0.03, c[2] + 0.07 * s], ax, [0, 1, 0], az, [4e-3, 0.01, 0.05]);
+      B.mat(13);
+      let g = [c[0] + 0.012 - ax[0] * 0.066, 0, c[2] - ax[2] * 0.066], P = (k, y) => [g[0] + az[0] * 0.125 * k, c[1] + y, g[2] + az[2] * 0.125 * k];
+      B.quadP(P(-1, -0.06), P(1, -0.06), P(1, 0.1), P(-1, 0.1), void 0, neg(ax));
     }
     /* ---------- underneath: floor, frame rails, tanks, the stock exhaust ---------- */
     B.mat(11), B.quadP([-2.36, Y(0.33), 0.84], [-2.36, Y(0.33), -0.84], [2.38, Y(0.36), -0.82], [2.38, Y(0.36), 0.82], void 0, [0, -1, 0]);
@@ -5910,22 +5953,43 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
         let [x0, y0] = pts[k], [x1, y1] = pts[k + 1], a = B.v([x0, y0, z0], [0, 0, s]), b = B.v([x1, y1, z0], [0, 0, s]), c = B.v([cx, cy, z0], [0, 0, s]);
         s > 0 ? B.tri(a, b, c) : B.tri(a, c, b);
       }
-      /* a soft lip around the opening, or bolted-on flares */
-      let fl = L.flares, rr = archR + (fl ? 0.035 : 0.012), w0 = fl === 2 ? 0.13 : fl ? 0.085 : 0.025, zz = s * (0.925 + (fl === 2 ? 0.07 : fl ? 0.045 : 0)), ring = [];
+      /* cladding around the opening: the factory's textured flares, pocket flares, or wide bolted ones.
+         Cross-section from the lip outward: [radius offset, distance out from the centreline] */
+      let fl = L.flares, rr = archR + 6e-3, w0 = fl === 2 ? 0.13 : fl ? 0.095 : 0.07, out = fl === 2 ? 0.075 : fl ? 0.05 : 0.028, sec = [[-6e-3, 0.9], [4e-3, 0.955 + out * 0.82], [w0 * 0.3, 0.955 + out], [w0 * 0.78, 0.955 + out * 0.9], [w0, 0.94], [w0 + 8e-3, 0.9]], a0 = fl === 2 ? -0.1 : -0.06, a1 = 1 - a0, grid = [];
+      B.mat(18, fl === 2 ? 1 : 0);
       for (let k = 0; k <= n; k++) {
-        let a = Math.PI * (-0.04 + 1.08 * k / n), c = Math.cos(a), sn = Math.sin(a);
-        ring.push([[cx + c * (rr - 0.004), cy + sn * (rr - 0.004), s * 0.9], [cx + c * (rr + w0 * 0.25), cy + sn * (rr + w0 * 0.25), zz], [cx + c * (rr + w0), cy + sn * (rr + w0), s * 0.905]]);
+        let a = Math.PI * (a0 + (a1 - a0) * k / n), c = Math.cos(a), sn = Math.sin(a), grow = 1 + 0.5 * sn * sn, row = [];
+        for (let m = 0; m < sec.length; m++) {
+          let r = rr + sec[m][0] * (m ? grow : 1), pa = sec[Math.max(0, m - 1)], pb = sec[Math.min(sec.length - 1, m + 1)], dr = pb[0] - pa[0], dz = pb[1] - pa[1];
+          row.push(B.v([cx + c * r, cy + sn * r, s * sec[m][1]], [-dz * c, -dz * sn, dr * s], k / n, m));
+        }
+        grid.push(row);
       }
-      B.mat(fl ? 2 : 0, fl ? 70 : 0);
-      for (let k = 0; k < n; k++) for (let m = 0; m < 2; m++) {
-        let p0 = ring[k][m], p1 = ring[k + 1][m], p2 = ring[k + 1][m + 1], p3 = ring[k][m + 1], nn = cross(sub(p1, p0), sub(p3, p0));
-        nn[2] * s < 0 && (nn = neg(nn));
-        dot(cross(sub(p1, p0), sub(p3, p0)), nn) > 0 ? B.quadP(p0, p1, p2, p3, void 0, nn) : B.quadP(p3, p2, p1, p0, void 0, nn);
+      for (let k = 0; k < n; k++) for (let m = 0; m < sec.length - 1; m++) face4(B, grid[k][m], grid[k + 1][m], grid[k + 1][m + 1], grid[k][m + 1]);
+      /* close the ends where they meet the rocker and the bumper */
+      for (let k of [0, n]) {
+        let a = Math.PI * (k ? a1 : a0), e = k ? [-Math.sin(a), Math.cos(a), 0] : [Math.sin(a), -Math.cos(a), 0], c = Math.cos(a), sn = Math.sin(a), grow = 1 + 0.5 * sn * sn, pts = sec.map(([dr, z], m) => B.v([cx + c * (rr + dr * (m ? grow : 1)), cy + sn * (rr + dr * (m ? grow : 1)), s * z], e));
+        for (let m = 1; m < pts.length - 1; m++) face3(B, pts[0], pts[m], pts[m + 1], e);
       }
-      if (fl) for (let k = 1; k < n; k += 3) {
-        let a = Math.PI * k / n, p = [cx + Math.cos(a) * (rr + w0 * 0.55), Y(0) * 0 + cy + Math.sin(a) * (rr + w0 * 0.55), zz + s * 0.006];
-        B.mat(3), B.sphere(p, 0.011, 6, 3);
+      if (fl === 2) for (let k = 1; k < n; k += 3) {
+        let a = Math.PI * (a0 + (a1 - a0) * k / n), sn = Math.sin(a), r = rr + w0 * 0.55 * (1 + 0.5 * sn * sn);
+        B.mat(3), B.sphere([cx + Math.cos(a) * r, cy + sn * r, s * (0.955 + out + 4e-3)], 0.012, 6, 3);
       }
+    }
+    /* ---------- cladding along the rockers between the arches, with an optional accent line ---------- */
+    if (L.sides === "cladding" || L.sides === "boards") for (let s of [-1, 1]) {
+      let xa = SUV.axR + archR + 0.07, xb = SUV.axF - archR - 0.07, sec = [[0.88, 0.3], [0.935, 0.315], [0.958, 0.355], [0.962, 0.47], [0.95, 0.53], [0.915, 0.55]], n = sec.length, rowA = [], rowB = [];
+      B.mat(18, 0);
+      for (let j = 0; j < n; j++) {
+        let [z, y] = sec[j], pa = sec[Math.max(0, j - 1)], pb = sec[Math.min(n - 1, j + 1)], nn = [0, -(pb[0] - pa[0]), (pb[1] - pa[1]) * s];
+        rowA.push(B.v([xa, Y(y), s * z], nn, 0, y)), rowB.push(B.v([xb, Y(y), s * z], nn, xb - xa, y));
+      }
+      for (let j = 0; j < n - 1; j++) face4(B, rowA[j], rowB[j], rowB[j + 1], rowA[j + 1]);
+      for (let [x, d] of [[xa, -1], [xb, 1]]) {
+        let ring = sec.map(([z, y]) => B.v([x, Y(y), s * z], [d, 0, 0])), c = B.v([x, Y(0.43), s * 0.9], [d, 0, 0]);
+        for (let j = 0; j < n - 1; j++) face3(B, c, ring[j], ring[j + 1], [d, 0, 0]);
+      }
+      L.accent && (B.mat(17, 5), B.box([(xa + xb) / 2, Y(0.36), s * 0.958], [1, 0, 0], [0, 1, 0], [0, 0, 1], [(xb - xa) / 2 - 0.02, 6e-3, 3e-3]));
     }
     /* ---------- running boards, sliders ---------- */
     if (L.sides === "boards") for (let s of [-1, 1]) {
@@ -5937,38 +6001,63 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
       for (let x of [-0.75, 0, 0.72]) tube([x, 0.36, s * 0.99], [x, 0.38, s * 0.7], 0.03, 17, 0, 8);
       tube([0.95, 0.36, s * 0.99], [1.02, 0.4, s * 0.82], 0.033, 17, 0, 8), tube([-0.98, 0.36, s * 0.99], [-1.05, 0.4, s * 0.82], 0.033, 17, 0, 8);
     }
-    /* ---------- the front end ---------- */
+    /* ---------- the front end (the old bolt-ons were made for a nose at 2.47) ---------- */
+    let fx = SUV.nose - 2.47;
     if (L.front === "winch") {
-      bx([2.56, 0.6, 0], [0.11, 0.13, 0.86], 17, 0), bx([2.6, 0.48, 0], [0.08, 0.05, 0.62], 17, 0);
-      tube([2.62, 0.74, -0.42], [2.64, 0.96, -0.3], 0.032, 17, 0), tube([2.62, 0.74, 0.42], [2.64, 0.96, 0.3], 0.032, 17, 0), tube([2.64, 0.96, -0.3], [2.64, 0.96, 0.3], 0.032, 17, 0);
-      B.mat(17, 0), B.tube([2.64, Y(0.6), -0.2], [2.64, Y(0.6), 0.2], 0.075, 12, !0), B.mat(3), B.tube([2.7, Y(0.6), -0.03], [2.76, Y(0.6), -0.03], 0.018, 6, !0);
-      for (let s of [-1, 1]) B.mat(17, 3), B.tube([2.68, Y(0.5), s * 0.5 - 0.03], [2.68, Y(0.5), s * 0.5 + 0.03], 0.035, 10, !0);
+      bx([2.56 + fx, 0.6, 0], [0.11, 0.13, 0.86], 17, 0), bx([2.6 + fx, 0.48, 0], [0.08, 0.05, 0.62], 17, 0);
+      tube([2.62 + fx, 0.74, -0.42], [2.64 + fx, 0.98, -0.3], 0.032, 17, 0), tube([2.62 + fx, 0.74, 0.42], [2.64 + fx, 0.98, 0.3], 0.032, 17, 0), tube([2.64 + fx, 0.98, -0.3], [2.64 + fx, 0.98, 0.3], 0.032, 17, 0);
+      B.mat(17, 0), B.tube([2.64 + fx, Y(0.6), -0.2], [2.64 + fx, Y(0.6), 0.2], 0.075, 12, !0), B.mat(3), B.tube([2.7 + fx, Y(0.6), -0.03], [2.76 + fx, Y(0.6), -0.03], 0.018, 6, !0);
+      for (let s of [-1, 1]) B.mat(17, 3), B.tube([2.68 + fx, Y(0.5), s * 0.5 - 0.03], [2.68 + fx, Y(0.5), s * 0.5 + 0.03], 0.035, 10, !0);
     } else if (L.front === "prerunner") {
       for (let s of [-1, 1]) {
-        tube([2.5, 0.45, s * 0.85], [2.6, 0.5, s * 0.6], 0.03, 17, 0), tube([2.6, 0.5, s * 0.6], [2.6, 0.5, 0], 0.03, 17, 0, 8, !1);
-        tube([2.6, 0.5, s * 0.45], [2.62, 0.8, s * 0.42], 0.028, 17, 0), tube([2.62, 0.8, s * 0.42], [2.5, 0.95, s * 0.75], 0.028, 17, 0), tube([2.6, 0.5, s * 0.45], [2.45, 0.42, s * 0.3], 0.028, 17, 0);
+        tube([2.5 + fx, 0.45, s * 0.85], [2.6 + fx, 0.5, s * 0.6], 0.03, 17, 0), tube([2.6 + fx, 0.5, s * 0.6], [2.6 + fx, 0.5, 0], 0.03, 17, 0, 8, !1);
+        tube([2.6 + fx, 0.5, s * 0.45], [2.62 + fx, 0.8, s * 0.42], 0.028, 17, 0), tube([2.62 + fx, 0.8, s * 0.42], [2.5 + fx, 0.98, s * 0.75], 0.028, 17, 0), tube([2.6 + fx, 0.5, s * 0.45], [2.45 + fx, 0.42, s * 0.3], 0.028, 17, 0);
       }
-      tube([2.62, 0.8, -0.42], [2.62, 0.8, 0.42], 0.028, 17, 0);
+      tube([2.62 + fx, 0.8, -0.42], [2.62 + fx, 0.8, 0.42], 0.028, 17, 0);
     } else if (L.front === "bullbar") {
-      for (let s of [-1, 1]) tube([2.52, 0.48, s * 0.33], [2.58, 0.95, s * 0.33], 0.034, 17, 2), tube([2.58, 0.95, s * 0.33], [2.62, 1.04, 0], 0.034, 17, 2, 8, !1);
-      tube([2.55, 0.62, -0.38], [2.55, 0.62, 0.38], 0.03, 17, 2);
-      bx([2.5, 0.42, 0], [0.04, 0.03, 0.4], 17, 2);
+      for (let s of [-1, 1]) tube([2.52 + fx, 0.48, s * 0.33], [2.58 + fx, 0.98, s * 0.33], 0.034, 17, 2), tube([2.58 + fx, 0.98, s * 0.33], [2.62 + fx, 1.07, 0], 0.034, 17, 2, 8, !1);
+      tube([2.55 + fx, 0.62, -0.38], [2.55 + fx, 0.62, 0.38], 0.03, 17, 2);
+      bx([2.5 + fx, 0.42, 0], [0.04, 0.03, 0.4], 17, 2);
+    } else if (L.front === "lip") {
+      /* a splitter under the bumper and little canards at the corners */
+      B.mat(18, 1), B.box([2.465, Y(0.402), 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.12, 9e-3, 0.76]);
+      for (let s of [-1, 1]) B.mat(18, 1), B.box([2.43, Y(0.47), s * 0.89], norm([1, 0.25, 0]), norm([-0.25, 1, 0]), [0, 0, 1], [0.06, 6e-3, 0.05]), B.mat(18, 1), B.box([2.575, Y(0.42), s * 0.75], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.012, 0.02, 4e-3]);
+      L.accent && (B.mat(17, 5), B.box([2.587, Y(0.402), 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [4e-3, 0.01, 0.75]));
+    } else if (L.front === "recovery") {
+      /* a skid plate and a pair of red recovery shackles */
+      B.mat(17, 1), B.box([2.42, Y(0.385), 0], norm([1, 0.3, 0]), norm([-0.3, 1, 0]), [0, 0, 1], [0.17, 0.01, 0.5]);
+      for (let k = -2; k <= 2; k++) B.mat(17, 0), B.box([2.46, Y(0.4), k * 0.16], norm([1, 0.3, 0]), norm([-0.3, 1, 0]), [0, 0, 1], [0.06, 0.012, 0.035]);
+      for (let s of [-1, 1]) {
+        let z = s * 0.46, x0 = SUV.nose - 0.01, x1 = x0 + 0.06, y = 0.48, r = 0.032, seg = 8;
+        bx([x0 + 0.005, y, z], [0.04, 0.03, 0.022], 17, 0);
+        B.mat(17, 3), B.tube([x0, Y(y - r), z], [x1, Y(y - r), z], 0.012, 8, !1), B.tube([x0, Y(y + r), z], [x1, Y(y + r), z], 0.012, 8, !1);
+        for (let k = 0; k < seg; k++) {
+          let t0 = -Math.PI / 2 + Math.PI * k / seg, t1 = -Math.PI / 2 + Math.PI * (k + 1) / seg;
+          B.tube([x1 + Math.cos(t0) * r, Y(y + Math.sin(t0) * r), z], [x1 + Math.cos(t1) * r, Y(y + Math.sin(t1) * r), z], 0.012, 8, !1);
+        }
+        B.mat(3), B.tube([x0 + 0.01, Y(y - r - 0.02), z], [x0 + 0.01, Y(y + r + 0.02), z], 9e-3, 8, !0);
+      }
     }
     if (L.pods) for (let s of [-1, 1]) {
-      let c = [2.6, 0.82, s * 0.62];
+      let c = [2.6 + fx, 0.82, s * 0.62];
       tube([c[0] - 0.06, c[1] - 0.12, c[2]], [c[0] - 0.02, c[1] - 0.04, c[2]], 0.012, 17, 0, 6), B.mat(17, 0), B.tube([c[0] - 0.05, Y(c[1]), c[2]], [c[0] + 0.03, Y(c[1]), c[2]], 0.075, 14, !1), B.mat(15, 1), B.tube([c[0] + 0.03, Y(c[1]), c[2]], [c[0] + 0.032, Y(c[1]), c[2]], 0.068, 14, !0);
     }
     /* ---------- the back ---------- */
+    if (L.rear === "diffuser") {
+      B.mat(18, 1), B.box([-2.42, Y(0.435), 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.11, 8e-3, 0.5]);
+      for (let k = -2; k <= 2; k++) B.mat(18, 1), B.box([-2.47, Y(0.405), k * 0.17], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.06, 0.03, 5e-3]);
+      L.accent && (B.mat(17, 5), B.box([-2.532, Y(0.435), 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [3e-3, 0.01, 0.49]));
+    }
     if (L.rear === "tube") {
-      for (let s of [-1, 1]) tube([-2.36, 0.5, s * 0.8], [-2.55, 0.52, s * 0.68], 0.032, 17, 0), tube([-2.55, 0.52, s * 0.68], [-2.55, 0.52, 0], 0.032, 17, 0, 8, !1);
-      tube([-2.55, 0.52, 0.66], [-2.62, 1.1, 0.5], 0.03, 17, 0), tube([-2.62, 1.1, 0.5], [-2.62, 1.1, 0.05], 0.03, 17, 0);
+      for (let s of [-1, 1]) tube([-2.42, 0.5, s * 0.8], [-2.6, 0.52, s * 0.68], 0.032, 17, 0), tube([-2.6, 0.52, s * 0.68], [-2.6, 0.52, 0], 0.032, 17, 0, 8, !1);
+      tube([-2.6, 0.52, 0.66], [-2.67, 1.1, 0.5], 0.03, 17, 0), tube([-2.67, 1.1, 0.5], [-2.67, 1.1, 0.05], 0.03, 17, 0);
       /* the spare on the swing-out */
-      let tr = L.tireR * 0.92, sc = [-2.72, 1.05, 0.3];
+      let tr = L.tireR * 0.92, sc = [-2.77, 1.05, 0.3];
       B.mat(4, 1), B.tube([sc[0] - L.tireW * 0.4, Y(sc[1]), sc[2]], [sc[0] + L.tireW * 0.4, Y(sc[1]), sc[2]], tr, 24, !1);
       B.mat(5, 4), B.tube([sc[0] - L.tireW * 0.42, Y(sc[1]), sc[2]], [sc[0] - L.tireW * 0.42 + 0.01, Y(sc[1]), sc[2]], tr * 0.62, 18, !0);
     }
     if (L.chute) {
-      bx([-2.47, 0.62, 0], [0.06, 0.08, 0.2], 17, 0), B.mat(2, 30), B.tube([-2.6, Y(0.72), 0], [-2.6, Y(0.98), 0], 0.11, 12, !0), B.mat(17, 3), B.box([-2.6, Y(0.86), 0.11], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.02, 0.1, 0.01]);
+      bx([-2.52, 0.62, 0], [0.06, 0.08, 0.2], 17, 0), B.mat(2, 30), B.tube([-2.65, Y(0.72), 0], [-2.65, Y(0.98), 0], 0.11, 12, !0), B.mat(17, 3), B.box([-2.65, Y(0.86), 0.11], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.02, 0.1, 0.01]);
     }
     if (L.wheelie) {
       for (let s of [-1, 1]) {
@@ -5981,8 +6070,8 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
     let tip = (a, b, r) => {
       B.mat(10), B.tube([a[0], Y(a[1]), a[2]], [b[0], Y(b[1]), b[2]], r, 12, !1), B.mat(11), B.tube([b[0] + (a[0] - b[0]) * 0.15, Y(b[1]), b[2]], [b[0], Y(b[1]), b[2]], r * 0.86, 12, !0);
     };
-    if (L.exhaust === "stock") tip([-2.2, 0.36, 0.6], [-2.42, 0.36, 0.62], 0.032);
-    else if (L.exhaust === "dual") for (let s of [-1, 1]) for (let dz of [-0.05, 0.05]) tip([-2.2, 0.38, s * 0.62 + dz], [-2.47, 0.38, s * 0.62 + dz], 0.042);
+    if (L.exhaust === "stock") tip([-2.2, 0.38, 0.6], [-2.47, 0.38, 0.62], 0.032);
+    else if (L.exhaust === "dual") for (let s of [-1, 1]) for (let dz of [-0.05, 0.05]) tip([-2.2, 0.39, s * 0.62 + dz], [-2.53, 0.39, s * 0.62 + dz], 0.042);
     else if (L.exhaust === "side") for (let s of [-1, 1]) tip([-0.95, 0.38, s * 0.8], [-0.95, 0.36, s * 1.0], 0.05);
     if (L.stacks) for (let s of [-1, 1]) {
       let x = -0.98, z = s * 0.98;
@@ -5990,7 +6079,7 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
       for (let y of [0.9, 1.6]) tube([x, y, z], [x, y, z * 0.92], 0.012, 17, 0, 6);
     }
     /* ---------- the hood ---------- */
-    let hoodY = (x) => crA(st.map((q) => q[4] + q[5]), bodyAt(x)) + 0.004;
+    let hoodY = (x) => crA(st.map((q) => q[4] + q[5]), bodyAt(x)) + hoodDome(x) + 0.024;
     if (L.hood === "cowl" || L.hood === "scoop") {
       let x0 = 1.0, x1 = 2.05, n = 10;
       B.mat(0);
@@ -6026,7 +6115,7 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
       for (let i = 0; i < ng - 1; i++) gh[i][0] <= x && (lo = i);
       return lo + Math.max(0, Math.min(1, (x - gh[lo][0]) / Math.max(1e-6, gh[lo + 1][0] - gh[lo][0])));
     })());
-    if (L.roof === "rails" || L.roof === "basket" || L.roof === "basketSpare") for (let s of [-1, 1]) {
+    if (L.roof === "rails" || L.roof === "basket" || L.roof === "basketSpare" || L.roof === "expedition") for (let s of [-1, 1]) {
       let z = s * 0.66, x0 = -1.95, x1 = -0.2, n = 8;
       for (let i = 0; i < n; i++) {
         let xa = x0 + (x1 - x0) * i / n, xb = x0 + (x1 - x0) * (i + 1) / n;
@@ -6046,7 +6135,32 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
         for (let s of [-1, 1]) bx([-0.55, y + 0.15, s * 0.32], [0.12, 0.15, 0.08], 17, 1);
       }
     }
-    if (L.lightbar) {
+    if (L.roof === "expedition") {
+      /* a low flat platform on the rails: square-tube frame, slats, a wind deflector, two hard cases,
+         an olive duffel strapped down, square LED pods across the front and a whip antenna */
+      let x0 = -2.0, x1 = -0.12, w = 0.68, y = roofY(-1.0) + 0.1, fr = 0.018;
+      for (let x of [x0 + 0.08, -1.05, x1 - 0.08]) for (let s of [-1, 1]) bx([x, (y + roofY(x) + 0.06) / 2, s * 0.66], [0.035, Math.max(0.01, (y - roofY(x) - 0.06) / 2), 0.016], 17, 0);
+      for (let s of [-1, 1]) bx([(x0 + x1) / 2, y, s * w], [(x1 - x0) / 2, fr, fr], 17, 0);
+      for (let x of [x0, x1]) bx([x, y, 0], [fr, fr, w], 17, 0);
+      for (let k = 1; k < 10; k++) bx([x0 + (x1 - x0) * k / 10, y + 4e-3, 0], [0.02, 8e-3, w - 0.01], 17, 0);
+      B.mat(17, 0), B.box([x1 + 0.035, Y(y + 0.03), 0], norm([0.5, 1, 0]), norm([-1, 0.5, 0]), [0, 0, 1], [0.05, 4e-3, w]);
+      for (let s of [-1, 1]) {
+        let c = [-1.6, y + 0.125, s * 0.31];
+        B.mat(17, 1), rbox3(B, [c[0], Y(c[1]), c[2]], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.27, 0.105, 0.27], 0.18), bx([c[0], c[1] + 0.01, c[2]], [0.274, 6e-3, 0.274], 17, 0);
+        for (let dx of [-0.13, 0.13]) bx([c[0] + dx, c[1] + 0.05, c[2] + s * 0.272], [0.025, 0.02, 4e-3], 16, 1);
+        bx([c[0], c[1] - 0.04, c[2] + s * 0.272], [0.2, 5e-3, 3e-3], 17, 0);
+      }
+      B.mat(17, 4), B.tube([-1.02, Y(y + 0.115), -0.44], [-1.02, Y(y + 0.115), 0.44], 0.105, 14, !0);
+      B.mat(17, 4), B.tube([-0.66, Y(y + 0.08), -0.3], [-0.66, Y(y + 0.08), 0.3], 0.07, 12, !0);
+      for (let z of [-0.26, 0.26]) B.mat(17, 0), B.tube([-1.02, Y(y + 0.115), z - 0.014], [-1.02, Y(y + 0.115), z + 0.014], 0.108, 14, !1);
+      for (let z of [-0.15, 0.15]) B.mat(17, 0), B.tube([-0.66, Y(y + 0.08), z - 0.012], [-0.66, Y(y + 0.08), z + 0.012], 0.073, 12, !1);
+      for (let z of [-0.5, -0.17, 0.17, 0.5]) {
+        bx([x1 + 0.005, y + 0.035, z], [0.012, 0.03, 0.012], 17, 0), B.mat(17, 0), rbox3(B, [x1 + 0.03, Y(y + 0.085), z], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.036, 0.052, 0.054], 0.22, 12, 8);
+        B.mat(15, 1), B.box([x1 + 0.066, Y(y + 0.085), z], [1, 0, 0], [0, 1, 0], [0, 0, 1], [2e-3, 0.042, 0.044]);
+      }
+      tube([x0 + 0.05, y, -0.62], [x0 - 0.05, y + 0.78, -0.62], 5e-3, 17, 0, 5), B.mat(17, 0), B.sphere([x0 - 0.05, Y(y + 0.79), -0.62], 0.012, 6, 4);
+    }
+    if (L.lightbar && L.roof !== "expedition") {
       let x = -0.15, y = roofY(-0.15) + (L.roof === "basket" || L.roof === "basketSpare" ? 0.15 : 0.1);
       bx([x, y, 0], [0.045, 0.045, 0.66], 17, 0), B.mat(15, 1), B.box([x + 0.046, Y(y), 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.002, 0.034, 0.63]);
       for (let s of [-1, 1]) tube([x, y - 0.04, s * 0.6], [x - 0.02, roofY(x) + 0.01, s * 0.66], 0.012, 17, 0, 6);
@@ -6059,9 +6173,30 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
       let z = 0.9;
       tube([1.6, 0.92, z], [1.05, 1.06, z + 0.04], 0.045, 2, 20, 10), tube([1.05, 1.06, z + 0.04], [0.82, 1.15, z + 0.03], 0.045, 2, 20, 10), tube([0.82, 1.15, z + 0.03], [0.1, 1.82, z - 0.08], 0.045, 2, 20, 10), B.mat(2, 20), B.box([0.06, Y(1.86), z - 0.08], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.12, 0.06, 0.06]);
     }
-    if (L.spoiler) {
-      let x = -2.12, y = roofY(-2.05);
-      B.mat(0), B.box([x, Y(y + 0.01), 0], norm([1, 0.12, 0]), norm([-0.12, 1, 0]), [0, 0, 1], [0.12, 0.018, 0.7]);
+    /* ---------- spoilers: the factory lip over the liftgate glass, or a big wing on stands ---------- */
+    if (L.spoiler === 1) {
+      let x = -2.15, y = roofY(-2.08);
+      B.mat(0), B.box([x, Y(y - 4e-3), 0], norm([1, 0.18, 0]), norm([-0.18, 1, 0]), [0, 0, 1], [0.1, 0.016, 0.68]);
+      B.mat(2, 40), B.box([x - 0.098, Y(y - 0.02), 0], norm([1, 0.18, 0]), norm([-0.18, 1, 0]), [0, 0, 1], [4e-3, 6e-3, 0.66]);
+    } else if (L.spoiler === 2) {
+      /* a deep roof spoiler: it carries the roofline back past the glass, tips down, with fins down each side */
+      let x0 = -1.98, x1 = -2.36, n = 6, y0 = roofY(-1.98) + 6e-3, rows = [];
+      for (let i = 0; i <= n; i++) {
+        let t = i / n, x = x0 + (x1 - x0) * t, y = y0 + 0.012 * Math.sin(t * Math.PI) - 0.07 * t * t, w = 0.72 - 0.03 * t, th = 0.025 * (1 - t) + 8e-3;
+        rows.push([x, y, w, th]);
+      }
+      B.mat(0);
+      let top = rows.map(([x, y, w]) => [B.v([x, Y(y), -w], [0.15, 1, 0]), B.v([x, Y(y), w], [0.15, 1, 0])]), bot = rows.map(([x, y, w, th]) => [B.v([x, Y(y - th), -w], [0, -1, 0]), B.v([x, Y(y - th), w], [0, -1, 0])]);
+      for (let i = 0; i < n; i++) face4(B, top[i][0], top[i + 1][0], top[i + 1][1], top[i][1]), face4(B, bot[i][0], bot[i][1], bot[i + 1][1], bot[i + 1][0]);
+      for (let s of [-1, 1]) {
+        let k = s > 0 ? 1 : 0, side = rows.map(([x, y, w, th]) => [B.v([x, Y(y), s * w], [0, 0, s]), B.v([x, Y(y - th), s * w], [0, 0, s])]);
+        for (let i = 0; i < n; i++) face4(B, side[i][0], side[i + 1][0], side[i + 1][1], side[i][1]);
+        /* the fin that runs down beside the rear glass */
+        B.mat(0), B.box([-2.2, Y(y0 - 0.08), s * 0.725], norm([1, -0.9, 0]), norm([0.9, 1, 0]), [0, 0, 1], [0.13, 0.03, 0.012]);
+      }
+      let e = rows[n];
+      B.mat(17, 0), B.box([e[0] - 4e-3, Y(e[1] - e[3] / 2), 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [5e-3, e[3] / 2 + 6e-3, e[2]]);
+      L.accent && (B.mat(17, 5), B.box([e[0] - 0.01, Y(e[1] - e[3] / 2), 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [2e-3, 4e-3, e[2] - 0.01]));
     }
     return { body: B, glass: GH, look: L, hcg };
   }
@@ -6089,10 +6224,10 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
       let a = k / 14 * Math.PI * 2;
       block(a, R2 - 0.01, 0.045, -tw * 0.5, tw * 0.5, 0.022);
     }
-    /* the rim */
-    let st = L.wheel, rimCol = { stock: 0, steelie: 4, chrome: 2, beadlock: 4, weld: 2, gold: 6 }[st] || 0, spokes = { stock: 7, steelie: 0, chrome: 10, beadlock: 6, weld: 5, gold: 8 }[st] || 7, zf = tw * 0.4, zh = st === "chrome" ? tw * 0.08 : tw * 0.36;
+    /* the rim: per style its colour (rim material kind), spoke count, spoke widths at hub and rim, and how deep the face sits */
+    let st = L.wheel, RS = { stock: [0, 6, 0.046, 0.04, 0.3], steelie: [4, 0], chrome: [2, 10, 0.03, 0.012, 0.08], beadlock: [4, 6, 0.03, 0.026, 0.36], weld: [2, 5, 0.012, 9e-3, 0.36], gold: [6, 8, 0.03, 0.026, 0.36], street10: [8, 10, 0.017, 0.013, 0.12], bronze8: [7, 0] }[st] || [0, 6, 0.046, 0.04, 0.3], rimCol = RS[0], spokes = RS[1], zf = tw * 0.4, zh = spokes ? tw * RS[4] : zf;
     W2.mat(5, 1), lathe(W2, [[rimR - 4e-3, tw * 0.47], [rimR - 0.014, tw * 0.42], [rimR - 0.014, -tw * 0.42], [rimR - 4e-3, -tw * 0.47]], n, (k, j) => [k / n, j]);
-    W2.mat(5, rimCol === 4 ? 4 : 2), lathe(W2, [[rimR + 6e-3, tw * 0.47], [rimR - 0.02, tw * 0.47], [rimR - 0.024, st === "chrome" ? tw * 0.1 : tw * 0.43]], n, (k, j) => [k / n, j]);
+    W2.mat(5, rimCol === 4 ? 4 : rimCol === 7 || rimCol === 8 ? rimCol : 2), lathe(W2, [[rimR + 6e-3, tw * 0.47], [rimR - 0.02, tw * 0.47], [rimR - 0.024, zh < tw * 0.2 ? tw * 0.1 : tw * 0.43]], n, (k, j) => [k / n, j]);
     if (st === "beadlock") {
       W2.mat(5, 2), lathe(W2, [[rimR + 0.03, tw * 0.5], [rimR - 0.02, tw * 0.5], [rimR - 0.02, tw * 0.47], [rimR + 0.03, tw * 0.47]], n, (k, j) => [k / n, j]);
       W2.mat(3);
@@ -6101,10 +6236,17 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
         W2.tube([Math.cos(a) * (rimR + 5e-3), Math.sin(a) * (rimR + 5e-3), tw * 0.5], [Math.cos(a) * (rimR + 5e-3), Math.sin(a) * (rimR + 5e-3), tw * 0.515], 7e-3, 5, !0);
       }
     }
+    if (st === "street10") W2.mat(17, 5), lathe(W2, [[rimR + 2e-3, tw * 0.472], [rimR - 6e-3, tw * 0.472]], n, (k, j) => [k / n, j]);
     W2.mat(5, rimCol);
     if (spokes) for (let s = 0; s < spokes; s++) {
-      let a = s / spokes * Math.PI * 2, t = [Math.cos(a), Math.sin(a), 0], sd = [-Math.sin(a), Math.cos(a), 0], P = (r, o, z) => [t[0] * r + sd[0] * o, t[1] * r + sd[1] * o, z], r0 = 0.075, r1 = rimR - 0.022, w0 = st === "weld" ? 0.012 : 0.03, w1 = st === "weld" ? 0.009 : st === "chrome" ? 0.012 : 0.026, zz0 = zh, zz1 = st === "chrome" ? tw * 0.1 : zf;
-      W2.quadP(P(r0, -w0, zz0), P(r1, -w1, zz1), P(r1, w1, zz1), P(r0, w0, zz0)), W2.quadP(P(r0, w0, zz0), P(r1, w1, zz1), P(r1, w1, zz1 - 0.035), P(r0, w0, zz0 - 0.035)), W2.quadP(P(r1, -w1, zz1), P(r0, -w0, zz0), P(r0, -w0, zz0 - 0.035), P(r1, -w1, zz1 - 0.035));
+      let a = s / spokes * Math.PI * 2 + (st === "street10" ? (s & 1 ? -0.07 : 0.07) : 0), t = [Math.cos(a), Math.sin(a), 0], sd = [-Math.sin(a), Math.cos(a), 0], P = (r, o, z) => [t[0] * r + sd[0] * o, t[1] * r + sd[1] * o, z], r0 = 0.075, r1 = rimR - 0.022, w0 = RS[2], w1 = RS[3], zz0 = zh, zz1 = st === "chrome" ? tw * 0.1 : zf, dep = st === "stock" ? 0.05 : 0.035;
+      W2.quadP(P(r0, -w0, zz0), P(r1, -w1, zz1), P(r1, w1, zz1), P(r0, w0, zz0)), W2.quadP(P(r0, w0, zz0), P(r1, w1, zz1), P(r1, w1, zz1 - dep), P(r0, w0, zz0 - dep)), W2.quadP(P(r1, -w1, zz1), P(r0, -w0, zz0), P(r0, -w0, zz0 - dep), P(r1, -w1, zz1 - dep));
+      /* a raised ridge down the middle of the broad factory spokes */
+      st === "stock" && (W2.mat(5, 2), W2.quadP(P(r0 + 0.01, -6e-3, zz0 + 5e-3), P(r1 - 0.01, -5e-3, zz1 + 4e-3), P(r1 - 0.01, 5e-3, zz1 + 4e-3), P(r0 + 0.01, 6e-3, zz0 + 5e-3)), W2.mat(5, rimCol));
+    }
+    else if (st === "bronze8") {
+      /* a flat-faced disc; the eight round windows are cut out in the shader */
+      lathe(W2, [[rimR - 0.018, zf - 4e-3], [rimR - 0.035, zf - 0.016], [0.1, zf - 0.016], [0.085, zf - 6e-3]], n * 2, (k, j) => [k / (n * 2), j * 0.3]);
     }
     else {
       /* a steel wheel: a dished disc with round holes painted in the shader */
@@ -6132,7 +6274,7 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
     }
     /* the brake disc behind the spokes */
     W2.mat(6);
-    let zd = -0.03, ri = 0.1, ro = Math.min(0.17, rimR - 0.05);
+    let zd = -0.03, ri = 0.1, ro = Math.min(0.205, rimR - 0.05);
     for (let k = 0; k < n; k++) {
       let a0 = k / n * Math.PI * 2, a1 = (k + 1) / n * Math.PI * 2;
       for (let [z, nz] of [[zd + 0.014, 1], [zd - 0.014, -1]]) {
@@ -6142,6 +6284,17 @@ void matWater(inout Surf s,inout float ssr,inout vec2 g,vec2 uv){
     }
     return W2;
   }
+  /* a brake caliper that sits behind the spokes: steers with the wheel, doesn't spin with it */
+  function buildSuvCaliper(L) {
+    let C = new MeshBuilder(1024), rimR = L.rim * 0.0254 / 2 + 0.012, ro = Math.min(0.205, rimR - 0.05), a0 = 2.2, a1 = 3.05, n = 8, r = ro - 0.012;
+    C.mat(17, 6);
+    for (let k = 0; k < n; k++) {
+      let t0 = a0 + (a1 - a0) * k / n, t1 = a0 + (a1 - a0) * (k + 1) / n, tm = (t0 + t1) / 2, rad = [Math.cos(tm), Math.sin(tm), 0], tan = [-Math.sin(tm), Math.cos(tm), 0];
+      C.box([rad[0] * r, rad[1] * r, -0.03], rad, tan, [0, 0, 1], [0.034, (t1 - t0) * r * 0.55, 0.036]);
+    }
+    return C;
+  }
+
   // ===== render/suv-shader.js =====
   /* The truck's own surface shader. Same lighting, probe and G-buffer outputs as the Shiftlight car
      shader, with an original luxury-SUV face painted on the loft: a wide hex-mesh grille in a heavy
@@ -6160,6 +6313,8 @@ uniform vec4 uLook;   /* x chrome trim 0..1, y window tint, z livery, w lower cl
 uniform vec4 uLamps;  /* headlamps, tail, brake, reverse */
 uniform vec4 uAux;    /* x light bar, y pods and ditch lamps, z sunroof, w number */
 uniform vec4 uArch;   /* front axle x, rear axle x, arch centre y, arch radius */
+uniform vec4 uStyle;  /* x face: 0 classic, 1 street, 2 backcountry; y tail: 0 wide two-piece, 1 LED rings; z accent on */
+uniform vec3 uAcc;uniform vec3 uCal;
 uniform float uHcg;uniform float uDisc;uniform float uDirt;uniform float uMud;uniform float uSeed;
 float aa(float d,float w){float f=fwidth(d)*.8+1e-5;return 1.0-smoothstep(w-f,w+f,d);}
 float rbox(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
@@ -6167,9 +6322,9 @@ vec3 envBRDF(vec3 F0,float NoV,float r){const vec4 c0=vec4(-1,-.0275,-.572,.022)
   float a=min(rr.x*rr.x,exp2(-9.28*NoV))*rr.x+rr.y;vec2 AB=vec2(-1.04,1.04)*a+rr.zw;return F0*AB.x+AB.y;}
 vec3 env(vec3 R,float r){return textureLod(uProbe,R,r*uProbeLod).rgb;}
 vec3 heat(float t){return vec3(1.,.28,.05)*smoothstep(.25,.6,t)*6.+vec3(1.,.55,.15)*smoothstep(.6,1.,t)*14.;}
-struct M{vec3 alb;float metal;float rough;float clear;float clearR;vec3 em;float flake;float dirtK;};
+struct M{vec3 alb;float metal;float rough;float clear;float clearR;vec3 em;float flake;float dirtK;float spec;};
 void chrome(inout M m,float k){m.alb=mix(m.alb,mix(vec3(.025),vec3(.9),uLook.x),k);m.metal=mix(m.metal,uLook.x,k);m.rough=mix(m.rough,mix(.35,.07,uLook.x),k);m.flake*=1.0-k;}
-void satin(inout M m,vec3 c,float k){m.alb=mix(m.alb,c,k);m.metal*=1.0-k;m.rough=mix(m.rough,.55,k);m.clear*=1.0-k*.7;m.flake*=1.0-k;}
+void satin(inout M m,vec3 c,float k){m.alb=mix(m.alb,c,k);m.metal*=1.0-k;m.rough=mix(m.rough,.58,k);m.clear*=1.0-k*.8;m.flake*=1.0-k;m.spec=mix(m.spec,.5,k);}
 /* the greenhouse: 0 paint, 1 black, 2 belt trim, 3 glass. u runs 0 at the belt to 1 on the roof centre */
 void ghClass(float u,float x,float az,out int part,out float glass,out float frit,out float tr){
   part=0;glass=0.0;frit=0.0;tr=.42*(1.0-uLook.y*.75);
@@ -6244,84 +6399,135 @@ void livery(inout M m,vec3 L,vec3 N,float yg){
     if(yg<.5&&abs(N.z)>.3)k=0.;m.metal=0.;m.flake=0.;m.rough=.55;m.clear=.2;}
   m.alb=mix(m.alb,c,k);m.flake*=1.0-k*.7;
 }
+void lamp(inout M m){m.alb=vec3(.55);m.metal=1.;m.rough=.12;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;}
+void gblack(inout M m,float k){m.alb=mix(m.alb,vec3(.012),k);m.metal*=1.0-k;m.rough=mix(m.rough,.18,k);m.flake*=1.0-k;m.clear=mix(m.clear,.8,k);}
+void hexmesh(inout M m,vec3 L,float yg,float sc,float bright){vec2 h=vec2(L.z*sc,yg*sc*1.155);h.x+=step(.5,fract(h.y*.5))*.5;vec2 f=abs(fract(h)-.5);float web=step(.34,max(f.x,f.y*1.15));
+  m.alb=vec3(.006)+web*bright;m.metal=web*.3;m.rough=.4;m.clear=0.;m.flake=0.;m.dirtK=.5;}
+void redLamp(inout M m,float led){m.alb=vec3(.32,.012,.012);m.metal=0.;m.rough=.05;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;m.em+=vec3(1.,.03,.02)*(uLamps.y*4.+uLamps.z*26.+.2)*(.35+.65*led);}
+void revLamp(inout M m){m.alb=vec3(.75);m.metal=0.;m.rough=.05;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;m.em+=vec3(1.,.97,.9)*uLamps.w*30.;}
+/* the three faces: 0 classic twin-bar, 1 street split mesh, 2 backcountry quad lamps */
+void face(inout M m,vec3 L,vec3 N,float yg){
+  float az=abs(L.z);int fs=int(uStyle.x+.5);vec3 W=vec3(.95,.93,.86);
+  if(fs==0){
+    /* a tall grille crossed by two heavy chrome bars, chrome-ringed lamps with twin projectors, a wide intake */
+    float gd=rbox(vec2(az,yg-.8),vec2(.4,.125),.05);
+    if(gd<0.){hexmesh(m,L,yg,34.,.04);float bars=max(aa(abs(yg-.836)-.017,0.),aa(abs(yg-.764)-.017,0.))*step(az,.385);chrome(m,bars);}
+    chrome(m,aa(abs(gd+.013),.013));
+    float yc=.815,hd=rbox(vec2(az-.69,yg-yc),vec2(.2,.066),.03);
+    if(hd<0.){lamp(m);float b1=length(vec2(az-.6,yg-yc)),b2=length(vec2(az-.78,yg-yc));
+      float bowl=max(aa(b1,.046),aa(b2,.042));m.alb=mix(m.alb,vec3(.95),bowl*.5);
+      float lens=max(aa(b1,.022),aa(b2,.02));m.em+=W*lens*(uLamps.x*95.+3.)+W*bowl*uLamps.x*6.;
+      float drl=aa(abs(yg-(yc-.05))-.006,0.)*step(.52,az)*step(az,.87);m.em+=vec3(1.,.98,.92)*drl*(10.+uLamps.x*8.);}
+    chrome(m,aa(abs(hd),.006)*.7);
+    float id=rbox(vec2(az,yg-.53),vec2(.36,.045),.02);if(id<0.){m.alb=vec3(.01);m.metal=0.;m.rough=.6;m.clear=0.;m.flake=0.;}
+    chrome(m,aa(abs(id),.005)*.5);
+    float fog=length(vec2(az-.66,yg-.53));if(fog<.04){lamp(m);m.em+=vec3(1.,.95,.8)*aa(fog,.026)*uLamps.x*40.;}
+    chrome(m,aa(abs(fog-.04),.006));
+    chrome(m,aa(abs(yg-.625)-.006,0.)*step(az,.84)*.9);
+  }
+  else if(fs==1){
+    /* a slim upper slot and a big lower mesh with a painted bar between, smoked slim lamps with a light blade */
+    float up=rbox(vec2(az,yg-.885),vec2(.42,.04),.02),lo=rbox(vec2(az*(1.+.3*(yg-.64)),yg-.645),vec2(.43,.115),.05);
+    if(up<0.)hexmesh(m,L,yg,46.,.05);
+    if(lo<0.)hexmesh(m,L,yg,30.,.045);
+    gblack(m,aa(abs(up+.008),.008));gblack(m,aa(abs(lo+.01),.01));
+    if(uStyle.z>.5)m.alb=mix(m.alb,uAcc,aa(abs(yg-.82)-.0035,0.)*step(az,.36));
+    float yc=.875,hd=rbox(vec2(az-.7,yg-yc),vec2(.19,.042),.016);
+    if(hd<0.){lamp(m);m.alb=vec3(.03);m.metal=.9;m.rough=.08;
+      float p1=rbox(vec2(az-.62,yg-yc+.006),vec2(.026,.016),.006),p2=rbox(vec2(az-.75,yg-yc+.006),vec2(.026,.016),.006);
+      float lens=max(aa(p1,0.),aa(p2,0.));m.alb=mix(m.alb,vec3(.5),lens*.6);m.em+=W*lens*(uLamps.x*110.+2.);
+      float blade=aa(abs(yg-yc-.03)-.0045,0.)*step(az,.88)*step(.52,az);m.em+=vec3(.92,.96,1.)*blade*(14.+uLamps.x*6.);}
+    gblack(m,aa(abs(hd),.006));
+    float vd=rbox(vec2(az-.77,yg-.6),vec2(.06,.085),.02);
+    if(vd<0.){m.alb=vec3(.008);m.metal=0.;m.rough=.5;m.clear=0.;m.flake=0.;float fin=aa(abs(fract(yg*42.)-.5)-.2,0.);m.alb+=vec3(.025)*fin;}
+    gblack(m,aa(abs(vd),.006));
+  }
+  else{
+    /* a black bumper with square fog lamps, a black panel with heavy slats, four round lamps with halo rings */
+    if(yg<.68&&yg>.4)satin(m,vec3(.028),1.0);
+    float fd=rbox(vec2(az-.62,yg-.56),vec2(.05,.028),.006);if(fd<0.){lamp(m);m.em+=vec3(1.,.95,.8)*uLamps.x*30.*aa(fd+.008,0.);}
+    m.alb=mix(m.alb,vec3(.006),aa(abs(fd),.004));
+    float pd=rbox(vec2(az,yg-.81),vec2(.9,.11),.035);
+    if(pd<0.){m.alb=vec3(.016);m.metal=0.;m.rough=.55;m.clear=.1;m.flake=0.;m.dirtK=.6;
+      float sl=aa(abs(fract((yg-.71)/.045)-.5)-.2,0.)*step(az,.47);m.alb=mix(m.alb,vec3(.05),sl);m.rough=mix(m.rough,.3,sl);
+      for(int i=0;i<2;i++){float lx=i==0?.62:.8;float r=length(vec2(az-lx,yg-.81));
+        if(r<.062){lamp(m);float lens=aa(r,.03);m.em+=W*lens*(uLamps.x*95.+3.);
+          float halo=aa(abs(r-.047)-.005,0.);m.em+=vec3(1.,.98,.92)*halo*(9.+uLamps.x*6.);}
+        m.alb=mix(m.alb,vec3(.008),aa(abs(r-.064),.004));}
+    }
+    gblack(m,aa(abs(pd),.004)*.6);
+  }
+}
+/* the two tails: 0 wide two-piece lamps with a bright bar between, 1 smoked lamps with square LED rings */
+void tail(inout M m,vec3 L,vec3 N,float yg){
+  float az=abs(L.z);int ts=int(uStyle.y+.5);bool back=N.x<-.2,side=abs(N.z)>.3;
+  if(ts==0){
+    float t1=rbox(vec2(az-.77,yg-.97),vec2(.115,.08),.025),t2=rbox(vec2(az-.51,yg-.985),vec2(.115,.055),.02);
+    if(t1<0.&&(back||side)){float led=aa(abs(fract((yg-.9)/.04)-.5)-.28,0.);redLamp(m,led);}
+    if(t2<0.&&back){if(yg<.958)revLamp(m);else redLamp(m,1.);}
+    if(back){chrome(m,aa(rbox(vec2(az,yg-.985),vec2(.39,.013),.008),0.));chrome(m,max(aa(abs(t1),.005),aa(abs(t2),.005))*.6);}
+  }else{
+    vec2 p=vec2(az-.75,yg-.965);float hb=rbox(p,vec2(.13,.088),.014);
+    if(hb<0.&&(back||side)){m.alb=vec3(.05,.004,.004);m.metal=0.;m.rough=.04;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;
+      float r1=aa(abs(rbox(p,vec2(.1,.062),.01))-.005,0.),r2=aa(abs(rbox(p,vec2(.06,.032),.006))-.004,0.);
+      m.em+=vec3(1.,.03,.02)*(r1+r2*.8)*(uLamps.y*7.+uLamps.z*30.+.6);
+      float rv=aa(rbox(p,vec2(.025,.012),.004),0.);if(rv>0.){m.alb=mix(m.alb,vec3(.6),rv);m.em+=vec3(1.,.97,.9)*rv*uLamps.w*30.;}}
+    if(back){float st=aa(rbox(vec2(az,yg-1.005),vec2(.6,.009),.005),0.);if(st>0.){m.alb=mix(m.alb,vec3(.05,.004,.004),st);m.flake*=1.0-st;m.metal*=1.0-st;m.em+=vec3(1.,.03,.02)*st*(uLamps.y*3.+uLamps.z*10.+.15);}
+      gblack(m,aa(abs(hb),.005));}
+  }
+}
 void paint(inout M m,vec3 L,vec3 N,float yg){
   m.alb=uPaint;m.metal=uMetal;m.rough=uPaintR;m.clear=1.0;m.clearR=.035;m.flake=uFlake;
   float az=abs(L.z),x=L.x;
   livery(m,L,N,yg);
   /* lower cladding: rocker, bumpers below the trim line */
-  float lowY=.56+.02*smoothstep(1.8,2.4,x)+.04*smoothstep(-1.9,-2.35,-x)*0.;
-  bool front=x>2.2&&N.x>.25,rear=x<-2.25&&N.x<-.25;
-  float clad=step(yg,front?.48:rear?.6:lowY);
+  float lowY=.56+.02*smoothstep(1.8,2.4,x);
+  bool front=x>2.3&&N.x>.25,rear=x<-2.3&&N.x<-.25;
+  float clad=step(yg,front?.47:rear?.6:lowY);
   if(clad>0.0){if(uLook.w>.5)satin(m,uLower,1.0);}
   /* the trim line above the cladding, along the sides */
-  if(abs(N.z)>.45&&x<2.2&&x>-2.3)chrome(m,aa(abs(yg-lowY-.008),.008));
+  if(abs(N.z)>.45&&x<2.3&&x>-2.35)chrome(m,aa(abs(yg-lowY-.008),.008));
   /* ---------- the face ---------- */
-  if(x>2.25&&N.x>.2){
-    /* grille: a wide rounded opening, fine hex mesh, a heavy surround */
-    vec2 gp=vec2(az,yg-.705);float gd=rbox(gp,vec2(.44,.115),.07);
-    if(gd<.0){vec2 h=vec2(L.z*30.,yg*34.6);h.x+=step(.5,fract(h.y*.5))*.5;vec2 f=abs(fract(h)-.5);float web=step(.36,max(f.x,f.y*1.15));
-      m.alb=vec3(.008)+web*mix(.02,.25,uLook.x);m.metal=web*uLook.x;m.rough=.4;m.clear=0.;m.flake=0.;m.dirtK=.5;}
-    chrome(m,aa(abs(gd+.012),.014));
-    /* wraparound headlamps */
-    float yc=.795-.025*saturate((az-.52)/.36);vec2 hp=vec2(az-.69,yg-yc);float hd=rbox(hp,vec2(.19,.06),.035);
-    if(hd<0.0){m.alb=vec3(.55);m.metal=1.;m.rough=.12;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;
-      float b1=length(vec2(az-.6,yg-yc)),b2=length(vec2(az-.76,yg-yc+.004));
-      float bowl=max(aa(b1,.042),aa(b2,.038));m.alb=mix(m.alb,vec3(.95),bowl*.5);
-      float lens=max(aa(b1,.02),aa(b2,.018));m.em+=vec3(.95,.93,.85)*lens*(uLamps.x*95.+3.)+vec3(.95,.93,.85)*bowl*uLamps.x*6.;
-      float drl=aa(abs(hd+.008),.004);m.em+=vec3(1.,.98,.92)*drl*(10.+uLamps.x*10.);}
-    chrome(m,aa(abs(hd),.006)*.6);
-    /* lower intake and fog lamps */
-    float id=rbox(vec2(az,yg-.47),vec2(.36,.042),.02);
-    if(id<0.0){m.alb=vec3(.01);m.metal=0.;m.rough=.6;m.clear=0.;m.flake=0.;}
-    float fog=length(vec2(az-.63,yg-.49));
-    if(fog<.05){m.alb=vec3(.6);m.metal=1.;m.rough=.1;m.flake=0.;m.em+=vec3(1.,.95,.8)*aa(fog,.032)*uLamps.x*40.;}
-    chrome(m,aa(abs(fog-.05),.006));
-    if(az<.78)chrome(m,aa(abs(yg-.58),.009)*.9);
-  }
-  /* the lamps wrap onto the fender, and an amber marker sits behind them */
-  if(x>2.12&&abs(N.z)>.3&&x<2.45){
-    float yc=.78;float sd=max(abs(yg-yc)-.055,2.2-x);
-    if(sd<0.0){m.alb=vec3(.55);m.metal=1.;m.rough=.12;m.flake=0.;float mk=step(x,2.26);m.alb=mix(m.alb,vec3(.9,.45,.02),mk*.85);m.metal*=1.0-mk;m.em+=vec3(1.,.5,.05)*mk*(1.5+uLamps.x*8.);}
+  if(x>2.38&&N.x>.25)face(m,L,N,yg);
+  /* the lamps wrap onto the fenders, with an amber marker behind */
+  if(x>2.3&&abs(N.z)>.3&&N.x<.6){
+    int fs=int(uStyle.x+.5);
+    if(fs==0){float sd=max(abs(yg-.815)-.062,2.36-x);if(sd<0.){lamp(m);float mk=step(x,2.43);m.alb=mix(m.alb,vec3(.9,.45,.02),mk*.85);m.metal*=1.0-mk;m.em+=vec3(1.,.5,.05)*mk*(1.5+uLamps.x*8.);}chrome(m,aa(abs(sd),.005)*.6);}
+    else if(fs==1){float sd=max(abs(yg-.875)-.04,2.41-x);if(sd<0.){lamp(m);m.alb=vec3(.03);float mk=step(x,2.45);m.em+=vec3(1.,.5,.05)*mk*(1.2+uLamps.x*6.);}gblack(m,aa(abs(sd),.005));}
+    else{float sd=rbox(vec2(x-2.42,yg-.81),vec2(.03,.016),.006);if(sd<0.){lamp(m);m.alb=vec3(.9,.45,.02);m.metal=0.;m.em+=vec3(1.,.5,.05)*(1.5+uLamps.x*8.);}}
   }
   /* ---------- the sides ---------- */
   if(abs(N.z)>.3){
     float sd=1.0;
     if(yg>.44&&yg<1.14){sd=min(sd,abs(x-.97+.06*(yg-.8)));sd=min(sd,abs(x+.22));}
     if(yg>.86&&yg<1.14)sd=min(sd,abs(x+1.12));
-    if(yg<.88&&x>-1.12&&x<-.22){float ar=length(vec2(x-uArch.y,yg-.375));if(ar<uArch.w+.24)sd=min(sd,abs(ar-uArch.w-.06));}
+    if(yg<.88&&x>-1.12&&x<-.22){float ar=length(vec2(x-uArch.y,yg-.375));if(ar<uArch.w+.24)sd=min(sd,abs(ar-uArch.w-.07));}
     if(x<.97&&x>-1.12)sd=min(sd,abs(yg-.44));
     if(L.z>0.0)sd=min(sd,abs(rbox(vec2(x+1.95,yg-.96),vec2(.07,.07),.03)));
     float gp=aa(sd,.0028);if(gp>0.0){m.alb=mix(m.alb,vec3(.004),gp);m.clear*=1.0-gp;m.flake*=1.0-gp;m.rough=mix(m.rough,.7,gp);}
     for(int i=0;i<2;i++){float hx=i==0?.12:-.98;float h=rbox(vec2(x-hx,yg-1.02),vec2(.075,.013),.012);chrome(m,aa(h,0.));}
   }
-  /* ---------- the hood ---------- */
+  /* ---------- the hood: shut lines, and a crease along each side of the raised centre ---------- */
   if(N.y>.5&&x>.9){
-    float sd=abs(x-.985);sd=min(sd,abs(az-.8+.06*saturate((x-1.)/1.3)));sd=min(sd,abs(x-2.36));
+    float sd=abs(x-.985);sd=min(sd,abs(az-.82+.04*saturate((x-1.)/1.3)));sd=min(sd,abs(x-2.47));
     float gp=aa(sd,.003);if(gp>0.0){m.alb=mix(m.alb,vec3(.004),gp);m.clear*=1.0-gp;m.flake*=1.0-gp;}
   }
   /* ---------- the tail ---------- */
-  if(x<-2.2&&N.x<.3){
-    float tl=rbox(vec2(az-.79,yg-.94),vec2(.1,.19),.04);
-    if(tl<0.0&&(N.x<-.2||abs(N.z)>.3)){
-      bool rev=yg<.83;
-      m.alb=rev?vec3(.75):vec3(.32,.012,.012);m.metal=0.;m.rough=.05;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;
-      if(rev)m.em+=vec3(1.,.97,.9)*uLamps.w*30.;
-      else{float led=aa(abs(fract((yg-.82)/.06)-.5)-.28,.0)*aa(abs(az-.79)-.07,0.);
-        m.em+=vec3(1.,.03,.02)*(uLamps.y*4.+uLamps.z*26.+.2)*(.35+.65*led);}
-    }
-    if(N.x<-.2){
-      float lg=rbox(vec2(az,yg-.85),vec2(.66,.27),.05);
-      float gp=aa(abs(lg),.003)*step(yg,1.1);if(gp>0.0){m.alb=mix(m.alb,vec3(.004),gp);m.clear*=1.0-gp;}
-      float pl=rbox(vec2(az,yg-.83),vec2(.17,.075),.012);
-      if(pl<0.0){vec2 pc=vec2((L.z+.15)/.3*7.,(yg-.78)/.08*5.);vec2 ci=floor(pc);
+  if(x<-2.3&&N.x<.3){
+    bool back=N.x<-.2;
+    if(back){
+      float lg=rbox(vec2(az,yg-.87),vec2(.635,.3),.05);
+      float gp=aa(abs(lg),.003)*step(yg,1.15);if(gp>0.0){m.alb=mix(m.alb,vec3(.004),gp);m.clear*=1.0-gp;}
+      float pl=rbox(vec2(az,yg-.75),vec2(.17,.075),.012);
+      if(pl<0.0){vec2 pc=vec2((L.z+.15)/.3*7.,(yg-.7)/.08*5.);vec2 ci=floor(pc);
         float ch=step(.45,h12(ci+3.+uSeed))*step(0.,pc.x)*step(pc.x,7.)*step(.8,pc.y)*step(pc.y,4.2)*step(.2,fract(pc.x));
         m.alb=mix(vec3(.82,.82,.76),vec3(.03),ch);m.metal=0.;m.flake=0.;m.clear=.5;m.rough=.4;m.em+=vec3(.9,.9,.8)*(1.0-ch)*uLamps.y*.5;}
       chrome(m,aa(abs(pl+.004),.008));
-      chrome(m,aa(rbox(vec2(az,yg-.975),vec2(.42,.014),.01),0.));
-      if(yg<.62)satin(m,uLower,step(.5,uLook.w));
+      if(yg<.6)satin(m,uLower,step(.5,uLook.w));
     }
+    tail(m,L,N,yg);
   }
-  if(N.y>.55&&x<-2.15&&yg<.66)satin(m,vec3(.03),1.0);
+  if(N.y>.55&&x<-2.2&&yg<.66)satin(m,vec3(.03),1.0);
   /* water beads */
   if(uWet>0.0&&m.clear>.5){vec3 v3=voro(vec2(L.x+L.y*.3,L.z+L.y*.7)*55.);float bead=aa(v3.x,.26)*step(.45,v3.z)*uWet*saturate(1.0-length(fwidth(L))*120.);
     m.clearR=mix(m.clearR,.012,bead);m.alb*=1.0-bead*.15;}
@@ -6329,7 +6535,7 @@ void paint(inout M m,vec3 L,vec3 N,float yg){
 void main(){
   vec3 N=normalize(vN);if(!gl_FrontFacing)N=-N;vec3 NL=normalize(vNL);
   vec3 V=normalize(uCam-vP);uint id=vMat.x;float yg=vL.y+uHcg;float az=abs(vL.z);
-  M m;m.alb=vec3(.5);m.metal=0.;m.rough=.5;m.clear=0.;m.clearR=.05;m.em=vec3(0);m.flake=0.;m.dirtK=1.0;
+  M m;m.alb=vec3(.5);m.metal=0.;m.rough=.5;m.clear=0.;m.clearR=.05;m.em=vec3(0);m.flake=0.;m.dirtK=1.0;m.spec=1.0;
   float alpha=1.0;
   if(id==0u){
     float ax=min(abs(vL.x-uArch.x),abs(vL.x-uArch.y));if(length(vec2(ax,vL.y-uArch.z))<uArch.w&&az>.55)discard;
@@ -6375,6 +6581,11 @@ void main(){
     else if(k==3u){m.alb=vec3(.05);m.rough=.3;m.clear=.8;}
     else if(k==4u){m.alb=vec3(.025);m.rough=.45;m.clear=.3;}
     else if(k==6u){m.alb=vec3(.85,.62,.22);m.metal=1.;m.rough=.18;}
+    else if(k==7u){/* bronze disc: eight round windows cut through it */
+      float r=length(vL.xy),a=atan(vL.y,vL.x),sec=6.28318/8.,aw=mod(a+sec*.5,sec)-sec*.5;
+      if(r>.09&&length(vec2(r-.15,aw*r))<.033)discard;
+      m.alb=vec3(.42,.27,.12);m.metal=1.;m.rough=.32;m.clear=.4;}
+    else if(k==8u){m.alb=vec3(.045,.047,.05);m.metal=.7;m.rough=.2;m.clear=.9;m.clearR=.04;}
     else{m.alb=uRim;m.metal=.3;m.rough=.3;m.clear=.8;}
     m.dirtK=.6;
   }
@@ -6400,10 +6611,19 @@ void main(){
     if(k==0u){m.alb=vec3(.02);m.rough=.62;m.clear=.2;}
     else if(k==1u){m.alb=vec3(.12);m.rough=.5;}
     else if(k==2u){m.alb=vec3(.85);m.metal=1.;m.rough=.1;}
+    else if(k==4u){float w=vn(vec2(vL.x*300.,vL.z*300.+vL.y*200.));m.alb=vec3(.15,.16,.085)*(.85+.3*w);m.rough=.88;m.dirtK=.7;}
+    else if(k==5u){m.alb=uAcc;m.rough=.3;m.clear=.8;m.metal=.2;}
+    else if(k==6u){m.alb=uCal;m.rough=.35;m.clear=.6;m.dirtK=.4;}
     else{m.alb=vec3(.6,.03,.02);m.rough=.35;m.clear=.6;}}
+  else if(id==18u){
+    /* textured cladding: grained satin in the lower colour, painted to match if the lower body is body colour; kind 1 is gloss black */
+    float g=vn(vL.xy*170.+vL.z*110.)*.6+vn(vec2(vL.z,vL.y)*330.+vL.x*90.)*.4;
+    m.alb=uLower*(.85+.3*g);m.rough=.7+.12*g;m.clear=0.;m.spec=.42;m.dirtK=.55;
+    if(vMat.y==1u){m.alb=vec3(.016)*(.9+.2*g);m.rough=.3;m.clear=.5;m.clearR=.06;m.spec=.8;}
+    else if(uLook.w<.5){m.alb=uPaint;m.metal=uMetal;m.rough=uPaintR;m.clear=1.0;m.clearR=.035;m.flake=uFlake;m.spec=1.0;m.dirtK=1.0;}}
   if(id!=1u)grime(m,vL,N,yg,m.dirtK*(id==4u?.6:1.));
   /* ---------- light it ---------- */
-  Surf s;s.P=vP;s.V=V;s.N=N;s.Nc=N;s.ao=1.0;s.spec=1.0;s.trans=0.0;
+  Surf s;s.P=vP;s.V=V;s.N=N;s.Nc=N;s.ao=1.0;s.spec=m.spec;s.trans=0.0;
   vec3 flakeN=N;
   if(m.flake>0.0){float fp=length(fwidth(vL))*900.;vec3 c=floor(vL*700.);vec3 r=vec3(h13(c),h13(c+17.1),h13(c+31.7))-.5;flakeN=normalize(N+r*.45*m.flake*saturate(1.0-fp));}
   s.N=flakeN;
@@ -6428,7 +6648,7 @@ void main(){
   float occ=(1.0-.55*saturate(-N.y)-.25*saturate(1.0-(yg-.1)*2.5))*(inside?.18:1.0);
   col+=s.diff*amb*occ;
   vec3 Rb=reflect(-V,flakeN);vec3 eb=envBRDF(s.F0,NoV,s.rough);
-  vec3 base=env(Rb,s.rough)*eb*occ;
+  vec3 base=env(Rb,s.rough)*eb*occ*m.spec;
   if(s.clear>0.0){float Fc=F_Sch(vec3(.04),NoV).x*s.clear;vec3 Rc=reflect(-V,N);col=col*(1.0-Fc)+base*(1.0-Fc)+env(Rc,s.clearR)*Fc;}
   else col+=base;
   oCol=vec4(col,1.0);
@@ -6452,10 +6672,14 @@ void main(){
       let key = JSON.stringify(look);
       if (this.models.has(key)) return this.models.get(key);
       let G2 = this.R.G, m = buildSUV(look), w = buildSuvWheel(m.look), up = (B) => G2.mesh(LAYOUT, 36, B.vertexData(), B.indexData()), M = { key, look: m.look, body: up(m.body), glass: up(m.glass), wheelR: up(w), wheelL: up(mirrorZ(w)), used: 0 };
+      if (m.look.calipers) {
+        let c = buildSuvCaliper(m.look);
+        M.calR = up(c), M.calL = up(mirrorZ(c));
+      }
       if (this.models.set(key, M), this.models.size > 6) {
         for (let [k, v] of this.models) if (v !== M && !this.list.some((it) => it.model === v)) {
           let gl = this.R.gl;
-          freeMesh(gl, v.body), freeMesh(gl, v.glass), freeMesh(gl, v.wheelR), freeMesh(gl, v.wheelL), this.models.delete(k);
+          freeMesh(gl, v.body), freeMesh(gl, v.glass), freeMesh(gl, v.wheelR), freeMesh(gl, v.wheelL), freeMesh(gl, v.calR), freeMesh(gl, v.calL), this.models.delete(k);
           break;
         }
       }
@@ -6483,7 +6707,7 @@ void main(){
       for (let c of S.suvs || []) {
         let model = this.model(c.look), M = qm4(c.q, c.p), key = c.id || 0, pv = this.prev.get(key), wheels = c.wheels.map((w, i) => {
           let base = M4.mul(M, M4.mul(T4(w.hp[0], w.hp[1] - w.len, w.hp[2]), RY(-w.steer))), pw = pv ? pv.wheels[i] : null, dAng = pw ? Math.max(-0.35, Math.min(0.35, w.ang - pw.ang)) : 0;
-          return { M: M4.mul(base, RZ(-w.ang)), left: w.hp[2] < 0, ang: w.ang, base, prevAngM: pw ? M4.mul(pw.base, RZ(-(w.ang - dAng))) : null, disc: w.disc || 0 };
+          return { M: M4.mul(base, RZ(-w.ang)), left: w.hp[2] < 0, ang: w.ang, base, prevBase: pw && !S.cut ? pw.base : base, prevAngM: pw ? M4.mul(pw.base, RZ(-(w.ang - dAng))) : null, disc: w.disc || 0 };
         });
         for (let w of wheels) w.prevAngM || (w.prevAngM = w.M);
         this.list.push({ c, M, prevM: pv && !S.cut ? pv.M : M, wheels, model }), this.prev.set(key, { M, wheels: wheels.map((w) => ({ ang: w.ang, base: w.base })) });
@@ -6493,10 +6717,11 @@ void main(){
       let c = it.c, p = c.paint || SUV_PAINTS.bronze, s = c.style || {}, L = it.model.look;
       G2.set(P, {
         uPaint: p.col, uMetal: p.metal, uPaintR: p.rough, uFlake: p.flake,
-        uLower: s.lower || [0.075, 0.07, 0.065], uLiv: s.livCol || [0.9, 0.9, 0.88], uRim: s.rimCol || [0.6, 0.6, 0.62],
+        uLower: s.lower || [0.026, 0.025, 0.024], uLiv: s.livCol || [0.9, 0.9, 0.88], uRim: s.rimCol || [0.6, 0.6, 0.62],
         uLook: [s.chrome ?? 1, s.tint ?? 0.3, s.livery || 0, s.clad ?? 1],
         uLamps: c.lamps || [0, 0, 0, 0], uAux: [c.bar || 0, c.pods || 0, s.sunroof ?? 1, s.number || 7],
-        uArch: [SUV.axF, SUV.axR, SUV.R0 - SUV.hcg0, L.archR], uHcg: SUV.hcg0, uDirt: c.dirt || 0, uMud: c.mud || 0, uSeed: s.seed || 0.37
+        uArch: [SUV.axF, SUV.axR, SUV.R0 - SUV.hcg0, L.archR], uHcg: SUV.hcg0, uDirt: c.dirt || 0, uMud: c.mud || 0, uSeed: s.seed || 0.37,
+        uStyle: [s.face || 0, s.tail || 0, s.acc ? 1 : 0, 0], uAcc: s.acc || [0.035, 0.035, 0.038], uCal: s.cal || s.acc || [0.62, 0.03, 0.02]
       });
     }
     draw(G2, P, M, prevM, mesh) {
@@ -6509,6 +6734,7 @@ void main(){
       for (let it of this.list) {
         this.uniforms(G2, P, it), G2.uni(P, "uDisc", 0), this.draw(G2, P, it.M, it.prevM, it.model.body), this.draw(G2, P, it.M, it.prevM, it.model.glass);
         for (let w of it.wheels) G2.uni(P, "uDisc", w.disc), this.draw(G2, P, w.M, w.prevAngM, w.left ? it.model.wheelL : it.model.wheelR);
+        if (it.model.calR) for (let w of it.wheels) this.draw(G2, P, w.base, w.prevBase, w.left ? it.model.calL : it.model.calR);
       }
       this.drawProps(G2, P, !1);
     }
@@ -6525,6 +6751,7 @@ void main(){
         if (!(kind === "hl" && it.c.self)) {
           G2.uni(P, "uModel", it.M), G2.draw(it.model.body), G2.draw(it.model.glass);
           for (let w of it.wheels) G2.uni(P, "uModel", w.M), G2.draw(w.left ? it.model.wheelL : it.model.wheelR);
+          if (it.model.calR) for (let w of it.wheels) G2.uni(P, "uModel", w.base), G2.draw(w.left ? it.model.calL : it.model.calR);
         }
       this.drawProps(G2, P, !0), G2.uni(P, "uModel", M4.ident());
     }
@@ -6547,7 +6774,9 @@ void main(){
     olive: { name: "Field Green", col: [0.09, 0.11, 0.055], metal: 0, rough: 0.5, flake: 0, price: 800 },
     matte: { name: "Matte Black", col: [0.012, 0.012, 0.013], metal: 0, rough: 0.6, flake: 0, price: 1400 },
     primer: { name: "Grey Primer", col: [0.2, 0.2, 0.2], metal: 0, rough: 0.75, flake: 0, price: 300 },
-    purple: { name: "Grape Soda", col: [0.16, 0.02, 0.3], metal: 0.8, rough: 0.22, flake: 1, price: 1600 }
+    purple: { name: "Grape Soda", col: [0.16, 0.02, 0.3], metal: 0.8, rough: 0.22, flake: 1, price: 1600 },
+    gunmetal: { name: "Gunmetal Grey", col: [0.06, 0.063, 0.068], metal: 0.85, rough: 0.24, flake: 0.7, price: 1000 },
+    stone: { name: "Canyon Stone", col: [0.3, 0.27, 0.22], metal: 0.2, rough: 0.38, flake: 0.25, price: 900 }
   };
   var TYRES = {
     street32: { R: 0.375, w: 0.245, tread: "street", track: 1.56, mass: 0, kPk: 0.11, aPk: 0.14, slide: 0.8, slideW: 0.6, If: 1 },
@@ -6671,7 +6900,9 @@ void main(){
       { v: "paddle35", n: "35 in. paddle tyres", d: "Scoops for sand and loose dirt. The dirt-drag secret.", price: 2500, loud: 18, req: (b) => liftOf(b) < 0.04 ? "Needs at least a leveling kit" : null }
     ] },
     { id: "wheel", cat: "wheels", name: "Wheels", opts: [
-      { v: "stock18", n: "Factory 18 in. alloys", d: "Seven bright spokes.", price: 0, rim: 18, style: "stock" },
+      { v: "stock18", n: "Factory 18 in. alloys", d: "Six broad bright spokes.", price: 0, rim: 18, style: "stock" },
+      { v: "street20", n: "20 in. street ten-spokes", d: "Thin graphite spokes, a pinstripe on the lip and red calipers behind.", price: 2400, rim: 20, style: "street10", mass: 14, loud: 9, req: (b) => TYRES[b.tyre].R - 0.254 < 0.07 ? "Tyre sidewall too short" : null },
+      { v: "bronze17", n: "17 in. bronze discs", d: "Flat bronze discs with eight round windows. The overland classic.", price: 1300, rim: 17, style: "bronze8", mass: 6, loud: 6 },
       { v: "steelie17", n: "17 in. black steelies", d: "Cheap and unbreakable.", price: 450, rim: 17, style: "steelie", mass: 12, loud: 2 },
       { v: "chrome22", n: "22 in. chrome", d: "Big shiny dubs.", price: 2200, rim: 22, style: "chrome", mass: 28, loud: 8, req: (b) => TYRES[b.tyre].R - 0.2794 < 0.07 ? "Tyre sidewall too short" : null },
       { v: "beadlock17", n: "17 in. beadlocks", d: "Bolted rings hold the tyre at low pressure.", price: 1500, rim: 17, style: "beadlock", mass: 20, loud: 6 },
@@ -6682,19 +6913,23 @@ void main(){
       { v: "stock", n: "Factory", d: "Body coloured.", price: 0 },
       { v: "bullbar", n: "Bull bar", d: "Polished hoop over the grille.", price: 450, mass: 15, loud: 3 },
       { v: "prerunner", n: "Prerunner tube bumper", d: "Light, strong, desert style.", price: 1400, mass: 22, loud: 8 },
-      { v: "winch", n: "Winch bumper", d: "Plate steel, hooks and a 12,000 lb winch.", price: 1900, mass: 55, loud: 6 }
+      { v: "winch", n: "Winch bumper", d: "Plate steel, hooks and a 12,000 lb winch.", price: 1900, mass: 55, loud: 6 },
+      { v: "lip", n: "Splitter lip", d: "A gloss black splitter under the bumper, with canards at the corners.", price: 650, mass: 3, loud: 5 },
+      { v: "recovery", n: "Recovery points", d: "A skid plate under the nose and two red shackles.", price: 750, mass: 12, loud: 4 }
     ] },
     { id: "rear", cat: "body", name: "Rear", opts: [
       { v: "stock", n: "Factory", d: "Body coloured.", price: 0 },
       { v: "tube", n: "Tube bumper and swing-out spare", d: "Carries a full-size spare.", price: 1300, mass: 45, loud: 6 },
       { v: "chute", n: "Drag parachute", d: "Pops after the finish line. Mostly for show.", price: 650, mass: 8, loud: 14 },
-      { v: "wheelie", n: "Wheelie bars", d: "Stops the nose climbing on launch, so you can lean on it harder.", price: 1150, mass: 18, loud: 18 }
+      { v: "wheelie", n: "Wheelie bars", d: "Stops the nose climbing on launch, so you can lean on it harder.", price: 1150, mass: 18, loud: 18 },
+      { v: "diffuser", n: "Rear diffuser", d: "Gloss black fins under the bumper.", price: 700, mass: 4, loud: 6 }
     ] },
     { id: "roof", cat: "body", name: "Roof", opts: [
       { v: "rails", n: "Factory rails", d: "With crossbars.", price: 0 },
       { v: "none", n: "Shaved roof", d: "Rails off. Slicker.", price: 150, mass: -8 },
       { v: "basket", n: "Roof basket", d: "Steel tube rack.", price: 700, mass: 24, loud: 4 },
-      { v: "basketSpare", n: "Basket with spare and cans", d: "The expedition look.", price: 1050, mass: 58, loud: 5 }
+      { v: "basketSpare", n: "Basket with spare and cans", d: "The expedition look.", price: 1050, mass: 58, loud: 5 },
+      { v: "expedition", n: "Expedition rack", d: "A flat platform with two hard cases, an olive duffel, four square LED pods and a whip antenna. The pods light with F.", price: 1800, mass: 48, loud: 8 }
     ] },
     { id: "hood", cat: "body", name: "Hood", opts: [
       { v: "stock", n: "Factory hood", d: "Flat and quiet.", price: 0 },
@@ -6709,28 +6944,39 @@ void main(){
       { v: 3, n: "Full lighting", d: "Bar, ditch lights and bumper pods.", price: 1100, mass: 12, loud: 10 }
     ] },
     { id: "sides", cat: "body", name: "Sides", opts: [
-      { v: "boards", n: "Factory running boards", d: "A step up into the cab.", price: 0 },
-      { v: "sliders", n: "Rock sliders", d: "Tube steel that protects the rockers.", price: 850, mass: 20, loud: 4 },
+      { v: "cladding", n: "Factory cladding", d: "Textured panels along the rockers.", price: 0 },
+      { v: "boards", n: "Running boards", d: "A step up into the cab, under the cladding.", price: 250, mass: 14 },
+      { v: "sliders", n: "Rock sliders", d: "Cladding off, tube steel on to protect the rockers.", price: 850, mass: 20, loud: 4 },
       { v: "none", n: "Bare rockers", d: "Boards off for clearance.", price: 100, mass: -14, loud: 1 }
     ] },
     { id: "flares", cat: "body", name: "Fender flares", opts: [
-      { v: 0, n: "Factory arches", d: "Trimmed as needed for tyres.", price: 0 },
-      { v: 1, n: "Pocket flares", d: "Covers the extra track width.", price: 450, mass: 6, loud: 5 },
-      { v: 2, n: "Wide flares", d: "Big boxy flares with bolts.", price: 900, mass: 10, loud: 9 }
+      { v: 0, n: "Factory arch cladding", d: "Textured trim around each arch, trimmed as needed for tyres.", price: 0 },
+      { v: 1, n: "Pocket flares", d: "Deeper, to cover the extra track width.", price: 450, mass: 6, loud: 5 },
+      { v: 2, n: "Wide bolted flares", d: "Big gloss black flares with exposed bolts.", price: 900, mass: 10, loud: 9 }
+    ] },
+    { id: "face", cat: "body", name: "Front end", opts: [
+      { v: "classic", n: "Classic twin-bar", d: "A tall grille crossed by two chrome bars, twin-projector lamps.", price: 0 },
+      { v: "street", n: "Street split mesh", d: "A slim upper slot over a big lower mesh, smoked lamps with a light blade.", price: 1400, loud: 6 },
+      { v: "backcountry", n: "Backcountry quad lamps", d: "Four round lamps with halo rings in a black slatted panel, a black bumper.", price: 1600, loud: 7 }
+    ] },
+    { id: "tails", cat: "body", name: "Tail lamps", opts: [
+      { v: "classic", n: "Classic wide", d: "Two-piece lamps either side of the liftgate, joined by a bright bar.", price: 0 },
+      { v: "led", n: "LED rings", d: "Smoked lenses with square LED rings and a thin bar across the liftgate.", price: 700, loud: 3 }
     ] },
     { id: "snorkel", cat: "body", name: "Snorkel", opts: [
       { v: 0, n: "None", d: "The intake breathes behind the grille.", price: 0 },
       { v: 1, n: "Snorkel", d: "Breathes at the roofline, clear of creek spray and dust.", price: 550, mass: 4, loud: 6 }
     ] },
     { id: "spoiler", cat: "body", name: "Roof spoiler", opts: [
-      { v: 0, n: "None", d: "", price: 0 },
-      { v: 1, n: "Roof spoiler", d: "A lip over the rear glass.", price: 350, mass: 3, loud: 6 }
+      { v: 1, n: "Factory lip", d: "A short lip over the rear glass.", price: 0 },
+      { v: 0, n: "Shaved", d: "No spoiler at all.", price: 100, mass: -2 },
+      { v: 2, n: "Big wing", d: "A tall wing on stands with end plates.", price: 650, mass: 6, loud: 12 }
     ] },
     { id: "interior", cat: "body", name: "Interior", opts: [
       { v: "stock", n: "Factory leather", d: "Heated seats, third row, the works.", price: 0 },
       { v: "gutted", n: "Gutted", d: "Third row, carpets and spare out. Nobody can tell from outside.", price: 400, mass: -140 }
     ] },
-    { id: "paint", cat: "paint", name: "Paint", opts: Object.entries(SUV_PAINTS).map(([v, p]) => ({ v, n: p.name, d: v === "bronze" ? "The colour it came in." : "", price: p.price, loud: { bronze: 0, silver: 1, black: 2, pearl: 2, tan: 3, olive: 4, primer: 2, matte: 8, candy: 10, orange: 10, lime: 14, sky: 8, purple: 12 }[v] || 4 })) },
+    { id: "paint", cat: "paint", name: "Paint", opts: Object.entries(SUV_PAINTS).map(([v, p]) => ({ v, n: p.name, d: v === "bronze" ? "The colour it came in." : "", price: p.price, loud: { bronze: 0, silver: 1, black: 2, pearl: 2, tan: 3, olive: 4, primer: 2, matte: 8, candy: 10, orange: 10, lime: 14, sky: 8, purple: 12, gunmetal: 2, stone: 2 }[v] ?? 4 })) },
     { id: "livery", cat: "paint", name: "Graphics", opts: [
       { v: 0, n: "None", d: "Clean paint.", price: 0 },
       { v: 1, n: "Twin stripes", d: "Over the hood, roof and liftgate.", price: 550, loud: 14 },
@@ -6747,21 +6993,32 @@ void main(){
       { v: "yellow", n: "Yellow", d: "", price: 0, col: [0.9, 0.7, 0.05] },
       { v: "gold", n: "Gold", d: "", price: 0, col: [0.6, 0.42, 0.12] }
     ] },
+    { id: "accent", cat: "paint", name: "Accent", opts: [
+      { v: "none", n: "None", d: "", price: 0 },
+      { v: "red", n: "Red", d: "A pinstripe on the rockers, splitter, diffuser, wing and wheel lips, and calipers to match.", price: 250, loud: 3, col: [0.62, 0.025, 0.02] },
+      { v: "copper", n: "Copper", d: "The same lines in burnished copper.", price: 250, loud: 3, col: [0.55, 0.25, 0.1] }
+    ] },
     { id: "trim", cat: "paint", name: "Trim", opts: [
       { v: "chrome", n: "Chrome", d: "Grille surround, handles, belt line.", price: 0 },
       { v: "black", n: "Blacked out", d: "All the bright bits in gloss black.", price: 350, loud: 3 }
     ] },
     { id: "clad", cat: "paint", name: "Lower body", opts: [
-      { v: "body", n: "Body colour", d: "", price: 0 },
-      { v: "satin", n: "Two-tone satin", d: "Darker lower panels and bumpers.", price: 300, loud: 2 }
+      { v: "satin", n: "Two-tone", d: "Dark satin lower panels, bumpers and cladding.", price: 0 },
+      { v: "body", n: "Body colour", d: "Lower panels and cladding painted to match.", price: 300, loud: 1 }
     ] },
     { id: "tint", cat: "paint", name: "Window tint", opts: [
       { v: "stock", n: "Factory privacy glass", d: "", price: 0 },
       { v: "limo", n: "Limo tint", d: "Nobody can see who's driving.", price: 250, loud: 2 }
     ] }
-  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
+  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["looks", "Looks"], ["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
   var STOCK_BUILD = Object.fromEntries(SLOTS.map((s) => [s.id, s.opts.find((o) => !o.price && (s.id !== "susp" || o.v === "stock")).v]));
   STOCK_BUILD.susp = "stock";
+  /* three finished looks, one click each: only the parts you can see (and the wheels, tyres and ride height under them) */
+  var LOOKS = [
+    { id: "classic", name: "Classic Sleeper", blurb: "Bronze-grey paint, the chrome twin-bar face, six-spoke alloys, factory cladding and the little lip. Looks like it's going to church.", build: { paint: "bronze", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "stock18", tyre: "street32", susp: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0 } },
+    { id: "street", name: "Street Sleeper", blurb: "Gunmetal, dropped two inches on 20-inch ten-spokes with red calipers. Split-mesh face, smoked lamps, LED tails, a splitter, a diffuser, a wing and red pinstripes.", build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", livery: 0, tint: "limo", wheel: "street20", tyre: "street32", susp: "lowered", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "diffuser", hood: "stock", snorkel: 0 } },
+    { id: "backcountry", name: "Backcountry", blurb: "Canyon stone on bronze discs and all-terrains, a leveling kit, wide black flares, quad round lamps, recovery shackles and the expedition rack.", build: { paint: "stone", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "bronze17", tyre: "at33", susp: "level", flares: 2, sides: "cladding", spoiler: 0, roof: "expedition", front: "recovery", rear: "stock", hood: "stock", snorkel: 0 } }
+  ];
   function optOf(b, id) {
     return SLOT[id].opts.find((o) => o.v === b[id]) || SLOT[id].opts[0];
   }
@@ -6806,7 +7063,7 @@ void main(){
       body: { L: 4.9, W: 1.9, H: 1.86 },
       tyre: { mu: 1, kPk: ty.kPk, aPk: ty.aPk, slide: ty.slide, slideW: ty.slideW, loadSens: 0.1 },
       brake: 7200 * R / SUV.R0 * m / 2150, bias: 0.62, hbTorque: 3200 * R / SUV.R0, lock: 0.6,
-      cdA: 1.25 + lift * 0.6 + (b.roof === "basket" || b.roof === "basketSpare" ? 0.1 : 0) + (b.lights ? 0.03 : 0) + (ty.w - 0.245) * 0.8,
+      cdA: 1.25 + lift * 0.6 + (b.roof === "basket" || b.roof === "basketSpare" ? 0.1 : b.roof === "expedition" ? 0.13 : 0) + (b.lights ? 0.03 : 0) + (b.spoiler === 2 ? 0.02 : 0) + (ty.w - 0.245) * 0.8,
       clF: 0.03, clR: 0.05,
       diff: { pre: 40, acc: 0.3, dec: 0.15, rLock: !1, fLock: !1, cLock: !1, can: { r: lk >= 1, f: lk >= 2, low } },
       surfMu: TREAD_MU[ty.tread], surfRR: rr, surfDrag: { mud: 0.06 * TREAD_RR_MUD[ty.tread] ** 1.5, water: 0.018 * TREAD_RR_MUD[ty.tread] }, tread: ty.tread, lift
@@ -6820,13 +7077,15 @@ void main(){
       front: b.front, rear: b.rear === "chute" || b.rear === "wheelie" ? "stock" : b.rear, chute: b.rear === "chute" ? 1 : 0, wheelie: b.rear === "wheelie" ? 1 : 0,
       roof: b.roof, lightbar: b.lights >= 1 ? 1 : 0, ditch: b.lights >= 2 ? 1 : 0, pods: b.lights >= 3 ? 1 : 0, flares: b.flares,
       hood: b.power === "roots" ? "blower" : b.hood, snorkel: b.snorkel, sides: b.sides,
-      exhaust: { stock: "stock", catback: "dual", headers: "dual", straight: "dual", side: "side", stacks: "none" }[b.exhaust], stacks: b.exhaust === "stacks" ? 1 : 0, spoiler: b.spoiler
+      exhaust: { stock: "stock", catback: "dual", headers: "dual", straight: "dual", side: "side", stacks: "none" }[b.exhaust], stacks: b.exhaust === "stacks" ? 1 : 0, spoiler: b.spoiler,
+      accent: b.accent && b.accent !== "none" ? 1 : 0, calipers: wh.style === "street10" ? 1 : 0
     };
   }
   function buildStyle(b) {
     return {
       livery: b.livery, livCol: optOf(b, "livCol").col, chrome: b.trim === "chrome" ? 1 : 0, clad: b.clad === "satin" ? 1 : 0, tint: b.tint === "limo" ? 0.9 : 0.3,
-      lower: [0.055, 0.05, 0.045], sunroof: b.roof === "basket" || b.roof === "basketSpare" ? 0 : 1, number: b.number || 7, seed: 0.37
+      lower: [0.026, 0.025, 0.024], sunroof: b.roof === "basket" || b.roof === "basketSpare" || b.roof === "expedition" ? 0 : 1, number: b.number || 7, seed: 0.37,
+      face: { classic: 0, street: 1, backcountry: 2 }[b.face] || 0, tail: b.tails === "led" ? 1 : 0, acc: b.accent && b.accent !== "none" ? optOf(b, "accent").col : null
     };
   }
   /* quick numbers for the shop: peak power, and the sleeper rating */
@@ -6901,10 +7160,10 @@ void main(){
   var RIVALS = [
     { id: "gary", name: "Gary", ride: "Farm truck", blurb: "Hauls feed all week, races on Fridays. Lifts off at half-track to check his mirrors.", type: "truck", paint: "tan", look: { tread: "at", tireR: 0.42, tireW: 0.285, trackF: 1.6, trackR: 1.6, wheel: "steelie", rim: 17, front: "bullbar", roof: "basket" }, style: { chrome: 0, livery: 0 }, dirt: 0.7, et: 11.3, rt: [0.22, 0.48], pay: 800 },
     { id: "kyle", name: "Kyle", ride: "Weekend fastback", blurb: "Bought it with his tax refund. Will tell you about the intake.", type: "car", paint: "silver", et: 10.6, rt: [0.16, 0.36], pay: 1200 },
-    { id: "dani", name: "Dani", ride: "Lifted mud rig", blurb: "Wins every mud bog in the county. Swears the drag strip is easier.", type: "truck", paint: "purple", look: { lift: 0.1, tread: "mud", tireR: 0.445, tireW: 0.315, trackF: 1.64, trackR: 1.64, wheel: "beadlock", rim: 17, flares: 1, lightbar: 1, sides: "sliders" }, style: { chrome: 0, livery: 2, livCol: [0.9, 0.7, 0.05] }, dirt: 0.5, mud: 0.6, et: 10.0, rt: [0.12, 0.3], pay: 1800 },
+    { id: "dani", name: "Dani", ride: "Lifted mud rig", blurb: "Wins every mud bog in the county. Swears the drag strip is easier.", type: "truck", paint: "purple", look: { lift: 0.1, tread: "mud", tireR: 0.445, tireW: 0.315, trackF: 1.64, trackR: 1.64, wheel: "beadlock", rim: 17, flares: 1, lightbar: 1, sides: "sliders" }, style: { chrome: 0, livery: 2, livCol: [0.9, 0.7, 0.05], face: 2, tail: 1 }, dirt: 0.5, mud: 0.6, et: 10.0, rt: [0.12, 0.3], pay: 1800 },
     { id: "prof", name: "The Professor", ride: "Midnight fastback", blurb: "Teaches physics at the community college. Has done the maths on you.", type: "car", paint: "midnight", et: 9.45, rt: [0.08, 0.24], pay: 2600 },
     { id: "nate", name: "Nitro Nate", ride: "Orange fastback, bottle fed", blurb: "Hits the button before the tree finishes. Usually gets away with it.", type: "car", paint: "orange", et: 8.9, rt: [0.05, 0.2], pay: 3600 },
-    { id: "earl", name: "Big Earl", ride: "Diesel on swampers", blurb: "Twelve thousand pounds of black smoke and bad attitude.", type: "truck", paint: "black", look: { lift: 0.16, tread: "swamper", tireR: 0.508, tireW: 0.36, trackF: 1.74, trackR: 1.74, wheel: "steelie", rim: 17, flares: 2, stacks: 1, hood: "cowl", front: "winch", roof: "basket", lightbar: 1 }, style: { chrome: 0, livery: 0 }, dirt: 0.4, et: 8.3, rt: [0.05, 0.18], pay: 5000, diesel: !0 },
+    { id: "earl", name: "Big Earl", ride: "Diesel on swampers", blurb: "Twelve thousand pounds of black smoke and bad attitude.", type: "truck", paint: "black", look: { lift: 0.16, tread: "swamper", tireR: 0.508, tireW: 0.36, trackF: 1.74, trackR: 1.74, wheel: "steelie", rim: 17, flares: 2, stacks: 1, hood: "cowl", front: "winch", roof: "basket", lightbar: 1 }, style: { chrome: 0, livery: 0, face: 2 }, dirt: 0.4, et: 8.3, rt: [0.05, 0.18], pay: 5000, diesel: !0 },
     { id: "ghost", name: "The Ghost", ride: "Unmarked black fastback", blurb: "Nobody knows who builds it. Nobody has beaten it on dirt.", type: "car", paint: "black", et: 7.75, rt: [0.02, 0.12], pay: 8000 }
   ];
   var RUNS = {
@@ -7355,7 +7614,7 @@ void main(){
     return {
       id: 1, self: !0, p: truck.p, q: truck.q, look: buildLook(b), paint: SUV_PAINTS[b.paint], style: buildStyle(b),
       wheels: truck.wheels.map((w) => ({ hp: w.hp, len: w.len, steer: w.front ? truck.steer : 0, ang: w.ang, disc: w.disc })),
-      lamps: [night || lightsOn ? 1 : 0, night || lightsOn ? 1 : 0, truck.brkIn > 0.05 ? 1 : 0, truck.rev ? 1 : 0], dirt: SV.dirt, mud: SV.mud, bar: lightsOn && b.lights >= 1 ? 1 : 0, pods: lightsOn && b.lights >= 2 ? 1 : 0
+      lamps: [night || lightsOn ? 1 : 0, night || lightsOn ? 1 : 0, truck.brkIn > 0.05 ? 1 : 0, truck.rev ? 1 : 0], dirt: SV.dirt, mud: SV.mud, bar: lightsOn && (b.lights >= 1 || b.roof === "expedition") ? 1 : 0, pods: lightsOn && b.lights >= 2 ? 1 : 0
     };
   }
   function step(dt) {
@@ -7455,9 +7714,9 @@ void main(){
     let e = document.createElement(tag);
     return cls && (e.className = cls), html !== void 0 && (e.innerHTML = html), e;
   }, esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  var CAT_CAM = { engine: { yaw: 0.55, pitch: 0.22, dist: 7.4, y: 0.4 }, drive: { yaw: 2.6, pitch: 0.08, dist: 7.6, y: 0.1 }, chassis: { yaw: 1.62, pitch: 0.05, dist: 8.4, y: 0.1 }, wheels: { yaw: 0.85, pitch: 0.06, dist: 7.2, y: -0.1 }, body: { yaw: 0.9, pitch: 0.2, dist: 8.6, y: 0.35 }, paint: { yaw: 1.35, pitch: 0.12, dist: 8.8, y: 0.3 } };
+  var CAT_CAM = { looks: { yaw: 0.72, pitch: 0.1, dist: 8.4, y: 0.3 }, engine: { yaw: 0.55, pitch: 0.22, dist: 7.4, y: 0.4 }, drive: { yaw: 2.6, pitch: 0.08, dist: 7.6, y: 0.1 }, chassis: { yaw: 1.62, pitch: 0.05, dist: 8.4, y: 0.1 }, wheels: { yaw: 0.85, pitch: 0.06, dist: 7.2, y: -0.1 }, body: { yaw: 0.9, pitch: 0.2, dist: 8.6, y: 0.35 }, paint: { yaw: 1.35, pitch: 0.12, dist: 8.8, y: 0.3 } };
   function makeUI() {
-    let U = { touchHorn: !1, cat: "engine", open: null, committed: null, preview: null, revBtn: 0, idleT: 0, camTo: null, passCache: /* @__PURE__ */ new Map(), passT: 0, touch: !1, lastCam: null };
+    let U = { touchHorn: !1, cat: "looks", open: null, committed: null, preview: null, revBtn: 0, idleT: 0, camTo: null, passCache: /* @__PURE__ */ new Map(), passT: 0, touch: !1, lastCam: null };
     let layers = ["title", "garage", "hud", "pause", "result", "events"];
     U.show = (name) => {
       for (let l of layers) $(l).hidden = l !== name;
@@ -7520,10 +7779,37 @@ void main(){
       else U.committed = Object.assign({}, SV.build), U.preview = { slot: slot.id, v: o.v, o, notes }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>${esc(o.n)}</b>${fmt$(o.price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < o.price, $("buyGo").textContent = SV.cash < o.price ? "Not enough" : "Buy " + fmt$(o.price);
       renderSlots(), renderSheet();
     }
+    /* a look: every part it changes, and the ones you'd have to buy */
+    function lookParts(lk) {
+      let b = U.preview && U.committed ? U.committed : SV.build, out = [];
+      for (let id in lk.build) b[id] !== lk.build[id] && out.push({ slot: id, v: lk.build[id], o: SLOT[id].opts.find((o) => o.v === lk.build[id]) });
+      return out;
+    }
+    function pickLook(lk) {
+      revert();
+      let parts = lookParts(lk);
+      if (!parts.length) return U.toast(`${lk.name} is already on the truck`, "", 1.8);
+      let b = Object.assign({}, SV.build, lk.build), notes = fixBuild(b, null), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0);
+      if (!missing.length) applyBuild(b), U.committed = null, persist(), U.toast(`${lk.name}`, "go", 1.6), notes.forEach((n) => U.toast(n, "", 2.5));
+      else U.committed = Object.assign({}, SV.build), U.preview = { look: lk.id, items: missing, o: { n: lk.name, price }, notes }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>${esc(lk.name)}</b>${missing.length} part${missing.length > 1 ? "s" : ""} · ${fmt$(price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < price, $("buyGo").textContent = SV.cash < price ? "Not enough" : "Buy all " + fmt$(price);
+      renderSlots(), renderSheet();
+    }
+    function renderLooks(box) {
+      let list = el("div", "opts looks");
+      list.appendChild(el("p", "looknote", FREE() ? "One click puts the whole look on. Engine and drivetrain stay as they are." : "Try a look on, then buy the parts you don't have yet in one go. Engine and drivetrain stay as they are."));
+      for (let lk of LOOKS) {
+        let parts = lookParts(lk), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0), tr = U.preview && U.preview.look === lk.id, on = !parts.length, t = el("button", "tag look" + (on ? " on" : ""));
+        t.innerHTML = `<span class="t">${esc(lk.name)}</span><span class="p">${FREE() || !missing.length ? "" : fmt$(price)}</span><span class="d">${esc(lk.blurb)}</span><span class="st">${tr ? '<i class="stamp try">Trying on</i>' : on ? '<i class="stamp fit">Fitted</i>' : FREE() ? "" : missing.length ? `<i class="stamp own">${missing.length} part${missing.length > 1 ? "s" : ""} to buy</i>` : '<i class="stamp own">All in the shop</i>'}</span>`;
+        t.onclick = () => pickLook(lk), list.appendChild(t);
+      }
+      box.appendChild(list);
+    }
     function buy() {
       let p = U.preview;
       if (!p || SV.cash < p.o.price) return;
-      audio.ui("kaching"), SV.cash -= p.o.price, SV.spent = (SV.spent || 0) + p.o.price, SV.spent >= 4e4 && award("spender"), (SV.owned[p.slot] = SV.owned[p.slot] || []).push(p.v), U.preview = null, U.committed = null, $("buybar").hidden = !0, persist(), U.cash(), U.toast(`Fitted: ${p.o.n}`, "go", 1.6), p.notes.forEach((n) => U.toast(n, "", 2.5)), renderSlots(), renderSheet();
+      audio.ui("kaching"), SV.cash -= p.o.price, SV.spent = (SV.spent || 0) + p.o.price, SV.spent >= 4e4 && award("spender");
+      for (let it of p.items || [{ slot: p.slot, v: p.v }]) (SV.owned[it.slot] = SV.owned[it.slot] || []).push(it.v);
+      U.preview = null, U.committed = null, $("buybar").hidden = !0, persist(), U.cash(), U.toast(`Fitted: ${p.o.n}`, "go", 1.6), p.notes.forEach((n) => U.toast(n, "", 2.5)), renderSlots(), renderSheet();
     }
     function renderGarage() {
       let cats = $("cats");
@@ -7539,6 +7825,7 @@ void main(){
     function renderSlots() {
       let box = $("slots"), b = SV.build, scroll = box.scrollTop;
       box.innerHTML = "";
+      if (U.cat === "looks") return renderLooks(box), void (box.scrollTop = scroll);
       for (let s of SLOTS.filter((q) => q.cat === U.cat)) {
         let cur = optOf(b, s.id), w = el("div", "slot" + (U.open === s.id ? " open" : "")), hd = el("button", "hd", `<span class="nm">${esc(s.name)}</span><span class="cur">${esc(cur.n)}</span>`);
         hd.onclick = () => {
@@ -7912,7 +8199,7 @@ void main(){
     return mode;
   }, SV, frame, startEvent, enterGarage, applyBuild, chooseMode, goTitle, audio, get SVnow() {
     return SV;
-  }, ui: () => ui, input, setEnv, cam, tWorld, step, placeTruck };
+  }, ui: () => ui, input, setEnv, cam, tWorld, step, placeTruck, LOOKS };
   var bootMsg = $("boot").querySelector("div");
   R.G.warmup((d, n) => {
     bootMsg.innerHTML = `<b>DIRT SLEEPER</b><br>warming up the shaders ${d}/${n}`;

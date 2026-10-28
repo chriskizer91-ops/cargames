@@ -10,7 +10,7 @@
     return mode;
   }, SV, frame, startEvent, enterGarage, applyBuild, chooseMode, goTitle, audio, get SVnow() {
     return SV;
-  }, ui: () => ui, input, setEnv, cam, tWorld, step, placeTruck };
+  }, ui: () => ui, input, setEnv, cam, tWorld, step, placeTruck, LOOKS };
   var bootMsg = $("boot").querySelector("div");
   R.G.warmup((d, n) => {
     bootMsg.innerHTML = `<b>DIRT SLEEPER</b><br>warming up the shaders ${d}/${n}`;
