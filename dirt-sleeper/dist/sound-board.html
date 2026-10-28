@@ -96,7 +96,7 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
 </style>
 <div class="wrap">
   <header class="bar">
-    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Pick a scene, then choose a version of each sound and set its level. The engine runs underneath so you can check the mix at idle and at redline. When it sounds right, copy the mix code into the game.</p></div>
+    <div class="lead"><h1>Dirt Sleeper <span>Sound Board</span></h1><p>Pick a scene, then choose a version of each sound and set its level. The engine runs underneath so you can check the mix at idle, at redline and mid-burnout. When it sounds right, copy the mix code into the game.</p></div>
     <div class="ctl">
       <button class="btn go" id="start">Start sound</button>
       <div class="mm"><span class="k">Out</span><div class="meter" id="mMaster"><i></i><b></b></div><span class="db" id="dMaster">−∞</span></div>
@@ -106,7 +106,6 @@ select{background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;
   <section><p class="eyebrow">Scene</p><div class="scenes" id="scenes"></div><div class="ctx" id="ctx"></div></section>
   <section><p class="eyebrow">Buses</p><div class="buses" id="buses"></div></section>
   <section class="group" id="g-ground"><p class="eyebrow">Ground and tyres</p><div class="cards" id="c-ground"></div></section>
-  <section class="group" id="g-world"><p class="eyebrow">The world</p><div class="cards" id="c-world"></div></section>
   <section class="group" id="g-ui"><p class="eyebrow">Shop and HUD</p><div class="cards" id="c-ui"></div></section>
   <section class="code"><p class="eyebrow" style="margin:0">Mix code</p><textarea id="code" readonly spellcheck="false"></textarea>
     <ol><li>Press <b>Copy mix code</b>.</li><li>In the game, open <b>Settings</b> (in the shop or from Pause), find <b>Sound mix</b>, paste it and press <b>Use this mix</b>.</li><li>The code holds every level, version and knob on this page. Changes save here automatically.</li></ol></section>
@@ -1301,7 +1300,7 @@ if(typeof module!=='undefined')module.exports=SIM;
     }
     class FX {
       constructor(sr) {
-        this.sr = sr, this.p = { lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], wet: 0, speed: 0, cabin: 0, curb: 0, scrape: 0, vol: 1 }, this.g = { sq: [0, 0, 0, 0], rd: 0, hiss: 0, wind: 0, curb: 0, scr: 0 }, this.sq = [0, 1, 2, 3].map((i) => ({ bp: new BP(), bp2: new BP(), drift: 0, f: 0 })), this.road = new BP(), this.road.set(260, 0.7, sr), this.road2 = new BP(), this.road2.set(700, 0.9, sr), this.hissF = new BP(), this.hissF.set(2200, 0.9, sr), this.windF = new BP(), this.windF.set(520, 0.6, sr), this.grit = new BP(), this.grit.set(900, 2.2, sr), this.gritLo = new BP(), this.gritLo.set(180, 1.2, sr), this.seed = 22222, this.b = [0, 0, 0], this.curbPh = 0, this.thumpE = 0, this.thumpLp = 0, this.hits = [], this.grainE = 0, this.grainA = 0, this.hitLp = 0, this.k = 0, this.grvF = new BP(), this.grvF.set(1150, 0.8, sr), this.grvF2 = new BP(), this.grvF2.set(520, 1, sr), this.rollF = new BP(), this.rollF.set(150, 0.7, sr), this.sloshF = new BP(), this.sloshF.set(260, 0.7, sr), this.pings = [], this.roarF = new BP(), this.roarF.set(380, 0.7, sr), this.mudF = new BP(), this.mudF.set(140, 1.6, sr), this.mudF2 = new BP(), this.mudF2.set(520, 3, sr), this.splF = new BP(), this.splF.set(2600, 0.5, sr), this.grE = 0, this.grA = 0, this.mudPh = 0, this.g.grv = 0, this.g.roar = 0, this.g.mud = 0, this.g.spl = 0;
+        this.sr = sr, this.p = { lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], wet: 0, speed: 0, cabin: 0, curb: 0, scrape: 0, vol: 1 }, this.g = { sq: [0, 0, 0, 0], rd: 0, hiss: 0, curb: 0, scr: 0 }, this.sq = [0, 1, 2, 3].map((i) => ({ bp: new BP(), bp2: new BP(), drift: 0, f: 0 })), this.road = new BP(), this.road.set(260, 0.7, sr), this.road2 = new BP(), this.road2.set(700, 0.9, sr), this.hissF = new BP(), this.hissF.set(2200, 0.9, sr), this.grit = new BP(), this.grit.set(900, 2.2, sr), this.gritLo = new BP(), this.gritLo.set(180, 1.2, sr), this.seed = 22222, this.b = [0, 0, 0], this.curbPh = 0, this.thumpE = 0, this.thumpLp = 0, this.hits = [], this.grainE = 0, this.grainA = 0, this.hitLp = 0, this.k = 0, this.grvF = new BP(), this.grvF.set(1150, 0.8, sr), this.grvF2 = new BP(), this.grvF2.set(520, 1, sr), this.rollF = new BP(), this.rollF.set(150, 0.7, sr), this.sloshF = new BP(), this.sloshF.set(260, 0.7, sr), this.pings = [], this.roarF = new BP(), this.roarF.set(380, 0.7, sr), this.mudF = new BP(), this.mudF.set(140, 1.6, sr), this.mudF2 = new BP(), this.mudF2.set(520, 3, sr), this.splF = new BP(), this.splF.set(2600, 0.5, sr), this.grE = 0, this.grA = 0, this.mudPh = 0, this.g.grv = 0, this.g.roar = 0, this.g.mud = 0, this.g.spl = 0;
       }
       set(p) {
         this.p = p;
@@ -1323,7 +1322,7 @@ if(typeof module!=='undefined')module.exports=SIM;
         let p = this.p, g = this.g, sr = this.sr, k = 1 - Math.exp(-1 / (sr * 0.05)), sp = p.speed || 0, cab = p.cabin ? 1 : 0, wet = p.wet || 0, lat = p.lat || [0, 0, 0, 0], lon = p.lon || [0, 0, 0, 0], sqT = [0, 1, 2, 3].map((i) => {
           let side = ss(1.25, 2.1, lat[i]), spin = ss(2.8, 5.5, lon[i]);
           return Math.max(side * ss(2, 6, sp), spin * 0.8 * ss(0.5, 3, sp + lon[i])) * Math.min(1.2, (p.load[i] || 0) / 3600) * (1 - 0.95 * wet) * (p.sqK ? p.sqK[i] : 1);
-        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gWind = G("speedwind"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, windT = Math.min(1.2, (sp / 55) ** 2) * 0.35, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
+        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
         dv !== this.dv && (this.dv = dv, this.grvF.set(dv === "coarse" ? 760 : 1150, 0.8, sr), this.grvF2.set(dv === "coarse" ? 330 : 520, 1, sr));
         let gRate = dv === "coarse" ? [420, 65] : [700, 110], gDec = dv === "coarse" ? 0.986 : 0.975, gLvl = (dv === "coarse" ? 0.3 : dv === "packed" ? 0.085 : 0.24) * gDirt, pebK = dv === "coarse" ? 2.2 : dv === "packed" ? 0.4 : 1;
         for (let w = 0; w < 4; w++) {
@@ -1334,7 +1333,7 @@ if(typeof module!=='undefined')module.exports=SIM;
         }
         for (let i = 0; i < n; i++) {
           for (let w = 0; w < 4; w++) g.sq[w] += (sqT[w] - g.sq[w]) * k;
-          g.rd += (rdT - g.rd) * k, g.hiss += (hissT - g.hiss) * k, g.wind += (windT - g.wind) * k, g.curb += (curbT - g.curb) * k, g.scr += (scrT - g.scr) * k * 2, g.grv += (grvT - g.grv) * k, g.roar += (roarT - g.roar) * k, g.mud += (mudT - g.mud) * k, g.spl += (splT - g.spl) * k;
+          g.rd += (rdT - g.rd) * k, g.hiss += (hissT - g.hiss) * k, g.curb += (curbT - g.curb) * k, g.scr += (scrT - g.scr) * k * 2, g.grv += (grvT - g.grv) * k, g.roar += (roarT - g.roar) * k, g.mud += (mudT - g.mud) * k, g.spl += (splT - g.spl) * k;
           let wn = this.rnd(), b = this.b;
           b[0] = 0.99765 * b[0] + wn * 0.099046, b[1] = 0.963 * b[1] + wn * 0.2965164, b[2] = 0.57 * b[2] + wn * 1.0526913;
           let pink = (b[0] + b[1] + b[2] + wn * 0.1848) * 0.12, l = 0, r = 0;
@@ -1371,9 +1370,7 @@ if(typeof module!=='undefined')module.exports=SIM;
             let P = this.pings[q], y = P.a1 * P.y1 - P.a2 * P.y2;
             P.y2 = P.y1, P.y1 = y, road += y, --P.n <= 0 && this.pings.splice(q, 1);
           }
-          l += road, r += road;
-          let wind = this.windF.run(pink) * g.wind * (cab ? 0.45 : 1) * gWind;
-          if (l += wind * 1.05, r += wind * 0.95, g.curb > 1e-3) {
+          if (l += road, r += road, g.curb > 1e-3) {
             this.curbPh += Math.max(sp, 1) / 2 / sr, this.curbPh >= 1 && (this.curbPh -= 1, this.thumpE = 1), this.thumpE *= Math.exp(-1 / (sr * 0.03)), this.thumpPh = (this.thumpPh || 0) + 46 / sr, this.thumpLp += (wn - this.thumpLp) * 0.01;
             let th = (Math.sin(TAU2 * this.thumpPh) * 0.5 + this.thumpLp * 3) * this.thumpE * g.curb * 0.18 * gHit;
             l += th, r += th;
@@ -1439,16 +1436,16 @@ class ShiftlightFX extends AudioWorkletProcessor{
   constructor(){super();this.d=new FXDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
   process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
 registerProcessor('shiftlight-fx',ShiftlightFX);
-const AMBDSP=(${makeAmb.toString()})();
-class DirtAmb extends AudioWorkletProcessor{
-  constructor(){super();this.d=new AMBDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
-  process(i,o){const w=o[0],u=o[1];this.d.process(w[0],w[1]||w[0],w[0].length,u?u[0]:null,u?(u[1]||u[0]):null);return true;}}
-registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
+const UIDSP=(${makeUISynth.toString()})();
+class DirtUI extends AudioWorkletProcessor{
+  constructor(){super();this.d=new UIDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
+  process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
+registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     constructor() {
-      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.ambVol = 1, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
+      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
     }
     /* call from a user gesture. The graph: each source has its own bus; the engine is tamed on its own
-       compressor so a redline doesn't push the world down; a limiter only catches peaks at the end. */
+       compressor so a redline doesn't bury the tyres and the HUD sounds; a limiter only catches peaks at the end. */
     start() {
       return this.starting ? this.starting : (this.starting = (async () => {
         let AC = window.AudioContext || window.webkitAudioContext;
@@ -1469,11 +1466,11 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           return cv.buffer = roomIR(ctx, k), send.connect(cv), cv.connect(pre), send;
         };
         this.sendS = mk("street"), this.sendT = mk("tunnel");
-        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), worldBus = G(), uiBus = G();
+        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), uiBus = G();
         engIn.connect(engBus), engBus.connect(engComp), engComp.connect(engOut);
         for (let b of [engOut, groundBus]) b.connect(pre), b.connect(this.sendS), b.connect(this.sendT);
-        worldBus.connect(pre), uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, worldBus, uiBus });
-        this.meters = { engine: A(), ground: A(), world: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), worldBus.connect(this.meters.world), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
+        uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, uiBus });
+        this.meters = { engine: A(), ground: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
         try {
           if (!ctx.audioWorklet) throw new Error("no worklet");
           let src = ENGINE_SRC();
@@ -1482,24 +1479,24 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           } catch {
             await ctx.audioWorklet.addModule("data:application/javascript;charset=utf-8," + encodeURIComponent(src));
           }
-          let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), amb = node("dirt-amb", 2);
-          eng.connect(engIn), fx.connect(groundBus), amb.connect(worldBus, 0), amb.connect(uiBus, 1), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.amb = { post: (m) => amb.port.postMessage(m) }, this.kind = "worklet";
+          let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), uis = node("dirt-ui");
+          eng.connect(engIn), fx.connect(groundBus), uis.connect(uiBus), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.uis = { post: (m) => uis.port.postMessage(m) }, this.kind = "worklet";
         } catch {
           /* no worklets: one script processor runs all three synths, each into its own bus through a splitter-free trick of three processors */
-          let D = makeDSP(), F = makeFX(), Am = makeAmb(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), am = new Am(ctx.sampleRate), sp = (fn) => {
+          let D = makeDSP(), F = makeFX(), Us = makeUISynth(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), us = new Us(ctx.sampleRate), sp = (fn) => {
             let n = ctx.createScriptProcessor(1024, 1, 2), src = ctx.createConstantSource ? ctx.createConstantSource() : null;
             return src && (src.offset.value = 0, src.connect(n), src.start()), n.onaudioprocess = (ev) => {
               let b = ev.outputBuffer;
               fn(b.getChannelData(0), b.getChannelData(1), b.length);
             }, n;
           };
-          sp((L, R2, n) => d.process(L, R2, n)).connect(engIn), sp((L, R2, n) => f2.process(L, R2, n)).connect(groundBus), sp((L, R2, n) => am.process(L, R2, n)).connect(worldBus);
+          sp((L, R2, n) => d.process(L, R2, n)).connect(engIn), sp((L, R2, n) => f2.process(L, R2, n)).connect(groundBus), sp((L, R2, n) => us.process(L, R2, n)).connect(uiBus);
           this.eng = { post: (m) => {
             m.t === "cfg" ? d.configure(m.cfg) : m.t === "p" ? d.set(m.p) : m.t === "ev" && d.event(m.ev);
           } }, this.fx = { post: (m) => {
             m.t === "p" ? f2.set(m.p) : m.t === "ev" && f2.event(m.ev);
-          } }, this.amb = { post: (m) => {
-            m.t === "p" ? am.set(m.p) : m.t === "ev" && am.event(m.ev);
+          } }, this.uis = { post: (m) => {
+            m.t === "p" ? us.set(m.p) : m.t === "ev" && us.event(m.ev);
           } }, this.kind = "main thread";
         }
         ctx.state !== "running" && await ctx.resume(), this.cfg && this.eng.post({ t: "cfg", cfg: this.cfg }), this.ready = !0, this.setMix(this.mix);
@@ -1533,13 +1530,13 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       return dbToLin(this.engNorm * Math.max(0, Math.min(1, +this.mix.eng.norm)));
     }
     applyMixParts() {
-      this.mixG = mixFor(this.mix, MIX_GROUND), this.mixW = mixFor(this.mix, MIX_WORLD);
+      this.mixG = mixFor(this.mix, MIX_GROUND), this.mixU = mixFor(this.mix, MIX_UI), this.uis && this.uis.post({ t: "p", p: { vol: 1, mix: this.mixU } });
     }
     /* apply a mix: bus faders, the engine's tamer, the limiter, and the per-sound settings */
     setMix(m) {
       if (this.mix = mixFill(m), this.applyMixParts(), !this.ctx) return;
       let t = this.ctx.currentTime, M = this.mix, set = (g, db) => g && g.gain.setTargetAtTime(dbToLin(db), t, 0.03), tame = Math.max(0, Math.min(1, M.eng.tame ?? 0.55));
-      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.worldBus, M.bus.world), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
+      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
       let c = this.engComp;
       c.threshold.value = -6 - 22 * tame, c.ratio.value = 1 + 5 * tame, c.knee.value = 10, c.attack.value = 6e-3, c.release.value = 0.25, this.lim.threshold.value = M.limiter ? -1.5 : 0, this.lim.ratio.value = M.limiter ? 20 : 1, this.engIn.gain.setTargetAtTime(this.normGain(), t, 0.05);
     }
@@ -1565,279 +1562,60 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       this.ctx && (on ? this.ctx.suspend() : this.ctx.resume());
     }
     /* once per frame */
-    update(engineP, engineEvents, fxP, fxEvents, { cabin = !1, yard = 0, shop = 0, amb = null, ambEvents = [] } = {}) {
+    update(engineP, engineEvents, fxP, fxEvents, { cabin = !1, yard = 0, shop = 0 } = {}) {
       if (!this.ready) return;
       for (let e of engineEvents) this.eng.post({ t: "ev", ev: e });
       this.eng.post({ t: "p", p: engineP });
       for (let e of fxEvents) this.fx.post({ t: "ev", ev: e });
-      if (this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) }), amb) {
-        for (let e of ambEvents) this.amb.post({ t: "ev", ev: e });
-        this.amb.post({ t: "p", p: Object.assign({ vol: this.ambVol, uiVol: 1, mix: this.mixW }, amb) });
-      }
+      this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) });
       /* the space: open range is nearly dry, the shop yard throws back a slap, inside the shop it rings */
       let t = this.ctx.currentTime, c = cabin ? 0.4 : 1;
       this.yard += (yard - this.yard) * 0.08, this.shop += (shop - this.shop) * 0.08, this.sendS.gain.setTargetAtTime(c * (0.05 + 0.3 * this.yard) * (1 - this.shop), t, 0.08), this.sendT.gain.setTargetAtTime(0.6 * c * this.shop, t, 0.08);
     }
-    /* one-shot shop and HUD sounds, or a world event (thunder, a bird, a cheer) */
+    /* one-shot shop and HUD sounds */
     ui(type, extra) {
-      this.ready && this.amb && this.amb.post({ t: "ev", ev: Object.assign({ type }, extra || {}) });
-    }
-    setAmbVolume(v) {
-      this.ambVol = v;
+      this.ready && this.uis && this.uis.post({ t: "ev", ev: Object.assign({ type }, extra || {}) });
     }
   };
 
-  // ===== audio/ambience.js =====
-  /* The world around the truck, synthesised live in its own AudioWorklet: rain (several kinds, or drumming
-     on the roof from the cab), thunder, wind, birds, day and night insects, the creek, the crowd at the
-     strip, and the shop and HUD sounds on a separate output. Which version of each sound plays, and how
-     loud, comes from the mix (34_mix.js); how much of each the scene calls for comes from the game. */
-  function makeAmb() {
+  // ===== audio/ui-sounds.js =====
+  /* The shop and HUD sounds, synthesised live in their own AudioWorklet: the cash register, the cooler
+     chime, the gate tick, medal and trophy fanfares, and the cues for a new best, a challenge starting
+     and a lap. Small bell-like voices; no world ambience (the weather, wildlife and crowd were cut). */
+  function makeUISynth() {
     let TAU = Math.PI * 2;
-    class Bq {
-      constructor() {
-        this.z1 = 0, this.z2 = 0, this.b0 = 1, this.b1 = 0, this.b2 = 0, this.a1 = 0, this.a2 = 0, this.key = "";
-      }
-      set(type, f, q, sr) {
-        let k = type + f + q;
-        if (k === this.key) return this;
-        this.key = k;
-        let w = TAU * Math.min(f, sr * 0.45) / sr, cw = Math.cos(w), al = Math.sin(w) / (2 * q), a0 = 1 + al, b0, b1, b2;
-        type === "lp" ? (b0 = (1 - cw) / 2, b1 = 1 - cw, b2 = b0) : type === "hp" ? (b0 = (1 + cw) / 2, b1 = -(1 + cw), b2 = b0) : (b0 = al, b1 = 0, b2 = -al);
-        return this.b0 = b0 / a0, this.b1 = b1 / a0, this.b2 = b2 / a0, this.a1 = -2 * cw / a0, this.a2 = (1 - al) / a0, this;
-      }
-      run(x) {
-        let y = this.b0 * x + this.z1;
-        return this.z1 = this.b1 * x - this.a1 * y + this.z2, this.z2 = this.b2 * x - this.a2 * y, y;
-      }
-    }
-    /* rain kinds: wash level, low body, drops per second, drop pitch range, decay range (s), drop size, tick */
-    let RAIN = {
-      patter: { wash: 0.07, low: 0.05, rate: 2400, f0: 1800, span: 3.8, d0: 1.5e-3, d1: 4e-3, a: 0.03, clk: 0.03 },
-      drizzle: { wash: 0.035, low: 0.01, rate: 1100, f0: 2600, span: 3, d0: 1e-3, d1: 2.5e-3, a: 0.018, clk: 0.02 },
-      downpour: { wash: 0.1, low: 0.14, rate: 4200, f0: 1100, span: 4, d0: 2.5e-3, d1: 6e-3, a: 0.04, clk: 0.05 },
-      tin: { wash: 0.03, low: 0.02, rate: 1400, f0: 1700, span: 2.1, d0: 0.025, d1: 0.06, a: 0.02, clk: 0.01, metal: 1 }
-    };
-    class Amb {
+    class UISynth {
       constructor(sr) {
-        this.sr = sr, this.p = {}, this.mix = {}, this.t = 0, this.seed = 987654321, this.b = [0, 0, 0];
-        this.g = { rain: 0, wind: 0, birds: 0, day: 0, night: 0, creek: 0, crowd: 0, cab: 0 };
-        let B = (type, f, q) => new Bq().set(type, f, q, sr);
-        this.rainHP = B("hp", 900, 0.7), this.rainBP = B("bp", 3e3, 0.45), this.rainLow = B("lp", 380, 0.7), this.roofLP = B("lp", 1600, 0.7), this.clkHP = B("hp", 2500, 0.7);
-        this.windL = B("bp", 300, 0.6), this.windR = B("bp", 340, 0.6), this.whis = B("bp", 820, 5), this.whis2 = B("bp", 1240, 7), this.roar = B("lp", 120, 0.7), this.rust = B("bp", 2400, 0.7), this.rust2 = B("bp", 3800, 0.9);
-        this.crBg = B("bp", 4600, 9), this.cicN = B("bp", 5e3, 2.5), this.hopF = B("bp", 7e3, 2);
-        this.creekA = B("bp", 620, 0.9), this.creekB = B("bp", 1900, 1.4);
-        this.walla = [B("bp", 420, 2), B("bp", 880, 2.5), B("bp", 1650, 3), B("bp", 2600, 3)], this.wEnv = [0.5, 0.5, 0.5, 0.5], this.wTgt = [0.5, 0.5, 0.5, 0.5], this.clap = B("bp", 2300, 0.6), this.clapE = 0, this.cheer = 0;
-        this.drops = [], this.tones = [], this.clk = 0, this.flut = 0, this.nextBird = 2, this.nextThunder = 18 + Math.random() * 20, this.thunders = [], this.ph = [Math.random() * 9, Math.random() * 9, Math.random() * 9];
-        this.bugs = [], this.bugKey = "", this.cic = [0, 1].map((i) => ({ st: 0, t: i * 7 + Math.random() * 5, ph: 0, f: 4300 + Math.random() * 500, am: 150 + Math.random() * 80, dur: 0, lv: 0.7 + Math.random() * 0.3 })), this.hop = { t: 4, n: 0, gap: 0, e: 0 };
+        this.sr = sr, this.p = {}, this.mix = {}, this.t = 0, this.tones = [];
       }
       set(p) {
         this.p = p, p.mix && (this.mix = p.mix);
       }
-      M(id) {
-        return this.mix[id] || { g: 1 };
+      /* a bell: a sine with a soft inharmonic partial, a click of attack and an exponential tail */
+      tone(at, dur, f, amp, pan = 0) {
+        this.tones.length < 40 && this.tones.push({ at: this.t + at, dur, f, amp, ph: 0, pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan) });
       }
-      rnd() {
-        let s = this.seed;
-        return s ^= s << 13, s ^= s >>> 17, s ^= s << 5, this.seed = s, (s >>> 0) / 4294967296;
-      }
-      /* a damped resonator: a raindrop, a bubble, a tick. Two modes when metal */
-      drop(f, dec, amp, pan, metal = 0) {
-        if (this.drops.length > 90) return;
-        let mk = (ff, aa) => {
-          let w = TAU * Math.min(ff, this.sr * 0.45) / this.sr, r = Math.exp(-1 / (dec * this.sr));
-          this.drops.push({ a1: 2 * r * Math.cos(w), a2: r * r, y1: aa * Math.sin(w), y2: 0, n: Math.round(dec * this.sr * 6), pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan) });
-        };
-        mk(f, amp), metal && mk(f * 1.47, amp * 0.6);
-      }
-      /* pitched voices. kind 0 bird, 1 bell (UI), 2 outdoor whistle, 3 dove (soft, with a second harmonic) */
-      tone(at, dur, f0, f1, amp, pan, kind = 0, fm = 0) {
-        this.tones.length < 32 && this.tones.push({ at: this.t + at, dur, f0, f1, amp, ph: 0, pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan), kind, fm });
-      }
-      thunder(kind = "rolling") {
-        let dist = kind === "crack" ? Math.random() * 0.2 : kind === "distant" ? 0.7 + Math.random() * 0.3 : Math.random(), sw = [];
-        for (let k = 0, n = 3 + Math.floor(Math.random() * 3), t = 0.2 + dist * 1.5; k < n; k++) sw.push([t, 0.4 + Math.random() * 0.6, 0.35 + Math.random() * 0.9]), t += 0.4 + Math.random() * 1.3;
-        this.thunders.push({ t: 0, sw, crack: dist < 0.35 ? kind === "crack" ? 1.1 : 0.6 : 0, c: 1 - Math.exp(-TAU * (40 + (1 - dist) * 70) / this.sr), y1: 0, y2: 0, cy: 0, amp: (0.55 - dist * 0.3) * (kind === "crack" ? 1.3 : 1), dur: 9 });
-      }
-      bird(kind) {
-        let pan = this.rnd() * 1.6 - 0.8, d = 0.35 + this.rnd() * 0.65, a = 0.045 * d, base = 0.85 + this.rnd() * 0.3;
-        if (kind === "mixed") {
-          let q = this.rnd();
-          kind = q < 0.5 ? "songbirds" : q < 0.8 ? "meadowlark" : "doves";
-        }
-        if (a *= kind === "meadowlark" ? 2.2 : kind === "doves" ? 3 : 4.5, kind === "meadowlark") {
-          let f = 2900 * base, t = 0;
-          for (let i = 0, c = 5 + Math.floor(this.rnd() * 3); i < c; i++) {
-            let dur = 0.08 + this.rnd() * 0.13, f1 = f * (0.82 + this.rnd() * 0.12);
-            this.tone(t, dur, f, f1, a * 0.9, pan, 0, 0.15), t += dur + 0.03, f = f1 * (1.05 + this.rnd() * 0.15);
-          }
-          for (let i = 0; i < 6; i++) this.tone(t + i * 0.03, 0.025, 3800 * base, 3500 * base, a * 0.5, pan, 0, 0.3);
-        } else if (kind === "doves") {
-          let f = 470 * base, a2 = a * 2.2;
-          [[0, 0.32, 1, 1.06], [0.42, 0.55, 1.08, 1.18], [1.05, 0.34, 1.02, 0.98], [1.5, 0.34, 1, 0.97], [1.95, 0.36, 0.99, 0.95]].forEach(([t, dur, k0, k1]) => this.tone(t, dur, f * k0, f * k1, a2, pan, 3));
-        } else {
-          let sp = Math.floor(this.rnd() * 3);
-          if (sp === 0) for (let i = 0, c = 2 + Math.floor(this.rnd() * 3); i < c; i++) this.tone(i * 0.11, 0.07, 5200 * base, 3100 * base, a, pan);
-          else if (sp === 1) this.tone(0, 0.26, 2200 * base, 3100 * base, a * 0.9, pan), this.tone(0.34, 0.3, 3e3 * base, 2500 * base, a * 0.8, pan);
-          else for (let i = 0, c = 7 + Math.floor(this.rnd() * 7); i < c; i++) this.tone(i * 0.045, 0.03, 4e3 * base, 4300 * base, a * 0.7, pan, 0, 0.3);
-        }
-      }
-      /* (re)build the night insect voices when their settings change */
-      bugVoices(m) {
-        let key = [m.v, m.n, (m.pitch ?? 0.5).toFixed(2), (m.rate ?? 0.5).toFixed(2)].join();
-        if (key === this.bugKey) return;
-        this.bugKey = key;
-        let v = m.v || "field", n = Math.max(1, Math.min(6, Math.round(m.n ?? 3))), P = m.pitch ?? 0.5, Rt = m.rate ?? 0.5, out = [], mk = (kind, i) => {
-          let d = 0.25 + this.rnd() * 0.75;
-          return { kind, d, lpA: 1 - Math.exp(-TAU * (2500 + 7e3 * d) / this.sr), lp: 0, pan: (this.rnd() * 2 - 1) * 0.8, t: this.rnd() * 2, ph: 0, cp: 0, f: (kind === "tree" ? 2400 + 1200 * P : 3600 + 2200 * P) * (0.95 + this.rnd() * 0.1), per: (0.78 - 0.4 * Rt) * (0.9 + this.rnd() * 0.2), sp: 1 / ((28 + 14 * Rt) * (0.95 + this.rnd() * 0.1)), np: 3 + (this.rnd() < 0.35 ? 1 : 0), on: 1, onT: 2 + this.rnd() * 3, kf: 7e3 + 4e3 * P, kE: 0, kN: 0, kS: 0, kNext: 0.5 + this.rnd(), bq: kind === "katydid" ? new Bq().set("bp", (7e3 + 4e3 * P) * (0.92 + this.rnd() * 0.16), 4, this.sr) : null };
-        };
-        if (v === "field" || v === "mixed") for (let i = 0; i < n; i++) out.push(mk("field", i));
-        if (v === "tree") for (let i = 0; i < n; i++) out.push(mk("tree", i));
-        if (v === "katydid") for (let i = 0; i < Math.min(4, n); i++) out.push(mk("katydid", i));
-        v === "mixed" && out.push(mk("katydid", 9)), this.bugs = out, this.bugMode = v;
+      chord(fs, at, dur, amp, step = 0) {
+        fs.forEach((f, i, a) => this.tone(at + i * step, dur, f, amp, (i - (a.length - 1) / 2) * 0.2));
       }
       event(e) {
         let T = e.type;
-        if (T === "thunder") this.thunder(e.kind || (this.M("thunder").v || "rolling"));
-        else if (T === "cheer") {
-          this.cheer = Math.max(this.cheer, e.a || 1);
-          for (let k = 0; k < 4; k++) this.tone(0.2 + Math.random() * 1.2, 0.35 + Math.random() * 0.3, 2400 + Math.random() * 500, 3e3 + Math.random() * 700, 0.02, Math.random() * 1.6 - 0.8, 2);
-        } else if (T === "bird") this.bird(e.kind || this.M("birds").v || "mixed");
-        else if (T === "kaching") this.tone(0, 0.8, 2093, 2093, 0.07, 0.1, 1), this.tone(0.02, 0.7, 2637, 2637, 0.05, -0.1, 1), this.tone(0.05, 0.5, 4186, 4186, 0.02, 0, 1), this.clk += 0.6;
-        else if (T === "chime") this.tone(0, 0.45, 1319, 1319, 0.06, 0, 1), this.tone(0.1, 0.6, 1760, 1760, 0.06, 0, 1), this.tone(0.2, 0.8, 2637, 2637, 0.03, 0, 1);
-        else if (T === "tick") this.tone(0, 0.05, 1900, 1900, 0.09, 0, 1), this.tone(0, 0.07, 950, 950, 0.06, 0, 1);
-        else if (T === "trophy" || T === "medal") (T === "trophy" ? [1047, 1319, 1568, 2093] : [1319, 1568, 2093]).forEach((f, i, a) => this.tone(i * 0.11, 0.9, f, f, 0.05, (i - (a.length - 1) / 2) * 0.2, 1));
+        if (T === "kaching") this.tone(0, 0.8, 2093, 0.07, 0.1), this.tone(0.02, 0.7, 2637, 0.05, -0.1), this.tone(0.05, 0.5, 4186, 0.02);
+        else if (T === "chime") this.tone(0, 0.45, 1319, 0.06), this.tone(0.1, 0.6, 1760, 0.06), this.tone(0.2, 0.8, 2637, 0.03);
+        else if (T === "tick") this.tone(0, 0.05, 1900, 0.09), this.tone(0, 0.07, 950, 0.06);
+        else if (T === "trophy") this.chord([1047, 1319, 1568, 2093], 0, 0.9, 0.05, 0.11);
+        else if (T === "medal") this.chord([1319, 1568, 2093], 0, 0.9, 0.05, 0.11);
+        else if (T === "best") this.chord([1568, 2093, 2637, 3136], 0, 0.55, 0.05, 0.07);
+        else if (T === "go") this.tone(0, 0.18, 1760, 0.07), this.tone(0, 0.2, 880, 0.04);
+        else if (T === "ready") this.tone(0, 0.12, 1175, 0.06);
+        else if (T === "lap") this.tone(0, 0.3, 2349, 0.06), this.tone(0.09, 0.4, 3136, 0.05);
+        else if (T === "miss") this.tone(0, 0.25, 523, 0.06), this.tone(0.12, 0.35, 392, 0.06);
       }
-      process(L, R, n, UL, UR) {
-        let p = this.p, g = this.g, sr = this.sr, dt = 1 / sr, k = 1 - Math.exp(-1 / (sr * 0.4)), cab = p.cabin ? 1 : 0, M = (id) => this.M(id);
-        let mRain = M("rain"), mRoof = M("roof"), mTh = M("thunder"), mWind = M("wind"), mBird = M("birds"), mDay = M("daybugs"), mNight = M("nightbugs"), mCreek = M("creek"), mCrowd = M("crowd"), mUI = M("ui");
-        let tg = { rain: p.rain || 0, wind: p.wind || 0, birds: p.birds || 0, day: p.dayBugs || 0, night: p.crickets || 0, creek: p.creek || 0, crowd: p.crowd || 0, cab };
-        /* thunder rolls in on its own in a storm */
-        p.storm && g.rain > 0.15 && this.t > this.nextThunder && mTh.g > 0 && (this.thunder(mTh.v || "rolling"), this.nextThunder = this.t + (mTh.every || 28) * (0.5 + Math.random()));
-        g.birds > 0.05 && this.t > this.nextBird && mBird.g > 0 && (this.bird(mBird.v || "mixed"), this.nextBird = this.t + (1.5 + this.rnd() * 4.5) / ((0.4 + g.birds) * (mBird.rate || 1)) * ((mBird.v || "") === "doves" ? 2.5 : 1));
-        this.bugVoices(mNight);
-        let rk = RAIN[mRain.v] || RAIN.patter, br = mRain.bright ?? 0.5, fm = 0.65 + 0.7 * br, dens = mRain.dens ?? 1, soft = mRoof.v === "soft", wv = mWind.v || "breeze", gust = mWind.gust ?? 0.5, cv = mCreek.v || "babble", stad = mCrowd.v === "stadium", nv = this.bugMode;
-        this.rainBP.set("bp", 2e3 + 3e3 * br, 0.45, sr), this.roofLP.set("lp", soft ? 800 : 1600, 0.7, sr), this.creekA.set("bp", cv === "rush" ? 380 : 620, 0.9, sr), this.crBg.set("bp", 3600 + 2200 * (mNight.pitch ?? 0.5), 9, sr);
-        let out = 1 - 0.7 * g.cab, vol = p.vol ?? 1, uiv = (p.uiVol ?? 1) * (mUI.g ?? 1);
+      process(L, R, n) {
+        let dt = 1 / this.sr, g = (this.p.vol ?? 1) * (this.mix.ui ? this.mix.ui.g ?? 1 : 1);
         for (let i = 0; i < n; i++) {
-          for (let key in tg) g[key] += (tg[key] - g[key]) * k;
           this.t += dt;
-          let wn = this.rnd() * 2 - 1, b = this.b;
-          b[0] = 0.99765 * b[0] + wn * 0.099046, b[1] = 0.963 * b[1] + wn * 0.2965164, b[2] = 0.57 * b[2] + wn * 1.0526913;
-          let pink = (b[0] + b[1] + b[2] + wn * 0.1848) * 0.12, l = 0, r = 0, u = 0;
-          /* ---- rain ---- */
-          if (g.rain > 1e-3) {
-            this.flut += (this.rnd() - 0.5) * 2e-3 - this.flut * 2e-4;
-            let gr = mRain.g ?? 1, gro = mRoof.g ?? 1, wash = (this.rainBP.run(this.rainHP.run(wn)) * rk.wash * (1 + this.flut * 4) + this.rainLow.run(pink) * rk.low * g.rain) * g.rain * gr, roof = this.roofLP.run(pink) * g.rain * (soft ? 0.05 : 0.06) * gro, mixed = wash * (1 - 0.8 * g.cab) + roof * g.cab;
-            l += mixed, r += mixed * 0.96;
-            if (g.cab > 0.5) {
-              if (this.rnd() < g.rain * 1100 * dt && gro > 0) {
-                let q = this.rnd();
-                soft ? this.drop(150 + 450 * this.rnd(), 0.01 + 0.015 * this.rnd(), (0.01 + 0.06 * q * q * q) * g.rain * gro, (this.rnd() - 0.5) * 1.2) : this.drop(380 + 1e3 * this.rnd(), 6e-3 + 0.01 * this.rnd(), (8e-3 + 0.05 * q * q * q) * g.rain * gro, (this.rnd() - 0.5) * 1.2);
-              }
-            } else if (this.rnd() < g.rain * rk.rate * dens * dt && gr > 0) {
-              let q = this.rnd(), pan = this.rnd() * 1.8 - 0.9;
-              this.drop(rk.f0 * fm * Math.pow(rk.span, this.rnd()), rk.d0 + (rk.d1 - rk.d0) * this.rnd(), (rk.a * 0.18 + rk.a * q * q * q) * g.rain * gr, pan, rk.metal), this.clk += rk.clk * q * g.rain * gr;
-            }
-          }
-          /* ---- thunder ---- */
-          for (let j = this.thunders.length - 1; j >= 0; j--) {
-            let T = this.thunders[j];
-            T.t += dt, T.y1 += T.c * (wn - T.y1), T.y2 += T.c * (T.y1 - T.y2), T.cy += 0.12 * (wn - T.cy);
-            let e = 0;
-            for (let [t0, a, w] of T.sw) e += a * Math.exp(-(((T.t - t0) / w) ** 2));
-            let s = (T.y2 * 9 * e * T.amp + (T.t < 0.35 ? T.cy * T.crack * (1 - T.t / 0.35) ** 2 * 0.5 : 0)) * (mTh.g ?? 1);
-            l += s * (0.6 + 0.4 * out), r += s * (0.6 + 0.4 * out), T.t > T.dur && this.thunders.splice(j, 1);
-          }
-          /* ---- wind ---- */
-          if (g.wind > 1e-3 && (mWind.g ?? 1) > 0) {
-            let dep = 0.3 + 0.9 * gust, gu = 0.55 + dep * (0.25 * Math.sin(TAU * 0.071 * this.t + this.ph[0]) + 0.15 * Math.sin(TAU * 0.13 * this.t + this.ph[1]) + 0.1 * Math.sin(TAU * 0.29 * this.t + this.ph[2])), w = g.wind * Math.max(0, gu) ** 2 * out * (mWind.g ?? 1);
-            if (wv === "grass") {
-              this.flut2 = (this.flut2 || 0) * 0.9995 + (this.rnd() - 0.5) * 0.004;
-              let rs = (this.rust.run(wn) * 0.6 + this.rust2.run(wn) * 0.4) * w * (0.03 + Math.abs(this.flut2) * 3) * 1.4;
-              l += this.windL.run(pink) * w * 0.3 + rs, r += this.windR.run(pink * 0.9 + wn * 0.02) * w * 0.3 + rs * 0.9;
-            } else {
-              let pl = wv === "plains", body = pl ? 0.2 : 0.5;
-              l += this.windL.run(pink) * w * body + this.whis.run(wn) * w * w * (pl ? 0.03 : 0.035) + (pl ? this.roar.run(pink * 3) * w * 0.25 : 0), r += this.windR.run(pink * 0.9 + wn * 0.02) * w * body + (pl ? this.whis2.run(wn) * w * w * 0.02 + this.roar.run(pink * 3) * w * 0.05 : 0);
-            }
-          }
-          /* ---- insects at night ---- */
-          if (g.night > 0.01 && (mNight.g ?? 1) > 0) {
-            let gn = g.night * (mNight.g ?? 1) * out;
-            for (let c of this.bugs) {
-              let s = 0;
-              c.t += dt;
-              if (c.kind === "field") {
-                let tc = c.t % c.per, kk = Math.floor(tc / c.sp);
-                if (tc < dt && (c.per *= 0.97 + this.rnd() * 0.06, c.per = Math.min(1.1, Math.max(0.3, c.per))), kk < c.np) {
-                  let fp = (tc - kk * c.sp) / c.sp;
-                  if (fp < 0.55) {
-                    c.cp += c.f * (1 - 0.02 * fp) * dt;
-                    let env = Math.min(1, fp / 0.05) * Math.exp(-fp * 3);
-                    s = Math.sin(TAU * c.cp) * (0.7 + 0.3 * Math.sin(TAU * c.f * 0.31 * tc)) * env * 0.24 * c.d;
-                  }
-                }
-              } else if (c.kind === "tree") {
-                if (c.t > c.onT && (c.on = 1 - c.on, c.t = 0, c.onT = c.on ? 2 + this.rnd() * 4 : 0.5 + this.rnd() * 1.5), c.on) {
-                  let fp = c.t / c.sp % 1;
-                  c.cp += c.f * dt, s = Math.sin(TAU * c.cp) * Math.sin(Math.PI * fp) ** 2 * Math.min(1, c.t * 2) * 0.04 * c.d;
-                }
-              } else {
-                if (c.t > c.kNext && (c.kN = 2 + Math.floor(this.rnd() * 2), c.kS = 0, c.kE = 0, c.kNext = c.t + (1.3 - 0.5 * (mNight.rate ?? 0.5)) * (0.85 + this.rnd() * 0.3), c.kSyl = 0), c.kN > 0) {
-                  c.kE += dt;
-                  let pulse = Math.floor(c.kE / 0.02), within = c.kE - pulse * 0.02;
-                  pulse < 5 ? within < 4e-3 && (s = wn * (1 - within / 4e-3) * 0.36 * c.d) : c.kE > 0.17 && (c.kE = 0, c.kN--);
-                }
-                s = c.bq.run(s);
-              }
-              c.lp += c.lpA * (s - c.lp), l += c.lp * gn * (1 - Math.max(0, c.pan)), r += c.lp * gn * (1 + Math.min(0, c.pan));
-            }
-            if (nv === "chorus" || nv === "mixed") {
-              let bg = this.crBg.run(wn) * (0.55 + 0.45 * Math.sin(TAU * 23 * this.t)) * (0.65 + 0.35 * Math.sin(TAU * 0.31 * this.t)) * gn * (nv === "chorus" ? 0.1 * (mNight.n || 3) / 3 : 0.04);
-              l += bg, r += bg * 0.9;
-            }
-          }
-          /* ---- insects by day ---- */
-          if (g.day > 0.01 && (mDay.g ?? 1) > 0 && mDay.v !== "off") {
-            let gd = g.day * (mDay.g ?? 1) * out;
-            if (mDay.v === "hopper") {
-              let H = this.hop;
-              H.t -= dt, H.t <= 0 && (H.n = 8 + Math.floor(this.rnd() * 12), H.gap = 1 / (25 + this.rnd() * 15), H.t = 3 + this.rnd() * 6, H.next = 0), H.n > 0 && (H.next -= dt, H.next <= 0 && (H.e = 1, H.n--, H.next = H.gap)), H.e *= 0.93;
-              let s = this.hopF.run(wn * H.e) * 0.5 * gd;
-              l += s * 0.8, r += s;
-            } else for (let C of this.cic) {
-              if (C.t -= dt, C.t <= 0) C.st = (C.st + 1) % 4, C.t = [5 + this.rnd() * 10, 3 + this.rnd() * 2, 3 + this.rnd() * 4, 1.5 + this.rnd()][C.st], C.dur = C.t;
-              if (C.st === 0) continue;
-              let x = 1 - C.t / C.dur, env = C.st === 1 ? x * x : C.st === 2 ? 1 : (1 - x) ** 2;
-              C.ph += C.f * (1 + 0.03 * env) * dt;
-              let am = Math.pow(0.5 + 0.5 * Math.sin(TAU * C.am * this.t), 4), s = (Math.sin(TAU * C.ph) * 0.6 + this.cicN.run(wn) * 2.5) * am * env * 0.076 * C.lv * gd;
-              l += s, r += s * 0.85;
-            }
-          }
-          /* ---- the creek ---- */
-          if (g.creek > 1e-3 && (mCreek.g ?? 1) > 0) {
-            let gc = g.creek * (mCreek.g ?? 1) * out, bed = cv === "trickle" ? 0.3 : cv === "rush" ? 2.2 : 1, s = (this.creekA.run(pink * 2) * (0.6 + this.flut * 30) + this.creekB.run(wn) * 0.12) * 0.09 * bed * gc;
-            l += s, r += s * 0.92;
-            let br2 = cv === "trickle" ? 2.5 : cv === "rush" ? 0.4 : 1;
-            this.rnd() < g.creek * 35 * br2 * dt && this.drop(cv === "trickle" ? 600 + 1600 * this.rnd() : 300 + 1100 * this.rnd(), 0.01 + 0.02 * this.rnd(), (cv === "trickle" ? 0.018 : 0.025) * gc, this.rnd() * 1.4 - 0.7);
-          }
-          /* ---- the crowd at the strip ---- */
-          if (this.cheer *= 1 - dt / 3.2, (g.crowd > 1e-3 || this.cheer > 1e-3) && (mCrowd.g ?? 1) > 0) {
-            if ((i & 63) === 0) for (let j = 0; j < 4; j++) this.rnd() < 0.02 && (this.wTgt[j] = 0.2 + this.rnd() * 0.8), this.wEnv[j] += (this.wTgt[j] - this.wEnv[j]) * 0.05;
-            let lev = (g.crowd + this.cheer * 1.6) * out * (mCrowd.g ?? 1), s = 0;
-            for (let j = 0; j < (stad ? 4 : 3); j++) s += this.walla[j].run(pink * 2.2) * this.wEnv[j];
-            this.rnd() < this.cheer * (stad ? 2200 : 1100) * dt && (this.clapE += 0.4 + this.rnd() * 0.6), this.clapE *= 0.82;
-            s = s * lev * (stad ? 0.08 : 0.05) + this.clap.run(wn * this.clapE) * this.cheer * 0.05 * out * (mCrowd.g ?? 1), l += s, r += s * 0.95;
-          }
-          /* ---- drops, bubbles ---- */
-          for (let j = this.drops.length - 1; j >= 0; j--) {
-            let D = this.drops[j], y = D.a1 * D.y1 - D.a2 * D.y2;
-            D.y2 = D.y1, D.y1 = y, l += y * D.pl, r += y * D.pr, --D.n <= 0 && this.drops.splice(j, 1);
-          }
-          this.clk *= 0.55;
-          let ck = this.clkHP.run(wn * this.clk) * 0.6;
-          l += ck, r += ck;
-          /* ---- pitched voices: birds, whistles, bells ---- */
+          let l = 0, r = 0;
           for (let j = this.tones.length - 1; j >= 0; j--) {
             let T = this.tones[j], tt = this.t - T.at;
             if (tt < 0) continue;
@@ -1845,24 +1623,19 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
               this.tones.splice(j, 1);
               continue;
             }
-            let x = tt / T.dur, f = T.f0 + (T.f1 - T.f0) * x;
-            T.fm && (f *= 1 + T.fm * 0.05 * Math.sin(TAU * 45 * tt)), T.ph += f * dt;
-            let env = T.kind === 1 ? Math.exp(-x * 4.5) * Math.min(1, tt / 2e-3) : T.kind === 3 ? Math.sin(Math.PI * x) ** 1.5 * Math.min(1, tt / 0.04) : Math.sin(Math.PI * x) ** 2, s = Math.sin(TAU * T.ph) * env * T.amp;
-            if (T.kind === 1) u += s + Math.sin(TAU * T.ph * 2.76) * env * env * T.amp * 0.25;
-            else {
-              T.kind === 3 && (s += Math.sin(TAU * T.ph * 2) * env * T.amp * 0.25);
-              let gb = (T.kind === 0 || T.kind === 3 ? g.birds * (mBird.g ?? 1) : mCrowd.g ?? 1) * out;
-              l += s * gb * T.pl, r += s * gb * T.pr;
-            }
+            let x = tt / T.dur, env = Math.exp(-x * 4.5) * Math.min(1, tt / 2e-3);
+            T.ph += T.f * dt;
+            let s = (Math.sin(TAU * T.ph) + Math.sin(TAU * T.ph * 2.76) * env * 0.25) * env * T.amp;
+            l += s * T.pl, r += s * T.pr;
           }
-          u *= uiv, L[i] = l * vol, R[i] = r * vol, UL ? (UL[i] = u, UR[i] = u) : (L[i] += u, R[i] += u);
+          L[i] = l * g, R[i] = r * g;
         }
       }
     }
-    return Amb;
+    return UISynth;
   }
   // ===== audio/mix.js =====
-  /* One mix for the whole game: four buses (engine, ground, world, UI), and for every sound its level,
+  /* One mix for the whole game: three buses (engine, ground, UI) and a master, and for every sound its level,
      which version of it plays, and a few character knobs. The sound board edits this object and turns it
      into a short code; the game reads the same code. Levels are in dB. */
   var MIX_SOUNDS = [
@@ -1872,30 +1645,18 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     { id: "squeal", bus: "ground", name: "Tyre squeal", vars: [], knobs: [] },
     { id: "mud", bus: "ground", name: "Mud", vars: [["squelch", "Squelch"], ["thick", "Thick and sucking"]], knobs: [] },
     { id: "water", bus: "ground", name: "Water splash", vars: [], knobs: [] },
-    { id: "speedwind", bus: "ground", name: "Wind from speed", vars: [], knobs: [] },
     { id: "hits", bus: "ground", name: "Bumps and landings", vars: [], knobs: [] },
-    /* the world around the truck */
-    { id: "rain", bus: "world", name: "Rain", vars: [["patter", "Patter"], ["drizzle", "Drizzle"], ["downpour", "Downpour"], ["tin", "On sheet metal"]], knobs: [["dens", "Density", 0.2, 2], ["bright", "Brightness", 0, 1]] },
-    { id: "roof", bus: "world", name: "Rain on the roof (in the cab)", vars: [["steel", "Steel roof"], ["soft", "Muffled"]], knobs: [] },
-    { id: "thunder", bus: "world", name: "Thunder", vars: [["rolling", "Rolling"], ["crack", "Close crack"], ["distant", "Distant"]], knobs: [["every", "Seconds between", 8, 60]] },
-    { id: "wind", bus: "world", name: "Wind", vars: [["breeze", "Breeze"], ["plains", "Plains gusts"], ["grass", "Through the grass"]], knobs: [["gust", "Gustiness", 0, 1]] },
-    { id: "birds", bus: "world", name: "Birds (day)", vars: [["songbirds", "Songbirds"], ["meadowlark", "Meadowlark"], ["doves", "Doves"], ["mixed", "All of them"]], knobs: [["rate", "How often", 0.2, 2]] },
-    { id: "daybugs", bus: "world", name: "Insects (day)", vars: [["cicada", "Cicadas"], ["hopper", "Grasshoppers"], ["off", "None"]], knobs: [] },
-    { id: "nightbugs", bus: "world", name: "Insects (night)", vars: [["field", "Field crickets"], ["tree", "Tree crickets"], ["katydid", "Katydids"], ["chorus", "Distant chorus"], ["mixed", "Mixed"]], knobs: [["pitch", "Pitch", 0, 1], ["rate", "Chirp rate", 0, 1], ["n", "How many", 1, 6]] },
-    { id: "creek", bus: "world", name: "Creek", vars: [["babble", "Babble"], ["trickle", "Trickle"], ["rush", "Rushing"]], knobs: [] },
-    { id: "crowd", bus: "world", name: "Crowd at the strip", vars: [["bleachers", "Bleachers"], ["stadium", "Big crowd"]], knobs: [] },
+    /* the shop and the HUD */
     { id: "ui", bus: "ui", name: "Shop and HUD sounds", vars: [], knobs: [] }
   ];
   var MIX_DEFAULT = {
-    v: 1,
-    bus: { engine: -1, ground: 0, world: 4, ui: -3, master: 0 },
+    v: 2,
+    bus: { engine: -1, ground: 0, ui: -3, master: 0 },
     eng: { norm: 0.75, tame: 0.55 },
     limiter: 1,
     s: {
-      dirt: { on: 1, lvl: 0, v: "fine" }, roll: { on: 1, lvl: 0 }, squeal: { on: 1, lvl: 0 }, mud: { on: 1, lvl: 0, v: "squelch" }, water: { on: 1, lvl: 0 }, speedwind: { on: 1, lvl: 0 }, hits: { on: 1, lvl: 0 },
-      rain: { on: 1, lvl: 0, v: "patter", dens: 1, bright: 0.5 }, roof: { on: 1, lvl: 0, v: "steel" }, thunder: { on: 1, lvl: 0, v: "rolling", every: 28 }, wind: { on: 1, lvl: 0, v: "breeze", gust: 0.5 },
-      birds: { on: 1, lvl: 0, v: "mixed", rate: 1 }, daybugs: { on: 1, lvl: -4, v: "cicada" }, nightbugs: { on: 1, lvl: 0, v: "mixed", pitch: 0.5, rate: 0.5, n: 4 },
-      creek: { on: 1, lvl: 0, v: "babble" }, crowd: { on: 1, lvl: 0, v: "bleachers" }, ui: { on: 1, lvl: 0 }
+      dirt: { on: 1, lvl: 0, v: "fine" }, roll: { on: 1, lvl: 0 }, squeal: { on: 1, lvl: 0 }, mud: { on: 1, lvl: 0, v: "squelch" }, water: { on: 1, lvl: 0 }, hits: { on: 1, lvl: 0 },
+      ui: { on: 1, lvl: 0 }
     }
   };
   var dbToLin = (d) => Math.pow(10, d / 20);
@@ -1903,7 +1664,8 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
   function mixFill(m) {
     let D = MIX_DEFAULT, o = JSON.parse(JSON.stringify(D));
     if (!m || typeof m != "object") return o;
-    Object.assign(o.bus, m.bus || {}), Object.assign(o.eng, m.eng || {}), m.limiter !== void 0 && (o.limiter = m.limiter ? 1 : 0);
+    for (let k in o.bus) m.bus && m.bus[k] !== void 0 && (o.bus[k] = m.bus[k]);
+    Object.assign(o.eng, m.eng || {}), m.limiter !== void 0 && (o.limiter = m.limiter ? 1 : 0);
     for (let k in o.s) m.s && m.s[k] && Object.assign(o.s[k], m.s[k]);
     return o;
   }
@@ -1916,10 +1678,10 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     }
     return out;
   }
-  var MIX_GROUND = ["dirt", "roll", "squeal", "mud", "water", "speedwind", "hits"], MIX_WORLD = ["rain", "roof", "thunder", "wind", "birds", "daybugs", "nightbugs", "creek", "crowd", "ui"];
+  var MIX_GROUND = ["dirt", "roll", "squeal", "mud", "water", "hits"], MIX_UI = ["ui"];
   /* a short code to carry a mix between the sound board and the game */
   function mixEncode(m) {
-    let only = { v: 1, bus: m.bus, eng: m.eng, limiter: m.limiter, s: {} };
+    let only = { v: 2, bus: m.bus, eng: m.eng, limiter: m.limiter, s: {} };
     for (let k in m.s) {
       let a = m.s[k], d = MIX_DEFAULT.s[k], diff = {};
       for (let q in a) a[q] !== d[q] && (diff[q] = a[q]);
@@ -2745,15 +2507,29 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       { v: "stock", n: "Factory privacy glass", d: "", price: 0 },
       { v: "limo", n: "Limo tint", d: "Nobody can see who's driving.", price: 250, loud: 2 }
     ] }
-  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["looks", "Looks"], ["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
+  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["builds", "Trucks"], ["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
   var STOCK_BUILD = Object.fromEntries(SLOTS.map((s) => [s.id, s.opts.find((o) => !o.price && (s.id !== "susp" || o.v === "stock")).v]));
   STOCK_BUILD.susp = "stock";
-  /* three finished looks, one click each: only the parts you can see (and the wheels, tyres and ride height under them) */
-  var LOOKS = [
-    { id: "classic", name: "Classic Sleeper", blurb: "Bronze-grey paint, the chrome twin-bar face, six-spoke alloys, factory cladding and the little lip. Looks like it's going to church.", build: { paint: "bronze", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "stock18", tyre: "street32", susp: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0 } },
-    { id: "street", name: "Street Sleeper", blurb: "Gunmetal, dropped two inches on 20-inch ten-spokes with red calipers. Split-mesh face, smoked lamps, LED tails, a splitter, a diffuser, a big roof spoiler and red pinstripes.", build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", livery: 0, tint: "limo", wheel: "street20", tyre: "street32", susp: "lowered", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "diffuser", hood: "stock", snorkel: 0 } },
-    { id: "backcountry", name: "Backcountry", blurb: "Canyon stone on bronze discs and all-terrains, a leveling kit, wide black flares, quad round lamps, recovery shackles and the expedition rack.", build: { paint: "stone", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "bronze17", tyre: "at33", susp: "level", flares: 2, sides: "cladding", spoiler: 0, roof: "expedition", front: "recovery", rear: "stock", hood: "stock", snorkel: 0 } }
+  /* the four trucks: the factory truck, and the best arrangement of parts for a sleeper, for mud and for
+     racing, each found by running the game's own physics over the strip, the bog and the climb. Free play
+     picks one at the start; the campaign earns them, or you buy the parts. */
+  var BUILDS = [
+    { id: "starter", name: "Starter", role: "As it left the factory", blurb: "Bronze-grey, 4.6 V8, six-speed auto, 32-inch highway tyres. Everything else is up to you.", build: {}, earn: null },
+    { id: "sleeper", name: "Sleeper", role: "Looks like church, runs sevens", blurb: "Midnight black with the chrome twin-bar face and factory alloys on all-terrains. Underneath: the twin-turbo V6 with bigger turbos and a 250-shot, a race four-speed with a trans-brake, 4.56 gears and a gutted cabin.",
+      build: { paint: "black", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", tint: "limo", wheel: "stock18", tyre: "at33", susp: "stock", shocks: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0, lights: 0, engine: "tt35", power: "bigturbo", nos: 4, intake: 2, exhaust: "headers", cam: 0, tune: 2, trans: "race4", axle: 4.56, tcase: "awd", lockers: 0, interior: "gutted" },
+      earn: { kind: "drag", id: "prof", text: "Beat The Professor on the strip" } },
+    { id: "mudder", name: "Mudder", role: "Built for the bog", blurb: "Safety orange on a six-inch lift and 40-inch swampers. A blown big-block through a race four-speed, 5.38 gears, low range, lockers front and rear, a snorkel, wide flares and a light bar.",
+      build: { paint: "orange", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", tint: "stock", wheel: "beadlock17", tyre: "sw40", susp: "lift6", shocks: "bypass", flares: 2, sides: "sliders", spoiler: 0, roof: "none", front: "recovery", rear: "stock", hood: "stock", snorkel: 1, lights: 1, engine: "bb74", power: "roots", nos: 1, intake: 2, exhaust: "headers", cam: 2, tune: 2, trans: "race4", axle: 5.38, tcase: "low", lockers: 2, interior: "gutted" },
+      earn: { kind: "medal", run: "bog", m: 3, text: "Win gold in the Mud Bog" } },
+    { id: "racer", name: "Racer", role: "Built for the dirt drags", blurb: "Gunmetal with red pinstripes, split-mesh face, a big roof spoiler and wheelie bars. A twin-turbo big-block on a 250-shot through a race four-speed to paddle tyres on 20-inch ten-spokes.",
+      build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", tint: "limo", wheel: "street20", tyre: "paddle35", susp: "level", shocks: "bypass", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "wheelie", hood: "scoop", snorkel: 0, lights: 0, engine: "bb74", power: "twin", nos: 4, intake: 2, exhaust: "straight", cam: 3, tune: 2, trans: "race4", axle: 3.73, tcase: "awd", lockers: 0, interior: "gutted" },
+      earn: { kind: "drag", id: "ghost", text: "Beat The Ghost" } }
   ];
+  /* a preset as a complete build (everything it doesn't name is factory) */
+  function presetBuild(id, keep) {
+    let B = BUILDS.find((q) => q.id === id) || BUILDS[0];
+    return Object.assign({}, STOCK_BUILD, B.build, keep ? { number: keep.number } : {});
+  }
   function optOf(b, id) {
     return SLOT[id].opts.find((o) => o.v === b[id]) || SLOT[id].opts[0];
   }
@@ -2855,18 +2631,19 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
   var BKEY = "dirt-sleeper-board-mix", CKEY = "dirt-sleeper-board-scene", audio = new GameAudio(), MX = mixFill(rd(BKEY)), solo = /* @__PURE__ */ new Set(), busSolo = /* @__PURE__ */ new Set(), started = !1, revHeld = !1;
   var ENGS = [["stock", "Stock 4.6 V8", {}], ["hot", "Hot 6.2 V8", { engine: "v62", exhaust: "headers", cam: 2, tune: 2, intake: 1 }], ["blown", "Blown big-block", { engine: "bb74", power: "roots", exhaust: "straight", cam: 3, tune: 2 }], ["tt", "Twin-turbo V6", { engine: "tt35", power: "bigturbo", tune: 2, exhaust: "catback" }], ["diesel", "Turbo-diesel six", { engine: "d67", power: "compound", tune: 2, exhaust: "stacks" }]];
   var SCENES = [
-    { id: "shop", n: "Idle in the shop", d: "Engine ticking over inside the metal building.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, rain: 0, time: "day", creek: 0, crowd: 0, space: "shop", storm: 0, wind: 0.1 } },
-    { id: "trail", n: "Cruising the trail", d: "40 mph on dirt, light throttle, birds out.", c: { run: 1, rpm: 0.38, thr: 0.35, view: "out", mph: 40, ground: "dirt", spin: 0, rain: 0, time: "day", creek: 0, crowd: 0, space: "open", storm: 0, wind: 0.3 } },
-    { id: "strip", n: "Redline on the strip", d: "On the limiter, the Friday night crowd watching.", c: { run: 1, rpm: 1, thr: 1, view: "out", mph: 55, ground: "dirt", spin: 0.3, rain: 0, time: "night", creek: 0, crowd: 0.9, space: "open", storm: 0, wind: 0.15 } },
-    { id: "creek", n: "Night at the creek", d: "Idling by the water, insects all around.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, rain: 0, time: "night", creek: 1, crowd: 0, space: "open", storm: 0, wind: 0.1 } },
-    { id: "storm", n: "Storm, in the cab", d: "Rain on the roof, thunder, 30 mph on dirt.", c: { run: 1, rpm: 0.3, thr: 0.3, view: "cab", mph: 30, ground: "dirt", spin: 0, rain: 1, time: "day", creek: 0, crowd: 0, space: "open", storm: 1, wind: 0.6 } },
-    { id: "bog", n: "Mud bog", d: "Wheels spinning in the pit.", c: { run: 1, rpm: 0.75, thr: 0.9, view: "out", mph: 8, ground: "mud", spin: 0.8, rain: 0.4, time: "day", creek: 0, crowd: 0, space: "open", storm: 0, wind: 0.3 } },
-    { id: "world", n: "Just the world", d: "Engine off. Only the ranch.", c: { run: 0, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, rain: 0, time: "day", creek: 0.5, crowd: 0, space: "open", storm: 0, wind: 0.35 } }
+    { id: "shop", n: "Idle in the shop", d: "Engine ticking over inside the metal building.", c: { run: 1, rpm: 0, thr: 0, view: "out", mph: 0, ground: "none", spin: 0, space: "shop" } },
+    { id: "trail", n: "Cruising the trail", d: "40 mph on dirt, light throttle.", c: { run: 1, rpm: 0.38, thr: 0.35, view: "out", mph: 40, ground: "dirt", spin: 0, space: "open" } },
+    { id: "strip", n: "Redline on the strip", d: "On the limiter halfway down the eighth mile.", c: { run: 1, rpm: 1, thr: 1, view: "out", mph: 55, ground: "dirt", spin: 0.3, space: "open" } },
+    { id: "burnout", n: "Burnout on the pad", d: "Line lock on, rear tyres buried in the dirt.", c: { run: 1, rpm: 0.85, thr: 1, view: "out", mph: 0, ground: "dirt", spin: 1, space: "open" } },
+    { id: "bog", n: "Mud bog", d: "Wheels spinning in the pit.", c: { run: 1, rpm: 0.75, thr: 0.9, view: "out", mph: 8, ground: "mud", spin: 0.8, space: "open" } },
+    { id: "crawl", n: "Rock crawl", d: "Low range, walking over boulders, heard from the cab.", c: { run: 1, rpm: 0.12, thr: 0.3, view: "cab", mph: 2, ground: "rock", spin: 0.1, space: "open" } },
+    { id: "water", n: "Water crossing", d: "Pushing a bow wave through the creek.", c: { run: 1, rpm: 0.3, thr: 0.4, view: "out", mph: 10, ground: "water", spin: 0, space: "open" } }
   ];
   var CTX = Object.assign({ scene: "trail", eng: "stock" }, SCENES[1].c, rd(CKEY) || {});
+  SCENES.some((q) => q.id === CTX.scene) || Object.assign(CTX, SCENES[1].c, { scene: "trail" });
   /* what makes each sound play, so Solo can play it even when the scene wouldn't */
-  var FORCE = { rain: { rain: 0.8 }, roof: { rain: 0.8, view: "cab" }, thunder: { rain: 0.5, storm: 1 }, wind: { wind: 0.6 }, birds: { birds: 1 }, daybugs: { dayBugs: 1 }, nightbugs: { crickets: 1 }, creek: { creek: 1 }, crowd: { crowd: 0.8 }, dirt: { ground: "dirt", mph: 25 }, roll: { ground: "dirt", mph: 30 }, squeal: { ground: "concrete", spin: 0.7, mph: 20 }, mud: { ground: "mud", spin: 0.6, mph: 6 }, water: { ground: "water", mph: 12 }, speedwind: { mph: 70 } };
-  var WHEN = { dirt: "Driving on dirt: the strip, the trails, the yard.", roll: "Rolling on any ground. Packed clay leans on this.", squeal: "Sliding on the concrete pad.", mud: "In the mud pit.", water: "Splashing through the creek.", speedwind: "Air rushing past at speed.", hits: "Bumps, landings and scrapes.", rain: "Storm Coming weather.", roof: "Rain, heard from the Driver camera.", thunder: "Storm Coming weather.", wind: "Always there. Stronger up high and in a storm.", birds: "Afternoon. A few at golden hour.", daybugs: "Afternoon.", nightbugs: "Golden hour and night.", creek: "Near the creek.", crowd: "Drag races, with a cheer at the finish.", ui: "Buying parts, coolers, gates, medals, trophies." };
+  var FORCE = { dirt: { ground: "dirt", mph: 25 }, roll: { ground: "dirt", mph: 30 }, squeal: { ground: "concrete", spin: 0.7, mph: 20 }, mud: { ground: "mud", spin: 0.6, mph: 6 }, water: { ground: "water", mph: 12 } };
+  var WHEN = { dirt: "Driving on dirt: the strip, the trails, the burnout pad, the yard.", roll: "Rolling on any ground. Packed clay leans on this.", squeal: "Sliding on the concrete pad.", mud: "The mud pit and the mud track.", water: "Splashing through the creek.", hits: "Bumps, landings, rocks and scrapes.", ui: "Buying parts, coolers, gates, medals, trophies, new bests." };
   /* ---------- the engine ---------- */
   var eng = { rpm: 0, cutT: 0, crankT: -1, spec: null, id: null };
   function setEngine(id) {
@@ -2881,7 +2658,7 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       for (let k in m.s) solo.has(k) || (m.s[k].on = 0);
       busSolo.has("engine") || (m.bus.engine = -120);
     }
-    if (busSolo.size) for (let b of ["engine", "ground", "world", "ui"]) busSolo.has(b) || (m.bus[b] = -120);
+    if (busSolo.size) for (let b of ["engine", "ground", "ui"]) busSolo.has(b) || (m.bus[b] = -120);
     return m;
   }
   var saveT = 0;
@@ -2889,34 +2666,34 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     audio.setMix(effMix()), $("code").value = mixEncode(MX), clearTimeout(saveT), saveT = setTimeout(() => wr(BKEY, MX), 250);
   }
   function scene() {
-    let c = Object.assign({}, CTX), day = c.time === "day" ? 1 : 0, dusk = c.time === "dusk" ? 1 : 0, night = c.time === "night" ? 1 : 0, wet = c.rain > 0.05, a = { rain: c.rain, storm: c.storm, wind: c.wind, birds: (day + dusk * 0.2) * (wet ? 0.15 : 1), dayBugs: (day + dusk * 0.1) * (wet ? 0 : 1), crickets: (night + dusk * 0.5) * (wet ? 0.3 : 1), creek: c.creek, crowd: c.crowd };
+    let c = Object.assign({}, CTX);
     for (let k of solo) {
       let f = FORCE[k];
-      if (f) for (let q in f) q in a ? a[q] = Math.max(a[q], f[q]) : c[q] = f[q];
+      if (f) for (let q in f) c[q] = f[q];
     }
-    return { c, a };
+    return { c };
   }
   /* ---------- per frame ---------- */
   var last = performance.now(), hold = {};
   function frame(now) {
     let dt = Math.min(0.05, (now - last) / 1e3);
     if (last = now, requestAnimationFrame(frame), !started) return;
-    let { c, a } = scene(), e = eng.spec, run = !!c.run, cab = c.view === "cab", target = run ? revHeld ? e.limiterRpm + 60 : e.idle + (e.limiterRpm - e.idle) * c.rpm : 0;
+    let { c } = scene(), e = eng.spec, run = !!c.run, cab = c.view === "cab", target = run ? revHeld ? e.limiterRpm + 60 : e.idle + (e.limiterRpm - e.idle) * c.rpm : 0;
     eng.rpm += (target - eng.rpm) * Math.min(1, dt * (target > eng.rpm ? 3.5 : 2.2));
     let cut = 0;
     eng.rpm >= e.limiterRpm - 40 ? (eng.cutT += dt, cut = eng.cutT % 0.09 < 0.035 ? 1 : 0, cut && (eng.rpm -= 900 * dt)) : eng.cutT = 0;
     let load = run ? revHeld ? 1 : c.thr : 0, crank = eng.crankT >= 0 && eng.crankT < 0.9;
     crank && (eng.crankT += dt);
     let rpm = crank ? 230 + 60 * Math.sin(eng.crankT * 38) : eng.rpm, sp = c.mph * 0.447, gr = c.ground, spin = c.spin, ep = { on: run && !crank ? 1 : 0, firing: run && !crank ? 1 : 0, crank: crank ? 1 : 0, crankT: crank ? eng.crankT : 0, rpm: run ? rpm : 0, load: crank ? 0 : load, cutFrac: cut, boost: run ? SIM.steadyBoost(e, rpm) * load : 0, nos: 0, speed: sp, gear: 3, twostep: 0, antilag: 0, view: cab ? 1 : 0, dist: cab ? 1.4 : 6, pan: 0, rear: cab ? 0.35 : 0.7, vol: 1, horn: 0 };
-    let s4 = (v) => [v, v, v, v], fx = { lat: s4(0), lon: s4(spin * 7), load: s4(5300), sqK: s4(gr === "concrete" ? 1 : 0.06), wet: c.rain > 0.05 ? 0.6 : 0, speed: sp, cabin: cab ? 1 : 0, curb: 0, scrape: 0, vol: 1, loose: gr === "dirt" ? 1 : 0, spinLoose: gr === "dirt" ? spin : 0, mud: gr === "mud" ? 1 : 0, spinMud: gr === "mud" ? spin : 0, water: gr === "water" ? 1 : 0 }, fev = hold.hit ? [{ type: "hit", a: 0.9 }] : [];
-    hold.hit = 0, audio.update(ep, [], fx, fev, { cabin: cab, shop: c.space === "shop" ? 1 : 0, yard: c.space === "yard" ? 1 : 0, amb: Object.assign({ cabin: cab ? 1 : 0 }, a), ambEvents: [] }), meters(dt);
+    let s4 = (v) => [v, v, v, v], fx = { lat: s4(0), lon: s4(spin * 7), load: s4(5300), sqK: s4(gr === "concrete" ? 1 : gr === "rock" ? 0.35 : 0.06), wet: 0, speed: sp, cabin: cab ? 1 : 0, curb: 0, scrape: 0, vol: 1, loose: gr === "dirt" ? 1 : 0, spinLoose: gr === "dirt" ? spin : 0, mud: gr === "mud" ? 1 : 0, spinMud: gr === "mud" ? spin : 0, water: gr === "water" ? 1 : 0 }, fev = hold.hit ? [{ type: "hit", a: 0.9 }] : [];
+    gr === "rock" && Math.random() < dt * 0.8 && fev.push({ type: "hit", a: 0.25 + Math.random() * 0.35 }), hold.hit = 0, audio.update(ep, [], fx, fev, { cabin: cab, shop: c.space === "shop" ? 1 : 0, yard: c.space === "yard" ? 1 : 0 }), meters(dt);
   }
   requestAnimationFrame(frame);
   /* ---------- meters ---------- */
   var peaks = {};
   function meters(dt) {
     let L = audio.levels();
-    for (let k of ["engine", "ground", "world", "ui", "master"]) {
+    for (let k of ["engine", "ground", "ui", "master"]) {
       let m = $("m-" + k), d = $("d-" + k), v = L[k];
       if (!m || !v) continue;
       let [pk, rms] = v, w = (x) => Math.max(0, Math.min(100, (x + 60) / 60 * 100));
@@ -2987,12 +2764,10 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     let rh = el("div", "row");
     rh.append(el("span", "k", ""), rev), box.appendChild(rh);
     box.appendChild(slider("Throttle", 0, 1, 0.01, CTX.thr, pct, set("thr"), "cThr")), box.appendChild(seg("Listening", [["out", "Outside"], ["cab", "In the cab"]], CTX.view, set("view"))), box.appendChild(slider("Speed", 0, 90, 1, CTX.mph, (v) => v + " mph", set("mph"), "cMph"));
-    box.appendChild(seg("Ground", [["none", "None"], ["dirt", "Dirt"], ["mud", "Mud"], ["water", "Water"], ["concrete", "Concrete"]], CTX.ground, set("ground"))), box.appendChild(slider("Wheelspin", 0, 1, 0.01, CTX.spin, pct, set("spin"), "cSpin"));
-    box.appendChild(seg("Time", [["day", "Afternoon"], ["dusk", "Golden hour"], ["night", "Night"]], CTX.time, set("time"))), box.appendChild(slider("Rain", 0, 1, 0.01, CTX.rain, pct, set("rain"), "cRain")), box.appendChild(seg("Thunder", [[0, "No"], [1, "Yes"]], CTX.storm ? 1 : 0, set("storm")));
-    box.appendChild(slider("Wind", 0, 1, 0.01, CTX.wind, pct, set("wind"), "cWind")), box.appendChild(slider("Creek nearby", 0, 1, 0.01, CTX.creek, pct, set("creek"), "cCreek")), box.appendChild(slider("Crowd", 0, 1, 0.01, CTX.crowd, pct, set("crowd"), "cCrowd"));
+    box.appendChild(seg("Ground", [["none", "None"], ["dirt", "Dirt"], ["mud", "Mud"], ["water", "Water"], ["rock", "Rock"], ["concrete", "Concrete"]], CTX.ground, set("ground"))), box.appendChild(slider("Wheelspin", 0, 1, 0.01, CTX.spin, pct, set("spin"), "cSpin"));
     box.appendChild(seg("Space", [["open", "Open range"], ["yard", "By the shop"], ["shop", "In the shop"]], CTX.space, set("space")));
   }
-  var BUSES = [["engine", "Engine", "The engine synth, on its own compressor."], ["ground", "Ground and tyres", "Dirt, mud, water, squeal, wind from speed."], ["world", "The world", "Weather, birds, insects, creek, crowd."], ["ui", "Shop and HUD", "Cash register, chimes, gate ticks, fanfares."], ["master", "Master", "Everything, through the limiter."]];
+  var BUSES = [["engine", "Engine", "The engine synth, on its own compressor."], ["ground", "Ground and tyres", "Dirt, mud, water, squeal, bumps and landings."], ["ui", "Shop and HUD", "Cash register, chimes, gate ticks, fanfares."], ["master", "Master", "Everything, through the limiter."]];
   function renderBuses() {
     let box = $("buses");
     box.innerHTML = "";
@@ -3019,10 +2794,10 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
   }
   function audition(id, m) {
     if (!started) return toast("Press Start sound first");
-    id === "thunder" ? audio.ui("thunder", { kind: m.v }) : id === "birds" ? audio.ui("bird", { kind: m.v }) : id === "crowd" ? audio.ui("cheer", { a: 1 }) : id === "hits" ? hold.hit = 1 : id === "ui" && ["kaching", "chime", "tick", "medal", "trophy"].forEach((t, i) => setTimeout(() => audio.ui(t), i * 900));
+    id === "hits" ? hold.hit = 1 : id === "ui" && ["kaching", "chime", "tick", "go", "lap", "best", "medal", "trophy"].forEach((t, i) => setTimeout(() => audio.ui(t), i * 800));
   }
   function renderCards() {
-    for (let bus of ["ground", "world", "ui"]) {
+    for (let bus of ["ground", "ui"]) {
       let box = $("c-" + bus);
       box.innerHTML = "";
       for (let S of MIX_SOUNDS.filter((q) => q.bus === bus)) {
@@ -3032,7 +2807,7 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
         }, sb.onclick = () => {
           solo.has(S.id) ? solo.delete(S.id) : solo.add(S.id), renderCards(), push();
         }, hd.append(onb, sb);
-        if (["thunder", "birds", "crowd", "hits", "ui"].includes(S.id)) {
+        if (["hits", "ui"].includes(S.id)) {
           let pb = el("button", "btn small", "Play");
           pb.type = "button", pb.onclick = () => audition(S.id, m), hd.appendChild(pb);
         }
@@ -3043,7 +2818,7 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           for (let [v, t] of S.vars) {
             let b = el("button", m.v === v ? "on" : "", esc(t));
             b.type = "button", b.onclick = () => {
-              m.v = v, [...vs.children].forEach((q) => q.classList.toggle("on", q === b)), push(), (S.id === "thunder" || S.id === "birds") && audition(S.id, m);
+              m.v = v, [...vs.children].forEach((q) => q.classList.toggle("on", q === b)), push();
             }, vs.appendChild(b);
           }
           c.appendChild(vs);

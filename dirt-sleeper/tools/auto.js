@@ -41,6 +41,8 @@ function runBog(b){
     const x=v.p[0];if(!st&&x<M.x+M.rx){st=true;ts=t;}if(st){maxd=Math.max(maxd,M.x+M.rx-x);if(x<M.x-M.rx)return {time:t-ts};if(v.speed<0.3)stuck+=1/60;else stuck=0;if(stuck>4.5)return {dnf:'stuck',dist:maxd.toFixed(1)};}}
   return {dnf:'timeout'};
 }
+module.exports={runBog,runPath,W,world,B,place,follow};
+if(require.main===module){
 const builds={stock:{},at33:{tyre:'at33',susp:'level'},mid:{susp:'lift4',tyre:'mt35',axle:4.56,lockers:1,tcase:'low'},max:{susp:'lift6',tyre:'mt37',axle:4.88,lockers:2,tcase:'low',shocks:'bypass',engine:'v62'},swamp:{susp:'lift9',tyre:'sw44',axle:5.38,lockers:2,tcase:'low',shocks:'bypass',engine:'bb74'}};
 const which=(process.argv[2]||'trail,climb,bog').split(',');
 for(const [k,o] of Object.entries(builds)){const b=B(o);const out={};const t1=Date.now();
@@ -48,3 +50,4 @@ for(const [k,o] of Object.entries(builds)){const b=B(o);const out={};const t1=Da
   console.log(k.padEnd(7),JSON.stringify(out),(Date.now()-t1)+'ms');}
 console.log('loop len',W.loop.len.toFixed(0),'climb len',W.climb.len.toFixed(0),'gates',W.gates.length);
 const C=g('COOLERS');for(const c of C){const y=W.heightAt(c[0],c[1]);const gr=W.groundAt(c[0],c[1]);console.log('cooler',c[2].padEnd(40),'y',y.toFixed(1),'n.y',gr.n[1].toFixed(2),gr.surf);}
+}

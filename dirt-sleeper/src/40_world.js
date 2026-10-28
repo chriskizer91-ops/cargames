@@ -1,8 +1,11 @@
   // ===== world/ranch.js =====
   /* The ranch: one heightfield of red-dirt country around a metal shop. A graded dirt drag strip runs
      east from the shop, a trail loops through the hills to the north and crosses a creek, a steep hill
-     stands to the north-east for the climb, and a mud pit sits west of the pad. Everything the truck
-     can touch comes from the same triangulated grid the renderer draws, so wheels never float. */
+     stands to the north-east for the climb, and a mud pit sits west of the pad. Free roam adds a
+     burnout pad between the shop and the pit, a muddy loop out west that fords the creek twice, and a
+     rock garden north-east of the shop, drawn from its own fine heightfield (half-metre cells) so the
+     ledges and boulders are sharp. Everything the truck can touch comes from the same triangulated
+     grids the renderer draws, so wheels never float. */
   var SURF = ["grass", "dirt", "strip", "trail", "rock", "mud", "concrete", "water"], SF = {};
   SURF.forEach((n, i) => SF[n] = i);
   var RANCH_DEF = {
@@ -14,7 +17,10 @@
     hill: { x: 236, z: -262, amp: 46, sig: 56 },
     creek: [[-330, 330], [-250, 190], [-205, 60], [-196, -40], [-214, -130], [-252, -215], [-300, -300], [-360, -380]],
     loop: [[-40, -44], [-92, -70], [-150, -96], [-196, -112], [-238, -160], [-252, -222], [-214, -282], [-140, -312], [-56, -300], [12, -262], [70, -222], [104, -160], [86, -104], [30, -76], [-40, -44]],
-    climb: [[116, -84], [158, -124], [214, -148], [262, -178], [262, -212], [222, -226], [194, -246], [214, -272], [236, -264]]
+    climb: [[116, -84], [158, -124], [214, -148], [262, -178], [262, -212], [222, -226], [194, -246], [214, -272], [236, -264]],
+    burn: { x: 41, z: 0, w: 30, d: 22 },
+    mudTrack: [[-168, 112], [-176, 88], [-200, 76], [-232, 78], [-258, 94], [-266, 120], [-252, 146], [-222, 156], [-190, 150], [-170, 134], [-168, 112]],
+    rocks: { x0: 44, z0: -64, w: 56, d: 44, cell: 0.5 }
   };
   /* seeded value noise for the terrain */
   function makeNoise(seed) {
@@ -90,7 +96,7 @@
     let D = RANCH_DEF, NZ = makeNoise(7), N2 = D.size / D.cell + 1, cell = D.cell, x0 = -D.size / 2, z0 = -D.size / 2, H = new Float32Array(N2 * N2), W = new Float32Array(N2 * N2 * 4), SC = new Uint8Array(N2 * N2), sst = (a, b, x) => {
       let t = Math.max(0, Math.min(1, (x - a) / (b - a)));
       return t * t * (3 - 2 * t);
-    }, loop = makePath(D.loop, !0), climb = makePath(D.climb, !1), creek = makePath(D.creek, !1), St = D.strip, M = D.mud, HL = D.hill;
+    }, loop = makePath(D.loop, !0), climb = makePath(D.climb, !1), creek = makePath(D.creek, !1), mudT = makePath(D.mudTrack, !0), St = D.strip, M = D.mud, HL = D.hill, BU = D.burn, RG = D.rocks;
     /* ---------- the shape of the land ---------- */
     let rectDist = (x, z, ax, az, bx, bz) => {
       let dx = Math.max(ax - x, 0, x - bx), dz = Math.max(az - z, 0, z - bz);
@@ -114,6 +120,9 @@
       /* the access lane between pad and strip */
       let dLane = rectDist(x, z, -30, 6, 10, St.z), fl2 = 1 - sst(0, 22, dLane);
       h = h * (1 - fl2);
+      /* the burnout pad, graded flat */
+      let fb = 1 - sst(0, 12, rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2));
+      h = h * (1 - fb);
       /* the mud pit: a soft basin */
       let mr = Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz);
       h -= M.depth * (1 - sst(0.55, 1.15, mr));
@@ -157,6 +166,31 @@
       }
       return prof;
     };
+    /* the mud track: a sunken channel with whoops on the straights and berms on the outside of the corners.
+       Carved before the creek, so the creek cuts two fords through it */
+    carve(mudT, 5, 7, 6, 0.3);
+    {
+      let curvAt = (s) => {
+        let a = mudT.dir(s - 5), b = mudT.dir(s + 5);
+        return (a[0] * b[1] - a[1] * b[0]) / 10;
+      }, r = Math.ceil(11 / cell) + 1, done = new Uint8Array(N2 * N2);
+      for (let i = 0; i < mudT.N; i += 2) {
+        let [ci, cj] = hIdx(mudT.X[i], mudT.Z[i]);
+        for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+          let ii = ci + di, jj = cj + dj;
+          if (ii < 0 || jj < 0 || ii >= N2 || jj >= N2 || done[jj * N2 + ii]) continue;
+          let x = x0 + ii * cell, z = z0 + jj * cell, nr = mudT.nearest(x, z, 1);
+          if (!nr || nr.d > 10.5) continue;
+          done[jj * N2 + ii] = 1;
+          let c = mudT.at(nr.s), d = mudT.dir(nr.s), side = (x - c[0]) * -d[1] + (z - c[1]) * d[0], cv = curvAt(nr.s), out = -side * Math.sign(cv || 1), bh = Math.min(1, Math.abs(cv) * 55) * 0.95, k = jj * N2 + ii;
+          H[k] += bh * sst(0, 6, out) * (1 - sst(7.5, 10.5, out));
+          let whoop = 0.26 * (1 - sst(6e-3, 0.014, Math.abs(cv))) * (1 - sst(4.5, 6, Math.abs(side)));
+          H[k] += whoop * (0.5 - 0.5 * Math.cos(nr.s / 7 * Math.PI * 2));
+          let wal = sst(0.4, 0.44, nr.s / mudT.len) * (1 - sst(0.5, 0.54, nr.s / mudT.len));
+          H[k] -= 0.35 * wal * (1 - sst(3, 5.5, Math.abs(side)));
+        }
+      }
+    }
     carve(creek, 3.5, 5, 6, 1.5);
     let loopProf = carve(loop, 3.2, 6, 5), climbProf = carve(climb, 4, 8, 4, 0, 0.5);
     /* a couple of kickers on the loop for the brave */
@@ -203,6 +237,12 @@
       code = mud > 0.5 ? SF.mud : rock > 0.55 ? SF.rock : grass > 0.5 ? SF.grass : SF.dirt;
       dStrip <= 0.5 && (code = SF.strip);
       dPad <= 0 && Math.abs(x) < D.pad.w / 2 && z > -D.pad.d / 2 && (code = SF.concrete);
+      /* the burnout pad: bare dirt */
+      let dB = rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2);
+      dB < 6 && (grass *= sst(1, 6, dB), rock *= sst(1, 6, dB)), dB <= 0 && (code = SF.dirt, mud = 0);
+      /* the mud track */
+      let mt = mudT.nearest(x, z, 1);
+      mt && mt.d < 9 && (grass *= sst(4.5, 9, mt.d), rock *= sst(4, 8, mt.d), mud = Math.max(mud, 1 - sst(3.8, 5.6, mt.d + (n2 - 0.5) * 1.2)), mt.d < 4.8 && (code = SF.mud));
       let tn = loop.nearest(x, z, 1), cl = climb.nearest(x, z, 1);
       (tn && tn.d < 2.6 || cl && cl.d < 2.8) && code !== SF.mud && (code = SF.trail);
       let td = Math.min(tn ? tn.d : 99, cl ? cl.d : 99);
@@ -227,6 +267,59 @@
       /* the creek has water over its bed */
       return { y, n: [-gx / l, 1 / l, -gz / l], surf: SURF[code], code };
     };
+    /* ---------- the rock garden: its own half-metre heightfield laid over the ground ---------- */
+    let PU = Math.round(RG.w / RG.cell) + 1, PV = Math.round(RG.d / RG.cell) + 1, PH = new Float32Array(PU * PV), PSC = new Uint8Array(PU * PV), PWt = new Float32Array(PU * PV * 4), PN = new Float32Array(PU * PV * 3), Rb = rng(99), boulders = [];
+    for (let k = 0; k < 40; k++) {
+      let u = 5 + Rb() * (RG.w - 10), v = 4 + Rb() * (RG.d - 8);
+      let onRoute = Math.abs(v - 22) < 3.2, h = 0.3 + Rb() * 0.6, r = 0.5 + Rb() * 0.85;
+      onRoute ? u > 8 && u < 50 && boulders.push([u, v, r * 0.85, Math.min(h, 0.36)]) : boulders.push([u, v, r, h]);
+    }
+    let relief = (u, v) => {
+      let e = sst(0, 6, Math.min(u, v, RG.w - u, RG.d - v)), w1 = NZ.fbm(u / 7 + 40, v / 7) - 0.5;
+      /* a mound in ledges about half a metre tall, the ledge lines wandering */
+      let m = 3.1 * Math.exp(-((u - 31) ** 2 / (2 * 12 * 12) + (v - 22) ** 2 / (2 * 9.5 * 9.5))) + w1 * 0.35, st = 0.45, q = Math.max(0, m) / st, fl = Math.floor(q), terr = (fl + sst(0.7, 0.96, q - fl)) * st;
+      /* a staircase in the north-west corner, an off-camber slab in the south-west, two ridges with a notch between them in the north-east */
+      let stairs = u > 6 && u < 19 && v > 4 && v < 14 ? (Math.min(3, Math.floor((u - 6) / 3.4)) + sst(0.82, 1, (u - 6) / 3.4 % 1)) * 0.4 * sst(4, 5.5, v) * sst(14, 12.5, v) : 0;
+      let slab = sst(7, 9, u) * sst(21, 19, u) * sst(29, 31, v) * sst(41, 39, v) * (v - 29) * 0.15;
+      let ridge = u > 38 && u < 54 ? Math.max(1.25 * sst(1.6, 0.4, Math.abs(v - 7)), 1.25 * sst(1.6, 0.4, Math.abs(v - 15))) * sst(38, 40, u) * sst(54, 52, u) * (0.85 + 0.3 * w1) : 0;
+      let b = 0, isB = 0;
+      for (let [bu, bv, br, bh] of boulders) {
+        let d2 = ((u - bu) ** 2 + (v - bv) ** 2) / (br * br);
+        if (d2 < 1) {
+          let h = bh * Math.pow(1 - d2, 0.55);
+          h > b && (b = h, isB = 1);
+        }
+      }
+      let r = Math.max(terr, stairs, slab, ridge) + b * 0.9;
+      return [r * e, e, isB];
+    };
+    for (let j = 0; j < PV; j++) for (let i = 0; i < PU; i++) {
+      let u = i * RG.cell, v = j * RG.cell, x = RG.x0 + u, z = RG.z0 + v, [rl, e] = relief(u, v);
+      PH[j * PU + i] = heightAt(x, z) + rl;
+    }
+    let pAt = (i, j) => PH[Math.max(0, Math.min(PV - 1, j)) * PU + Math.max(0, Math.min(PU - 1, i))];
+    for (let j = 0; j < PV; j++) for (let i = 0; i < PU; i++) {
+      let k = j * PU + i, nx = pAt(i - 1, j) - pAt(i + 1, j), nz = pAt(i, j - 1) - pAt(i, j + 1), ny = 2 * RG.cell, l = Math.hypot(nx, ny, nz), u = i * RG.cell, v = j * RG.cell, x = RG.x0 + u, z = RG.z0 + v;
+      PN[k * 3] = nx / l, PN[k * 3 + 1] = ny / l, PN[k * 3 + 2] = nz / l;
+      let [rl, e, isB] = relief(u, v), slope = Math.sqrt(Math.max(0, 1 - (ny / l) ** 2)) / Math.max(ny / l, 0.05), bi = Math.max(0, Math.min(N2 - 1, Math.round((x - x0) / cell))), bj = Math.max(0, Math.min(N2 - 1, Math.round((z - z0) / cell))), bk = bj * N2 + bi;
+      let rock = Math.min(1, slope * 1.8 + (rl > 0.12 ? 0.5 : 0.15) + isB * 0.6 + (NZ.fbm(x / 3, z / 3) - 0.5) * 0.3), curv = (pAt(i - 1, j) + pAt(i + 1, j) + pAt(i, j - 1) + pAt(i, j + 1)) / 4 - PH[k];
+      PWt[k * 4] = W[bk * 4] * (1 - e), PWt[k * 4 + 1] = W[bk * 4 + 1] * (1 - e) + rock * e, PWt[k * 4 + 2] = 0, PWt[k * 4 + 3] = Math.max(0.5, Math.min(1, 1 - curv * 0.9));
+      PSC[k] = e < 0.3 ? SC[bk] : rl > 0.08 || slope > 0.3 ? SF.rock : SF.dirt;
+    }
+    /* tuck the coarse ground just under the patch, so the two never fight */
+    for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
+      let x = x0 + i * cell, z = z0 + j * cell;
+      x > RG.x0 + 0.5 && x < RG.x0 + RG.w - 0.5 && z > RG.z0 + 0.5 && z < RG.z0 + RG.d - 0.5 && (H[j * N2 + i] -= 0.15);
+    }
+    let inPatch = (x, z) => x >= RG.x0 && z >= RG.z0 && x < RG.x0 + RG.w && z < RG.z0 + RG.d, baseHeight = heightAt, baseGround = groundAt, patchG = (x, z) => {
+      let fx = (x - RG.x0) / RG.cell, fz = (z - RG.z0) / RG.cell, i = Math.min(PU - 2, Math.floor(fx)), j = Math.min(PV - 2, Math.floor(fz)), c = RG.cell;
+      fx -= i, fz -= j;
+      let h00 = PH[j * PU + i], h10 = PH[j * PU + i + 1], h01 = PH[(j + 1) * PU + i], h11 = PH[(j + 1) * PU + i + 1], y, gx, gz;
+      fx > fz ? (gx = (h10 - h00) / c, gz = (h11 - h10) / c, y = h00 + (h10 - h00) * fx + (h11 - h10) * fz) : (gx = (h11 - h01) / c, gz = (h01 - h00) / c, y = h00 + (h11 - h01) * fx + (h01 - h00) * fz);
+      let l = Math.hypot(gx, 1, gz), code = PSC[(j + (fz > 0.5 ? 1 : 0)) * PU + i + (fx > 0.5 ? 1 : 0)];
+      return { y, n: [-gx / l, 1 / l, -gz / l], surf: SURF[code], code };
+    };
+    heightAt = (x, z) => inPatch(x, z) ? patchG(x, z).y : baseHeight(x, z), groundAt = (x, z) => inPatch(x, z) ? patchG(x, z) : baseGround(x, z);
     /* ---------- geometry ---------- */
     let C2 = new Chunked(64), lights = [], colliders = [], R2 = rng(4242);
     C2.mat(16);
@@ -242,6 +335,20 @@
         idx.push(row);
       }
       for (let j = 0; j < TS; j++) for (let i = 0; i < TS; i++) B.idx.push(idx[j][i], idx[j + 1][i + 1], idx[j][i + 1], idx[j][i], idx[j + 1][i], idx[j + 1][i + 1]);
+    }
+    {
+      /* the rock garden's own surface */
+      C2.mat(16);
+      let B = C2.at(RG.x0 + RG.w / 2, RG.z0 + RG.d / 2), idx = [];
+      for (let j = 0; j < PV; j++) {
+        let row = [];
+        for (let i = 0; i < PU; i++) {
+          let k = j * PU + i, x = RG.x0 + i * RG.cell, z = RG.z0 + j * RG.cell;
+          B.col(PWt[k * 4] * 255, PWt[k * 4 + 1] * 255, 0, 255), row.push(B.v([x, PH[k], z], [PN[k * 3], PN[k * 3 + 1], PN[k * 3 + 2]], x, z, PWt[k * 4 + 3]));
+        }
+        idx.push(row);
+      }
+      for (let j = 0; j < PV - 1; j++) for (let i = 0; i < PU - 1; i++) B.idx.push(idx[j][i], idx[j + 1][i + 1], idx[j][i + 1], idx[j][i], idx[j + 1][i], idx[j + 1][i + 1]);
     }
     /* a ribbon draped over the ground along a path: uv = (distance along, offset across) */
     let ribbon = (path, half, variant, s0 = 0, s1 = path.len, step = 1.5, lift = 0.035) => {
@@ -260,7 +367,7 @@
         prev = row, prev.s = ss;
       }
     };
-    ribbon(loop, 3.4, 1), ribbon(climb, 3.4, 1);
+    ribbon(loop, 3.4, 1), ribbon(climb, 3.4, 1), ribbon(mudT, 5, 2, 0, mudT.len, 1.2, 0.03);
     /* the drag strip: a straight graded ribbon, uv = (metres past the start line, metres from the centre) */
     {
       C2.mat(17, 0).col(255, 255, 255, 255);
@@ -382,6 +489,10 @@
       if (rectDist(x, z, -24, -36, 24, 16) < r) return !1;
       if (rectDist(x, z, -32, 4, 12, St.z) < r) return !1;
       if (Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz) < 1.3) return !1;
+      if (rectDist(x, z, BU.x - BU.w / 2 - 6, BU.z - BU.d / 2 - 6, BU.x + BU.w / 2 + 6, BU.z + BU.d / 2 + 6) < r) return !1;
+      if (rectDist(x, z, RG.x0 - 16, RG.z0 - 4, RG.x0 + RG.w + 12, RG.z0 + RG.d + 4) < r) return !1;
+      let mtn = mudT.nearest(x, z, 2);
+      if (mtn && mtn.d < 11 + r) return !1;
       let a = loop.nearest(x, z, 2), b = climb.nearest(x, z, 2), c = creek.nearest(x, z, 2);
       return !(a && a.d < 6 + r || b && b.d < 6 + r || c && c.d < 4);
     }, tree = (x, z, kind, sc) => {
@@ -408,7 +519,7 @@
       tree(x, z, z < -120 && R2() < 0.45 ? 1 : 0, 0.75 + R2() * 0.6), nTrees++;
     }
     /* a few trees framing the pad */
-    for (let [x, z, s] of [[-30, -6, 1.1], [26, -40, 1.25], [-34, -38, 0.9], [36, 12, 1]]) tree(x, z, 0, s);
+    for (let [x, z, s] of [[-30, -6, 1.1], [26, -40, 1.25], [-34, -38, 0.9], [-28, 14, 1]]) tree(x, z, 0, s);
     /* boulders on the slopes and along the trail */
     let rock = (x, z, r) => {
       let y = heightAt(x, z), B = C2.at(x, z);
@@ -448,10 +559,37 @@
     };
     for (let s = 0; s < loop.len - 20; s += 70) gate(loop, s, "loop");
     gate(climb, 0, "climb"), gate(climb, climb.len - 4, "climb");
+    gate(mudT, 4, "mud");
+    let gateAt = (x, z, dx, dz, tag, half = 5, col = [255, 110, 26, 255]) => {
+      for (let side of [-1, 1]) {
+        let px = x - dz * side * half, pz = z + dx * side * half, y = heightAt(px, pz);
+        box([px, y + 1.6, pz], [0.12, 1.6, 0.12], 18, [150, 120, 90, 255], 0), box([px, y + 3.3, pz], [0.4, 0.3, 0.06], 8, col, 0), collideCirc(px, pz, 0.2, y + 3.2);
+      }
+      gates.push({ s: 0, x, z, dx, dz, tag });
+    };
+    /* the rock garden: in at the west flags, over the top, out at the east flags */
+    gateAt(RG.x0 + 2.5, RG.z0 + 22, 1, 0, "rock", 4.5), gateAt(RG.x0 + 31, RG.z0 + 22, 1, 0, "rock", 4, [255, 220, 60, 255]), gateAt(RG.x0 + RG.w - 2.5, RG.z0 + 22, 1, 0, "rock", 4.5);
+    /* the burnout pad: tyre walls on three sides, flags at the open end */
+    {
+      let x0b = BU.x - BU.w / 2, x1b = BU.x + BU.w / 2, z0b = BU.z - BU.d / 2, z1b = BU.z + BU.d / 2, stack = (x, z) => {
+        let y = heightAt(x, z);
+        C2.mat(8).col(22, 22, 24, 255), C2.at(x, z).tube([x, y - 0.05, z], [x, y + 0.78, z], 0.36, 12, !0);
+        C2.mat(8).col(48, 48, 50, 255), C2.at(x, z).tube([x, y + 0.255, z], [x, y + 0.275, z], 0.365, 12, !1), C2.at(x, z).tube([x, y + 0.515, z], [x, y + 0.535, z], 0.365, 12, !1);
+        collideCirc(x, z, 0.42, y + 0.8);
+      };
+      /* open to the shop on the west, tyres on the other three sides */
+      for (let x = x0b - 0.1; x <= x1b + 1.5; x += 0.78) stack(x, z0b - 1.4), stack(x, z1b + 1.4);
+      for (let z = z0b - 0.6; z <= z1b + 0.7; z += 0.78) stack(x1b + 1.4, z);
+      for (let z of [z0b - 1.4, z1b + 1.4]) {
+        let x = x0b - 1.2, y = heightAt(x, z);
+        box([x, y + 1.6, z], [0.07, 1.6, 0.07], 18, [150, 120, 90, 255], 0), box([x - 0.32, y + 2.9, z], [0.32, 0.22, 0.02], 8, [255, 110, 26, 255], 0), collideCirc(x, z, 0.15, y + 3);
+      }
+    }
     let geo = C2.pack();
     return {
       geo, lights, steam: [], info: { xw: [] }, gridP: { x0: x0, z0: z0, size: D.size, cell: 8 },
-      N: N2, cell, x0, z0, H, SC, heightAt, groundAt, strip, loop, climb, creek, creekLevel, gates, mud: M, hill: HL, kick, colliders: gridColliders(colliders), loopProf, climbProf, D
+      N: N2, cell, x0, z0, H, SC, heightAt, groundAt, strip, loop, climb, creek, creekLevel, gates, mud: M, hill: HL, kick, colliders: gridColliders(colliders), loopProf, climbProf, D,
+      burn: BU, mudTrack: mudT, rocks: RG
     };
   }
   /* a bucket grid over the colliders so the hull only checks what is near */
@@ -492,6 +630,25 @@
         t = nt;
       }
       return t < 0 || t > maxT ? null : { t, p: [o[0] + dir[0] * t, o[1] + dir[1] * t, o[2] + dir[2] * t], n: g.n, surf: g.surf, i: 0 };
+    }
+    /* where a tyre (a circle of radius R rolling along fwd) first touches the ground: rays down at seven
+       points across its footprint, each lifted by the circle's curve there. A ledge ahead is found before the
+       hub reaches it, and the contact normal leans back off its face. */
+    wheelContact(o, down, fwd, R, maxT) {
+      let best = this.raycast(o, down, maxT);
+      best && (best.off = 0);
+      let fd = fwd[0] * down[0] + fwd[1] * down[1] + fwd[2] * down[2], f = [fwd[0] - down[0] * fd, fwd[1] - down[1] * fd, fwd[2] - down[2] * fd], fl = Math.hypot(f[0], f[1], f[2]) || 1;
+      f = [f[0] / fl, f[1] / fl, f[2] / fl];
+      for (let k of [-0.75, -0.5, -0.25, 0.25, 0.5, 0.75]) {
+        let dx = k * R, h = this.raycast([o[0] + f[0] * dx, o[1] + f[1] * dx, o[2] + f[2] * dx], down, maxT);
+        if (!h) continue;
+        let eff = h.t + R - Math.sqrt(R * R - dx * dx);
+        if (!best || eff < best.t - 2e-3) {
+          let cen = [o[0] + down[0] * (eff - R), o[1] + down[1] * (eff - R), o[2] + down[2] * (eff - R)], n = [cen[0] - h.p[0], cen[1] - h.p[1], cen[2] - h.p[2]], nl = Math.hypot(n[0], n[1], n[2]) || 1;
+          best = { t: eff, p: h.p, n: [n[0] / nl, n[1] / nl, n[2] / nl], surf: h.surf, i: 0, off: dx };
+        }
+      }
+      return best && best.t <= maxT ? best : null;
     }
     /* trees, posts, walls and bales: push the hull back out */
     wall(P) {

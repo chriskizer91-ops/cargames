@@ -41,7 +41,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--hivis2);ou
 #title .row{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
 #title .modes{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;max-width:760px}
 #title .mode{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:6px;padding:14px 16px 16px;background:var(--panel);border:1px solid var(--edge);border-radius:6px}
-#title .mode.camp{border-color:rgba(255,106,26,.55)}
+#title .mode.free{border-color:rgba(255,106,26,.55)}
 #title .mode h3{margin:0;font:900 30px/1 var(--display);text-transform:uppercase}
 #title .mode p{margin:0;font-size:14.5px;line-height:1.4;color:var(--ink);max-width:44ch}
 #title .mode .prog{color:var(--good);font-variant-numeric:tabular-nums;font-weight:600}
@@ -88,7 +88,40 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--hivis2);ou
 .tag.on{outline:3px solid var(--hivis);outline-offset:1px}
 .tag.blocked{opacity:.62;cursor:not-allowed}
 .looknote{margin:0 0 2px;font-size:13.5px;line-height:1.35;color:var(--dim)}
-.tag.look .t{font:800 20px/1.05 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.tag.look .t{font:800 22px/1.05 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.tag.look .t small{display:block;font:600 12.5px/1.3 var(--body);text-transform:none;letter-spacing:0;color:#5a4a35}
+.chips{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 10px;font:700 12.5px/1.2 var(--body);font-variant-numeric:tabular-nums;color:var(--tagInk)}
+.chips span{white-space:nowrap}
+/* ---------- the truck picker ---------- */
+#pick{display:grid;align-content:end;padding-block:16px max(16px,env(safe-area-inset-bottom,0px));background:linear-gradient(rgba(12,9,6,0) 40%,rgba(12,9,6,.78))}
+#pick .pk{display:flex;flex-direction:column;gap:10px;max-width:980px}
+#pick h2{margin:0;font:900 clamp(34px,5vw,56px)/.95 var(--display);text-transform:uppercase}
+.pcards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.pcard{display:flex;flex-direction:column;gap:5px;text-align:left;padding:12px 14px;background:var(--tag);color:var(--tagInk);border:1px solid var(--tagEdge);border-radius:4px 12px 12px 4px;cursor:pointer;min-width:0}
+.pcard .eyebrow{color:#6b5a42;letter-spacing:.14em}
+.pcard .n{font:900 28px/1 var(--display);text-transform:uppercase}
+.pcard .chips{display:flex;flex-direction:column;gap:2px;font-weight:600}
+.pcard.on{outline:3px solid var(--hivis);outline-offset:2px}
+.pblurb{margin:0;max-width:70ch;font-size:15px;line-height:1.4;color:var(--ink);min-height:2.8em}
+#pick .acts{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:760px){.pcards{grid-template-columns:repeat(2,minmax(0,1fr))}.pcard .n{font-size:22px}.pblurb{font-size:13.5px}}
+@media (max-height:560px){.pblurb{display:none}.pcard .chips{display:none}}
+/* ---------- replay ---------- */
+.repbar{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:8px 10px 8px 16px;background:rgba(19,16,12,.78);border:1px solid var(--edge);border-radius:6px}
+.repbar b{font:900 24px/1 var(--display);text-transform:uppercase;letter-spacing:.02em;color:var(--hivis)}
+.repbar span{font:700 14px/1 var(--body);color:var(--dim);font-variant-numeric:tabular-nums}
+#replay::before{content:"";position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.55);pointer-events:none}
+/* ---------- pause: go to and bests ---------- */
+.goto .seg{gap:6px}
+.bests{display:flex;flex-direction:column;gap:8px}
+.bgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bgrid div{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border:1px solid var(--edge);border-radius:5px;min-width:0}
+.bgrid b{font:800 20px/1 var(--display);font-variant-numeric:tabular-nums}
+.bgrid span{font-size:12px;color:var(--dim)}
+@media (max-width:560px){.bgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#hud .evt .big small{font:700 14px var(--body);color:var(--dim)}
+#hud .evt .bo{height:6px;margin:6px 0 2px;background:rgba(240,230,212,.12);border-radius:3px;overflow:hidden}
+#hud .evt .bo i{display:block;height:100%;background:linear-gradient(90deg,var(--hivis),var(--amber));border-radius:3px}
 .buybar{flex:none;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--edge);background:var(--panel2)}
 .buybar .what{flex:1;min-width:0;font-size:14px}
 .buybar .what b{display:block;font:800 18px/1.1 var(--display);text-transform:uppercase}
@@ -233,9 +266,9 @@ body.touch #touch .r{bottom:max(18px,env(safe-area-inset-bottom,0px))}
 <div id="title" class="layer gut" hidden>
   <div>
     <h1 class="logo">Dirt<span>Sleeper</span></h1>
-    <p class="sub">A stock-looking 2000s luxury SUV, a ranch with a dirt strip, and a shop full of parts. Build it to fly on the eighth mile, crawl the hills, or both, and see who notices.</p>
+    <p class="sub">A stock-looking 2000s luxury SUV and a ranch to tear up: a burnout pad, a mud track, a rock garden, a dirt strip and miles of trail.</p>
     <div class="modes" id="modes"></div><div class="row"><button class="btn ghost" id="tSettings">Settings</button></div>
-    <p class="keys"><b>W/↑</b> gas · <b>S/↓</b> brake, hold to reverse · <b>A D</b> steer · <b>Space</b> handbrake · <b>Shift</b> nitrous · <b>L</b> low range · <b>K</b> lockers · <b>F</b> light bar · <b>H</b> horn · <b>C</b> camera · <b>R</b> flip/reset · <b>Esc</b> pause<br>At the tree: hold <b>brake + gas</b> to load up, let go of the brake on green.</p>
+    <p class="keys"><b>W/↑</b> gas · <b>S/↓</b> brake, hold to reverse · <b>A D</b> steer · <b>Space</b> handbrake · <b>Shift</b> nitrous · <b>G</b> line lock · <b>Y</b> replay · <b>L</b> low range · <b>K</b> lockers · <b>F</b> lights · <b>C</b> camera · <b>R</b> flip/reset · <b>Esc</b> pause<br>Burnouts: hold <b>G</b> and floor it. At the tree: hold <b>brake + gas</b>, let go on green.</p>
   </div>
 </div>
 <div id="garage" class="layer" hidden>
@@ -257,8 +290,17 @@ body.touch #touch .r{bottom:max(18px,env(safe-area-inset-bottom,0px))}
 </div>
 <div id="touch" hidden>
   <div class="pad l"><button class="tb" data-k="ArrowLeft" aria-label="Steer left">◀</button><button class="tb" data-k="ArrowRight" aria-label="Steer right">▶</button></div>
-  <div class="pad r"><div class="col"><button class="tb small" data-k="Space" aria-label="Handbrake">HB</button><button class="tb brk" data-k="ArrowDown">BRAKE</button></div><div class="col"><button class="tb small" data-k="ShiftLeft" aria-label="Nitrous">NOS</button><button class="tb gas" data-k="ArrowUp">GAS</button></div></div>
+  <div class="pad r"><div class="col"><button class="tb small" data-k="KeyY" aria-label="Instant replay">REPLAY</button><button class="tb small" data-k="Space" aria-label="Handbrake">HB</button><button class="tb brk" data-k="ArrowDown">BRAKE</button></div><div class="col"><button class="tb small" data-k="KeyG" aria-label="Line lock">LOCK</button><button class="tb small" data-k="ShiftLeft" aria-label="Nitrous">NOS</button><button class="tb gas" data-k="ArrowUp">GAS</button></div></div>
 </div>
+<div id="pick" class="layer gut" hidden>
+  <div class="pk">
+    <span class="eyebrow">Free play</span><h2>Pick your truck</h2>
+    <div class="pcards" id="pickCards"></div>
+    <p class="pblurb" id="pickBlurb"></p>
+    <div class="acts"><button class="btn go" id="pickDrive">Drive</button><button class="btn" id="pickShop">Shop</button><button class="btn ghost" id="pickBack">Title</button></div>
+  </div>
+</div>
+<div id="replay" class="layer" hidden><div class="repbar"><b id="repWhat">Replay</b><span id="repRate">0.33×</span><button class="btn" id="repSkip">Skip</button></div></div>
 <div id="toasts"></div>
 <div id="pause" class="modal" hidden></div>
 <div id="result" class="modal" hidden></div>
@@ -4103,7 +4145,7 @@ if(typeof module!=='undefined')module.exports=SIM;
       for (let wh of W2) {
         let hpW = add(p, mvec(M, wh.hp));
         wh.hpW = hpW;
-        let hit = this.world.raycast(hpW, down, s.rest + R2 + 0.3, wh.hint), comp = -1;
+        let hit = this.world.wheelContact ? this.world.wheelContact(hpW, down, wh.front && this.steer ? mvec(M, [Math.cos(this.steer), 0, Math.sin(this.steer)]) : mcol(M, 0), R2, s.rest + R2 + 0.3) : this.world.raycast(hpW, down, s.rest + R2 + 0.3, wh.hint), comp = -1;
         if (hit && (wh.hint = hit.i, comp = s.rest - (hit.t - R2)), comp <= 0) {
           wh.contact = !1, wh.Fz = 0, wh.comp = 0, wh.len = hit ? Math.min(s.rest, hit.t - R2) : s.rest;
           continue;
@@ -4111,7 +4153,7 @@ if(typeof module!=='undefined')module.exports=SIM;
         let rate = clamp((comp - wh.comp) / dt, -4, 4);
         wh.comp = comp, wh.len = s.rest - comp, wh.contact = !0, nContact++;
         let Fs = wh.k * comp + (rate > 0 ? wh.cb : wh.cr) * rate;
-        comp > s.travel && (Fs += (comp - s.travel) * wh.k * 14 + Math.max(0, rate) * wh.cb * 2), wh.Fz = Math.max(0, Fs), wh.cp = hit.p, wh.n = hit.n, wh.surf = hit.surf;
+        comp > s.travel && (Fs += (comp - s.travel) * wh.k * 14 + Math.max(0, rate) * wh.cb * 2), wh.Fz = Math.max(0, Fs), wh.cp = hit.p, wh.n = hit.n, wh.surf = hit.surf, wh.off = hit.off || 0;
       }
       for (let [l, r, k] of [[0, 1, s.arbF], [2, 3, s.arbR]]) {
         let d = (W2[l].contact ? W2[l].comp : 0) - (W2[r].contact ? W2[r].comp : 0), f2 = k * d;
@@ -4136,10 +4178,12 @@ if(typeof module!=='undefined')module.exports=SIM;
           fmax += wh.Fz * this.tyre.mu * lf * wetMu * this._smu(wh.surf);
         }
       }
-      pt.step(dt, { thr, brk, nos: !!inp.nos }, W2, { tc: aid.tc && !this.drift.on, escThr, fmax, mass: m }), pt.auto && pt.autoShift(brk, this.air, this.drift.on), this.absOn = !1;
+      /* line lock: the fronts are held on the brakes and the drive goes to the rear axle alone */
+      pt.drvAll || (pt.drvAll = pt.drv), pt.drv = inp.lock && pt.drvAll.length === 4 ? [2, 3] : pt.drvAll, pt.step(dt, { thr, brk, nos: !!inp.nos }, W2, { tc: aid.tc && !this.drift.on && !inp.lock, escThr: inp.lock ? 1 : escThr, fmax, mass: m }), pt.auto && pt.autoShift(brk, this.air, this.drift.on), this.absOn = !1;
       let hold = this.speed < 0.4 && thr < 0.05 && !this.rev && pt.running;
       for (let wh of W2) {
         let Tb = brk * c.brake * (wh.front ? c.bias : 1 - c.bias) / 2;
+        inp.lock && wh.front && (Tb = Math.max(Tb, c.brake * 0.75));
         if (aid.abs && brk > 0.1 && this.speed > 2.5 && wh.kap < -0.1) {
           let k = clamp(1 - (-wh.kap - 0.1) * 7, 0.2, 1);
           Tb *= k, k < 0.95 && (this.absOn = !0);
@@ -4155,7 +4199,14 @@ if(typeof module!=='undefined')module.exports=SIM;
         torque[0] += t[0], torque[1] += t[1], torque[2] += t[2];
       };
       for (let wh of W2)
-        wh.contact && (apply(scale(U, wh.Fz), wh.hpW), apply(add(scale(wh.f, wh.Fx - (wh.vd || 0)), scale(wh.r, wh.Fy)), madd(wh.cp, wh.n, c.rcH)));
+        if (wh.contact) {
+          apply(scale(U, wh.Fz), wh.hpW), apply(add(scale(wh.f, wh.Fx - (wh.vd || 0)), scale(wh.r, wh.Fy)), madd(wh.cp, wh.n, c.rcH));
+          /* a tyre against a ledge face: the face pushes back as well as up */
+          if (wh.off) {
+            let nu = dot2(wh.n, U), k = wh.Fz / Math.max(0.5, nu) * 0.6;
+            apply([(wh.n[0] - U[0] * nu) * k, (wh.n[1] - U[1] * nu) * k, (wh.n[2] - U[2] * nu) * k], wh.cp);
+          }
+        }
       let sp = this.speed, dr = 0.5 * RHO * c.cdA * sp;
       apply([-v[0] * dr, -v[1] * dr, -v[2] * dr], p);
       let q2 = 0.5 * RHO * vb[0] * vb[0];
@@ -4449,7 +4500,7 @@ if(typeof module!=='undefined')module.exports=SIM;
     }
     class FX {
       constructor(sr) {
-        this.sr = sr, this.p = { lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], wet: 0, speed: 0, cabin: 0, curb: 0, scrape: 0, vol: 1 }, this.g = { sq: [0, 0, 0, 0], rd: 0, hiss: 0, wind: 0, curb: 0, scr: 0 }, this.sq = [0, 1, 2, 3].map((i) => ({ bp: new BP(), bp2: new BP(), drift: 0, f: 0 })), this.road = new BP(), this.road.set(260, 0.7, sr), this.road2 = new BP(), this.road2.set(700, 0.9, sr), this.hissF = new BP(), this.hissF.set(2200, 0.9, sr), this.windF = new BP(), this.windF.set(520, 0.6, sr), this.grit = new BP(), this.grit.set(900, 2.2, sr), this.gritLo = new BP(), this.gritLo.set(180, 1.2, sr), this.seed = 22222, this.b = [0, 0, 0], this.curbPh = 0, this.thumpE = 0, this.thumpLp = 0, this.hits = [], this.grainE = 0, this.grainA = 0, this.hitLp = 0, this.k = 0, this.grvF = new BP(), this.grvF.set(1150, 0.8, sr), this.grvF2 = new BP(), this.grvF2.set(520, 1, sr), this.rollF = new BP(), this.rollF.set(150, 0.7, sr), this.sloshF = new BP(), this.sloshF.set(260, 0.7, sr), this.pings = [], this.roarF = new BP(), this.roarF.set(380, 0.7, sr), this.mudF = new BP(), this.mudF.set(140, 1.6, sr), this.mudF2 = new BP(), this.mudF2.set(520, 3, sr), this.splF = new BP(), this.splF.set(2600, 0.5, sr), this.grE = 0, this.grA = 0, this.mudPh = 0, this.g.grv = 0, this.g.roar = 0, this.g.mud = 0, this.g.spl = 0;
+        this.sr = sr, this.p = { lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], wet: 0, speed: 0, cabin: 0, curb: 0, scrape: 0, vol: 1 }, this.g = { sq: [0, 0, 0, 0], rd: 0, hiss: 0, curb: 0, scr: 0 }, this.sq = [0, 1, 2, 3].map((i) => ({ bp: new BP(), bp2: new BP(), drift: 0, f: 0 })), this.road = new BP(), this.road.set(260, 0.7, sr), this.road2 = new BP(), this.road2.set(700, 0.9, sr), this.hissF = new BP(), this.hissF.set(2200, 0.9, sr), this.grit = new BP(), this.grit.set(900, 2.2, sr), this.gritLo = new BP(), this.gritLo.set(180, 1.2, sr), this.seed = 22222, this.b = [0, 0, 0], this.curbPh = 0, this.thumpE = 0, this.thumpLp = 0, this.hits = [], this.grainE = 0, this.grainA = 0, this.hitLp = 0, this.k = 0, this.grvF = new BP(), this.grvF.set(1150, 0.8, sr), this.grvF2 = new BP(), this.grvF2.set(520, 1, sr), this.rollF = new BP(), this.rollF.set(150, 0.7, sr), this.sloshF = new BP(), this.sloshF.set(260, 0.7, sr), this.pings = [], this.roarF = new BP(), this.roarF.set(380, 0.7, sr), this.mudF = new BP(), this.mudF.set(140, 1.6, sr), this.mudF2 = new BP(), this.mudF2.set(520, 3, sr), this.splF = new BP(), this.splF.set(2600, 0.5, sr), this.grE = 0, this.grA = 0, this.mudPh = 0, this.g.grv = 0, this.g.roar = 0, this.g.mud = 0, this.g.spl = 0;
       }
       set(p) {
         this.p = p;
@@ -4471,7 +4522,7 @@ if(typeof module!=='undefined')module.exports=SIM;
         let p = this.p, g = this.g, sr = this.sr, k = 1 - Math.exp(-1 / (sr * 0.05)), sp = p.speed || 0, cab = p.cabin ? 1 : 0, wet = p.wet || 0, lat = p.lat || [0, 0, 0, 0], lon = p.lon || [0, 0, 0, 0], sqT = [0, 1, 2, 3].map((i) => {
           let side = ss(1.25, 2.1, lat[i]), spin = ss(2.8, 5.5, lon[i]);
           return Math.max(side * ss(2, 6, sp), spin * 0.8 * ss(0.5, 3, sp + lon[i])) * Math.min(1.2, (p.load[i] || 0) / 3600) * (1 - 0.95 * wet) * (p.sqK ? p.sqK[i] : 1);
-        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gWind = G("speedwind"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, windT = Math.min(1.2, (sp / 55) ** 2) * 0.35, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
+        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
         dv !== this.dv && (this.dv = dv, this.grvF.set(dv === "coarse" ? 760 : 1150, 0.8, sr), this.grvF2.set(dv === "coarse" ? 330 : 520, 1, sr));
         let gRate = dv === "coarse" ? [420, 65] : [700, 110], gDec = dv === "coarse" ? 0.986 : 0.975, gLvl = (dv === "coarse" ? 0.3 : dv === "packed" ? 0.085 : 0.24) * gDirt, pebK = dv === "coarse" ? 2.2 : dv === "packed" ? 0.4 : 1;
         for (let w = 0; w < 4; w++) {
@@ -4482,7 +4533,7 @@ if(typeof module!=='undefined')module.exports=SIM;
         }
         for (let i = 0; i < n; i++) {
           for (let w = 0; w < 4; w++) g.sq[w] += (sqT[w] - g.sq[w]) * k;
-          g.rd += (rdT - g.rd) * k, g.hiss += (hissT - g.hiss) * k, g.wind += (windT - g.wind) * k, g.curb += (curbT - g.curb) * k, g.scr += (scrT - g.scr) * k * 2, g.grv += (grvT - g.grv) * k, g.roar += (roarT - g.roar) * k, g.mud += (mudT - g.mud) * k, g.spl += (splT - g.spl) * k;
+          g.rd += (rdT - g.rd) * k, g.hiss += (hissT - g.hiss) * k, g.curb += (curbT - g.curb) * k, g.scr += (scrT - g.scr) * k * 2, g.grv += (grvT - g.grv) * k, g.roar += (roarT - g.roar) * k, g.mud += (mudT - g.mud) * k, g.spl += (splT - g.spl) * k;
           let wn = this.rnd(), b = this.b;
           b[0] = 0.99765 * b[0] + wn * 0.099046, b[1] = 0.963 * b[1] + wn * 0.2965164, b[2] = 0.57 * b[2] + wn * 1.0526913;
           let pink = (b[0] + b[1] + b[2] + wn * 0.1848) * 0.12, l = 0, r = 0;
@@ -4519,9 +4570,7 @@ if(typeof module!=='undefined')module.exports=SIM;
             let P = this.pings[q], y = P.a1 * P.y1 - P.a2 * P.y2;
             P.y2 = P.y1, P.y1 = y, road += y, --P.n <= 0 && this.pings.splice(q, 1);
           }
-          l += road, r += road;
-          let wind = this.windF.run(pink) * g.wind * (cab ? 0.45 : 1) * gWind;
-          if (l += wind * 1.05, r += wind * 0.95, g.curb > 1e-3) {
+          if (l += road, r += road, g.curb > 1e-3) {
             this.curbPh += Math.max(sp, 1) / 2 / sr, this.curbPh >= 1 && (this.curbPh -= 1, this.thumpE = 1), this.thumpE *= Math.exp(-1 / (sr * 0.03)), this.thumpPh = (this.thumpPh || 0) + 46 / sr, this.thumpLp += (wn - this.thumpLp) * 0.01;
             let th = (Math.sin(TAU2 * this.thumpPh) * 0.5 + this.thumpLp * 3) * this.thumpE * g.curb * 0.18 * gHit;
             l += th, r += th;
@@ -4587,16 +4636,16 @@ class ShiftlightFX extends AudioWorkletProcessor{
   constructor(){super();this.d=new FXDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
   process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
 registerProcessor('shiftlight-fx',ShiftlightFX);
-const AMBDSP=(${makeAmb.toString()})();
-class DirtAmb extends AudioWorkletProcessor{
-  constructor(){super();this.d=new AMBDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
-  process(i,o){const w=o[0],u=o[1];this.d.process(w[0],w[1]||w[0],w[0].length,u?u[0]:null,u?(u[1]||u[0]):null);return true;}}
-registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
+const UIDSP=(${makeUISynth.toString()})();
+class DirtUI extends AudioWorkletProcessor{
+  constructor(){super();this.d=new UIDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
+  process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
+registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     constructor() {
-      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.ambVol = 1, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
+      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
     }
     /* call from a user gesture. The graph: each source has its own bus; the engine is tamed on its own
-       compressor so a redline doesn't push the world down; a limiter only catches peaks at the end. */
+       compressor so a redline doesn't bury the tyres and the HUD sounds; a limiter only catches peaks at the end. */
     start() {
       return this.starting ? this.starting : (this.starting = (async () => {
         let AC = window.AudioContext || window.webkitAudioContext;
@@ -4617,11 +4666,11 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           return cv.buffer = roomIR(ctx, k), send.connect(cv), cv.connect(pre), send;
         };
         this.sendS = mk("street"), this.sendT = mk("tunnel");
-        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), worldBus = G(), uiBus = G();
+        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), uiBus = G();
         engIn.connect(engBus), engBus.connect(engComp), engComp.connect(engOut);
         for (let b of [engOut, groundBus]) b.connect(pre), b.connect(this.sendS), b.connect(this.sendT);
-        worldBus.connect(pre), uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, worldBus, uiBus });
-        this.meters = { engine: A(), ground: A(), world: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), worldBus.connect(this.meters.world), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
+        uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, uiBus });
+        this.meters = { engine: A(), ground: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
         try {
           if (!ctx.audioWorklet) throw new Error("no worklet");
           let src = ENGINE_SRC();
@@ -4630,24 +4679,24 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           } catch {
             await ctx.audioWorklet.addModule("data:application/javascript;charset=utf-8," + encodeURIComponent(src));
           }
-          let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), amb = node("dirt-amb", 2);
-          eng.connect(engIn), fx.connect(groundBus), amb.connect(worldBus, 0), amb.connect(uiBus, 1), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.amb = { post: (m) => amb.port.postMessage(m) }, this.kind = "worklet";
+          let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), uis = node("dirt-ui");
+          eng.connect(engIn), fx.connect(groundBus), uis.connect(uiBus), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.uis = { post: (m) => uis.port.postMessage(m) }, this.kind = "worklet";
         } catch {
           /* no worklets: one script processor runs all three synths, each into its own bus through a splitter-free trick of three processors */
-          let D = makeDSP(), F = makeFX(), Am = makeAmb(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), am = new Am(ctx.sampleRate), sp = (fn) => {
+          let D = makeDSP(), F = makeFX(), Us = makeUISynth(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), us = new Us(ctx.sampleRate), sp = (fn) => {
             let n = ctx.createScriptProcessor(1024, 1, 2), src = ctx.createConstantSource ? ctx.createConstantSource() : null;
             return src && (src.offset.value = 0, src.connect(n), src.start()), n.onaudioprocess = (ev) => {
               let b = ev.outputBuffer;
               fn(b.getChannelData(0), b.getChannelData(1), b.length);
             }, n;
           };
-          sp((L, R2, n) => d.process(L, R2, n)).connect(engIn), sp((L, R2, n) => f2.process(L, R2, n)).connect(groundBus), sp((L, R2, n) => am.process(L, R2, n)).connect(worldBus);
+          sp((L, R2, n) => d.process(L, R2, n)).connect(engIn), sp((L, R2, n) => f2.process(L, R2, n)).connect(groundBus), sp((L, R2, n) => us.process(L, R2, n)).connect(uiBus);
           this.eng = { post: (m) => {
             m.t === "cfg" ? d.configure(m.cfg) : m.t === "p" ? d.set(m.p) : m.t === "ev" && d.event(m.ev);
           } }, this.fx = { post: (m) => {
             m.t === "p" ? f2.set(m.p) : m.t === "ev" && f2.event(m.ev);
-          } }, this.amb = { post: (m) => {
-            m.t === "p" ? am.set(m.p) : m.t === "ev" && am.event(m.ev);
+          } }, this.uis = { post: (m) => {
+            m.t === "p" ? us.set(m.p) : m.t === "ev" && us.event(m.ev);
           } }, this.kind = "main thread";
         }
         ctx.state !== "running" && await ctx.resume(), this.cfg && this.eng.post({ t: "cfg", cfg: this.cfg }), this.ready = !0, this.setMix(this.mix);
@@ -4681,13 +4730,13 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       return dbToLin(this.engNorm * Math.max(0, Math.min(1, +this.mix.eng.norm)));
     }
     applyMixParts() {
-      this.mixG = mixFor(this.mix, MIX_GROUND), this.mixW = mixFor(this.mix, MIX_WORLD);
+      this.mixG = mixFor(this.mix, MIX_GROUND), this.mixU = mixFor(this.mix, MIX_UI), this.uis && this.uis.post({ t: "p", p: { vol: 1, mix: this.mixU } });
     }
     /* apply a mix: bus faders, the engine's tamer, the limiter, and the per-sound settings */
     setMix(m) {
       if (this.mix = mixFill(m), this.applyMixParts(), !this.ctx) return;
       let t = this.ctx.currentTime, M = this.mix, set = (g, db) => g && g.gain.setTargetAtTime(dbToLin(db), t, 0.03), tame = Math.max(0, Math.min(1, M.eng.tame ?? 0.55));
-      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.worldBus, M.bus.world), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
+      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
       let c = this.engComp;
       c.threshold.value = -6 - 22 * tame, c.ratio.value = 1 + 5 * tame, c.knee.value = 10, c.attack.value = 6e-3, c.release.value = 0.25, this.lim.threshold.value = M.limiter ? -1.5 : 0, this.lim.ratio.value = M.limiter ? 20 : 1, this.engIn.gain.setTargetAtTime(this.normGain(), t, 0.05);
     }
@@ -4713,279 +4762,60 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       this.ctx && (on ? this.ctx.suspend() : this.ctx.resume());
     }
     /* once per frame */
-    update(engineP, engineEvents, fxP, fxEvents, { cabin = !1, yard = 0, shop = 0, amb = null, ambEvents = [] } = {}) {
+    update(engineP, engineEvents, fxP, fxEvents, { cabin = !1, yard = 0, shop = 0 } = {}) {
       if (!this.ready) return;
       for (let e of engineEvents) this.eng.post({ t: "ev", ev: e });
       this.eng.post({ t: "p", p: engineP });
       for (let e of fxEvents) this.fx.post({ t: "ev", ev: e });
-      if (this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) }), amb) {
-        for (let e of ambEvents) this.amb.post({ t: "ev", ev: e });
-        this.amb.post({ t: "p", p: Object.assign({ vol: this.ambVol, uiVol: 1, mix: this.mixW }, amb) });
-      }
+      this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) });
       /* the space: open range is nearly dry, the shop yard throws back a slap, inside the shop it rings */
       let t = this.ctx.currentTime, c = cabin ? 0.4 : 1;
       this.yard += (yard - this.yard) * 0.08, this.shop += (shop - this.shop) * 0.08, this.sendS.gain.setTargetAtTime(c * (0.05 + 0.3 * this.yard) * (1 - this.shop), t, 0.08), this.sendT.gain.setTargetAtTime(0.6 * c * this.shop, t, 0.08);
     }
-    /* one-shot shop and HUD sounds, or a world event (thunder, a bird, a cheer) */
+    /* one-shot shop and HUD sounds */
     ui(type, extra) {
-      this.ready && this.amb && this.amb.post({ t: "ev", ev: Object.assign({ type }, extra || {}) });
-    }
-    setAmbVolume(v) {
-      this.ambVol = v;
+      this.ready && this.uis && this.uis.post({ t: "ev", ev: Object.assign({ type }, extra || {}) });
     }
   };
 
-  // ===== audio/ambience.js =====
-  /* The world around the truck, synthesised live in its own AudioWorklet: rain (several kinds, or drumming
-     on the roof from the cab), thunder, wind, birds, day and night insects, the creek, the crowd at the
-     strip, and the shop and HUD sounds on a separate output. Which version of each sound plays, and how
-     loud, comes from the mix (34_mix.js); how much of each the scene calls for comes from the game. */
-  function makeAmb() {
+  // ===== audio/ui-sounds.js =====
+  /* The shop and HUD sounds, synthesised live in their own AudioWorklet: the cash register, the cooler
+     chime, the gate tick, medal and trophy fanfares, and the cues for a new best, a challenge starting
+     and a lap. Small bell-like voices; no world ambience (the weather, wildlife and crowd were cut). */
+  function makeUISynth() {
     let TAU = Math.PI * 2;
-    class Bq {
-      constructor() {
-        this.z1 = 0, this.z2 = 0, this.b0 = 1, this.b1 = 0, this.b2 = 0, this.a1 = 0, this.a2 = 0, this.key = "";
-      }
-      set(type, f, q, sr) {
-        let k = type + f + q;
-        if (k === this.key) return this;
-        this.key = k;
-        let w = TAU * Math.min(f, sr * 0.45) / sr, cw = Math.cos(w), al = Math.sin(w) / (2 * q), a0 = 1 + al, b0, b1, b2;
-        type === "lp" ? (b0 = (1 - cw) / 2, b1 = 1 - cw, b2 = b0) : type === "hp" ? (b0 = (1 + cw) / 2, b1 = -(1 + cw), b2 = b0) : (b0 = al, b1 = 0, b2 = -al);
-        return this.b0 = b0 / a0, this.b1 = b1 / a0, this.b2 = b2 / a0, this.a1 = -2 * cw / a0, this.a2 = (1 - al) / a0, this;
-      }
-      run(x) {
-        let y = this.b0 * x + this.z1;
-        return this.z1 = this.b1 * x - this.a1 * y + this.z2, this.z2 = this.b2 * x - this.a2 * y, y;
-      }
-    }
-    /* rain kinds: wash level, low body, drops per second, drop pitch range, decay range (s), drop size, tick */
-    let RAIN = {
-      patter: { wash: 0.07, low: 0.05, rate: 2400, f0: 1800, span: 3.8, d0: 1.5e-3, d1: 4e-3, a: 0.03, clk: 0.03 },
-      drizzle: { wash: 0.035, low: 0.01, rate: 1100, f0: 2600, span: 3, d0: 1e-3, d1: 2.5e-3, a: 0.018, clk: 0.02 },
-      downpour: { wash: 0.1, low: 0.14, rate: 4200, f0: 1100, span: 4, d0: 2.5e-3, d1: 6e-3, a: 0.04, clk: 0.05 },
-      tin: { wash: 0.03, low: 0.02, rate: 1400, f0: 1700, span: 2.1, d0: 0.025, d1: 0.06, a: 0.02, clk: 0.01, metal: 1 }
-    };
-    class Amb {
+    class UISynth {
       constructor(sr) {
-        this.sr = sr, this.p = {}, this.mix = {}, this.t = 0, this.seed = 987654321, this.b = [0, 0, 0];
-        this.g = { rain: 0, wind: 0, birds: 0, day: 0, night: 0, creek: 0, crowd: 0, cab: 0 };
-        let B = (type, f, q) => new Bq().set(type, f, q, sr);
-        this.rainHP = B("hp", 900, 0.7), this.rainBP = B("bp", 3e3, 0.45), this.rainLow = B("lp", 380, 0.7), this.roofLP = B("lp", 1600, 0.7), this.clkHP = B("hp", 2500, 0.7);
-        this.windL = B("bp", 300, 0.6), this.windR = B("bp", 340, 0.6), this.whis = B("bp", 820, 5), this.whis2 = B("bp", 1240, 7), this.roar = B("lp", 120, 0.7), this.rust = B("bp", 2400, 0.7), this.rust2 = B("bp", 3800, 0.9);
-        this.crBg = B("bp", 4600, 9), this.cicN = B("bp", 5e3, 2.5), this.hopF = B("bp", 7e3, 2);
-        this.creekA = B("bp", 620, 0.9), this.creekB = B("bp", 1900, 1.4);
-        this.walla = [B("bp", 420, 2), B("bp", 880, 2.5), B("bp", 1650, 3), B("bp", 2600, 3)], this.wEnv = [0.5, 0.5, 0.5, 0.5], this.wTgt = [0.5, 0.5, 0.5, 0.5], this.clap = B("bp", 2300, 0.6), this.clapE = 0, this.cheer = 0;
-        this.drops = [], this.tones = [], this.clk = 0, this.flut = 0, this.nextBird = 2, this.nextThunder = 18 + Math.random() * 20, this.thunders = [], this.ph = [Math.random() * 9, Math.random() * 9, Math.random() * 9];
-        this.bugs = [], this.bugKey = "", this.cic = [0, 1].map((i) => ({ st: 0, t: i * 7 + Math.random() * 5, ph: 0, f: 4300 + Math.random() * 500, am: 150 + Math.random() * 80, dur: 0, lv: 0.7 + Math.random() * 0.3 })), this.hop = { t: 4, n: 0, gap: 0, e: 0 };
+        this.sr = sr, this.p = {}, this.mix = {}, this.t = 0, this.tones = [];
       }
       set(p) {
         this.p = p, p.mix && (this.mix = p.mix);
       }
-      M(id) {
-        return this.mix[id] || { g: 1 };
+      /* a bell: a sine with a soft inharmonic partial, a click of attack and an exponential tail */
+      tone(at, dur, f, amp, pan = 0) {
+        this.tones.length < 40 && this.tones.push({ at: this.t + at, dur, f, amp, ph: 0, pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan) });
       }
-      rnd() {
-        let s = this.seed;
-        return s ^= s << 13, s ^= s >>> 17, s ^= s << 5, this.seed = s, (s >>> 0) / 4294967296;
-      }
-      /* a damped resonator: a raindrop, a bubble, a tick. Two modes when metal */
-      drop(f, dec, amp, pan, metal = 0) {
-        if (this.drops.length > 90) return;
-        let mk = (ff, aa) => {
-          let w = TAU * Math.min(ff, this.sr * 0.45) / this.sr, r = Math.exp(-1 / (dec * this.sr));
-          this.drops.push({ a1: 2 * r * Math.cos(w), a2: r * r, y1: aa * Math.sin(w), y2: 0, n: Math.round(dec * this.sr * 6), pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan) });
-        };
-        mk(f, amp), metal && mk(f * 1.47, amp * 0.6);
-      }
-      /* pitched voices. kind 0 bird, 1 bell (UI), 2 outdoor whistle, 3 dove (soft, with a second harmonic) */
-      tone(at, dur, f0, f1, amp, pan, kind = 0, fm = 0) {
-        this.tones.length < 32 && this.tones.push({ at: this.t + at, dur, f0, f1, amp, ph: 0, pl: 1 - Math.max(0, pan), pr: 1 + Math.min(0, pan), kind, fm });
-      }
-      thunder(kind = "rolling") {
-        let dist = kind === "crack" ? Math.random() * 0.2 : kind === "distant" ? 0.7 + Math.random() * 0.3 : Math.random(), sw = [];
-        for (let k = 0, n = 3 + Math.floor(Math.random() * 3), t = 0.2 + dist * 1.5; k < n; k++) sw.push([t, 0.4 + Math.random() * 0.6, 0.35 + Math.random() * 0.9]), t += 0.4 + Math.random() * 1.3;
-        this.thunders.push({ t: 0, sw, crack: dist < 0.35 ? kind === "crack" ? 1.1 : 0.6 : 0, c: 1 - Math.exp(-TAU * (40 + (1 - dist) * 70) / this.sr), y1: 0, y2: 0, cy: 0, amp: (0.55 - dist * 0.3) * (kind === "crack" ? 1.3 : 1), dur: 9 });
-      }
-      bird(kind) {
-        let pan = this.rnd() * 1.6 - 0.8, d = 0.35 + this.rnd() * 0.65, a = 0.045 * d, base = 0.85 + this.rnd() * 0.3;
-        if (kind === "mixed") {
-          let q = this.rnd();
-          kind = q < 0.5 ? "songbirds" : q < 0.8 ? "meadowlark" : "doves";
-        }
-        if (a *= kind === "meadowlark" ? 2.2 : kind === "doves" ? 3 : 4.5, kind === "meadowlark") {
-          let f = 2900 * base, t = 0;
-          for (let i = 0, c = 5 + Math.floor(this.rnd() * 3); i < c; i++) {
-            let dur = 0.08 + this.rnd() * 0.13, f1 = f * (0.82 + this.rnd() * 0.12);
-            this.tone(t, dur, f, f1, a * 0.9, pan, 0, 0.15), t += dur + 0.03, f = f1 * (1.05 + this.rnd() * 0.15);
-          }
-          for (let i = 0; i < 6; i++) this.tone(t + i * 0.03, 0.025, 3800 * base, 3500 * base, a * 0.5, pan, 0, 0.3);
-        } else if (kind === "doves") {
-          let f = 470 * base, a2 = a * 2.2;
-          [[0, 0.32, 1, 1.06], [0.42, 0.55, 1.08, 1.18], [1.05, 0.34, 1.02, 0.98], [1.5, 0.34, 1, 0.97], [1.95, 0.36, 0.99, 0.95]].forEach(([t, dur, k0, k1]) => this.tone(t, dur, f * k0, f * k1, a2, pan, 3));
-        } else {
-          let sp = Math.floor(this.rnd() * 3);
-          if (sp === 0) for (let i = 0, c = 2 + Math.floor(this.rnd() * 3); i < c; i++) this.tone(i * 0.11, 0.07, 5200 * base, 3100 * base, a, pan);
-          else if (sp === 1) this.tone(0, 0.26, 2200 * base, 3100 * base, a * 0.9, pan), this.tone(0.34, 0.3, 3e3 * base, 2500 * base, a * 0.8, pan);
-          else for (let i = 0, c = 7 + Math.floor(this.rnd() * 7); i < c; i++) this.tone(i * 0.045, 0.03, 4e3 * base, 4300 * base, a * 0.7, pan, 0, 0.3);
-        }
-      }
-      /* (re)build the night insect voices when their settings change */
-      bugVoices(m) {
-        let key = [m.v, m.n, (m.pitch ?? 0.5).toFixed(2), (m.rate ?? 0.5).toFixed(2)].join();
-        if (key === this.bugKey) return;
-        this.bugKey = key;
-        let v = m.v || "field", n = Math.max(1, Math.min(6, Math.round(m.n ?? 3))), P = m.pitch ?? 0.5, Rt = m.rate ?? 0.5, out = [], mk = (kind, i) => {
-          let d = 0.25 + this.rnd() * 0.75;
-          return { kind, d, lpA: 1 - Math.exp(-TAU * (2500 + 7e3 * d) / this.sr), lp: 0, pan: (this.rnd() * 2 - 1) * 0.8, t: this.rnd() * 2, ph: 0, cp: 0, f: (kind === "tree" ? 2400 + 1200 * P : 3600 + 2200 * P) * (0.95 + this.rnd() * 0.1), per: (0.78 - 0.4 * Rt) * (0.9 + this.rnd() * 0.2), sp: 1 / ((28 + 14 * Rt) * (0.95 + this.rnd() * 0.1)), np: 3 + (this.rnd() < 0.35 ? 1 : 0), on: 1, onT: 2 + this.rnd() * 3, kf: 7e3 + 4e3 * P, kE: 0, kN: 0, kS: 0, kNext: 0.5 + this.rnd(), bq: kind === "katydid" ? new Bq().set("bp", (7e3 + 4e3 * P) * (0.92 + this.rnd() * 0.16), 4, this.sr) : null };
-        };
-        if (v === "field" || v === "mixed") for (let i = 0; i < n; i++) out.push(mk("field", i));
-        if (v === "tree") for (let i = 0; i < n; i++) out.push(mk("tree", i));
-        if (v === "katydid") for (let i = 0; i < Math.min(4, n); i++) out.push(mk("katydid", i));
-        v === "mixed" && out.push(mk("katydid", 9)), this.bugs = out, this.bugMode = v;
+      chord(fs, at, dur, amp, step = 0) {
+        fs.forEach((f, i, a) => this.tone(at + i * step, dur, f, amp, (i - (a.length - 1) / 2) * 0.2));
       }
       event(e) {
         let T = e.type;
-        if (T === "thunder") this.thunder(e.kind || (this.M("thunder").v || "rolling"));
-        else if (T === "cheer") {
-          this.cheer = Math.max(this.cheer, e.a || 1);
-          for (let k = 0; k < 4; k++) this.tone(0.2 + Math.random() * 1.2, 0.35 + Math.random() * 0.3, 2400 + Math.random() * 500, 3e3 + Math.random() * 700, 0.02, Math.random() * 1.6 - 0.8, 2);
-        } else if (T === "bird") this.bird(e.kind || this.M("birds").v || "mixed");
-        else if (T === "kaching") this.tone(0, 0.8, 2093, 2093, 0.07, 0.1, 1), this.tone(0.02, 0.7, 2637, 2637, 0.05, -0.1, 1), this.tone(0.05, 0.5, 4186, 4186, 0.02, 0, 1), this.clk += 0.6;
-        else if (T === "chime") this.tone(0, 0.45, 1319, 1319, 0.06, 0, 1), this.tone(0.1, 0.6, 1760, 1760, 0.06, 0, 1), this.tone(0.2, 0.8, 2637, 2637, 0.03, 0, 1);
-        else if (T === "tick") this.tone(0, 0.05, 1900, 1900, 0.09, 0, 1), this.tone(0, 0.07, 950, 950, 0.06, 0, 1);
-        else if (T === "trophy" || T === "medal") (T === "trophy" ? [1047, 1319, 1568, 2093] : [1319, 1568, 2093]).forEach((f, i, a) => this.tone(i * 0.11, 0.9, f, f, 0.05, (i - (a.length - 1) / 2) * 0.2, 1));
+        if (T === "kaching") this.tone(0, 0.8, 2093, 0.07, 0.1), this.tone(0.02, 0.7, 2637, 0.05, -0.1), this.tone(0.05, 0.5, 4186, 0.02);
+        else if (T === "chime") this.tone(0, 0.45, 1319, 0.06), this.tone(0.1, 0.6, 1760, 0.06), this.tone(0.2, 0.8, 2637, 0.03);
+        else if (T === "tick") this.tone(0, 0.05, 1900, 0.09), this.tone(0, 0.07, 950, 0.06);
+        else if (T === "trophy") this.chord([1047, 1319, 1568, 2093], 0, 0.9, 0.05, 0.11);
+        else if (T === "medal") this.chord([1319, 1568, 2093], 0, 0.9, 0.05, 0.11);
+        else if (T === "best") this.chord([1568, 2093, 2637, 3136], 0, 0.55, 0.05, 0.07);
+        else if (T === "go") this.tone(0, 0.18, 1760, 0.07), this.tone(0, 0.2, 880, 0.04);
+        else if (T === "ready") this.tone(0, 0.12, 1175, 0.06);
+        else if (T === "lap") this.tone(0, 0.3, 2349, 0.06), this.tone(0.09, 0.4, 3136, 0.05);
+        else if (T === "miss") this.tone(0, 0.25, 523, 0.06), this.tone(0.12, 0.35, 392, 0.06);
       }
-      process(L, R, n, UL, UR) {
-        let p = this.p, g = this.g, sr = this.sr, dt = 1 / sr, k = 1 - Math.exp(-1 / (sr * 0.4)), cab = p.cabin ? 1 : 0, M = (id) => this.M(id);
-        let mRain = M("rain"), mRoof = M("roof"), mTh = M("thunder"), mWind = M("wind"), mBird = M("birds"), mDay = M("daybugs"), mNight = M("nightbugs"), mCreek = M("creek"), mCrowd = M("crowd"), mUI = M("ui");
-        let tg = { rain: p.rain || 0, wind: p.wind || 0, birds: p.birds || 0, day: p.dayBugs || 0, night: p.crickets || 0, creek: p.creek || 0, crowd: p.crowd || 0, cab };
-        /* thunder rolls in on its own in a storm */
-        p.storm && g.rain > 0.15 && this.t > this.nextThunder && mTh.g > 0 && (this.thunder(mTh.v || "rolling"), this.nextThunder = this.t + (mTh.every || 28) * (0.5 + Math.random()));
-        g.birds > 0.05 && this.t > this.nextBird && mBird.g > 0 && (this.bird(mBird.v || "mixed"), this.nextBird = this.t + (1.5 + this.rnd() * 4.5) / ((0.4 + g.birds) * (mBird.rate || 1)) * ((mBird.v || "") === "doves" ? 2.5 : 1));
-        this.bugVoices(mNight);
-        let rk = RAIN[mRain.v] || RAIN.patter, br = mRain.bright ?? 0.5, fm = 0.65 + 0.7 * br, dens = mRain.dens ?? 1, soft = mRoof.v === "soft", wv = mWind.v || "breeze", gust = mWind.gust ?? 0.5, cv = mCreek.v || "babble", stad = mCrowd.v === "stadium", nv = this.bugMode;
-        this.rainBP.set("bp", 2e3 + 3e3 * br, 0.45, sr), this.roofLP.set("lp", soft ? 800 : 1600, 0.7, sr), this.creekA.set("bp", cv === "rush" ? 380 : 620, 0.9, sr), this.crBg.set("bp", 3600 + 2200 * (mNight.pitch ?? 0.5), 9, sr);
-        let out = 1 - 0.7 * g.cab, vol = p.vol ?? 1, uiv = (p.uiVol ?? 1) * (mUI.g ?? 1);
+      process(L, R, n) {
+        let dt = 1 / this.sr, g = (this.p.vol ?? 1) * (this.mix.ui ? this.mix.ui.g ?? 1 : 1);
         for (let i = 0; i < n; i++) {
-          for (let key in tg) g[key] += (tg[key] - g[key]) * k;
           this.t += dt;
-          let wn = this.rnd() * 2 - 1, b = this.b;
-          b[0] = 0.99765 * b[0] + wn * 0.099046, b[1] = 0.963 * b[1] + wn * 0.2965164, b[2] = 0.57 * b[2] + wn * 1.0526913;
-          let pink = (b[0] + b[1] + b[2] + wn * 0.1848) * 0.12, l = 0, r = 0, u = 0;
-          /* ---- rain ---- */
-          if (g.rain > 1e-3) {
-            this.flut += (this.rnd() - 0.5) * 2e-3 - this.flut * 2e-4;
-            let gr = mRain.g ?? 1, gro = mRoof.g ?? 1, wash = (this.rainBP.run(this.rainHP.run(wn)) * rk.wash * (1 + this.flut * 4) + this.rainLow.run(pink) * rk.low * g.rain) * g.rain * gr, roof = this.roofLP.run(pink) * g.rain * (soft ? 0.05 : 0.06) * gro, mixed = wash * (1 - 0.8 * g.cab) + roof * g.cab;
-            l += mixed, r += mixed * 0.96;
-            if (g.cab > 0.5) {
-              if (this.rnd() < g.rain * 1100 * dt && gro > 0) {
-                let q = this.rnd();
-                soft ? this.drop(150 + 450 * this.rnd(), 0.01 + 0.015 * this.rnd(), (0.01 + 0.06 * q * q * q) * g.rain * gro, (this.rnd() - 0.5) * 1.2) : this.drop(380 + 1e3 * this.rnd(), 6e-3 + 0.01 * this.rnd(), (8e-3 + 0.05 * q * q * q) * g.rain * gro, (this.rnd() - 0.5) * 1.2);
-              }
-            } else if (this.rnd() < g.rain * rk.rate * dens * dt && gr > 0) {
-              let q = this.rnd(), pan = this.rnd() * 1.8 - 0.9;
-              this.drop(rk.f0 * fm * Math.pow(rk.span, this.rnd()), rk.d0 + (rk.d1 - rk.d0) * this.rnd(), (rk.a * 0.18 + rk.a * q * q * q) * g.rain * gr, pan, rk.metal), this.clk += rk.clk * q * g.rain * gr;
-            }
-          }
-          /* ---- thunder ---- */
-          for (let j = this.thunders.length - 1; j >= 0; j--) {
-            let T = this.thunders[j];
-            T.t += dt, T.y1 += T.c * (wn - T.y1), T.y2 += T.c * (T.y1 - T.y2), T.cy += 0.12 * (wn - T.cy);
-            let e = 0;
-            for (let [t0, a, w] of T.sw) e += a * Math.exp(-(((T.t - t0) / w) ** 2));
-            let s = (T.y2 * 9 * e * T.amp + (T.t < 0.35 ? T.cy * T.crack * (1 - T.t / 0.35) ** 2 * 0.5 : 0)) * (mTh.g ?? 1);
-            l += s * (0.6 + 0.4 * out), r += s * (0.6 + 0.4 * out), T.t > T.dur && this.thunders.splice(j, 1);
-          }
-          /* ---- wind ---- */
-          if (g.wind > 1e-3 && (mWind.g ?? 1) > 0) {
-            let dep = 0.3 + 0.9 * gust, gu = 0.55 + dep * (0.25 * Math.sin(TAU * 0.071 * this.t + this.ph[0]) + 0.15 * Math.sin(TAU * 0.13 * this.t + this.ph[1]) + 0.1 * Math.sin(TAU * 0.29 * this.t + this.ph[2])), w = g.wind * Math.max(0, gu) ** 2 * out * (mWind.g ?? 1);
-            if (wv === "grass") {
-              this.flut2 = (this.flut2 || 0) * 0.9995 + (this.rnd() - 0.5) * 0.004;
-              let rs = (this.rust.run(wn) * 0.6 + this.rust2.run(wn) * 0.4) * w * (0.03 + Math.abs(this.flut2) * 3) * 1.4;
-              l += this.windL.run(pink) * w * 0.3 + rs, r += this.windR.run(pink * 0.9 + wn * 0.02) * w * 0.3 + rs * 0.9;
-            } else {
-              let pl = wv === "plains", body = pl ? 0.2 : 0.5;
-              l += this.windL.run(pink) * w * body + this.whis.run(wn) * w * w * (pl ? 0.03 : 0.035) + (pl ? this.roar.run(pink * 3) * w * 0.25 : 0), r += this.windR.run(pink * 0.9 + wn * 0.02) * w * body + (pl ? this.whis2.run(wn) * w * w * 0.02 + this.roar.run(pink * 3) * w * 0.05 : 0);
-            }
-          }
-          /* ---- insects at night ---- */
-          if (g.night > 0.01 && (mNight.g ?? 1) > 0) {
-            let gn = g.night * (mNight.g ?? 1) * out;
-            for (let c of this.bugs) {
-              let s = 0;
-              c.t += dt;
-              if (c.kind === "field") {
-                let tc = c.t % c.per, kk = Math.floor(tc / c.sp);
-                if (tc < dt && (c.per *= 0.97 + this.rnd() * 0.06, c.per = Math.min(1.1, Math.max(0.3, c.per))), kk < c.np) {
-                  let fp = (tc - kk * c.sp) / c.sp;
-                  if (fp < 0.55) {
-                    c.cp += c.f * (1 - 0.02 * fp) * dt;
-                    let env = Math.min(1, fp / 0.05) * Math.exp(-fp * 3);
-                    s = Math.sin(TAU * c.cp) * (0.7 + 0.3 * Math.sin(TAU * c.f * 0.31 * tc)) * env * 0.24 * c.d;
-                  }
-                }
-              } else if (c.kind === "tree") {
-                if (c.t > c.onT && (c.on = 1 - c.on, c.t = 0, c.onT = c.on ? 2 + this.rnd() * 4 : 0.5 + this.rnd() * 1.5), c.on) {
-                  let fp = c.t / c.sp % 1;
-                  c.cp += c.f * dt, s = Math.sin(TAU * c.cp) * Math.sin(Math.PI * fp) ** 2 * Math.min(1, c.t * 2) * 0.04 * c.d;
-                }
-              } else {
-                if (c.t > c.kNext && (c.kN = 2 + Math.floor(this.rnd() * 2), c.kS = 0, c.kE = 0, c.kNext = c.t + (1.3 - 0.5 * (mNight.rate ?? 0.5)) * (0.85 + this.rnd() * 0.3), c.kSyl = 0), c.kN > 0) {
-                  c.kE += dt;
-                  let pulse = Math.floor(c.kE / 0.02), within = c.kE - pulse * 0.02;
-                  pulse < 5 ? within < 4e-3 && (s = wn * (1 - within / 4e-3) * 0.36 * c.d) : c.kE > 0.17 && (c.kE = 0, c.kN--);
-                }
-                s = c.bq.run(s);
-              }
-              c.lp += c.lpA * (s - c.lp), l += c.lp * gn * (1 - Math.max(0, c.pan)), r += c.lp * gn * (1 + Math.min(0, c.pan));
-            }
-            if (nv === "chorus" || nv === "mixed") {
-              let bg = this.crBg.run(wn) * (0.55 + 0.45 * Math.sin(TAU * 23 * this.t)) * (0.65 + 0.35 * Math.sin(TAU * 0.31 * this.t)) * gn * (nv === "chorus" ? 0.1 * (mNight.n || 3) / 3 : 0.04);
-              l += bg, r += bg * 0.9;
-            }
-          }
-          /* ---- insects by day ---- */
-          if (g.day > 0.01 && (mDay.g ?? 1) > 0 && mDay.v !== "off") {
-            let gd = g.day * (mDay.g ?? 1) * out;
-            if (mDay.v === "hopper") {
-              let H = this.hop;
-              H.t -= dt, H.t <= 0 && (H.n = 8 + Math.floor(this.rnd() * 12), H.gap = 1 / (25 + this.rnd() * 15), H.t = 3 + this.rnd() * 6, H.next = 0), H.n > 0 && (H.next -= dt, H.next <= 0 && (H.e = 1, H.n--, H.next = H.gap)), H.e *= 0.93;
-              let s = this.hopF.run(wn * H.e) * 0.5 * gd;
-              l += s * 0.8, r += s;
-            } else for (let C of this.cic) {
-              if (C.t -= dt, C.t <= 0) C.st = (C.st + 1) % 4, C.t = [5 + this.rnd() * 10, 3 + this.rnd() * 2, 3 + this.rnd() * 4, 1.5 + this.rnd()][C.st], C.dur = C.t;
-              if (C.st === 0) continue;
-              let x = 1 - C.t / C.dur, env = C.st === 1 ? x * x : C.st === 2 ? 1 : (1 - x) ** 2;
-              C.ph += C.f * (1 + 0.03 * env) * dt;
-              let am = Math.pow(0.5 + 0.5 * Math.sin(TAU * C.am * this.t), 4), s = (Math.sin(TAU * C.ph) * 0.6 + this.cicN.run(wn) * 2.5) * am * env * 0.076 * C.lv * gd;
-              l += s, r += s * 0.85;
-            }
-          }
-          /* ---- the creek ---- */
-          if (g.creek > 1e-3 && (mCreek.g ?? 1) > 0) {
-            let gc = g.creek * (mCreek.g ?? 1) * out, bed = cv === "trickle" ? 0.3 : cv === "rush" ? 2.2 : 1, s = (this.creekA.run(pink * 2) * (0.6 + this.flut * 30) + this.creekB.run(wn) * 0.12) * 0.09 * bed * gc;
-            l += s, r += s * 0.92;
-            let br2 = cv === "trickle" ? 2.5 : cv === "rush" ? 0.4 : 1;
-            this.rnd() < g.creek * 35 * br2 * dt && this.drop(cv === "trickle" ? 600 + 1600 * this.rnd() : 300 + 1100 * this.rnd(), 0.01 + 0.02 * this.rnd(), (cv === "trickle" ? 0.018 : 0.025) * gc, this.rnd() * 1.4 - 0.7);
-          }
-          /* ---- the crowd at the strip ---- */
-          if (this.cheer *= 1 - dt / 3.2, (g.crowd > 1e-3 || this.cheer > 1e-3) && (mCrowd.g ?? 1) > 0) {
-            if ((i & 63) === 0) for (let j = 0; j < 4; j++) this.rnd() < 0.02 && (this.wTgt[j] = 0.2 + this.rnd() * 0.8), this.wEnv[j] += (this.wTgt[j] - this.wEnv[j]) * 0.05;
-            let lev = (g.crowd + this.cheer * 1.6) * out * (mCrowd.g ?? 1), s = 0;
-            for (let j = 0; j < (stad ? 4 : 3); j++) s += this.walla[j].run(pink * 2.2) * this.wEnv[j];
-            this.rnd() < this.cheer * (stad ? 2200 : 1100) * dt && (this.clapE += 0.4 + this.rnd() * 0.6), this.clapE *= 0.82;
-            s = s * lev * (stad ? 0.08 : 0.05) + this.clap.run(wn * this.clapE) * this.cheer * 0.05 * out * (mCrowd.g ?? 1), l += s, r += s * 0.95;
-          }
-          /* ---- drops, bubbles ---- */
-          for (let j = this.drops.length - 1; j >= 0; j--) {
-            let D = this.drops[j], y = D.a1 * D.y1 - D.a2 * D.y2;
-            D.y2 = D.y1, D.y1 = y, l += y * D.pl, r += y * D.pr, --D.n <= 0 && this.drops.splice(j, 1);
-          }
-          this.clk *= 0.55;
-          let ck = this.clkHP.run(wn * this.clk) * 0.6;
-          l += ck, r += ck;
-          /* ---- pitched voices: birds, whistles, bells ---- */
+          let l = 0, r = 0;
           for (let j = this.tones.length - 1; j >= 0; j--) {
             let T = this.tones[j], tt = this.t - T.at;
             if (tt < 0) continue;
@@ -4993,24 +4823,19 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
               this.tones.splice(j, 1);
               continue;
             }
-            let x = tt / T.dur, f = T.f0 + (T.f1 - T.f0) * x;
-            T.fm && (f *= 1 + T.fm * 0.05 * Math.sin(TAU * 45 * tt)), T.ph += f * dt;
-            let env = T.kind === 1 ? Math.exp(-x * 4.5) * Math.min(1, tt / 2e-3) : T.kind === 3 ? Math.sin(Math.PI * x) ** 1.5 * Math.min(1, tt / 0.04) : Math.sin(Math.PI * x) ** 2, s = Math.sin(TAU * T.ph) * env * T.amp;
-            if (T.kind === 1) u += s + Math.sin(TAU * T.ph * 2.76) * env * env * T.amp * 0.25;
-            else {
-              T.kind === 3 && (s += Math.sin(TAU * T.ph * 2) * env * T.amp * 0.25);
-              let gb = (T.kind === 0 || T.kind === 3 ? g.birds * (mBird.g ?? 1) : mCrowd.g ?? 1) * out;
-              l += s * gb * T.pl, r += s * gb * T.pr;
-            }
+            let x = tt / T.dur, env = Math.exp(-x * 4.5) * Math.min(1, tt / 2e-3);
+            T.ph += T.f * dt;
+            let s = (Math.sin(TAU * T.ph) + Math.sin(TAU * T.ph * 2.76) * env * 0.25) * env * T.amp;
+            l += s * T.pl, r += s * T.pr;
           }
-          u *= uiv, L[i] = l * vol, R[i] = r * vol, UL ? (UL[i] = u, UR[i] = u) : (L[i] += u, R[i] += u);
+          L[i] = l * g, R[i] = r * g;
         }
       }
     }
-    return Amb;
+    return UISynth;
   }
   // ===== audio/mix.js =====
-  /* One mix for the whole game: four buses (engine, ground, world, UI), and for every sound its level,
+  /* One mix for the whole game: three buses (engine, ground, UI) and a master, and for every sound its level,
      which version of it plays, and a few character knobs. The sound board edits this object and turns it
      into a short code; the game reads the same code. Levels are in dB. */
   var MIX_SOUNDS = [
@@ -5020,30 +4845,18 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     { id: "squeal", bus: "ground", name: "Tyre squeal", vars: [], knobs: [] },
     { id: "mud", bus: "ground", name: "Mud", vars: [["squelch", "Squelch"], ["thick", "Thick and sucking"]], knobs: [] },
     { id: "water", bus: "ground", name: "Water splash", vars: [], knobs: [] },
-    { id: "speedwind", bus: "ground", name: "Wind from speed", vars: [], knobs: [] },
     { id: "hits", bus: "ground", name: "Bumps and landings", vars: [], knobs: [] },
-    /* the world around the truck */
-    { id: "rain", bus: "world", name: "Rain", vars: [["patter", "Patter"], ["drizzle", "Drizzle"], ["downpour", "Downpour"], ["tin", "On sheet metal"]], knobs: [["dens", "Density", 0.2, 2], ["bright", "Brightness", 0, 1]] },
-    { id: "roof", bus: "world", name: "Rain on the roof (in the cab)", vars: [["steel", "Steel roof"], ["soft", "Muffled"]], knobs: [] },
-    { id: "thunder", bus: "world", name: "Thunder", vars: [["rolling", "Rolling"], ["crack", "Close crack"], ["distant", "Distant"]], knobs: [["every", "Seconds between", 8, 60]] },
-    { id: "wind", bus: "world", name: "Wind", vars: [["breeze", "Breeze"], ["plains", "Plains gusts"], ["grass", "Through the grass"]], knobs: [["gust", "Gustiness", 0, 1]] },
-    { id: "birds", bus: "world", name: "Birds (day)", vars: [["songbirds", "Songbirds"], ["meadowlark", "Meadowlark"], ["doves", "Doves"], ["mixed", "All of them"]], knobs: [["rate", "How often", 0.2, 2]] },
-    { id: "daybugs", bus: "world", name: "Insects (day)", vars: [["cicada", "Cicadas"], ["hopper", "Grasshoppers"], ["off", "None"]], knobs: [] },
-    { id: "nightbugs", bus: "world", name: "Insects (night)", vars: [["field", "Field crickets"], ["tree", "Tree crickets"], ["katydid", "Katydids"], ["chorus", "Distant chorus"], ["mixed", "Mixed"]], knobs: [["pitch", "Pitch", 0, 1], ["rate", "Chirp rate", 0, 1], ["n", "How many", 1, 6]] },
-    { id: "creek", bus: "world", name: "Creek", vars: [["babble", "Babble"], ["trickle", "Trickle"], ["rush", "Rushing"]], knobs: [] },
-    { id: "crowd", bus: "world", name: "Crowd at the strip", vars: [["bleachers", "Bleachers"], ["stadium", "Big crowd"]], knobs: [] },
+    /* the shop and the HUD */
     { id: "ui", bus: "ui", name: "Shop and HUD sounds", vars: [], knobs: [] }
   ];
   var MIX_DEFAULT = {
-    v: 1,
-    bus: { engine: -1, ground: 0, world: 4, ui: -3, master: 0 },
+    v: 2,
+    bus: { engine: -1, ground: 0, ui: -3, master: 0 },
     eng: { norm: 0.75, tame: 0.55 },
     limiter: 1,
     s: {
-      dirt: { on: 1, lvl: 0, v: "fine" }, roll: { on: 1, lvl: 0 }, squeal: { on: 1, lvl: 0 }, mud: { on: 1, lvl: 0, v: "squelch" }, water: { on: 1, lvl: 0 }, speedwind: { on: 1, lvl: 0 }, hits: { on: 1, lvl: 0 },
-      rain: { on: 1, lvl: 0, v: "patter", dens: 1, bright: 0.5 }, roof: { on: 1, lvl: 0, v: "steel" }, thunder: { on: 1, lvl: 0, v: "rolling", every: 28 }, wind: { on: 1, lvl: 0, v: "breeze", gust: 0.5 },
-      birds: { on: 1, lvl: 0, v: "mixed", rate: 1 }, daybugs: { on: 1, lvl: -4, v: "cicada" }, nightbugs: { on: 1, lvl: 0, v: "mixed", pitch: 0.5, rate: 0.5, n: 4 },
-      creek: { on: 1, lvl: 0, v: "babble" }, crowd: { on: 1, lvl: 0, v: "bleachers" }, ui: { on: 1, lvl: 0 }
+      dirt: { on: 1, lvl: 0, v: "fine" }, roll: { on: 1, lvl: 0 }, squeal: { on: 1, lvl: 0 }, mud: { on: 1, lvl: 0, v: "squelch" }, water: { on: 1, lvl: 0 }, hits: { on: 1, lvl: 0 },
+      ui: { on: 1, lvl: 0 }
     }
   };
   var dbToLin = (d) => Math.pow(10, d / 20);
@@ -5051,7 +4864,8 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
   function mixFill(m) {
     let D = MIX_DEFAULT, o = JSON.parse(JSON.stringify(D));
     if (!m || typeof m != "object") return o;
-    Object.assign(o.bus, m.bus || {}), Object.assign(o.eng, m.eng || {}), m.limiter !== void 0 && (o.limiter = m.limiter ? 1 : 0);
+    for (let k in o.bus) m.bus && m.bus[k] !== void 0 && (o.bus[k] = m.bus[k]);
+    Object.assign(o.eng, m.eng || {}), m.limiter !== void 0 && (o.limiter = m.limiter ? 1 : 0);
     for (let k in o.s) m.s && m.s[k] && Object.assign(o.s[k], m.s[k]);
     return o;
   }
@@ -5064,10 +4878,10 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     }
     return out;
   }
-  var MIX_GROUND = ["dirt", "roll", "squeal", "mud", "water", "speedwind", "hits"], MIX_WORLD = ["rain", "roof", "thunder", "wind", "birds", "daybugs", "nightbugs", "creek", "crowd", "ui"];
+  var MIX_GROUND = ["dirt", "roll", "squeal", "mud", "water", "hits"], MIX_UI = ["ui"];
   /* a short code to carry a mix between the sound board and the game */
   function mixEncode(m) {
-    let only = { v: 1, bus: m.bus, eng: m.eng, limiter: m.limiter, s: {} };
+    let only = { v: 2, bus: m.bus, eng: m.eng, limiter: m.limiter, s: {} };
     for (let k in m.s) {
       let a = m.s[k], d = MIX_DEFAULT.s[k], diff = {};
       for (let q in a) a[q] !== d[q] && (diff[q] = a[q]);
@@ -5087,8 +4901,11 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
   // ===== world/ranch.js =====
   /* The ranch: one heightfield of red-dirt country around a metal shop. A graded dirt drag strip runs
      east from the shop, a trail loops through the hills to the north and crosses a creek, a steep hill
-     stands to the north-east for the climb, and a mud pit sits west of the pad. Everything the truck
-     can touch comes from the same triangulated grid the renderer draws, so wheels never float. */
+     stands to the north-east for the climb, and a mud pit sits west of the pad. Free roam adds a
+     burnout pad between the shop and the pit, a muddy loop out west that fords the creek twice, and a
+     rock garden north-east of the shop, drawn from its own fine heightfield (half-metre cells) so the
+     ledges and boulders are sharp. Everything the truck can touch comes from the same triangulated
+     grids the renderer draws, so wheels never float. */
   var SURF = ["grass", "dirt", "strip", "trail", "rock", "mud", "concrete", "water"], SF = {};
   SURF.forEach((n, i) => SF[n] = i);
   var RANCH_DEF = {
@@ -5100,7 +4917,10 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     hill: { x: 236, z: -262, amp: 46, sig: 56 },
     creek: [[-330, 330], [-250, 190], [-205, 60], [-196, -40], [-214, -130], [-252, -215], [-300, -300], [-360, -380]],
     loop: [[-40, -44], [-92, -70], [-150, -96], [-196, -112], [-238, -160], [-252, -222], [-214, -282], [-140, -312], [-56, -300], [12, -262], [70, -222], [104, -160], [86, -104], [30, -76], [-40, -44]],
-    climb: [[116, -84], [158, -124], [214, -148], [262, -178], [262, -212], [222, -226], [194, -246], [214, -272], [236, -264]]
+    climb: [[116, -84], [158, -124], [214, -148], [262, -178], [262, -212], [222, -226], [194, -246], [214, -272], [236, -264]],
+    burn: { x: 41, z: 0, w: 30, d: 22 },
+    mudTrack: [[-168, 112], [-176, 88], [-200, 76], [-232, 78], [-258, 94], [-266, 120], [-252, 146], [-222, 156], [-190, 150], [-170, 134], [-168, 112]],
+    rocks: { x0: 44, z0: -64, w: 56, d: 44, cell: 0.5 }
   };
   /* seeded value noise for the terrain */
   function makeNoise(seed) {
@@ -5176,7 +4996,7 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     let D = RANCH_DEF, NZ = makeNoise(7), N2 = D.size / D.cell + 1, cell = D.cell, x0 = -D.size / 2, z0 = -D.size / 2, H = new Float32Array(N2 * N2), W = new Float32Array(N2 * N2 * 4), SC = new Uint8Array(N2 * N2), sst = (a, b, x) => {
       let t = Math.max(0, Math.min(1, (x - a) / (b - a)));
       return t * t * (3 - 2 * t);
-    }, loop = makePath(D.loop, !0), climb = makePath(D.climb, !1), creek = makePath(D.creek, !1), St = D.strip, M = D.mud, HL = D.hill;
+    }, loop = makePath(D.loop, !0), climb = makePath(D.climb, !1), creek = makePath(D.creek, !1), mudT = makePath(D.mudTrack, !0), St = D.strip, M = D.mud, HL = D.hill, BU = D.burn, RG = D.rocks;
     /* ---------- the shape of the land ---------- */
     let rectDist = (x, z, ax, az, bx, bz) => {
       let dx = Math.max(ax - x, 0, x - bx), dz = Math.max(az - z, 0, z - bz);
@@ -5200,6 +5020,9 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       /* the access lane between pad and strip */
       let dLane = rectDist(x, z, -30, 6, 10, St.z), fl2 = 1 - sst(0, 22, dLane);
       h = h * (1 - fl2);
+      /* the burnout pad, graded flat */
+      let fb = 1 - sst(0, 12, rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2));
+      h = h * (1 - fb);
       /* the mud pit: a soft basin */
       let mr = Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz);
       h -= M.depth * (1 - sst(0.55, 1.15, mr));
@@ -5243,6 +5066,31 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       }
       return prof;
     };
+    /* the mud track: a sunken channel with whoops on the straights and berms on the outside of the corners.
+       Carved before the creek, so the creek cuts two fords through it */
+    carve(mudT, 5, 7, 6, 0.3);
+    {
+      let curvAt = (s) => {
+        let a = mudT.dir(s - 5), b = mudT.dir(s + 5);
+        return (a[0] * b[1] - a[1] * b[0]) / 10;
+      }, r = Math.ceil(11 / cell) + 1, done = new Uint8Array(N2 * N2);
+      for (let i = 0; i < mudT.N; i += 2) {
+        let [ci, cj] = hIdx(mudT.X[i], mudT.Z[i]);
+        for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+          let ii = ci + di, jj = cj + dj;
+          if (ii < 0 || jj < 0 || ii >= N2 || jj >= N2 || done[jj * N2 + ii]) continue;
+          let x = x0 + ii * cell, z = z0 + jj * cell, nr = mudT.nearest(x, z, 1);
+          if (!nr || nr.d > 10.5) continue;
+          done[jj * N2 + ii] = 1;
+          let c = mudT.at(nr.s), d = mudT.dir(nr.s), side = (x - c[0]) * -d[1] + (z - c[1]) * d[0], cv = curvAt(nr.s), out = -side * Math.sign(cv || 1), bh = Math.min(1, Math.abs(cv) * 55) * 0.95, k = jj * N2 + ii;
+          H[k] += bh * sst(0, 6, out) * (1 - sst(7.5, 10.5, out));
+          let whoop = 0.26 * (1 - sst(6e-3, 0.014, Math.abs(cv))) * (1 - sst(4.5, 6, Math.abs(side)));
+          H[k] += whoop * (0.5 - 0.5 * Math.cos(nr.s / 7 * Math.PI * 2));
+          let wal = sst(0.4, 0.44, nr.s / mudT.len) * (1 - sst(0.5, 0.54, nr.s / mudT.len));
+          H[k] -= 0.35 * wal * (1 - sst(3, 5.5, Math.abs(side)));
+        }
+      }
+    }
     carve(creek, 3.5, 5, 6, 1.5);
     let loopProf = carve(loop, 3.2, 6, 5), climbProf = carve(climb, 4, 8, 4, 0, 0.5);
     /* a couple of kickers on the loop for the brave */
@@ -5289,6 +5137,12 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       code = mud > 0.5 ? SF.mud : rock > 0.55 ? SF.rock : grass > 0.5 ? SF.grass : SF.dirt;
       dStrip <= 0.5 && (code = SF.strip);
       dPad <= 0 && Math.abs(x) < D.pad.w / 2 && z > -D.pad.d / 2 && (code = SF.concrete);
+      /* the burnout pad: bare dirt */
+      let dB = rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2);
+      dB < 6 && (grass *= sst(1, 6, dB), rock *= sst(1, 6, dB)), dB <= 0 && (code = SF.dirt, mud = 0);
+      /* the mud track */
+      let mt = mudT.nearest(x, z, 1);
+      mt && mt.d < 9 && (grass *= sst(4.5, 9, mt.d), rock *= sst(4, 8, mt.d), mud = Math.max(mud, 1 - sst(3.8, 5.6, mt.d + (n2 - 0.5) * 1.2)), mt.d < 4.8 && (code = SF.mud));
       let tn = loop.nearest(x, z, 1), cl = climb.nearest(x, z, 1);
       (tn && tn.d < 2.6 || cl && cl.d < 2.8) && code !== SF.mud && (code = SF.trail);
       let td = Math.min(tn ? tn.d : 99, cl ? cl.d : 99);
@@ -5313,6 +5167,59 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       /* the creek has water over its bed */
       return { y, n: [-gx / l, 1 / l, -gz / l], surf: SURF[code], code };
     };
+    /* ---------- the rock garden: its own half-metre heightfield laid over the ground ---------- */
+    let PU = Math.round(RG.w / RG.cell) + 1, PV = Math.round(RG.d / RG.cell) + 1, PH = new Float32Array(PU * PV), PSC = new Uint8Array(PU * PV), PWt = new Float32Array(PU * PV * 4), PN = new Float32Array(PU * PV * 3), Rb = rng(99), boulders = [];
+    for (let k = 0; k < 40; k++) {
+      let u = 5 + Rb() * (RG.w - 10), v = 4 + Rb() * (RG.d - 8);
+      let onRoute = Math.abs(v - 22) < 3.2, h = 0.3 + Rb() * 0.6, r = 0.5 + Rb() * 0.85;
+      onRoute ? u > 8 && u < 50 && boulders.push([u, v, r * 0.85, Math.min(h, 0.36)]) : boulders.push([u, v, r, h]);
+    }
+    let relief = (u, v) => {
+      let e = sst(0, 6, Math.min(u, v, RG.w - u, RG.d - v)), w1 = NZ.fbm(u / 7 + 40, v / 7) - 0.5;
+      /* a mound in ledges about half a metre tall, the ledge lines wandering */
+      let m = 3.1 * Math.exp(-((u - 31) ** 2 / (2 * 12 * 12) + (v - 22) ** 2 / (2 * 9.5 * 9.5))) + w1 * 0.35, st = 0.45, q = Math.max(0, m) / st, fl = Math.floor(q), terr = (fl + sst(0.7, 0.96, q - fl)) * st;
+      /* a staircase in the north-west corner, an off-camber slab in the south-west, two ridges with a notch between them in the north-east */
+      let stairs = u > 6 && u < 19 && v > 4 && v < 14 ? (Math.min(3, Math.floor((u - 6) / 3.4)) + sst(0.82, 1, (u - 6) / 3.4 % 1)) * 0.4 * sst(4, 5.5, v) * sst(14, 12.5, v) : 0;
+      let slab = sst(7, 9, u) * sst(21, 19, u) * sst(29, 31, v) * sst(41, 39, v) * (v - 29) * 0.15;
+      let ridge = u > 38 && u < 54 ? Math.max(1.25 * sst(1.6, 0.4, Math.abs(v - 7)), 1.25 * sst(1.6, 0.4, Math.abs(v - 15))) * sst(38, 40, u) * sst(54, 52, u) * (0.85 + 0.3 * w1) : 0;
+      let b = 0, isB = 0;
+      for (let [bu, bv, br, bh] of boulders) {
+        let d2 = ((u - bu) ** 2 + (v - bv) ** 2) / (br * br);
+        if (d2 < 1) {
+          let h = bh * Math.pow(1 - d2, 0.55);
+          h > b && (b = h, isB = 1);
+        }
+      }
+      let r = Math.max(terr, stairs, slab, ridge) + b * 0.9;
+      return [r * e, e, isB];
+    };
+    for (let j = 0; j < PV; j++) for (let i = 0; i < PU; i++) {
+      let u = i * RG.cell, v = j * RG.cell, x = RG.x0 + u, z = RG.z0 + v, [rl, e] = relief(u, v);
+      PH[j * PU + i] = heightAt(x, z) + rl;
+    }
+    let pAt = (i, j) => PH[Math.max(0, Math.min(PV - 1, j)) * PU + Math.max(0, Math.min(PU - 1, i))];
+    for (let j = 0; j < PV; j++) for (let i = 0; i < PU; i++) {
+      let k = j * PU + i, nx = pAt(i - 1, j) - pAt(i + 1, j), nz = pAt(i, j - 1) - pAt(i, j + 1), ny = 2 * RG.cell, l = Math.hypot(nx, ny, nz), u = i * RG.cell, v = j * RG.cell, x = RG.x0 + u, z = RG.z0 + v;
+      PN[k * 3] = nx / l, PN[k * 3 + 1] = ny / l, PN[k * 3 + 2] = nz / l;
+      let [rl, e, isB] = relief(u, v), slope = Math.sqrt(Math.max(0, 1 - (ny / l) ** 2)) / Math.max(ny / l, 0.05), bi = Math.max(0, Math.min(N2 - 1, Math.round((x - x0) / cell))), bj = Math.max(0, Math.min(N2 - 1, Math.round((z - z0) / cell))), bk = bj * N2 + bi;
+      let rock = Math.min(1, slope * 1.8 + (rl > 0.12 ? 0.5 : 0.15) + isB * 0.6 + (NZ.fbm(x / 3, z / 3) - 0.5) * 0.3), curv = (pAt(i - 1, j) + pAt(i + 1, j) + pAt(i, j - 1) + pAt(i, j + 1)) / 4 - PH[k];
+      PWt[k * 4] = W[bk * 4] * (1 - e), PWt[k * 4 + 1] = W[bk * 4 + 1] * (1 - e) + rock * e, PWt[k * 4 + 2] = 0, PWt[k * 4 + 3] = Math.max(0.5, Math.min(1, 1 - curv * 0.9));
+      PSC[k] = e < 0.3 ? SC[bk] : rl > 0.08 || slope > 0.3 ? SF.rock : SF.dirt;
+    }
+    /* tuck the coarse ground just under the patch, so the two never fight */
+    for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
+      let x = x0 + i * cell, z = z0 + j * cell;
+      x > RG.x0 + 0.5 && x < RG.x0 + RG.w - 0.5 && z > RG.z0 + 0.5 && z < RG.z0 + RG.d - 0.5 && (H[j * N2 + i] -= 0.15);
+    }
+    let inPatch = (x, z) => x >= RG.x0 && z >= RG.z0 && x < RG.x0 + RG.w && z < RG.z0 + RG.d, baseHeight = heightAt, baseGround = groundAt, patchG = (x, z) => {
+      let fx = (x - RG.x0) / RG.cell, fz = (z - RG.z0) / RG.cell, i = Math.min(PU - 2, Math.floor(fx)), j = Math.min(PV - 2, Math.floor(fz)), c = RG.cell;
+      fx -= i, fz -= j;
+      let h00 = PH[j * PU + i], h10 = PH[j * PU + i + 1], h01 = PH[(j + 1) * PU + i], h11 = PH[(j + 1) * PU + i + 1], y, gx, gz;
+      fx > fz ? (gx = (h10 - h00) / c, gz = (h11 - h10) / c, y = h00 + (h10 - h00) * fx + (h11 - h10) * fz) : (gx = (h11 - h01) / c, gz = (h01 - h00) / c, y = h00 + (h11 - h01) * fx + (h01 - h00) * fz);
+      let l = Math.hypot(gx, 1, gz), code = PSC[(j + (fz > 0.5 ? 1 : 0)) * PU + i + (fx > 0.5 ? 1 : 0)];
+      return { y, n: [-gx / l, 1 / l, -gz / l], surf: SURF[code], code };
+    };
+    heightAt = (x, z) => inPatch(x, z) ? patchG(x, z).y : baseHeight(x, z), groundAt = (x, z) => inPatch(x, z) ? patchG(x, z) : baseGround(x, z);
     /* ---------- geometry ---------- */
     let C2 = new Chunked(64), lights = [], colliders = [], R2 = rng(4242);
     C2.mat(16);
@@ -5328,6 +5235,20 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
         idx.push(row);
       }
       for (let j = 0; j < TS; j++) for (let i = 0; i < TS; i++) B.idx.push(idx[j][i], idx[j + 1][i + 1], idx[j][i + 1], idx[j][i], idx[j + 1][i], idx[j + 1][i + 1]);
+    }
+    {
+      /* the rock garden's own surface */
+      C2.mat(16);
+      let B = C2.at(RG.x0 + RG.w / 2, RG.z0 + RG.d / 2), idx = [];
+      for (let j = 0; j < PV; j++) {
+        let row = [];
+        for (let i = 0; i < PU; i++) {
+          let k = j * PU + i, x = RG.x0 + i * RG.cell, z = RG.z0 + j * RG.cell;
+          B.col(PWt[k * 4] * 255, PWt[k * 4 + 1] * 255, 0, 255), row.push(B.v([x, PH[k], z], [PN[k * 3], PN[k * 3 + 1], PN[k * 3 + 2]], x, z, PWt[k * 4 + 3]));
+        }
+        idx.push(row);
+      }
+      for (let j = 0; j < PV - 1; j++) for (let i = 0; i < PU - 1; i++) B.idx.push(idx[j][i], idx[j + 1][i + 1], idx[j][i + 1], idx[j][i], idx[j + 1][i], idx[j + 1][i + 1]);
     }
     /* a ribbon draped over the ground along a path: uv = (distance along, offset across) */
     let ribbon = (path, half, variant, s0 = 0, s1 = path.len, step = 1.5, lift = 0.035) => {
@@ -5346,7 +5267,7 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
         prev = row, prev.s = ss;
       }
     };
-    ribbon(loop, 3.4, 1), ribbon(climb, 3.4, 1);
+    ribbon(loop, 3.4, 1), ribbon(climb, 3.4, 1), ribbon(mudT, 5, 2, 0, mudT.len, 1.2, 0.03);
     /* the drag strip: a straight graded ribbon, uv = (metres past the start line, metres from the centre) */
     {
       C2.mat(17, 0).col(255, 255, 255, 255);
@@ -5468,6 +5389,10 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       if (rectDist(x, z, -24, -36, 24, 16) < r) return !1;
       if (rectDist(x, z, -32, 4, 12, St.z) < r) return !1;
       if (Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz) < 1.3) return !1;
+      if (rectDist(x, z, BU.x - BU.w / 2 - 6, BU.z - BU.d / 2 - 6, BU.x + BU.w / 2 + 6, BU.z + BU.d / 2 + 6) < r) return !1;
+      if (rectDist(x, z, RG.x0 - 16, RG.z0 - 4, RG.x0 + RG.w + 12, RG.z0 + RG.d + 4) < r) return !1;
+      let mtn = mudT.nearest(x, z, 2);
+      if (mtn && mtn.d < 11 + r) return !1;
       let a = loop.nearest(x, z, 2), b = climb.nearest(x, z, 2), c = creek.nearest(x, z, 2);
       return !(a && a.d < 6 + r || b && b.d < 6 + r || c && c.d < 4);
     }, tree = (x, z, kind, sc) => {
@@ -5494,7 +5419,7 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       tree(x, z, z < -120 && R2() < 0.45 ? 1 : 0, 0.75 + R2() * 0.6), nTrees++;
     }
     /* a few trees framing the pad */
-    for (let [x, z, s] of [[-30, -6, 1.1], [26, -40, 1.25], [-34, -38, 0.9], [36, 12, 1]]) tree(x, z, 0, s);
+    for (let [x, z, s] of [[-30, -6, 1.1], [26, -40, 1.25], [-34, -38, 0.9], [-28, 14, 1]]) tree(x, z, 0, s);
     /* boulders on the slopes and along the trail */
     let rock = (x, z, r) => {
       let y = heightAt(x, z), B = C2.at(x, z);
@@ -5534,10 +5459,37 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     };
     for (let s = 0; s < loop.len - 20; s += 70) gate(loop, s, "loop");
     gate(climb, 0, "climb"), gate(climb, climb.len - 4, "climb");
+    gate(mudT, 4, "mud");
+    let gateAt = (x, z, dx, dz, tag, half = 5, col = [255, 110, 26, 255]) => {
+      for (let side of [-1, 1]) {
+        let px = x - dz * side * half, pz = z + dx * side * half, y = heightAt(px, pz);
+        box([px, y + 1.6, pz], [0.12, 1.6, 0.12], 18, [150, 120, 90, 255], 0), box([px, y + 3.3, pz], [0.4, 0.3, 0.06], 8, col, 0), collideCirc(px, pz, 0.2, y + 3.2);
+      }
+      gates.push({ s: 0, x, z, dx, dz, tag });
+    };
+    /* the rock garden: in at the west flags, over the top, out at the east flags */
+    gateAt(RG.x0 + 2.5, RG.z0 + 22, 1, 0, "rock", 4.5), gateAt(RG.x0 + 31, RG.z0 + 22, 1, 0, "rock", 4, [255, 220, 60, 255]), gateAt(RG.x0 + RG.w - 2.5, RG.z0 + 22, 1, 0, "rock", 4.5);
+    /* the burnout pad: tyre walls on three sides, flags at the open end */
+    {
+      let x0b = BU.x - BU.w / 2, x1b = BU.x + BU.w / 2, z0b = BU.z - BU.d / 2, z1b = BU.z + BU.d / 2, stack = (x, z) => {
+        let y = heightAt(x, z);
+        C2.mat(8).col(22, 22, 24, 255), C2.at(x, z).tube([x, y - 0.05, z], [x, y + 0.78, z], 0.36, 12, !0);
+        C2.mat(8).col(48, 48, 50, 255), C2.at(x, z).tube([x, y + 0.255, z], [x, y + 0.275, z], 0.365, 12, !1), C2.at(x, z).tube([x, y + 0.515, z], [x, y + 0.535, z], 0.365, 12, !1);
+        collideCirc(x, z, 0.42, y + 0.8);
+      };
+      /* open to the shop on the west, tyres on the other three sides */
+      for (let x = x0b - 0.1; x <= x1b + 1.5; x += 0.78) stack(x, z0b - 1.4), stack(x, z1b + 1.4);
+      for (let z = z0b - 0.6; z <= z1b + 0.7; z += 0.78) stack(x1b + 1.4, z);
+      for (let z of [z0b - 1.4, z1b + 1.4]) {
+        let x = x0b - 1.2, y = heightAt(x, z);
+        box([x, y + 1.6, z], [0.07, 1.6, 0.07], 18, [150, 120, 90, 255], 0), box([x - 0.32, y + 2.9, z], [0.32, 0.22, 0.02], 8, [255, 110, 26, 255], 0), collideCirc(x, z, 0.15, y + 3);
+      }
+    }
     let geo = C2.pack();
     return {
       geo, lights, steam: [], info: { xw: [] }, gridP: { x0: x0, z0: z0, size: D.size, cell: 8 },
-      N: N2, cell, x0, z0, H, SC, heightAt, groundAt, strip, loop, climb, creek, creekLevel, gates, mud: M, hill: HL, kick, colliders: gridColliders(colliders), loopProf, climbProf, D
+      N: N2, cell, x0, z0, H, SC, heightAt, groundAt, strip, loop, climb, creek, creekLevel, gates, mud: M, hill: HL, kick, colliders: gridColliders(colliders), loopProf, climbProf, D,
+      burn: BU, mudTrack: mudT, rocks: RG
     };
   }
   /* a bucket grid over the colliders so the hull only checks what is near */
@@ -5578,6 +5530,25 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
         t = nt;
       }
       return t < 0 || t > maxT ? null : { t, p: [o[0] + dir[0] * t, o[1] + dir[1] * t, o[2] + dir[2] * t], n: g.n, surf: g.surf, i: 0 };
+    }
+    /* where a tyre (a circle of radius R rolling along fwd) first touches the ground: rays down at seven
+       points across its footprint, each lifted by the circle's curve there. A ledge ahead is found before the
+       hub reaches it, and the contact normal leans back off its face. */
+    wheelContact(o, down, fwd, R, maxT) {
+      let best = this.raycast(o, down, maxT);
+      best && (best.off = 0);
+      let fd = fwd[0] * down[0] + fwd[1] * down[1] + fwd[2] * down[2], f = [fwd[0] - down[0] * fd, fwd[1] - down[1] * fd, fwd[2] - down[2] * fd], fl = Math.hypot(f[0], f[1], f[2]) || 1;
+      f = [f[0] / fl, f[1] / fl, f[2] / fl];
+      for (let k of [-0.75, -0.5, -0.25, 0.25, 0.5, 0.75]) {
+        let dx = k * R, h = this.raycast([o[0] + f[0] * dx, o[1] + f[1] * dx, o[2] + f[2] * dx], down, maxT);
+        if (!h) continue;
+        let eff = h.t + R - Math.sqrt(R * R - dx * dx);
+        if (!best || eff < best.t - 2e-3) {
+          let cen = [o[0] + down[0] * (eff - R), o[1] + down[1] * (eff - R), o[2] + down[2] * (eff - R)], n = [cen[0] - h.p[0], cen[1] - h.p[1], cen[2] - h.p[2]], nl = Math.hypot(n[0], n[1], n[2]) || 1;
+          best = { t: eff, p: h.p, n: [n[0] / nl, n[1] / nl, n[2] / nl], surf: h.surf, i: 0, off: dx };
+        }
+      }
+      return best && best.t <= maxT ? best : null;
     }
     /* trees, posts, walls and bales: push the hull back out */
     wall(P) {
@@ -5672,6 +5643,16 @@ void matRibbon(inout Surf s,inout float ssr,inout vec2 g,vec2 uv,uvec4 m){
     chalk*=1.0-wear*.75;
     alb=mix(alb,vec3(.7,.68,.63),chalk);rough=mix(rough,.96,chalk);
     g+=vnd(uv*4.).yz*4.*.0012*(1.0-burn);
+  }else if(m.y==2u){
+    /* the mud track: churned and wet, four ruts cut deep by every lap, water lying in them, drier clods on the crown */
+    float n3=vn(uv*vec2(.9,2.2)),n4=vn(uv*7.);
+    vec3 mud=mix(vec3(.13,.085,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*n4);
+    float rut=0.;for(int i=0;i<4;i++){float c=(float(i)-1.5)*1.55+(vn(vec2(sx*.08,float(i)*3.))-.5)*.7;rut=max(rut,exp(-pow((d-c)/.34,2.)));}
+    float edge=smoothstep(3.8,4.9,ad+(n3-.5)*1.2),clod=smoothstep(.55,.8,vn(uv*vec2(3.,5.)))*(1.0-rut);
+    alb=mix(mud*(1.0+clod*.45),dirtCol(wp)*.85,edge*.6);rough=mix(.5,.85,clod);
+    float pud=rut*smoothstep(.45,.6,fbm(vec2(sx*.15,d*.6)))*(1.0-edge);
+    alb=mix(alb,vec3(.07,.05,.03),pud*.8);rough=mix(rough,.12,pud);ssr=max(ssr,pud*.45);
+    vec3 tr=vnd(vec2(sx*3.,d*9.));g+=tr.yz*.04*(1.0-pud)+vec2(0.,-rut*sign(d)*.02);
   }else{
     /* a two-track: packed ruts, a grassy crown, grass closing in at the verges */
     float rut=exp(-pow((ad-.86)/.3,2.));float crown=1.0-smoothstep(.18,.45,ad);float verge=smoothstep(1.9,3.3,ad+(n2-.5)*.8);
@@ -7010,15 +6991,29 @@ void main(){
       { v: "stock", n: "Factory privacy glass", d: "", price: 0 },
       { v: "limo", n: "Limo tint", d: "Nobody can see who's driving.", price: 250, loud: 2 }
     ] }
-  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["looks", "Looks"], ["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
+  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["builds", "Trucks"], ["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
   var STOCK_BUILD = Object.fromEntries(SLOTS.map((s) => [s.id, s.opts.find((o) => !o.price && (s.id !== "susp" || o.v === "stock")).v]));
   STOCK_BUILD.susp = "stock";
-  /* three finished looks, one click each: only the parts you can see (and the wheels, tyres and ride height under them) */
-  var LOOKS = [
-    { id: "classic", name: "Classic Sleeper", blurb: "Bronze-grey paint, the chrome twin-bar face, six-spoke alloys, factory cladding and the little lip. Looks like it's going to church.", build: { paint: "bronze", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "stock18", tyre: "street32", susp: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0 } },
-    { id: "street", name: "Street Sleeper", blurb: "Gunmetal, dropped two inches on 20-inch ten-spokes with red calipers. Split-mesh face, smoked lamps, LED tails, a splitter, a diffuser, a big roof spoiler and red pinstripes.", build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", livery: 0, tint: "limo", wheel: "street20", tyre: "street32", susp: "lowered", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "diffuser", hood: "stock", snorkel: 0 } },
-    { id: "backcountry", name: "Backcountry", blurb: "Canyon stone on bronze discs and all-terrains, a leveling kit, wide black flares, quad round lamps, recovery shackles and the expedition rack.", build: { paint: "stone", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "bronze17", tyre: "at33", susp: "level", flares: 2, sides: "cladding", spoiler: 0, roof: "expedition", front: "recovery", rear: "stock", hood: "stock", snorkel: 0 } }
+  /* the four trucks: the factory truck, and the best arrangement of parts for a sleeper, for mud and for
+     racing, each found by running the game's own physics over the strip, the bog and the climb. Free play
+     picks one at the start; the campaign earns them, or you buy the parts. */
+  var BUILDS = [
+    { id: "starter", name: "Starter", role: "As it left the factory", blurb: "Bronze-grey, 4.6 V8, six-speed auto, 32-inch highway tyres. Everything else is up to you.", build: {}, earn: null },
+    { id: "sleeper", name: "Sleeper", role: "Looks like church, runs sevens", blurb: "Midnight black with the chrome twin-bar face and factory alloys on all-terrains. Underneath: the twin-turbo V6 with bigger turbos and a 250-shot, a race four-speed with a trans-brake, 4.56 gears and a gutted cabin.",
+      build: { paint: "black", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", tint: "limo", wheel: "stock18", tyre: "at33", susp: "stock", shocks: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0, lights: 0, engine: "tt35", power: "bigturbo", nos: 4, intake: 2, exhaust: "headers", cam: 0, tune: 2, trans: "race4", axle: 4.56, tcase: "awd", lockers: 0, interior: "gutted" },
+      earn: { kind: "drag", id: "prof", text: "Beat The Professor on the strip" } },
+    { id: "mudder", name: "Mudder", role: "Built for the bog", blurb: "Safety orange on a six-inch lift and 40-inch swampers. A blown big-block through a race four-speed, 5.38 gears, low range, lockers front and rear, a snorkel, wide flares and a light bar.",
+      build: { paint: "orange", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", tint: "stock", wheel: "beadlock17", tyre: "sw40", susp: "lift6", shocks: "bypass", flares: 2, sides: "sliders", spoiler: 0, roof: "none", front: "recovery", rear: "stock", hood: "stock", snorkel: 1, lights: 1, engine: "bb74", power: "roots", nos: 1, intake: 2, exhaust: "headers", cam: 2, tune: 2, trans: "race4", axle: 5.38, tcase: "low", lockers: 2, interior: "gutted" },
+      earn: { kind: "medal", run: "bog", m: 3, text: "Win gold in the Mud Bog" } },
+    { id: "racer", name: "Racer", role: "Built for the dirt drags", blurb: "Gunmetal with red pinstripes, split-mesh face, a big roof spoiler and wheelie bars. A twin-turbo big-block on a 250-shot through a race four-speed to paddle tyres on 20-inch ten-spokes.",
+      build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", tint: "limo", wheel: "street20", tyre: "paddle35", susp: "level", shocks: "bypass", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "wheelie", hood: "scoop", snorkel: 0, lights: 0, engine: "bb74", power: "twin", nos: 4, intake: 2, exhaust: "straight", cam: 3, tune: 2, trans: "race4", axle: 3.73, tcase: "awd", lockers: 0, interior: "gutted" },
+      earn: { kind: "drag", id: "ghost", text: "Beat The Ghost" } }
   ];
+  /* a preset as a complete build (everything it doesn't name is factory) */
+  function presetBuild(id, keep) {
+    let B = BUILDS.find((q) => q.id === id) || BUILDS[0];
+    return Object.assign({}, STOCK_BUILD, B.build, keep ? { number: keep.number } : {});
+  }
   function optOf(b, id) {
     return SLOT[id].opts.find((o) => o.v === b[id]) || SLOT[id].opts[0];
   }
@@ -7263,7 +7258,7 @@ void main(){
   function freshSave(gm = "campaign") {
     let free = gm === "free", b = Object.assign({}, STOCK_BUILD, { number: 10 + Math.floor(Math.random() * 89) }), owned = {};
     for (let s of SLOTS) owned[s.id] = s.opts.filter((o) => free || !o.price).map((o) => o.v);
-    return { v: 1, gm, cash: free ? 0 : 2500, spent: 0, build: b, owned, drag: free ? RIVALS.length : 0, wins: {}, medals: { trail: 0, climb: 0, bog: 0 }, best: { trail: 0, climb: 0, bog: 0, et: 0, trap: 0, rt: 0 }, coolers: [], trophies: {}, dirt: 0.15, mud: 0, settings: SETTINGS };
+    return { v: 1, gm, cash: free ? 0 : 2500, spent: 0, build: b, owned, drag: free ? RIVALS.length : 0, wins: {}, medals: { trail: 0, climb: 0, bog: 0 }, best: { trail: 0, climb: 0, bog: 0, et: 0, trap: 0, rt: 0, jump: 0, jumpD: 0, burn: 0, burnT: 0, mudlap: 0, rock: 0 }, builds: { starter: 1 }, coolers: [], trophies: {}, dirt: 0.15, mud: 0, settings: SETTINGS };
   }
   function hasSave(gm) {
     let s = readKey(SAVE_KEYS[gm]);
@@ -7272,7 +7267,7 @@ void main(){
   function loadSave(gm = "campaign") {
     let s = hasSave(gm), f = freshSave(gm);
     if (!s) return f;
-    s.gm = gm, s.build = Object.assign({}, f.build, s.build), s.medals = Object.assign({}, f.medals, s.medals), s.best = Object.assign({}, f.best, s.best), s.trophies = s.trophies || {}, s.spent = s.spent || 0, s.coolers = s.coolers || [], s.wins = s.wins || {};
+    s.gm = gm, s.build = Object.assign({}, f.build, s.build), s.medals = Object.assign({}, f.medals, s.medals), s.best = Object.assign({}, f.best, s.best), s.trophies = s.trophies || {}, s.spent = s.spent || 0, s.coolers = s.coolers || [], s.wins = s.wins || {}, s.builds = Object.assign({ starter: 1 }, s.builds);
     for (let k in f.owned) s.owned[k] = Array.from(/* @__PURE__ */ new Set([...f.owned[k], ...(s.owned || {})[k] || []]));
     for (let sl of SLOTS) SLOT[sl.id].opts.some((o) => o.v === s.build[sl.id]) || (s.build[sl.id] = STOCK_BUILD[sl.id]);
     return gm === "free" && (s.drag = RIVALS.length), s.settings = SETTINGS, s;
@@ -7305,7 +7300,7 @@ void main(){
     return { n, data, params: [-400, -400, 1 / 800, n] };
   }
   var world = new RanchWorld(W), SR = new SuvRenderer(R), CR = new CarRenderer(R, CHASSIS.sl3), PS = new Particles(R, heightMask(W), { rainN: { low: 2500, medium: 4e3, high: 6e3, ultra: 8e3 }[SV.settings.quality] || 4e3 }), drs = new DRS({ min: 0.5, max: R.Q.maxScale, start: 0.8 }), input = new Input(window), audio = new GameAudio();
-  KEYS.led = [], KEYS.high = [], KEYS.lo = ["KeyL"], KEYS.lock = ["KeyK"], KEYS.lights = ["KeyF"], KEYS.horn = ["KeyH"], KEYS.env = ["KeyT"], KEYS.cam = ["KeyC"], KEYS.up = ["KeyE"], KEYS.down = ["KeyQ"];
+  KEYS.led = [], KEYS.high = [], KEYS.lo = ["KeyL"], KEYS.lock = ["KeyK"], KEYS.lights = ["KeyF"], KEYS.horn = ["KeyH"], KEYS.env = ["KeyT"], KEYS.cam = ["KeyC"], KEYS.up = ["KeyE"], KEYS.down = ["KeyQ"], KEYS.linelock = ["KeyG"], KEYS.replay = ["KeyY"], KEYS.skip = ["Space", "Enter", "Escape", "KeyY"];
   var truck = null, spec = null, nums = null, state = "boot", mode = null, time = 0, acc = 0, envId = SV.settings.env, env = ENVS[envId], lightsOn = !1, horn = !1, cam = null, lastEv = {}, msgs = [];
   function setEnv(id) {
     envId = id, env = ENVS[id] || ENVS.afternoon;
@@ -7326,10 +7321,10 @@ void main(){
     for (let w of truck.wheels) w.comp = 0, w.ang = 0, w.w = 0;
     truck.pt.gear = 1, truck.pt.shiftT = 0, truck.pt.engage = 0, truck.pt.locked = !1, truck.rev = !1, truck.pt.rev = !1, truck.drift.on = !1, truck.pt.nos = truck.pt.e.nosKw ? 1 : 0;
     for (let i = 0; i < 120; i++) truck.step(DT, { thr: 0, brk: 1, steer: 0 });
-    truck.v = [0, 0, 0], truck.w = [0, 0, 0], cam && (cam.cut = !0);
+    truck.v = [0, 0, 0], truck.w = [0, 0, 0], truck.rev = !1, truck.pt.rev = !1, truck.revT = 0, cam && (cam.cut = !0), typeof REC < "u" && (REC.length = 0, pendingRep = null);
   }
   /* ---------- the camera ---------- */
-  var CAMS = ["Chase", "Far chase", "Hood", "Driver"], ChaseCam = class {
+  var CAMS = ["Chase", "Far chase", "Cinematic", "Hood", "Driver"], ChaseCam = class {
     constructor() {
       this.mode = SV.settings.cam || 0, this.cut = !0, this.off = null, this.pv = [0, 0, 0], this.yaw = null, this.yawV = 0, this.orbit = null, this.fq = null, this.shake = 0;
     }
@@ -7346,7 +7341,29 @@ void main(){
       }
       this.shake = Math.max(this.shake * Math.exp(-dt * 6), impact * 0.5);
       let mname = CAMS[this.mode];
-      if (mname === "Chase" || mname === "Far chase" || look) {
+      if (mname === "Cinematic" && !look) {
+        /* low and long, swinging out to the outside of the turn, a tighter lens */
+        let fh = norm2([F[0], 1e-4, F[2]]), steer = v.steer || 0;
+        this.side = (this.side ?? 0) + (clamp(-steer * 2.2, -0.55, 0.55) + 0.18 - (this.side ?? 0)) * Math.min(1, dt * 0.9);
+        let ty = Math.atan2(fh[2], fh[0]) + this.side;
+        (this.yaw === null || cut) && (this.yaw = ty, this.yawV = 0);
+        let d = ty - this.yaw;
+        for (; d > Math.PI; ) d -= TAU;
+        for (; d < -Math.PI; ) d += TAU;
+        [this.yaw, this.yawV] = springTo(this.yaw, this.yawV, this.yaw + d, 2.1 + clamp(sp / 20, 0, 1.5), dt);
+        let h = [Math.cos(this.yaw), 0, Math.sin(this.yaw)], dist = 9.5 + clamp(sp * 0.07, 0, 4) + v.c.susp.rest * 2, tgt = [v.p[0] - h[0] * dist, v.p[1] + 0.35 + (v.c.hcg - SUV.hcg0) * 0.6, v.p[2] - h[2] * dist];
+        tgt[1] = Math.max(tgt[1], W.heightAt(tgt[0], tgt[2]) + 0.55);
+        let off = sub2(tgt, v.p);
+        (!this.off || cut) && (this.off = off.slice(), this.pv = [0, 0, 0]);
+        for (let k = 0; k < 3; k++) {
+          let r = springTo(this.off[k], this.pv[k], off[k], k === 1 ? 3.2 : 2.6, dt);
+          this.off[k] = r[0], this.pv[k] = r[1];
+        }
+        let pos = add(v.p, this.off);
+        pos[1] = Math.max(pos[1], W.heightAt(pos[0], pos[2]) + 0.45);
+        let at = [v.p[0] + fh[0] * 1.2, v.p[1] + 0.25, v.p[2] + fh[2] * 1.2];
+        out.pos = pos, out.fwd = norm2(sub2(at, pos)), out.up = [0, 1, 0], out.fov = 0.6 + clamp(sp * 2.5e-3, 0, 0.18), this.fq = null;
+      } else if (mname === "Chase" || mname === "Far chase" || look) {
         let fh = norm2([F[0], 1e-4, F[2]]), dir = [fh[0], 0, fh[2]];
         if (sp > 3) {
           let vd = norm2([v.v[0], 0, v.v[2]]), k = clamp((sp - 3) / 12, 0, 1) * 0.5 * (dot2(vd, fh) > 0 ? 1 : 0);
@@ -7404,7 +7421,7 @@ void main(){
     return truck.p[0] + F[0] * (SUV.axF + truck.c.R);
   }
   function startEvent(kind, arg) {
-    rival = null, PS.n = 0, $("toasts").innerHTML = "";
+    rival = null, PS.n = 0, $("toasts").innerHTML = "", pendingRep = null, pendingResult = null;
     let b = SV.build;
     if (kind === "drag") {
       let rv = RIVALS[arg];
@@ -7423,7 +7440,7 @@ void main(){
       setEnv(RUNS.bog.env), placeTruck(M.x + M.rx + 14, M.z, Math.PI), mode = { kind, run: RUNS.bog, t: 0, started: !1, stuck: 0, x0: M.x + M.rx, x1: M.x - M.rx, done: !1, resets: 0 };
       say("Full send through the pit. Don't stop.", "", 3);
     } else
-      setEnv(SV.settings.env), mode = { kind: "roam", t: 0 }, truck.speed < 0.5 && Math.hypot(truck.p[0], truck.p[2] - 2) < 20 && placeTruck(0, 6, 0), say(`${COOLERS.length - SV.coolers.length} cash coolers left out there. T changes the time of day.`, "", 4);
+      setEnv(SV.settings.env), mode = { kind: "roam", t: 0 }, roamReset(), truck.speed < 0.5 && Math.hypot(truck.p[0], truck.p[2] - 2) < 20 && placeTruck(0, 6, 0), say("Burnout pad east of the shop, rock garden past it, mud track out west. Pause to jump straight to one.", "", 4.5);
     state = "drive", cam.orbit = null, cam.cut = !0, truck.pt.running || truck.pt.start(), ui.show("hud");
   }
   function finishEvent(res) {
@@ -7439,21 +7456,40 @@ void main(){
         let first = !SV.wins[rv.id];
         free || (pay = Math.round(rv.pay * (first ? 1 : 0.35)), res.sleeperBonus = Math.round(pay * nums.sleeper / 100), pay += res.sleeperBonus), SV.wins[rv.id] = (SV.wins[rv.id] || 0) + 1, mode.idx >= SV.drag && (SV.drag = mode.idx + 1), res.unlocked = !free && first && mode.idx + 1 < RIVALS.length ? RIVALS[mode.idx + 1] : null;
         A("first"), RIVALS.every((q) => SV.wins[q.id]) && A("ladder"), rv.id === "ghost" && (A("ghost"), nums.looks < 15 && A("unseen")), nums.sleeper >= 40 && A("sleeper"), spec.diesel && A("diesel");
+        for (let B of BUILDS) B.earn && B.earn.kind === "drag" && B.earn.id === rv.id && earnBuild(B, res);
       }
+      !res.foul && mode.leftT && queueReplay("launch", mode.leftT - 0.7, mode.leftT + 2.4, 0.33);
       !res.foul && res.rt >= 0 && res.rt < 0.05 && res.et > 0 && A("rt"), !res.foul && res.et > 0 && res.et < 8 && A("seven");
       res.et > 0 && !res.foul && ((!SV.best.et || res.et < SV.best.et) && (SV.best.et = res.et, SV.best.trap = res.trap), (!SV.best.rt || res.rt < SV.best.rt && res.rt >= 0) && (SV.best.rt = res.rt));
     } else if (res.time > 0) {
       let run = RUNS[res.kind], m = res.time <= run.medals[2] ? 3 : res.time <= run.medals[1] ? 2 : res.time <= run.medals[0] ? 1 : 0, prev = SV.medals[res.kind];
       res.medal = m, free || (pay = m ? m > prev ? run.pay[m - 1] : Math.round(run.pay[m - 1] * 0.3) : 150), m > prev && (SV.medals[res.kind] = m), (!SV.best[res.kind] || res.time < SV.best[res.kind]) && (res.record = !0, SV.best[res.kind] = res.time);
       m === 3 && A(res.kind), SV.medals.trail === 3 && SV.medals.climb === 3 && SV.medals.bog === 3 && A("allgold"), m && audio.ui("medal");
+      for (let B of BUILDS) B.earn && B.earn.kind === "medal" && B.earn.run === res.kind && m >= B.earn.m && earnBuild(B, res);
     }
     res.trophies = got, res.pay = pay, SV.cash += pay, persist(), setTimeout(() => {
-      state === "drive" && mode && mode.result === res && (state = "result", ui.result(res));
+      if (!mode || mode.result !== res) return;
+      if (state === "replay" || pendingRep) return void (pendingResult = res);
+      state === "drive" && (state = "result", ui.result(res));
     }, res.kind === "drag" ? 2600 : 1600);
+  }
+  /* a preset truck earned in the campaign: its parts go into the shop for free */
+  function earnBuild(B, res) {
+    if (FREE() || SV.builds[B.id]) return;
+    SV.builds[B.id] = 1;
+    for (let id in B.build) {
+      let o = SV.owned[id] = SV.owned[id] || [];
+      o.includes(B.build[id]) || o.push(B.build[id]);
+    }
+    (res.newBuilds = res.newBuilds || []).push(B), persist(), say(`Unlocked: the ${B.name} truck`, "go", 3.5);
   }
   /* pick campaign or free play from the title, then into the shop */
   function chooseMode(gm) {
-    SV = loadSave(gm), persist(), rebuildTruck(!1), audio.start(), audio.setVolume(SETTINGS.vol), audio.setAmbVolume(SETTINGS.amb ?? 1), enterGarage();
+    SV = loadSave(gm), persist(), rebuildTruck(!1), audio.start(), audio.setVolume(SETTINGS.vol), gm === "free" ? openPicker() : enterGarage();
+  }
+  /* free play starts here: pick one of the four trucks, then drive */
+  function openPicker() {
+    state = "pick", mode = null, rival = null, setEnv(SV.settings.env === "night" ? "night" : "afternoon"), placeTruck(GARAGE.x, GARAGE.z, GARAGE.yaw), truck.pt.running || truck.pt.start(), lightsOn = !1, cam.orbit = { yaw: 0.75, pitch: 0.05, dist: 10.5, y: -1, fov: 0.7, cut: !0, auto: !0 }, ui.show("pick");
   }
   function goTitle() {
     persist(), state = "title", mode = null, rival = null, placeTruck(GARAGE.x, GARAGE.z, GARAGE.yaw), cam.orbit = { yaw: 2.3, pitch: 0.12, dist: 9.5, y: 0.35, fov: 0.7, cut: !0 }, setEnv("dusk"), ui.show("title");
@@ -7513,7 +7549,7 @@ void main(){
     if (m.phase === "run") {
       let tg = m.t - m.green;
       m.tree = [m.foul ? 64 | 3 : tg < 1.5 ? 32 | 3 : 3, 32 | 3];
-      if (!m.left && fx > m.sx + 0.16 && (m.left = m.t, m.rt = m.left - m.green, m.rt < 0 && (m.foul = !0, say("Red light!", "bad", 2.5))), m.left) {
+      if (!m.left && fx > m.sx + 0.16 && (m.left = m.t, m.leftT = time, m.rt = m.left - m.green, m.rt < 0 && (m.foul = !0, say("Red light!", "bad", 2.5))), m.left) {
         let d = fx - m.sx, tt = m.t - m.left, S = m.splits;
         !S.t60 && d >= FT60 && (S.t60 = tt), !S.t330 && d >= FT330 && (S.t330 = tt), !S.t181 && d >= EIGHTH - 20.117 && (S.t181 = tt), !m.fin && d >= EIGHTH && (m.fin = m.t, S.et = tt, S.trap = 20.117 / Math.max(0.05, tt - S.t181));
       }
@@ -7526,7 +7562,7 @@ void main(){
       rival.accS = (rival.accS || 0) + ((vNew - (rival.vPrev || 0)) / Math.max(dt, 1e-3) - (rival.accS || 0)) * 0.08, rival.vPrev = vNew, rival.acc = rival.accS;
       !m.done && (m.fin || m.t - m.green > 25 || m.foul && m.rFin && m.t - m.rFin > 1) && (m.rFin || m.t - m.green > 25) && (() => {
         let S = m.splits, win = !m.foul && !!m.fin && (!m.rFin || m.fin < m.rFin);
-        finishEvent({ kind: "drag", win, foul: m.foul, rt: m.rt ?? 0, et: S.et || 0, t60: S.t60 || 0, t330: S.t330 || 0, trap: S.trap || 0, rival: m.rv, rRt: rival.run.rt, rEt: rival.run.et, r60: rival.run.tAt(FT60), r330: rival.run.tAt(FT330), rTrap: 20.117 / Math.max(0.05, rival.run.et - rival.run.tAt(EIGHTH - 20.117)), margin: m.fin && m.rFin ? m.rFin - m.fin : 0 }), say(win ? "Win!" : m.foul ? "Foul" : "Beaten", win ? "go" : "bad", 2.2), ambQ.push({ type: "cheer", a: win ? 1 : 0.4 });
+        finishEvent({ kind: "drag", win, foul: m.foul, rt: m.rt ?? 0, et: S.et || 0, t60: S.t60 || 0, t330: S.t330 || 0, trap: S.trap || 0, rival: m.rv, rRt: rival.run.rt, rEt: rival.run.et, r60: rival.run.tAt(FT60), r330: rival.run.tAt(FT330), rTrap: 20.117 / Math.max(0.05, rival.run.et - rival.run.tAt(EIGHTH - 20.117)), margin: m.fin && m.rFin ? m.rFin - m.fin : 0 }), say(win ? "Win!" : m.foul ? "Foul" : "Beaten", win ? "go" : "bad", 2.2);
       })();
     }
   }
@@ -7551,6 +7587,11 @@ void main(){
       if (lo > 0 && (sp > 2.5 || slip > 2)) PS.emit("d" + i, lo * (Math.min(sp, 40) * 0.9 + slip * 3.5) * (w.front ? 0.5 : 1), dt, () => {
         let p = madd(madd(w.cp, F, -0.3), U, 0.25);
         PS.spawn(3, p, [sv[0] * 0.25 - F[0] * slip * 0.25 + r() * 1.6, 0.5 + Math.random() * 1.4, sv[2] * 0.25 - F[2] * slip * 0.25 + r() * 1.6], 2.2 + Math.random() * 2.2, 0.5, 3.6 + sp * 0.04, 0.13 * (env.wet > 0.3 ? 0.4 : 1));
+      });
+      /* a burnout: big slow clouds that hang over the pad */
+      if (!w.front && lo > 0.2 && slip > 5 && sp < 8) PS.emit("bo" + i, Math.min(13, (slip - 5) * 1.6 * lo), dt, () => {
+        let p = madd(madd(w.cp, F, -0.8), U, 0.4);
+        PS.spawn(3, p, [sv[0] * 0.2 - F[0] * 2.6 + r() * 1.6 + 0.5, 0.5 + Math.random() * 0.9, sv[2] * 0.2 - F[2] * 2.6 + r() * 1.6 + 0.3], 5.5 + Math.random() * 3.5, 1.4, 6 + Math.random() * 2.5, 0.2 * (env.wet > 0.3 ? 0.5 : 1));
       });
       if (w.surf === "mud" && (sp > 1 || slip > 1)) PS.emit("m" + i, (sp * 2 + slip * 6) * (w.front ? 0.6 : 1), dt, () => {
         let p = madd(madd(w.cp, F, -0.2 - truck.c.R * 0.6), U, truck.c.R * 0.8), side = (w.left ? -1 : 1) * Math.random() * 1.5;
@@ -7589,18 +7630,12 @@ void main(){
       sqK: W2.map((w) => w.surf === "concrete" ? 1 : w.surf === "rock" ? 0.35 : 0.06), wet: env.wet, speed: len(truck.v), cabin: listener === 1 ? 1 : 0, curb: 0, scrape: ev.scrape || 0, vol: 1,
       loose: surf.loose, spinLoose: sl, mud: surf.inMud, spinMud: sm, water: surf.inWater
     }, fev = [];
-    ev.wall > 1.2 && fev.push({ type: "hit", a: ev.wall / 9 }), ev.land > 2.2 && fev.push({ type: "hit", a: ev.land / 10 }), ev.ground > 2 && fev.push({ type: "hit", a: ev.ground / 8 }), audio.update(ep, truck.pt.takeEvents(), fx, fev, Object.assign({ cabin: listener === 1, amb: ambience(c, listener === 1), ambEvents: ambQ.splice(0) }, space()));
+    ev.wall > 1.2 && fev.push({ type: "hit", a: ev.wall / 9 }), ev.land > 2.2 && fev.push({ type: "hit", a: ev.land / 10 }), ev.ground > 2 && fev.push({ type: "hit", a: ev.ground / 8 }), audio.update(ep, truck.pt.takeEvents(), fx, fev, Object.assign({ cabin: listener === 1 }, space())), state === "drive" && recPose(ep, fx);
   }
-  /* ---------- the world's sounds ---------- */
-  var ambQ = [];
-  function ambience(c, cabin) {
-    let rain = clamp(env.rain * 2.2, 0, 1), wet = rain > 0.05, cp = c.pos, cr = W.creek.nearest(cp[0], cp[2], 4), dCreek = cr ? Math.max(0, cr.d - 4) : 999, drag = mode && mode.kind === "drag" && (state === "drive" || state === "result" || state === "pause");
-    return {
-      rain, storm: wet && env.cloud > 0.8 ? 1 : 0, cabin: cabin ? 1 : 0,
-      wind: clamp(0.16 + (wet ? 0.35 : 0) + clamp((cp[1] - 6) / 60, 0, 1) * 0.5, 0, 1),
-      birds: clamp(1 - env.night * 1.4, 0, 1) * (wet ? 0.15 : 1), dayBugs: clamp(1 - env.night * 1.6, 0, 1) * (wet ? 0 : 1), crickets: clamp((env.night - 0.35) * 1.8, 0, 1) * (wet ? 0.3 : 1),
-      creek: clamp(1 - dCreek / 55, 0, 1) ** 1.5, crowd: drag ? clamp(1 - Math.hypot(cp[0] - 90, cp[2] - 58) / 170, 0, 1) * 0.9 : 0
-    };
+  /* the recorded sound, slowed down: the engine drops in pitch with the picture */
+  function replaySound(fr, c) {
+    let k = replay.rate < 0.6 ? 0.6 : 0.85, ep = Object.assign({}, fr.ep, { rpm: (fr.ep.rpm || 0) * k, speed: (fr.ep.speed || 0) * replay.rate, view: 0, dist: Math.max(2, len(sub2(c.pos, truck.p))), pan: 0, rear: 0.6, vol: 0.85 }), fx = Object.assign({ lat: [0, 0, 0, 0], lon: [0, 0, 0, 0], load: [0, 0, 0, 0], sqK: [0, 0, 0, 0] }, fr.fx || {}, { wet: env.wet, cabin: 0, curb: 0, scrape: 0, vol: 0.8 });
+    fx.speed = (fx.speed || 0) * replay.rate, audio.update(ep, [], fx, [], Object.assign({ cabin: !1 }, space()));
   }
   /* where the truck is decides the echo: open range, the yard by the shop, or inside it */
   function space() {
@@ -7618,7 +7653,7 @@ void main(){
     };
   }
   function step(dt) {
-    let lo = input.hit("lo"), lk = input.hit("lock"), li = input.hit("lights"), inp = input.poll(dt);
+    let lo = input.hit("lo"), lk = input.hit("lock"), li = input.hit("lights"), repKey = input.hit("replay"), inp = input.poll(dt);
     horn = input.key("horn") || ui.touchHorn, lastInp = inp, inp.pause && (state === "drive" ? pause(!0) : state === "pause" && pause(!1));
     if (state === "pause" || state === "boot") return { ev: {} };
     let drive = { steer: 0, thr: 0, brk: 0, hb: 0 };
@@ -7629,19 +7664,22 @@ void main(){
         setEnv(ids[i]), SV.settings.env = ids[i], say(env.name, "", 1.5);
       })();
       inp.reset && resetTruck(), inp.up && truck.pt.shift(1), inp.down && truck.pt.shift(-1);
-      drive = mode && mode.done && mode.kind !== "roam" ? { steer: inp.steer, thr: 0, brk: 0.45, hb: 1 } : inp;
+      drive = mode && mode.done && mode.kind !== "roam" ? { steer: inp.steer, thr: 0, brk: 0.45, hb: 1 } : Object.assign({}, inp, { lock: input.key("linelock") || ui.touchLock ? 1 : 0 });
+      repKey && startReplay(time - 6.5, time, 0.5, "instant");
       mode && mode.kind === "drag" && mode.phase === "tree" && (drive = Object.assign({}, drive)), mode && mode.kind === "drag" && rival && (lastInp.steer = inp.steer);
-    } else if (state === "garage" || state === "title" || state === "result") drive = { steer: 0, thr: garageRev, brk: garageRev > 0 ? 1 : 0, hb: 1 };
+    } else if (state === "garage" || state === "title" || state === "result" || state === "pick") drive = { steer: 0, thr: garageRev, brk: garageRev > 0 ? 1 : 0, hb: 1 };
     truck.wet = env.wet, acc += dt;
     let n = 0;
     for (; acc >= DT && n < 24; ) truck.step(DT, drive), acc -= DT, n++, time += DT;
     acc > DT && (acc = 0), state === "drive" && (eventStep(dt), truck.air ? (airAcc += dt, airAcc > 1.5 && award("air")) : airAcc = 0, SV.mud > 0.97 && award("mud"));
-    let surf = effects(dt);
+    let surf = effects(dt), evs = truck.takeEvents();
+    state === "drive" && mode && mode.kind === "roam" && roamStep(dt, evs);
+    pendingRep && state === "drive" && time >= pendingRep.at && (startReplay(pendingRep.t0, pendingRep.t1, pendingRep.rate, pendingRep.kind) || (pendingRep = null));
     if (state === "drive" && truck.speed < 0.5) {
       let M = qmat(truck.q), U = mcol(M, 1);
       U[1] < 0.3 ? (truck.flipT = (truck.flipT || 0) + dt, truck.flipT > 2 && !truck.flipSaid && (truck.flipSaid = !0, say("Rolled it. Press R to flip back over.", "bad", 4))) : (truck.flipT = 0, truck.flipSaid = !1);
     }
-    return { ev: truck.takeEvents(), surf };
+    return { ev: evs, surf };
   }
   function resetTruck() {
     let M = qmat(truck.q), F = mcol(M, 0), yaw = Math.atan2(F[2], F[0]), x = truck.p[0], z = truck.p[2];
@@ -7653,13 +7691,14 @@ void main(){
       }
       mode.started && !mode.done && (mode.resets++, say("Reset: +5 s", "bad", 1.5));
     } else if (mode && mode.kind === "bog" && mode.started && !mode.done) mode.resets++, say("Reset: +5 s", "bad", 1.5);
+    else if (mode && mode.kind === "roam" && RS) (RS.mud.run || RS.rock.run) && say("Reset: run abandoned", "bad", 1.5), RS.mud.run = RS.rock.run = !1, RS.bo = RS.air = null;
     let keep = truck.pt.st;
     placeTruck(x, z, yaw), truck.pt.st = keep === "off" ? "off" : "run";
   }
   var camPrev = null, slowT = 0;
-  function render(dt, r) {
-    let c = cam.update(dt, truck, { look: !!lastInp.look, impact: Math.max(r.ev.wall || 0, r.ev.land || 0) * 0.25 }), L = truckLights(), M = qmat(truck.q), F = mcol(M, 0), fw = norm2([F[0], 1e-4, F[2]]), camVel = camPrev && !c.cut ? sub2(c.pos, camPrev).map((x) => x / Math.max(dt, 1e-3)) : [0, 0, 0];
-    camPrev = c.pos.slice(), PS.rain.on = env.rain, PS.rain.camVel = camVel, PS.update(dt, c.pos);
+  function render(dt, r, fr) {
+    let c = fr ? replayCam(dt) : cam.update(dt, truck, { look: !!lastInp.look, impact: Math.max(r.ev.wall || 0, r.ev.land || 0) * 0.25 }), L = truckLights(), M = qmat(truck.q), F = mcol(M, 0), fw = norm2([F[0], 1e-4, F[2]]), camVel = camPrev && !c.cut ? sub2(c.pos, camPrev).map((x) => x / Math.max(dt, 1e-3)) : [0, 0, 0];
+    camPrev = c.pos.slice(), PS.rain.on = env.rain, PS.rain.camVel = camVel, PS.update(fr ? dt * replay.rate : dt, c.pos);
     let suvs = [truckView()], cars = [], occ = [[truck.p[0], truck.p[1], truck.p[2], truck.c.hcg, fw[0], fw[2], 2.5, 1]], rvw = rival && state !== "garage" ? rivalView() : null, props = [], dyn = L.dyn;
     rvw && (rvw.kind === "car" ? cars.push(rvw.v) : suvs.push(rvw.v), occ.push([rvw.v.p[0], rvw.v.p[1], rvw.v.p[2], 0.6, 1, 0, 2.3, 0.95]));
     if (mode && mode.kind === "roam" && state === "drive") {
@@ -7675,7 +7714,7 @@ void main(){
       }
     }
     let tree = mode && mode.kind === "drag" && state === "drive" ? mode.tree : [0, 0];
-    R.render({ time, dt, cam: c, cut: c.cut, env, flicker: [1, 1, 1, 1, 1, 1, 1, 1], probePos: add(truck.p, [0, 0.8, 0]), dyn, headlights: L.headlights, occ, suvs, cars, props, shutter: 0.5, tree: [tree[0], tree[1], 0, 0], lensRain: 0 }), soundUpdate(c, r.ev, r.surf || { loose: 0, inMud: 0, inWater: 0 }), ui.lastCam = c, ui.frame(dt);
+    R.render({ time, dt, cam: c, cut: c.cut, env, flicker: [1, 1, 1, 1, 1, 1, 1, 1], probePos: add(truck.p, [0, 0.8, 0]), dyn, headlights: L.headlights, occ, suvs, cars, props, shutter: 0.5, tree: [tree[0], tree[1], 0, 0], lensRain: 0 }), fr ? replaySound(fr, c) : soundUpdate(c, r.ev, r.surf || { loose: 0, inMud: 0, inWater: 0 }), ui.lastCam = c, ui.frame(dt);
   }
   function fit() {
     let dpr = Math.min(2, devicePixelRatio || 1), w = Math.max(2, Math.round(canvas.clientWidth * dpr)), h = Math.max(2, Math.round(canvas.clientHeight * dpr));
@@ -7683,6 +7722,15 @@ void main(){
   }
   function frame(dt) {
     fit();
+    if (state === "replay") {
+      let sk = input.hit("skip") || ui.repSkip;
+      if (ui.repSkip = !1, input.poll(dt), sk) endReplay();
+      else {
+        let fr = replayPose(dt);
+        if (fr) return render(dt, { ev: {} }, fr), void frameN++;
+      }
+    }
+    state === "drive" && recBegin();
     let r = step(dt);
     if (render(dt, r), frameN++, !Q.has("fixed")) {
       let sc = drs.update(dt * 1e3, R.gpuMs);
@@ -7695,11 +7743,172 @@ void main(){
     last = now, frame(dt), requestAnimationFrame(loop);
   }
   function pause(on) {
-    on && state === "drive" ? (state = "pause", ui.show("pause"), audio.suspend(!0)) : !on && state === "pause" && (state = "drive", ui.show("hud"), audio.suspend(!1), last = performance.now());
+    on && state === "replay" && endReplay(), on && state === "drive" ? (state = "pause", ui.show("pause"), audio.suspend(!0)) : !on && state === "pause" && (state = "drive", ui.show("hud"), audio.suspend(!1), last = performance.now());
   }
   document.addEventListener("visibilitychange", () => {
     document.hidden && state === "drive" && pause(!0);
   });
+  /* ---------- free roam: the areas, burnouts, jumps, the mud lap, the rock garden ---------- */
+  var AREAS = (() => {
+    let mt = W.mudTrack, s0 = mt.len - 16, c = mt.at(s0), d = mt.dir(s0), L = W.loop, ls = L.len - 22, lc = L.at(ls), ld = L.dir(ls), C = W.climb, cc = C.at(0), cd = C.dir(0), B = W.burn, RG = W.rocks, M = W.mud;
+    return [
+      { id: "shop", name: "The shop", x: 0, z: 6, yaw: 0, inside: (x, z) => Math.abs(x) < 18 && z > -32 && z < 14 },
+      { id: "burn", name: "Burnout pad", x: B.x - B.w / 2 + 5, z: B.z, yaw: 0, inside: (x, z) => Math.abs(x - B.x) < B.w / 2 && Math.abs(z - B.z) < B.d / 2 },
+      { id: "rock", name: "Rock garden", x: RG.x0 - 9, z: RG.z0 + 22, yaw: 0, inside: (x, z) => x > RG.x0 && x < RG.x0 + RG.w && z > RG.z0 && z < RG.z0 + RG.d },
+      { id: "mud", name: "Mud track", x: c[0], z: c[1], yaw: Math.atan2(d[1], d[0]), inside: (x, z) => {
+        let n = mt.nearest(x, z, 2);
+        return !!n && n.d < 7;
+      } },
+      { id: "strip", name: "Drag strip", x: -14, z: 40, yaw: 0, inside: (x, z) => x > -46 && x < 300 && Math.abs(z - 40) < 9 },
+      { id: "pit", name: "Mud pit", x: M.x + M.rx + 14, z: M.z, yaw: Math.PI, inside: (x, z) => Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz) < 1 },
+      { id: "trail", name: "Ridge Loop", x: lc[0], z: lc[1], yaw: Math.atan2(ld[1], ld[0]), inside: () => !1 },
+      { id: "hill", name: "Red Hill", x: cc[0] - cd[0] * 14, z: cc[1] - cd[1] * 14, yaw: Math.atan2(cd[1], cd[0]), inside: () => !1 }
+    ];
+  })();
+  var RS = null;
+  function roamReset() {
+    RS = { area: "shop", bo: null, boShow: null, air: null, mud: { run: !1, t: 0, cp: 0, off: 0, inGate: !1 }, rock: { run: !1, t: 0, next: 0, hits: 0, hitCd: 0, off: 0 } };
+  }
+  function goTo(id) {
+    let A = AREAS.find((a) => a.id === id);
+    if (!A) return;
+    (!mode || mode.kind !== "roam") && startEvent("roam"), placeTruck(A.x, A.z, A.yaw), truck.pt.running || truck.pt.start(), roamReset(), RS.area = id, cam.cut = !0, say(A.name, "", 1.6);
+  }
+  var distTxt = (m) => SV.settings.units === "kmh" ? Math.round(m) + " m" : Math.round(m * 3.281) + " ft";
+  function roamStep(dt, ev) {
+    let R = RS, x = truck.p[0], z = truck.p[2], sp = truck.speed;
+    /* say where we are when we drive into an area */
+    let a = AREAS.find((q) => q.inside(x, z)), id = a ? a.id : null;
+    id !== R.area && (R.area = id, a && id !== "shop" && say(a.name, "", 1.4));
+    /* burnouts: the rear tyres spinning hard while the truck barely moves */
+    let rs = 0, w2 = truck.wheels[2], w3 = truck.wheels[3];
+    for (let w of [w2, w3]) w.contact && (rs = Math.max(rs, w.slipV));
+    let B = R.bo;
+    if (rs > 6 && sp < 7) {
+      B || (B = R.bo = { t: 0, pts: 0, idle: 0 });
+      let loose = LOOSE[w2.surf] ?? 0.3;
+      B.t += dt, B.idle = 0, B.pts += dt * Math.min(rs, 40) * (5 + truck.pt.rpm / 1e3 * 3) * (0.7 + loose * 0.6), B.t > 0.6 && (R.boShow = B);
+    } else if (B && (B.idle += dt) > 0.8) R.bo = null, B.t >= 1.5 && burnoutDone(B), R.boHold = 2.5;
+    R.boHold > 0 && (R.boHold -= dt) <= 0 && !R.bo && (R.boShow = null);
+    /* jumps: all four tyres off the ground */
+    if (truck.air) R.air || (R.air = { x: x, z: z, t0: time });
+    else if (R.air) {
+      let A2 = R.air, t = time - A2.t0;
+      R.air = null, t > 0.6 && jumpDone(t, Math.hypot(x - A2.x, z - A2.z), A2.t0);
+    }
+    /* the mud track: through the flags to start the clock, around past both checkpoints, back through the flags */
+    let M2 = R.mud, mt = W.mudTrack, g0 = W.gates.find((q) => q.tag === "mud"), n = mt.nearest(x, z, 2);
+    if (g0) {
+      let dx = x - g0.x, dz = z - g0.z, along = dx * g0.dx + dz * g0.dz, side = Math.abs(-dx * g0.dz + dz * g0.dx), vel = truck.v[0] * g0.dx + truck.v[2] * g0.dz;
+      if (along > 0 && along < 5 && side < 6.5 && vel > 1) {
+        if (!M2.inGate) {
+          M2.inGate = !0, M2.run && M2.cp >= 2 && lapDone(M2.t), M2.run = !0, M2.t = 0, M2.cp = 0, M2.off = 0, audio.ui("go");
+        }
+      } else (along > 6 || along < -1 || side > 7) && (M2.inGate = !1);
+    }
+    if (M2.run) {
+      M2.t += dt;
+      let f = n ? n.s / mt.len : 0;
+      M2.cp === 0 && n && f > 0.3 && f < 0.5 && n.d < 9 && (M2.cp = 1, audio.ui("tick")), M2.cp === 1 && n && f > 0.62 && f < 0.85 && n.d < 9 && (M2.cp = 2, audio.ui("tick")), !n || n.d > 16 ? M2.off += dt : M2.off = 0;
+      (M2.off > 3 || M2.t > 600) && (M2.run = !1, say("Lap abandoned. Back through the flags to go again.", "bad", 2.4));
+    }
+    /* the rock garden: west flags, the yellow flags on top, the east flags; +3 s for every hit on the body */
+    let K = R.rock, gs = W.gates.filter((q) => q.tag === "rock"), RG = W.rocks, g = gs[K.run ? K.next : 0];
+    if (g) {
+      let dx = x - g.x, dz = z - g.z, along = dx * g.dx + dz * g.dz, side = Math.abs(-dx * g.dz + dz * g.dx), vel = truck.v[0] * g.dx + truck.v[2] * g.dz;
+      along > 0 && along < 4 && side < 5 && vel > 0.2 && (K.run ? K.next === 1 ? (K.next = 2, audio.ui("tick"), say("Over the top", "", 1)) : (K.run = !1, rockDone(K.t, K.hits)) : (K.run = !0, K.t = 0, K.next = 1, K.hits = 0, K.hitCd = 0, K.off = 0, audio.ui("go")));
+    }
+    if (K.run) {
+      K.t += dt, K.hitCd -= dt, (ev.ground > 1.4 || ev.wall > 1.4) && K.hitCd <= 0 && (K.hits++, K.hitCd = 0.6, say("Body hit: +3 s", "bad", 1));
+      x > RG.x0 - 8 && x < RG.x0 + RG.w + 8 && z > RG.z0 - 8 && z < RG.z0 + RG.d + 8 ? K.off = 0 : K.off += dt, K.off > 3 && (K.run = !1, say("Run abandoned", "bad", 1.6));
+    }
+  }
+  function newBest(what) {
+    audio.ui("best"), say("New best " + what + "!", "go", 2.2), persist();
+  }
+  function burnoutDone(B) {
+    let pts = Math.round(B.pts), nb = pts > (SV.best.burn || 0);
+    say(`Burnout ${B.t.toFixed(1)} s · ${pts.toLocaleString("en-US")} pts`, nb ? "go" : "", 2.6), nb && (SV.best.burn = pts, SV.best.burnT = B.t, newBest("burnout"));
+    (nb || B.t > 6) && queueReplay("burnout", time - 0.8 - Math.min(4.5, B.t), time - 0.7, 0.5);
+  }
+  function jumpDone(t, d, t0) {
+    let nb = t > (SV.best.jump || 0) + 1e-3;
+    say(`Air ${t.toFixed(2)} s · ${distTxt(d)}`, nb ? "go" : "", 2.2), nb && (SV.best.jump = t, SV.best.jumpD = d, t > 0.8 && newBest("jump")), t >= 1 && queueReplay("jump", t0 - 1.1, time + 0.6, 0.33);
+  }
+  function lapDone(t) {
+    let nb = !SV.best.mudlap || t < SV.best.mudlap;
+    audio.ui("lap"), say(`Lap ${t.toFixed(2)} s`, nb ? "go" : "", 2.4), nb && (SV.best.mudlap = t, newBest("lap"));
+  }
+  function rockDone(t, hits) {
+    let tot = t + hits * 3, nb = !SV.best.rock || tot < SV.best.rock;
+    say(`Rock garden ${tot.toFixed(1)} s` + (hits ? ` · ${hits} hit${hits > 1 ? "s" : ""}` : " · clean run"), nb ? "go" : "", 2.8), nb && (SV.best.rock = tot, newBest("rock run"));
+  }
+  /* ---------- replays: the last 15 seconds kept frame by frame, played back in slow motion from the side ---------- */
+  var REC = [], recCur = null, replay = null, pendingRep = null, pendingResult = null;
+  {
+    let sp0 = PS.spawn.bind(PS);
+    PS.spawn = (...a) => {
+      recCur && !replay && recCur.sp.length < 40 && recCur.sp.push(a.map((v) => Array.isArray(v) ? v.slice() : v)), sp0(...a);
+    }, PS.spawnRaw = sp0;
+  }
+  function recBegin() {
+    recCur = { t: time, sp: [] }, REC.push(recCur), REC.length > 900 && REC.shift();
+  }
+  function recPose(ep, fx) {
+    if (!recCur) return;
+    let w = truck.wheels;
+    Object.assign(recCur, { t: time, p: truck.p.slice(), q: truck.q.slice(), v: truck.v.slice(), st: truck.steer, w: w.map((q) => [q.len, q.ang, q.disc]), br: truck.brkIn, rv: truck.rev, rx: rival ? rival.x : null, ep: Object.assign({}, ep), fx: fx ? { speed: fx.speed, loose: fx.loose, spinLoose: fx.spinLoose, mud: fx.mud, spinMud: fx.spinMud, water: fx.water, lat: fx.lat.slice(), lon: fx.lon.slice(), load: fx.load.slice(), sqK: fx.sqK.slice() } : null });
+  }
+  function queueReplay(kind, t0, t1, rate) {
+    pendingRep || (pendingRep = { kind, t0, t1, rate, at: Math.max(time + 0.25, t1) });
+  }
+  function startReplay(t0, t1, rate, kind) {
+    pendingRep = null;
+    let fr = REC.filter((f) => f.ep && f.t >= t0 && f.t <= t1);
+    if (fr.length < 30 || state !== "drive") return !1;
+    let a = fr[0], b = fr[fr.length - 1], mid = fr[Math.floor(fr.length * 0.55)], dir = [b.p[0] - a.p[0], 0, b.p[2] - a.p[2]], dl = Math.hypot(dir[0], dir[2]);
+    if (dl < 3) {
+      let F = mcol(qmat(mid.q), 0);
+      dir = [F[0], 0, F[2]], dl = Math.hypot(F[0], F[2]) || 1;
+    }
+    dir = [dir[0] / dl, 0, dir[2] / dl];
+    let side = [-dir[2], 0, dir[0]], sg = Math.random() < 0.5 ? 1 : -1, off = kind === "burnout" ? 7.5 : kind === "launch" ? 9 : 12, lead = kind === "burnout" ? 3 : kind === "launch" ? 14 : 5, cp = [mid.p[0] + side[0] * off * sg + dir[0] * lead, 0, mid.p[2] + side[2] * off * sg + dir[2] * lead];
+    kind === "launch" && (cp = [a.p[0] + 14, 0, a.p[2] - 11]), cp[1] = W.heightAt(cp[0], cp[2]) + (kind === "burnout" ? 0.65 : 1.1);
+    let save = { p: truck.p.slice(), q: truck.q.slice(), v: truck.v.slice(), w: truck.w.slice(), steer: truck.steer, brkIn: truck.brkIn, rev: truck.rev, wheels: truck.wheels.map((q) => [q.len, q.ang, q.disc]), rx: rival ? rival.x : null };
+    return replay = { fr, k: 0, tt: a.t, rate, cam: cp, kind, save, look: null }, state = "replay", ui.show("replay"), ui.replayInfo(rate, kind), !0;
+  }
+  function endReplay() {
+    if (!replay) return;
+    let S = replay.save;
+    truck.p = S.p, truck.q = S.q, truck.v = S.v, truck.w = S.w, truck.steer = S.steer, truck.brkIn = S.brkIn, truck.rev = S.rev, truck.wheels.forEach((q, i) => {
+      [q.len, q.ang, q.disc] = S.wheels[i];
+    }), rival && S.rx !== null && (rival.x = S.rx), replay = null, state = "drive", cam.cut = !0, ui.show("hud"), last = performance.now();
+    if (pendingResult) {
+      let res = pendingResult;
+      pendingResult = null, mode && mode.result === res && (state = "result", ui.result(res));
+    }
+  }
+  /* pose the truck from the recording, between two frames */
+  function replayPose(dt) {
+    let R = replay, fr = R.fr;
+    for (R.tt += dt * R.rate; R.k < fr.length - 2 && fr[R.k + 1].t <= R.tt; ) {
+      R.k++;
+      for (let a of fr[R.k].sp) PS.spawnRaw(...a);
+    }
+    let A2 = fr[R.k], B2 = fr[Math.min(fr.length - 1, R.k + 1)], f = clamp((R.tt - A2.t) / Math.max(1e-4, B2.t - A2.t), 0, 1), L2 = (a, b) => a + (b - a) * f;
+    truck.p = [0, 1, 2].map((i) => L2(A2.p[i], B2.p[i]));
+    let qb = B2.q, dq = A2.q[0] * qb[0] + A2.q[1] * qb[1] + A2.q[2] * qb[2] + A2.q[3] * qb[3], q = A2.q.map((x, i) => L2(x, dq < 0 ? -qb[i] : qb[i])), ql = Math.hypot(...q);
+    truck.q = q.map((x) => x / ql), truck.v = A2.v, truck.steer = L2(A2.st, B2.st), truck.brkIn = A2.br, truck.rev = A2.rv, truck.wheels.forEach((w, i) => {
+      w.len = L2(A2.w[i][0], B2.w[i][0]), w.ang = L2(A2.w[i][1], B2.w[i][1]), w.disc = A2.w[i][2];
+    }), rival && A2.rx !== null && (rival.x = L2(A2.rx, B2.rx ?? A2.rx));
+    return R.k >= fr.length - 2 ? (endReplay(), null) : A2;
+  }
+  function replayCam(dt) {
+    let R = replay, tgt = [truck.p[0], truck.p[1] + 0.1, truck.p[2]];
+    R.look = R.look ? R.look.map((x, i) => x + (tgt[i] - x) * Math.min(1, dt * 6)) : tgt;
+    let pos = R.cam.slice(), d = len(sub2(R.look, pos));
+    return { pos, fwd: norm2(sub2(R.look, pos)), up: [0, 1, 0], fov: clamp(2 * Math.atan(3.4 / d), 0.16, 1), near: 0.25, cut: R.k < 2 };
+  }
   /* ---------- the garage ---------- */
   var GARAGE = { x: 0, z: -4, yaw: 0.35 };
   function enterGarage() {
@@ -7714,24 +7923,24 @@ void main(){
     let e = document.createElement(tag);
     return cls && (e.className = cls), html !== void 0 && (e.innerHTML = html), e;
   }, esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  var CAT_CAM = { looks: { yaw: 0.72, pitch: 0.1, dist: 8.4, y: 0.3 }, engine: { yaw: 0.55, pitch: 0.22, dist: 7.4, y: 0.4 }, drive: { yaw: 2.6, pitch: 0.08, dist: 7.6, y: 0.1 }, chassis: { yaw: 1.62, pitch: 0.05, dist: 8.4, y: 0.1 }, wheels: { yaw: 0.85, pitch: 0.06, dist: 7.2, y: -0.1 }, body: { yaw: 0.9, pitch: 0.2, dist: 8.6, y: 0.35 }, paint: { yaw: 1.35, pitch: 0.12, dist: 8.8, y: 0.3 } };
+  var CAT_CAM = { builds: { yaw: 0.72, pitch: 0.1, dist: 8.4, y: 0.3 }, engine: { yaw: 0.55, pitch: 0.22, dist: 7.4, y: 0.4 }, drive: { yaw: 2.6, pitch: 0.08, dist: 7.6, y: 0.1 }, chassis: { yaw: 1.62, pitch: 0.05, dist: 8.4, y: 0.1 }, wheels: { yaw: 0.85, pitch: 0.06, dist: 7.2, y: -0.1 }, body: { yaw: 0.9, pitch: 0.2, dist: 8.6, y: 0.35 }, paint: { yaw: 1.35, pitch: 0.12, dist: 8.8, y: 0.3 } };
   function makeUI() {
-    let U = { touchHorn: !1, cat: "looks", open: null, committed: null, preview: null, revBtn: 0, idleT: 0, camTo: null, passCache: /* @__PURE__ */ new Map(), passT: 0, touch: !1, lastCam: null };
-    let layers = ["title", "garage", "hud", "pause", "result", "events"];
+    let U = { touchHorn: !1, touchLock: !1, repSkip: !1, cat: "builds", open: null, committed: null, preview: null, revBtn: 0, idleT: 0, camTo: null, passCache: /* @__PURE__ */ new Map(), passT: 0, touch: !1, lastCam: null };
+    let layers = ["title", "garage", "hud", "pause", "result", "events", "pick", "replay"];
     U.show = (name) => {
       for (let l of layers) $(l).hidden = l !== name;
-      $("touch").hidden = !(name === "hud" && U.touch), name === "garage" && (renderGarage(), U.cash()), name === "hud" && (U.cash(), hudBuild()), name === "title" && renderTitle();
+      $("touch").hidden = !(name === "hud" && U.touch), name === "garage" && (renderGarage(), U.cash()), name === "hud" && (U.cash(), hudBuild()), name === "title" && renderTitle(), name === "pick" && renderPick();
     };
     /* ---------- the title: campaign or free play ---------- */
     function renderTitle() {
       let box = $("modes"), c = hasSave("campaign"), won = c ? RIVALS.filter((r) => (c.wins || {})[r.id]).length : 0, tro = c ? Object.keys(c.trophies || {}).length : 0;
       box.innerHTML = "";
       let card = (cls, eyebrow, title, text, extra, label, gm) => {
-        let d = el("div", "mode " + cls, `<span class="eyebrow">${eyebrow}</span><h3>${title}</h3><p>${text}</p>${extra}`), b = el("button", "btn " + (gm === "campaign" ? "go" : ""), label);
+        let d = el("div", "mode " + cls, `<span class="eyebrow">${eyebrow}</span><h3>${title}</h3><p>${text}</p>${extra}`), b = el("button", "btn " + (gm === "free" ? "go" : ""), label);
         b.onclick = () => chooseMode(gm), d.appendChild(b), box.appendChild(d);
       };
-      card("camp", "Campaign", "Earn it", "Start with $2,500 and the truck as it left the factory. Win drags and medals, buy the parts, fill the trophy case.", c ? `<p class="prog">${fmt$(c.cash)} · ${won}/${RIVALS.length} racers beaten · ${tro}/${TROPHIES.length} trophies</p>` : "", c ? "Continue the campaign" : "Start the campaign", "campaign");
-      card("free", "Free play", "Everything unlocked", "Every part in the shop, every racer and every run, no prices. Try any build you like. Nothing here counts toward the campaign.", "", "Play free", "free");
+      card("free", "Free play", "Pick a truck and drive", "Four trucks to start from: the factory truck, a sleeper, a mudder and a racer. Burnout pad, mud track, rock garden, the strip and the trails, every part in the shop with no prices.", "", "Play free", "free");
+      card("camp", "Campaign", "Earn it", "Start with $2,500 and the truck as it left the factory. Win drags and medals, buy the parts, earn the other three trucks, fill the trophy case.", c ? `<p class="prog">${fmt$(c.cash)} · ${won}/${RIVALS.length} racers beaten · ${tro}/${TROPHIES.length} trophies</p>` : "", c ? "Continue the campaign" : "Start the campaign", "campaign");
     }
     /* ---------- toasts ---------- */
     U.toast = (text, kind = "", dur = 2.2) => {
@@ -7779,31 +7988,51 @@ void main(){
       else U.committed = Object.assign({}, SV.build), U.preview = { slot: slot.id, v: o.v, o, notes }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>${esc(o.n)}</b>${fmt$(o.price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < o.price, $("buyGo").textContent = SV.cash < o.price ? "Not enough" : "Buy " + fmt$(o.price);
       renderSlots(), renderSheet();
     }
-    /* a look: every part it changes, and the ones you'd have to buy */
-    function lookParts(lk) {
-      let b = U.preview && U.committed ? U.committed : SV.build, out = [];
-      for (let id in lk.build) b[id] !== lk.build[id] && out.push({ slot: id, v: lk.build[id], o: SLOT[id].opts.find((o) => o.v === lk.build[id]) });
+    /* a preset truck: every part it changes, and the ones you'd have to buy */
+    function buildParts(B) {
+      let b = U.preview && U.committed ? U.committed : SV.build, full = presetBuild(B.id, b), out = [];
+      for (let s2 of SLOTS) s2.id !== "number" && b[s2.id] !== full[s2.id] && out.push({ slot: s2.id, v: full[s2.id], o: SLOT[s2.id].opts.find((o) => o.v === full[s2.id]) });
       return out;
     }
-    function pickLook(lk) {
+    function pickBuild(B, quiet) {
       revert();
-      let parts = lookParts(lk);
-      if (!parts.length) return U.toast(`${lk.name} is already on the truck`, "", 1.8);
-      let b = Object.assign({}, SV.build, lk.build), notes = fixBuild(b, null), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0);
-      if (!missing.length) applyBuild(b), U.committed = null, persist(), U.toast(`${lk.name}`, "go", 1.6), notes.forEach((n) => U.toast(n, "", 2.5));
-      else U.committed = Object.assign({}, SV.build), U.preview = { look: lk.id, items: missing, o: { n: lk.name, price }, notes }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>${esc(lk.name)}</b>${missing.length} part${missing.length > 1 ? "s" : ""} · ${fmt$(price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < price, $("buyGo").textContent = SV.cash < price ? "Not enough" : "Buy all " + fmt$(price);
+      let parts = buildParts(B);
+      if (!parts.length) return quiet || U.toast(`The ${B.name} is already the truck you have`, "", 1.8);
+      let b = presetBuild(B.id, SV.build), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0);
+      if (!missing.length) applyBuild(b), U.committed = null, persist(), quiet || U.toast(`The ${B.name}`, "go", 1.6);
+      else U.committed = Object.assign({}, SV.build), U.preview = { build: B.id, items: missing, o: { n: "The " + B.name, price }, notes: [] }, applyBuild(b), $("buybar").hidden = !1, $("buyWhat").innerHTML = `<b>The ${esc(B.name)}</b>${missing.length} part${missing.length > 1 ? "s" : ""} · ${fmt$(price)} · you have ${fmt$(SV.cash)}`, $("buyGo").disabled = SV.cash < price, $("buyGo").textContent = SV.cash < price ? "Not enough" : "Buy all " + fmt$(price);
       renderSlots(), renderSheet();
     }
-    function renderLooks(box) {
+    U.pickBuild = pickBuild;
+    function buildStats(B) {
+      let b = presetBuild(B.id, SV.build), n = buildNumbers(b), r = pass(b);
+      return `<span class="chips"><span>${Math.round(n.hp)} hp</span><span>${r.et.toFixed(2)} s eighth</span><span>${(n.clearance / 2.54).toFixed(1)} in clearance</span></span>`;
+    }
+    function renderBuilds(box) {
       let list = el("div", "opts looks");
-      list.appendChild(el("p", "looknote", FREE() ? "One click puts the whole look on. Engine and drivetrain stay as they are." : "Try a look on, then buy the parts you don't have yet in one go. Engine and drivetrain stay as they are."));
-      for (let lk of LOOKS) {
-        let parts = lookParts(lk), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0), tr = U.preview && U.preview.look === lk.id, on = !parts.length, t = el("button", "tag look" + (on ? " on" : ""));
-        t.innerHTML = `<span class="t">${esc(lk.name)}</span><span class="p">${FREE() || !missing.length ? "" : fmt$(price)}</span><span class="d">${esc(lk.blurb)}</span><span class="st">${tr ? '<i class="stamp try">Trying on</i>' : on ? '<i class="stamp fit">Fitted</i>' : FREE() ? "" : missing.length ? `<i class="stamp own">${missing.length} part${missing.length > 1 ? "s" : ""} to buy</i>` : '<i class="stamp own">All in the shop</i>'}</span>`;
-        t.onclick = () => pickLook(lk), list.appendChild(t);
+      list.appendChild(el("p", "looknote", FREE() ? "Four complete trucks. One click puts the whole thing on, engine to paint; change any part after." : "The factory truck, and three you earn: each one's parts go into the shop when you do. Or try one on now and buy the parts you're missing."));
+      for (let B of BUILDS) {
+        let parts = buildParts(B), missing = parts.filter((p) => !owned(p.slot, p.v)), price = missing.reduce((a, p) => a + p.o.price, 0), tr = U.preview && U.preview.build === B.id, on = !parts.length, earned = FREE() || SV.builds[B.id], t = el("button", "tag look" + (on ? " on" : ""));
+        let st = tr ? '<i class="stamp try">Trying on</i>' : on ? '<i class="stamp fit">On the truck</i>' : FREE() ? "" : earned ? '<i class="stamp own">In the shop</i>' : `<i class="stamp no">${esc(B.earn.text)}</i>${missing.length ? `<i class="stamp own">or buy ${missing.length} part${missing.length > 1 ? "s" : ""}</i>` : ""}`;
+        t.innerHTML = `<span class="t">${esc(B.name)}<small>${esc(B.role)}</small></span><span class="p">${FREE() || !missing.length ? "" : fmt$(price)}</span><span class="d">${esc(B.blurb)}</span>${buildStats(B)}<span class="st">${st}</span>`;
+        t.onclick = () => pickBuild(B), list.appendChild(t);
       }
       box.appendChild(list);
     }
+    /* ---------- the truck picker that opens free play ---------- */
+    function renderPick() {
+      let box = $("pickCards");
+      box.innerHTML = "";
+      let cur = BUILDS.find((B) => !buildParts(B).length);
+      for (let B of BUILDS) {
+        let c = el("button", "pcard" + (cur === B ? " on" : ""));
+        c.innerHTML = `<span class="eyebrow">${esc(B.role)}</span><span class="n">${esc(B.name)}</span>${buildStats(B)}`, c.onclick = () => {
+          pickBuild(B, !0), renderPick();
+        }, box.appendChild(c);
+      }
+      $("pickBlurb").textContent = cur ? cur.blurb : "Your own build, from the shop.";
+    }
+    $("pickDrive").onclick = () => startEvent("roam"), $("pickShop").onclick = () => enterGarage(), $("pickBack").onclick = () => goTitle();
     function buy() {
       let p = U.preview;
       if (!p || SV.cash < p.o.price) return;
@@ -7825,7 +8054,7 @@ void main(){
     function renderSlots() {
       let box = $("slots"), b = SV.build, scroll = box.scrollTop;
       box.innerHTML = "";
-      if (U.cat === "looks") return renderLooks(box), void (box.scrollTop = scroll);
+      if (U.cat === "builds") return renderBuilds(box), void (box.scrollTop = scroll);
       for (let s of SLOTS.filter((q) => q.cat === U.cat)) {
         let cur = optOf(b, s.id), w = el("div", "slot" + (U.open === s.id ? " open" : "")), hd = el("button", "hd", `<span class="nm">${esc(s.name)}</span><span class="cur">${esc(cur.n)}</span>`);
         hd.onclick = () => {
@@ -7893,7 +8122,7 @@ void main(){
     {
       let drag = null, pts = /* @__PURE__ */ new Map();
       canvas.addEventListener("pointerdown", (e) => {
-        state !== "garage" && state !== "title" || (pts.set(e.pointerId, [e.clientX, e.clientY]), drag = { x: e.clientX, y: e.clientY }, U.idleT = 0, U.camTo = null, canvas.setPointerCapture(e.pointerId));
+        state !== "garage" && state !== "title" && state !== "pick" || (pts.set(e.pointerId, [e.clientX, e.clientY]), drag = { x: e.clientX, y: e.clientY }, U.idleT = 0, U.camTo = null, canvas.setPointerCapture(e.pointerId));
       }), canvas.addEventListener("pointermove", (e) => {
         if (!drag || !cam.orbit || !pts.has(e.pointerId)) return;
         let o = cam.orbit;
@@ -7910,7 +8139,7 @@ void main(){
         pts.delete(e.pointerId), pts.size || (drag = null);
       };
       canvas.addEventListener("pointerup", up), canvas.addEventListener("pointercancel", up), canvas.addEventListener("wheel", (e) => {
-        cam.orbit && (state === "garage" || state === "title") && (e.preventDefault(), cam.orbit.dist = clamp(cam.orbit.dist * (1 + e.deltaY * 1e-3), 4.5, 16), U.idleT = 0);
+        cam.orbit && (state === "garage" || state === "title" || state === "pick") && (e.preventDefault(), cam.orbit.dist = clamp(cam.orbit.dist * (1 + e.deltaY * 1e-3), 4.5, 16), U.idleT = 0);
       }, { passive: !1 });
     }
     /* ---------- the race board ---------- */
@@ -7993,12 +8222,32 @@ void main(){
         g.onclick = () => {
           m.hidden = !0, audio.suspend(!1), enterGarage();
         }, acts.appendChild(g);
+        if (FREE()) {
+          let ct = el("button", "btn", "Change truck");
+          ct.onclick = () => {
+            m.hidden = !0, audio.suspend(!1), openPicker();
+          }, acts.appendChild(ct);
+        }
         let tt = el("button", "btn ghost", "Title screen");
         tt.onclick = () => {
           m.hidden = !0, audio.suspend(!1), goTitle();
         }, acts.appendChild(tt);
       }
       p.appendChild(acts);
+      if (!fromShop && mode && mode.kind === "roam") {
+        let go = el("div", "set goto");
+        go.appendChild(el("span", "k", "Go to"));
+        let gs = el("div", "seg");
+        for (let A of AREAS) {
+          let b = el("button", "", esc(A.name));
+          b.onclick = () => {
+            m.hidden = !0, audio.suspend(!1), state = "drive", ui.show("hud"), goTo(A.id), last = performance.now();
+          }, gs.appendChild(b);
+        }
+        go.appendChild(gs), p.appendChild(go);
+        let B = SV.best, bl = el("div", "bests");
+        bl.innerHTML = `<span class="eyebrow">Your bests</span><div class="bgrid"><div><b>${B.burn ? B.burn.toLocaleString("en-US") : "—"}</b><span>Burnout${B.burnT ? ` · ${B.burnT.toFixed(1)} s` : ""}</span></div><div><b>${B.jump ? B.jump.toFixed(2) + " s" : "—"}</b><span>Longest air${B.jumpD ? ` · ${distTxt(B.jumpD)}` : ""}</span></div><div><b>${B.mudlap ? B.mudlap.toFixed(2) + " s" : "—"}</b><span>Mud track lap</span></div><div><b>${B.rock ? B.rock.toFixed(1) + " s" : "—"}</b><span>Rock garden</span></div></div>`, p.appendChild(bl);
+      }
       let S = SV.settings;
       p.appendChild(seg("Assists", [["easy", "Easy"], ["arcade", "Arcade"], ["sport", "Sport"], ["sim", "Sim"]], S.assist, (v) => {
         S.assist = v, truck.setAssists(v), persist();
@@ -8014,10 +8263,6 @@ void main(){
       let vol = el("div", "set");
       vol.innerHTML = `<span class="k">Volume</span><input type="range" id="sVol" min="0" max="1" step="0.05" value="${S.vol}">`, p.appendChild(vol), vol.querySelector("input").oninput = (e) => {
         S.vol = +e.target.value, audio.setVolume(S.vol), persist();
-      };
-      let av = el("div", "set");
-      av.innerHTML = `<span class="k">Ambience</span><input type="range" id="sAmb" min="0" max="1.5" step="0.05" value="${S.amb ?? 1}">`, p.appendChild(av), av.querySelector("input").oninput = (e) => {
-        S.amb = +e.target.value, audio.setAmbVolume(S.amb), persist();
       };
       /* a mix from the sound board */
       let mx = el("div", "set mixset"), custom = !!readKey(MIX_KEY);
@@ -8042,7 +8287,7 @@ void main(){
           }
           SV = freshSave(gm), persist(), rebuildTruck(!1), m.hidden = !0, audio.suspend(!1), goTitle(), U.toast(gm === "free" ? "Free play reset" : "Campaign reset", "", 2);
         })()) : (rb.dataset.arm = "1", rb.textContent = FREE() ? "Tap again to reset free play" : "Tap again to erase the campaign");
-      }, p.appendChild(rs), p.appendChild(el("p", "keys", "<b>W/↑</b> gas · <b>S/↓</b> brake, hold to reverse · <b>A D</b> steer · <b>Space</b> handbrake · <b>Shift</b> nitrous · <b>L</b> low range · <b>K</b> lockers · <b>F</b> light bar · <b>H</b> horn · <b>C</b> camera · <b>B</b> look back · <b>R</b> flip/reset · <b>T</b> time of day (free roam) · <b>Esc</b> pause")), m.appendChild(p), m.hidden = !1;
+      }, p.appendChild(rs), p.appendChild(el("p", "keys", "<b>W/↑</b> gas · <b>S/↓</b> brake, hold to reverse · <b>A D</b> steer · <b>Space</b> handbrake · <b>Shift</b> nitrous · <b>G</b> line lock (hold with gas for a burnout) · <b>Y</b> instant replay · <b>L</b> low range · <b>K</b> lockers · <b>F</b> lights · <b>H</b> horn · <b>C</b> camera · <b>B</b> look back · <b>R</b> flip/reset · <b>T</b> time of day (free roam) · <b>Esc</b> pause")), m.appendChild(p), m.hidden = !1;
     }
     U.openPause = openPause;
     let showPause = U.show;
@@ -8061,7 +8306,7 @@ void main(){
         let s = el("span", "ind", label);
         s.id = id, inds.appendChild(s);
       };
-      b.tcase === "low" && add2("iLow", "LOW"), b.lockers && add2("iLock", "LOCK"), b.lights && add2("iBar", "BAR"), b.nos && add2("iNos", "NOS");
+      add2("iLL", "LINE LOCK"), b.tcase === "low" && add2("iLow", "LOW"), b.lockers && add2("iLock", "LOCK"), (b.lights || b.roof === "expedition") && add2("iBar", "BAR"), b.nos && add2("iNos", "NOS");
       $("hUnits").textContent = SV.settings.units === "kmh" ? "KM/H" : "MPH";
     }
     function drawTach(pt, e) {
@@ -8100,7 +8345,7 @@ void main(){
         let q = $(id);
         q && q.classList.toggle("on", !!on);
       };
-      tog("iLow", truck.low), tog("iLock", truck.locked), tog("iBar", lightsOn), tog("iNos", pt.nosOn);
+      tog("iLow", truck.low), tog("iLock", truck.locked), tog("iBar", lightsOn), tog("iNos", pt.nosOn), tog("iLL", input.key("linelock") || U.touchLock);
       let ev = $("hEvt"), m = mode;
       if (!m) return ev.hidden = !0;
       let html = "";
@@ -8111,7 +8356,17 @@ void main(){
         let g = m.gates[m.next] || m.gates[0], dist = g ? Math.hypot(g.x - truck.p[0], g.z - truck.p[2]) : 0, tt = m.started ? m.t + (m.missed + m.resets) * 5 : 0, tot = m.kind === "trail" ? m.gates.length : 1, cur = m.kind === "trail" ? Math.min(m.next, tot) : 0;
         html = `<div class="big">${m.done ? m.result.time ? m.result.time.toFixed(2) : "DNF" : tt.toFixed(1)}</div><div class="sm">${arrowSvg(bearing(g.x, g.z))}${m.started ? m.kind === "trail" ? `Gate ${cur}/${tot}` : "To the summit" : "To the start gate"} · ${Math.round(dist)} m</div>`;
       } else if (m.kind === "bog") html = `<div class="big">${m.started ? m.t.toFixed(1) : "Mud bog"}</div><div class="sm">${m.started ? `${Math.round(m.dist || 0)} of ${Math.round(m.x0 - m.x1)} m` : "Floor it into the pit"}</div>`;
-      else if (m.kind === "roam") {
+      else if (m.kind === "roam" && RS && (RS.boShow || RS.mud.run || RS.rock.run)) {
+        let R2 = RS;
+        if (R2.boShow) {
+          let B = R2.boShow, pb = SV.best.burn || 0, k = clamp(B.pts / Math.max(pb, 1500), 0, 1);
+          html = `<div class="big">${Math.round(B.pts).toLocaleString("en-US")}<small> pts</small></div><div class="bo"><i style="width:${(k * 100).toFixed(1)}%"></i></div><div class="sm">Burnout ${B.t.toFixed(1)} s${pb ? ` · best ${pb.toLocaleString("en-US")}` : ""}</div>`;
+        } else if (R2.mud.run) html = `<div class="big">${R2.mud.t.toFixed(1)}</div><div class="sm">Mud track · checkpoint ${R2.mud.cp}/2${SV.best.mudlap ? ` · best ${SV.best.mudlap.toFixed(2)}` : ""}</div>`;
+        else {
+          let K = R2.rock, gs = W.gates.filter((q) => q.tag === "rock"), g = gs[K.next] || gs[gs.length - 1];
+          html = `<div class="big">${(K.t + K.hits * 3).toFixed(1)}</div><div class="sm">${arrowSvg(bearing(g.x, g.z))}Rock garden · ${K.next === 1 ? "to the top" : "to the east flags"}${K.hits ? ` · ${K.hits} hit${K.hits > 1 ? "s" : ""}` : ""}${SV.best.rock ? ` · best ${SV.best.rock.toFixed(1)}` : ""}</div>`;
+        }
+      } else if (m.kind === "roam") {
         let best = null;
         COOLERS.forEach((c, i) => {
           if (SV.coolers.includes(i)) return;
@@ -8121,6 +8376,12 @@ void main(){
       }
       setH("hEvt", html), ev.hidden = !html;
     }
+    /* ---------- the replay banner ---------- */
+    U.replayInfo = (rate, kind) => {
+      $("repWhat").textContent = { jump: "Big air", launch: "The launch", burnout: "Burnout", instant: "Instant replay" }[kind] || "Replay", $("repRate").textContent = rate.toFixed(2).replace(/0$/, "") + "×";
+    }, $("repSkip").onclick = () => {
+      U.repSkip = !0;
+    };
     /* ---------- the result ---------- */
     U.result = (res) => {
       let m = $("result");
@@ -8153,6 +8414,7 @@ void main(){
         btn("Try again", "go", () => startEvent(res.kind)), btn("Shop", "", () => enterGarage());
       }
       res.free && side.appendChild(el("p", "note", "Free play: results don't earn money or trophies."));
+      for (let B of res.newBuilds || []) side.appendChild(el("div", "trophy got", `<b>Unlocked: the ${esc(B.name)}</b><span>Its parts are in the shop now. Find it under Trucks.</span>`));
       for (let t of res.trophies || []) side.appendChild(el("div", "trophy got", `<b>Trophy: ${esc(t.name)}</b><span>${esc(t.d)}</span>`));
       side.appendChild(acts), wrap.appendChild(side), m.appendChild(wrap), U.show("result"), U.cash(), acts.querySelector(".go") && acts.querySelector(".go").focus();
     };
@@ -8171,7 +8433,7 @@ void main(){
     }
     /* ---------- per frame ---------- */
     U.frame = (dt) => {
-      if (state === "garage" || state === "title") {
+      if (state === "garage" || state === "title" || state === "pick") {
         let o = cam.orbit;
         if (o) {
           if (U.idleT += dt, U.camTo) {
@@ -8190,7 +8452,7 @@ void main(){
   // ===== boot =====
   ui = makeUI(), rebuildTruck(!1), placeTruck(GARAGE.x, GARAGE.z, GARAGE.yaw), truck.pt.st = "off", cam.orbit = { yaw: 2.3, pitch: 0.12, dist: 9.5, y: 0.35, fov: 0.7, cut: !0 }, setEnv(SV.settings.env === "night" ? "night" : "dusk"), state = "title";
   audio.setVolume(SV.settings.vol);
-  audio.setAmbVolume(SETTINGS.amb ?? 1), audio.setMix(MIX);
+  audio.setMix(MIX);
   window.__game = { R, W, get truck() {
     return truck;
   }, get state() {
@@ -8199,7 +8461,15 @@ void main(){
     return mode;
   }, SV, frame, startEvent, enterGarage, applyBuild, chooseMode, goTitle, audio, get SVnow() {
     return SV;
-  }, ui: () => ui, input, setEnv, cam, tWorld, step, placeTruck, LOOKS };
+  }, ui: () => ui, input, setEnv, cam, tWorld, step, placeTruck, PS, BUILDS, presetBuild, goTo, openPicker, startReplay, endReplay, AREAS, get RS() {
+    return RS;
+  }, get REC() {
+    return REC;
+  }, get replay() {
+    return replay;
+  }, get time() {
+    return time;
+  } };
   var bootMsg = $("boot").querySelector("div");
   R.G.warmup((d, n) => {
     bootMsg.innerHTML = `<b>DIRT SLEEPER</b><br>warming up the shaders ${d}/${n}`;
