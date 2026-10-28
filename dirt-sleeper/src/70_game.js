@@ -36,7 +36,16 @@
     for (let sl of SLOTS) SLOT[sl.id].opts.some((o) => o.v === s.build[sl.id]) || (s.build[sl.id] = STOCK_BUILD[sl.id]);
     return gm === "free" && (s.drag = RIVALS.length), s.settings = SETTINGS, s;
   }
-  var SV = loadSave("campaign"), FREE = () => SV.gm === "free";
+  var SV = loadSave("campaign"), FREE = () => SV.gm === "free", MIX_KEY = "dirt-sleeper-mix", MIX = mixFill(readKey(MIX_KEY));
+  function setMixCode(code) {
+    let m = code === null ? mixFill(null) : mixDecode(code);
+    return MIX = m, code === null ? (() => {
+      try {
+        localStorage.removeItem(MIX_KEY);
+      } catch {
+      }
+    })() : writeKey(MIX_KEY, m), audio.setMix(m), m;
+  }
   function persist() {
     writeKey(SAVE_KEYS[SV.gm], SV), writeKey(SET_KEY, SETTINGS);
   }
@@ -348,7 +357,7 @@
     return {
       rain, storm: wet && env.cloud > 0.8 ? 1 : 0, cabin: cabin ? 1 : 0,
       wind: clamp(0.16 + (wet ? 0.35 : 0) + clamp((cp[1] - 6) / 60, 0, 1) * 0.5, 0, 1),
-      birds: clamp(1 - env.night * 1.4, 0, 1) * (wet ? 0.15 : 1), crickets: clamp((env.night - 0.35) * 1.8, 0, 1) * (wet ? 0.3 : 1),
+      birds: clamp(1 - env.night * 1.4, 0, 1) * (wet ? 0.15 : 1), dayBugs: clamp(1 - env.night * 1.6, 0, 1) * (wet ? 0 : 1), crickets: clamp((env.night - 0.35) * 1.8, 0, 1) * (wet ? 0.3 : 1),
       creek: clamp(1 - dCreek / 55, 0, 1) ** 1.5, crowd: drag ? clamp(1 - Math.hypot(cp[0] - 90, cp[2] - 58) / 170, 0, 1) * 0.9 : 0
     };
   }
@@ -364,7 +373,7 @@
     return {
       id: 1, self: !0, p: truck.p, q: truck.q, look: buildLook(b), paint: SUV_PAINTS[b.paint], style: buildStyle(b),
       wheels: truck.wheels.map((w) => ({ hp: w.hp, len: w.len, steer: w.front ? truck.steer : 0, ang: w.ang, disc: w.disc })),
-      lamps: [night || lightsOn ? 1 : 0, night || lightsOn ? 1 : 0, truck.brkIn > 0.05 ? 1 : 0, truck.rev ? 1 : 0], dirt: SV.dirt, mud: SV.mud, bar: lightsOn && b.lights >= 1 ? 1 : 0, pods: lightsOn && b.lights >= 2 ? 1 : 0
+      lamps: [night || lightsOn ? 1 : 0, night || lightsOn ? 1 : 0, truck.brkIn > 0.05 ? 1 : 0, truck.rev ? 1 : 0], dirt: SV.dirt, mud: SV.mud, bar: lightsOn && (b.lights >= 1 || b.roof === "expedition") ? 1 : 0, pods: lightsOn && b.lights >= 2 ? 1 : 0
     };
   }
   function step(dt) {

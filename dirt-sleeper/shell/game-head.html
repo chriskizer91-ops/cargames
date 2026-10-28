@@ -87,6 +87,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--hivis2);ou
 .stamp.fit{color:#1f6b1a}.stamp.own{color:#5a4a35}.stamp.no{color:#a3261a}.stamp.try{color:#c24a00}
 .tag.on{outline:3px solid var(--hivis);outline-offset:1px}
 .tag.blocked{opacity:.62;cursor:not-allowed}
+.looknote{margin:0 0 2px;font-size:13.5px;line-height:1.35;color:var(--dim)}
+.tag.look .t{font:800 20px/1.05 var(--display);text-transform:uppercase;letter-spacing:.01em}
 .buybar{flex:none;display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--edge);background:var(--panel2)}
 .buybar .what{flex:1;min-width:0;font-size:14px}
 .buybar .what b{display:block;font:800 18px/1.1 var(--display);text-transform:uppercase}
@@ -171,6 +173,11 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--hivis2);ou
 .seg button.on{border-color:var(--hivis);background:rgba(255,106,26,.16)}
 .set input[type=range]{width:100%;accent-color:var(--hivis)}
 .menu .keys{font-size:13px;line-height:1.7;color:var(--dim)}
+.mixset{align-items:start}
+.mixbox{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mixbox p{margin:0;font-size:13px;color:var(--dim)}
+.mixbox textarea{width:100%;box-sizing:border-box;background:rgba(240,230,212,.06);color:var(--ink);border:1px solid var(--edge);border-radius:4px;padding:7px 8px;font:12px/1.35 var(--mono);resize:vertical}
+.mixbox .acts{display:flex;gap:8px;flex-wrap:wrap}
 .menu .keys b{color:var(--ink)}
 /* ---------- result: the time slip ---------- */
 .res{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;justify-content:center;max-width:min(860px,100%)}

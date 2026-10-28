@@ -41,7 +41,9 @@
         let p = this.p, g = this.g, sr = this.sr, k = 1 - Math.exp(-1 / (sr * 0.05)), sp = p.speed || 0, cab = p.cabin ? 1 : 0, wet = p.wet || 0, lat = p.lat || [0, 0, 0, 0], lon = p.lon || [0, 0, 0, 0], sqT = [0, 1, 2, 3].map((i) => {
           let side = ss(1.25, 2.1, lat[i]), spin = ss(2.8, 5.5, lon[i]);
           return Math.max(side * ss(2, 6, sp), spin * 0.8 * ss(0.5, 3, sp + lon[i])) * Math.min(1.2, (p.load[i] || 0) / 3600) * (1 - 0.95 * wet) * (p.sqK ? p.sqK[i] : 1);
-        }), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, windT = Math.min(1.2, (sp / 55) ** 2) * 0.35, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
+        }), X = p.mix || {}, G = (id) => X[id] ? X[id].g ?? 1 : 1, gDirt = G("dirt"), dv = X.dirt && X.dirt.v || "fine", gRoll = G("roll") * (dv === "packed" ? 1.8 : 1), gSq = G("squeal"), gMud = G("mud"), thick = X.mud && X.mud.v === "thick", gWat = G("water"), gWind = G("speedwind"), gHit = G("hits"), rdT = ss(1, 45, sp) * 0.22, hissT = wet * ss(4, 30, sp) * 0.07, windT = Math.min(1.2, (sp / 55) ** 2) * 0.35, curbT = p.curb ? ss(3, 15, sp) : 0, scrT = ss(1, 12, p.scrape || 0), lo = p.loose || 0, sl = p.spinLoose || 0, grvT = ss(0.6, 18, sp) * lo * 0.55 + sl * 0.7, roarT = sl * 0.45 + ss(6, 30, sp) * lo * 0.12, mudT = (p.mud || 0) * (0.25 + 0.75 * ss(0.3, 6, sp + (p.spinMud || 0) * 8)), splT = (p.water || 0) * ss(0.4, 7, sp) * 0.8;
+        dv !== this.dv && (this.dv = dv, this.grvF.set(dv === "coarse" ? 760 : 1150, 0.8, sr), this.grvF2.set(dv === "coarse" ? 330 : 520, 1, sr));
+        let gRate = dv === "coarse" ? [420, 65] : [700, 110], gDec = dv === "coarse" ? 0.986 : 0.975, gLvl = (dv === "coarse" ? 0.3 : dv === "packed" ? 0.085 : 0.24) * gDirt, pebK = dv === "coarse" ? 2.2 : dv === "packed" ? 0.4 : 1;
         for (let w = 0; w < 4; w++) {
           let v = this.sq[w];
           v.drift += (this.rnd() * 0.4 - v.drift * 0.05) * 0.15;
@@ -57,52 +59,52 @@
           for (let w = 0; w < 4; w++) {
             let a = g.sq[w];
             if (a < 1e-4) continue;
-            let v2 = this.sq[w], s = (v2.bp.run(wn) * 1 + v2.bp2.run(wn) * 0.35) * a * 0.55;
+            let v2 = this.sq[w], s = (v2.bp.run(wn) * 1 + v2.bp2.run(wn) * 0.35) * a * 0.55 * gSq;
             w % 2 === 0 ? (l += s * 1.1, r += s * 0.7) : (l += s * 0.7, r += s * 1.1);
           }
-          let road = (this.road.run(pink) * 1.6 + this.road2.run(pink) * 0.6) * g.rd * (cab ? 0.7 : 1) * (1 - 0.6 * Math.min(1, lo)) + this.hissF.run(pink * 3) * g.hiss * (cab ? 0.3 : 1);
+          let road = ((this.road.run(pink) * 1.6 + this.road2.run(pink) * 0.6) * g.rd * (cab ? 0.7 : 1) * (1 - 0.6 * Math.min(1, lo)) + this.hissF.run(pink * 3) * g.hiss * (cab ? 0.3 : 1)) * gRoll;
           if (g.grv > 1e-3) {
             /* dirt under the tread: thousands of tiny grains a second through low-mid bands, so they fuse into a crunch */
-            Math.random() < (700 + sp * 110) * g.grv / sr && (this.grE += 0.35 + Math.random() * 0.65), this.grE *= 0.975;
+            Math.random() < (gRate[0] + sp * gRate[1]) * g.grv / sr && (this.grE += 0.35 + Math.random() * 0.65), this.grE *= gDec;
             let gr = wn * this.grE;
             let cr = this.grvF.run(gr) * 0.9 + this.grvF2.run(gr) * 0.75;
-            this.gl1 = (this.gl1 || 0) + 0.27 * (cr - (this.gl1 || 0)), this.gl2 = (this.gl2 || 0) + 0.27 * (this.gl1 - (this.gl2 || 0)), road += this.gl2 * Math.min(1, g.grv * 1.3) * 0.24 * (cab ? 0.6 : 1);
+            this.gl1 = (this.gl1 || 0) + 0.27 * (cr - (this.gl1 || 0)), this.gl2 = (this.gl2 || 0) + 0.27 * (this.gl1 - (this.gl2 || 0)), road += this.gl2 * Math.min(1, g.grv * 1.3) * gLvl * (cab ? 0.6 : 1);
             /* now and then a pebble flicked into a wheel well */
-            Math.random() < sp * 0.28 * lo / sr && this.ping(1500 + Math.random() * 1700, 0.025 + Math.random() * 0.025, (0.03 + Math.random() * 0.06) * (cab ? 0.8 : 0.5));
+            Math.random() < sp * 0.28 * lo * pebK / sr && this.ping((dv === "coarse" ? 1100 : 1500) + Math.random() * 1700, 0.025 + Math.random() * 0.025, (0.03 + Math.random() * 0.06) * (cab ? 0.8 : 0.5) * gDirt);
           }
-          lo > 0.01 && (road += this.rollF.run(pink * 2) * ss(1, 25, sp) * lo * 0.32 * (cab ? 0.85 : 1));
-          g.roar > 1e-3 && (road += this.roarF.run(pink * 2.2) * g.roar * (cab ? 0.6 : 1));
+          lo > 0.01 && (road += this.rollF.run(pink * 2) * ss(1, 25, sp) * lo * 0.32 * (cab ? 0.85 : 1) * gRoll);
+          g.roar > 1e-3 && (road += this.roarF.run(pink * 2.2) * g.roar * (cab ? 0.6 : 1) * gDirt);
           if (g.mud > 1e-3) {
-            this.mudPh += (3 + sp * 1.5) / sr;
+            this.mudPh += (thick ? 1.8 + sp * 0.9 : 3 + sp * 1.5) / sr;
             let lfo = 0.45 + 0.55 * Math.abs(Math.sin(this.mudPh * TAU2 * 0.5)) ** 3;
-            road += (this.mudF.run(wn) * 1.8 + this.mudF2.run(pink) * 0.9 * lfo) * g.mud * lfo * (cab ? 0.6 : 1);
-            Math.random() < g.mud * (2 + sp * 1.2) / sr && this.ping(110 + Math.random() * 190, 0.04 + Math.random() * 0.05, 0.12 + Math.random() * 0.12);
+            road += (this.mudF.run(wn) * 1.8 + this.mudF2.run(pink) * 0.9 * lfo) * g.mud * lfo * (cab ? 0.6 : 1) * gMud;
+            Math.random() < g.mud * (2 + sp * 1.2) * (thick ? 2.2 : 1) / sr && this.ping(thick ? 70 + Math.random() * 90 : 110 + Math.random() * 190, thick ? 0.06 + Math.random() * 0.06 : 0.04 + Math.random() * 0.05, (0.12 + Math.random() * 0.12) * gMud);
           }
           if (g.spl > 1e-3) {
             this.splSw = (this.splSw || 0) * 0.9997 + (Math.random() < 6 / sr ? 0.5 + Math.random() * 0.5 : 0);
-            road += (this.sloshF.run(pink * 2.5) * (0.5 + this.splSw) * 1.1 + this.splF.run(wn) * 0.35) * g.spl * (cab ? 0.55 : 1);
-            Math.random() < g.spl * 45 / sr && this.ping(380 + Math.random() * 900, 0.012 + Math.random() * 0.02, 0.05 + Math.random() * 0.05);
+            road += (this.sloshF.run(pink * 2.5) * (0.5 + this.splSw) * 1.1 + this.splF.run(wn) * 0.35) * g.spl * (cab ? 0.55 : 1) * gWat;
+            Math.random() < g.spl * 45 / sr && this.ping(380 + Math.random() * 900, 0.012 + Math.random() * 0.02, (0.05 + Math.random() * 0.05) * gWat);
           }
           for (let q = this.pings.length - 1; q >= 0; q--) {
             let P = this.pings[q], y = P.a1 * P.y1 - P.a2 * P.y2;
             P.y2 = P.y1, P.y1 = y, road += y, --P.n <= 0 && this.pings.splice(q, 1);
           }
           l += road, r += road;
-          let wind = this.windF.run(pink) * g.wind * (cab ? 0.45 : 1);
+          let wind = this.windF.run(pink) * g.wind * (cab ? 0.45 : 1) * gWind;
           if (l += wind * 1.05, r += wind * 0.95, g.curb > 1e-3) {
             this.curbPh += Math.max(sp, 1) / 2 / sr, this.curbPh >= 1 && (this.curbPh -= 1, this.thumpE = 1), this.thumpE *= Math.exp(-1 / (sr * 0.03)), this.thumpPh = (this.thumpPh || 0) + 46 / sr, this.thumpLp += (wn - this.thumpLp) * 0.01;
-            let th = (Math.sin(TAU2 * this.thumpPh) * 0.5 + this.thumpLp * 3) * this.thumpE * g.curb * 0.18;
+            let th = (Math.sin(TAU2 * this.thumpPh) * 0.5 + this.thumpLp * 3) * this.thumpE * g.curb * 0.18 * gHit;
             l += th, r += th;
           }
           if (g.scr > 1e-3) {
             Math.random() < (30 + p.scrape * 6) / sr && (this.grainE = 1, this.grainA = 0.4 + Math.random() * 0.6), this.grainE *= Math.exp(-1 / (sr * 6e-3));
-            let sc = (this.grit.run(wn) * this.grainE * this.grainA * 0.9 + this.gritLo.run(pink) * 0.9) * g.scr * 0.45;
+            let sc = (this.grit.run(wn) * this.grainE * this.grainA * 0.9 + this.gritLo.run(pink) * 0.9) * g.scr * 0.45 * gHit;
             l += sc, r += sc;
           }
           for (let h = this.hits.length - 1; h >= 0; h--) {
             let H = this.hits[h];
             H.t += 1 / sr;
-            let e = Math.exp(-H.t * 14) * H.a;
+            let e = Math.exp(-H.t * 14) * H.a * gHit;
             this.hitLp += (wn - this.hitLp) * 0.15;
             let s = (Math.sin(TAU2 * H.f * H.t * (1 - H.t * 1.5)) * 0.9 + this.hitLp * 1.5 * Math.exp(-H.t * 30) + wn * 0.25 * Math.exp(-H.t * 80)) * e;
             l += s, r += s, H.t > 0.6 && this.hits.splice(h, 1);
@@ -158,33 +160,38 @@ registerProcessor('shiftlight-fx',ShiftlightFX);
 const AMBDSP=(${makeAmb.toString()})();
 class DirtAmb extends AudioWorkletProcessor{
   constructor(){super();this.d=new AMBDSP(sampleRate);this.port.onmessage=e=>{const m=e.data;if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
-  process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);return true;}}
+  process(i,o){const w=o[0],u=o[1];this.d.process(w[0],w[1]||w[0],w[0].length,u?u[0]:null,u?(u[1]||u[0]):null);return true;}}
 registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
     constructor() {
-      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.tunnel = 0, this.ambVol = 1, this.yard = 0, this.shop = 0;
+      this.ready = !1, this.starting = null, this.vol = 0.8, this.muted = !1, this.cfg = null, this.ambVol = 1, this.yard = 0, this.shop = 0, this.mix = mixFill(null), this.engNorm = 0, this.normCache = /* @__PURE__ */ new Map(), this.applyMixParts();
     }
-    /* call from a user gesture */
+    /* call from a user gesture. The graph: each source has its own bus; the engine is tamed on its own
+       compressor so a redline doesn't push the world down; a limiter only catches peaks at the end. */
     start() {
       return this.starting ? this.starting : (this.starting = (async () => {
         let AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return;
         let ctx = new AC({ latencyHint: "interactive" });
         this.ctx = ctx;
-        let master = ctx.createGain();
-        master.gain.value = this.muted ? 0 : this.vol, this.master = master;
-        let comp = ctx.createDynamicsCompressor();
-        comp.threshold.value = -10, comp.knee.value = 6, comp.ratio.value = 4, comp.attack.value = 3e-3, comp.release.value = 0.2, master.connect(comp), comp.connect(ctx.destination);
-        let dry = ctx.createGain();
-        dry.connect(master);
+        let G = (v = 1) => {
+          let g = ctx.createGain();
+          return g.gain.value = v, g;
+        }, A = () => {
+          let a = ctx.createAnalyser();
+          return a.fftSize = 2048, a.smoothingTimeConstant = 0, a;
+        };
+        let pre = G(), master = G(this.muted ? 0 : this.vol), lim = ctx.createDynamicsCompressor();
+        lim.threshold.value = -1.5, lim.knee.value = 0, lim.ratio.value = 20, lim.attack.value = 1e-3, lim.release.value = 0.12, pre.connect(master), master.connect(lim), lim.connect(ctx.destination), this.master = master, this.lim = lim;
         let mk = (k) => {
-          let send = ctx.createGain();
-          send.gain.value = 0;
-          let cv = ctx.createConvolver();
-          return cv.buffer = roomIR(ctx, k), send.connect(cv), cv.connect(master), send;
+          let send = G(0), cv = ctx.createConvolver();
+          return cv.buffer = roomIR(ctx, k), send.connect(cv), cv.connect(pre), send;
         };
         this.sendS = mk("street"), this.sendT = mk("tunnel");
-        let bus = ctx.createGain();
-        bus.connect(dry), bus.connect(this.sendS), bus.connect(this.sendT);
+        let engIn = G(this.normGain()), engBus = G(), engComp = ctx.createDynamicsCompressor(), engOut = G(), groundBus = G(), worldBus = G(), uiBus = G();
+        engIn.connect(engBus), engBus.connect(engComp), engComp.connect(engOut);
+        for (let b of [engOut, groundBus]) b.connect(pre), b.connect(this.sendS), b.connect(this.sendT);
+        worldBus.connect(pre), uiBus.connect(pre), Object.assign(this, { engIn, engBus, engComp, groundBus, worldBus, uiBus });
+        this.meters = { engine: A(), ground: A(), world: A(), ui: A(), master: A() }, engOut.connect(this.meters.engine), groundBus.connect(this.meters.ground), worldBus.connect(this.meters.world), uiBus.connect(this.meters.ui), lim.connect(this.meters.master), this.mbuf = new Float32Array(2048);
         try {
           if (!ctx.audioWorklet) throw new Error("no worklet");
           let src = ENGINE_SRC();
@@ -193,17 +200,19 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
           } catch {
             await ctx.audioWorklet.addModule("data:application/javascript;charset=utf-8," + encodeURIComponent(src));
           }
-          let eng = new AudioWorkletNode(ctx, "shiftlight-engine", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] }), fx = new AudioWorkletNode(ctx, "shiftlight-fx", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
-          let amb = new AudioWorkletNode(ctx, "dirt-amb", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
-          eng.connect(bus), fx.connect(bus), amb.connect(master), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.amb = { post: (m) => amb.port.postMessage(m) }, this.kind = "worklet";
+          let node = (name, outs = 1) => new AudioWorkletNode(ctx, name, { numberOfInputs: 0, numberOfOutputs: outs, outputChannelCount: Array(outs).fill(2) }), eng = node("shiftlight-engine"), fx = node("shiftlight-fx"), amb = node("dirt-amb", 2);
+          eng.connect(engIn), fx.connect(groundBus), amb.connect(worldBus, 0), amb.connect(uiBus, 1), this.eng = { post: (m) => eng.port.postMessage(m) }, this.fx = { post: (m) => fx.port.postMessage(m) }, this.amb = { post: (m) => amb.port.postMessage(m) }, this.kind = "worklet";
         } catch {
-          let D = makeDSP(), F = makeFX(), A = makeAmb(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), am = new A(ctx.sampleRate), node = ctx.createScriptProcessor(1024, 1, 2), tmpL = new Float32Array(1024), tmpR = new Float32Array(1024), aL = new Float32Array(1024), aR = new Float32Array(1024), src = ctx.createConstantSource ? ctx.createConstantSource() : null;
-          src && (src.offset.value = 0, src.connect(node), src.start()), node.onaudioprocess = (ev) => {
-            let b = ev.outputBuffer, L = b.getChannelData(0), R2 = b.getChannelData(1), n = b.length;
-            d.process(L, R2, n), f2.process(tmpL, tmpR, n), am.process(aL, aR, n);
-            for (let i = 0; i < n; i++)
-              L[i] += tmpL[i] + aL[i], R2[i] += tmpR[i] + aR[i];
-          }, node.connect(bus), this.eng = { post: (m) => {
+          /* no worklets: one script processor runs all three synths, each into its own bus through a splitter-free trick of three processors */
+          let D = makeDSP(), F = makeFX(), Am = makeAmb(), d = new D(ctx.sampleRate), f2 = new F(ctx.sampleRate), am = new Am(ctx.sampleRate), sp = (fn) => {
+            let n = ctx.createScriptProcessor(1024, 1, 2), src = ctx.createConstantSource ? ctx.createConstantSource() : null;
+            return src && (src.offset.value = 0, src.connect(n), src.start()), n.onaudioprocess = (ev) => {
+              let b = ev.outputBuffer;
+              fn(b.getChannelData(0), b.getChannelData(1), b.length);
+            }, n;
+          };
+          sp((L, R2, n) => d.process(L, R2, n)).connect(engIn), sp((L, R2, n) => f2.process(L, R2, n)).connect(groundBus), sp((L, R2, n) => am.process(L, R2, n)).connect(worldBus);
+          this.eng = { post: (m) => {
             m.t === "cfg" ? d.configure(m.cfg) : m.t === "p" ? d.set(m.p) : m.t === "ev" && d.event(m.ev);
           } }, this.fx = { post: (m) => {
             m.t === "p" ? f2.set(m.p) : m.t === "ev" && f2.event(m.ev);
@@ -211,14 +220,61 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
             m.t === "p" ? am.set(m.p) : m.t === "ev" && am.event(m.ev);
           } }, this.kind = "main thread";
         }
-        ctx.state !== "running" && await ctx.resume(), this.cfg && this.eng.post({ t: "cfg", cfg: this.cfg }), this.ready = !0;
+        ctx.state !== "running" && await ctx.resume(), this.cfg && this.eng.post({ t: "cfg", cfg: this.cfg }), this.ready = !0, this.setMix(this.mix);
       })(), this.starting);
     }
+    /* how loud this engine is at redline, so every engine can sit at the same level in the mix */
+    measure(cfg) {
+      let key = JSON.stringify(cfg);
+      if (this.normCache.has(key)) return this.normCache.get(key);
+      let D = makeDSP(), sr = 16e3, d = new D(sr), n = Math.round(sr * 0.55), L = new Float32Array(n), R2 = new Float32Array(n), s = 0, m = 0;
+      d.configure(cfg);
+      for (let o = 0; o < n; o += 128) {
+        let k = Math.min(128, n - o);
+        d.set({ on: 1, firing: 1, crank: 0, rpm: (cfg.redline || 6e3) * 0.97, load: 1, cutFrac: 0, boost: cfg.fiBoost || 0, nos: 0, speed: 25, gear: 3, twostep: 0, antilag: 0, view: 0, dist: 3, pan: 0, rear: 1, vol: 1 }), d.process(L.subarray(o, o + k), R2.subarray(o, o + k), k);
+      }
+      for (let i = Math.round(sr * 0.2); i < n; i++) s += L[i] * L[i], m++;
+      let db = 10 * Math.log10(Math.max(1e-12, s / m)), norm = Math.max(-16, Math.min(10, -18 - db));
+      return this.normCache.set(key, norm), norm;
+    }
     configure(cfg) {
-      this.cfg = cfg, this.ready && this.eng.post({ t: "cfg", cfg });
+      this.cfg = cfg;
+      try {
+        this.engNorm = this.measure(cfg);
+      } catch {
+        this.engNorm = 0;
+      }
+      this.engIn && this.engIn.gain.setTargetAtTime(this.normGain(), this.ctx.currentTime, 0.05), this.ready && this.eng.post({ t: "cfg", cfg });
+    }
+    /* how much of the loudness correction to use: 1 makes every engine equally loud at redline */
+    normGain() {
+      return dbToLin(this.engNorm * Math.max(0, Math.min(1, +this.mix.eng.norm)));
+    }
+    applyMixParts() {
+      this.mixG = mixFor(this.mix, MIX_GROUND), this.mixW = mixFor(this.mix, MIX_WORLD);
+    }
+    /* apply a mix: bus faders, the engine's tamer, the limiter, and the per-sound settings */
+    setMix(m) {
+      if (this.mix = mixFill(m), this.applyMixParts(), !this.ctx) return;
+      let t = this.ctx.currentTime, M = this.mix, set = (g, db) => g && g.gain.setTargetAtTime(dbToLin(db), t, 0.03), tame = Math.max(0, Math.min(1, M.eng.tame ?? 0.55));
+      set(this.engBus, M.bus.engine), set(this.groundBus, M.bus.ground), set(this.worldBus, M.bus.world), set(this.uiBus, M.bus.ui), this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol * dbToLin(M.bus.master || 0), t, 0.03);
+      let c = this.engComp;
+      c.threshold.value = -6 - 22 * tame, c.ratio.value = 1 + 5 * tame, c.knee.value = 10, c.attack.value = 6e-3, c.release.value = 0.25, this.lim.threshold.value = M.limiter ? -1.5 : 0, this.lim.ratio.value = M.limiter ? 20 : 1, this.engIn.gain.setTargetAtTime(this.normGain(), t, 0.05);
+    }
+    /* peak and RMS (dBFS) on each bus, for meters */
+    levels() {
+      let out = {};
+      if (!this.meters) return out;
+      for (let k in this.meters) {
+        this.meters[k].getFloatTimeDomainData(this.mbuf);
+        let pk = 0, s = 0;
+        for (let x of this.mbuf) pk = Math.max(pk, Math.abs(x)), s += x * x;
+        out[k] = [20 * Math.log10(Math.max(1e-6, pk)), 10 * Math.log10(Math.max(1e-12, s / this.mbuf.length))];
+      }
+      return out.reduction = this.engComp ? this.engComp.reduction : 0, out;
     }
     setVolume(v) {
-      this.vol = v, this.master && this.master.gain.setTargetAtTime(this.muted ? 0 : v, this.ctx.currentTime, 0.05);
+      this.vol = v, this.master && this.master.gain.setTargetAtTime(this.muted ? 0 : v * dbToLin(this.mix.bus.master || 0), this.ctx.currentTime, 0.05);
     }
     setMuted(m) {
       this.muted = m, this.setVolume(this.vol);
@@ -232,22 +288,20 @@ registerProcessor('dirt-amb',DirtAmb);`, GameAudio = class {
       for (let e of engineEvents) this.eng.post({ t: "ev", ev: e });
       this.eng.post({ t: "p", p: engineP });
       for (let e of fxEvents) this.fx.post({ t: "ev", ev: e });
-      this.fx.post({ t: "p", p: fxP });
-      if (amb) {
+      if (this.fx.post({ t: "p", p: Object.assign({ mix: this.mixG }, fxP) }), amb) {
         for (let e of ambEvents) this.amb.post({ t: "ev", ev: e });
-        this.amb.post({ t: "p", p: Object.assign({ vol: this.ambVol, uiVol: 1 }, amb) });
+        this.amb.post({ t: "p", p: Object.assign({ vol: this.ambVol, uiVol: 1, mix: this.mixW }, amb) });
       }
       /* the space: open range is nearly dry, the shop yard throws back a slap, inside the shop it rings */
       let t = this.ctx.currentTime, c = cabin ? 0.4 : 1;
       this.yard += (yard - this.yard) * 0.08, this.shop += (shop - this.shop) * 0.08, this.sendS.gain.setTargetAtTime(c * (0.05 + 0.3 * this.yard) * (1 - this.shop), t, 0.08), this.sendT.gain.setTargetAtTime(0.6 * c * this.shop, t, 0.08);
     }
-    /* one-shot shop and HUD sounds */
-    ui(type) {
-      this.ready && this.amb && this.amb.post({ t: "ev", ev: { type } });
+    /* one-shot shop and HUD sounds, or a world event (thunder, a bird, a cheer) */
+    ui(type, extra) {
+      this.ready && this.amb && this.amb.post({ t: "ev", ev: Object.assign({ type }, extra || {}) });
     }
     setAmbVolume(v) {
       this.ambVol = v;
     }
-
   };
 

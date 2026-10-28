@@ -16,6 +16,8 @@ uniform vec4 uLook;   /* x chrome trim 0..1, y window tint, z livery, w lower cl
 uniform vec4 uLamps;  /* headlamps, tail, brake, reverse */
 uniform vec4 uAux;    /* x light bar, y pods and ditch lamps, z sunroof, w number */
 uniform vec4 uArch;   /* front axle x, rear axle x, arch centre y, arch radius */
+uniform vec4 uStyle;  /* x face: 0 classic, 1 street, 2 backcountry; y tail: 0 wide two-piece, 1 LED rings; z accent on */
+uniform vec3 uAcc;uniform vec3 uCal;
 uniform float uHcg;uniform float uDisc;uniform float uDirt;uniform float uMud;uniform float uSeed;
 float aa(float d,float w){float f=fwidth(d)*.8+1e-5;return 1.0-smoothstep(w-f,w+f,d);}
 float rbox(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
@@ -23,9 +25,9 @@ vec3 envBRDF(vec3 F0,float NoV,float r){const vec4 c0=vec4(-1,-.0275,-.572,.022)
   float a=min(rr.x*rr.x,exp2(-9.28*NoV))*rr.x+rr.y;vec2 AB=vec2(-1.04,1.04)*a+rr.zw;return F0*AB.x+AB.y;}
 vec3 env(vec3 R,float r){return textureLod(uProbe,R,r*uProbeLod).rgb;}
 vec3 heat(float t){return vec3(1.,.28,.05)*smoothstep(.25,.6,t)*6.+vec3(1.,.55,.15)*smoothstep(.6,1.,t)*14.;}
-struct M{vec3 alb;float metal;float rough;float clear;float clearR;vec3 em;float flake;float dirtK;};
+struct M{vec3 alb;float metal;float rough;float clear;float clearR;vec3 em;float flake;float dirtK;float spec;};
 void chrome(inout M m,float k){m.alb=mix(m.alb,mix(vec3(.025),vec3(.9),uLook.x),k);m.metal=mix(m.metal,uLook.x,k);m.rough=mix(m.rough,mix(.35,.07,uLook.x),k);m.flake*=1.0-k;}
-void satin(inout M m,vec3 c,float k){m.alb=mix(m.alb,c,k);m.metal*=1.0-k;m.rough=mix(m.rough,.55,k);m.clear*=1.0-k*.7;m.flake*=1.0-k;}
+void satin(inout M m,vec3 c,float k){m.alb=mix(m.alb,c,k);m.metal*=1.0-k;m.rough=mix(m.rough,.58,k);m.clear*=1.0-k*.8;m.flake*=1.0-k;m.spec=mix(m.spec,.5,k);}
 /* the greenhouse: 0 paint, 1 black, 2 belt trim, 3 glass. u runs 0 at the belt to 1 on the roof centre */
 void ghClass(float u,float x,float az,out int part,out float glass,out float frit,out float tr){
   part=0;glass=0.0;frit=0.0;tr=.42*(1.0-uLook.y*.75);
@@ -100,84 +102,135 @@ void livery(inout M m,vec3 L,vec3 N,float yg){
     if(yg<.5&&abs(N.z)>.3)k=0.;m.metal=0.;m.flake=0.;m.rough=.55;m.clear=.2;}
   m.alb=mix(m.alb,c,k);m.flake*=1.0-k*.7;
 }
+void lamp(inout M m){m.alb=vec3(.55);m.metal=1.;m.rough=.12;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;}
+void gblack(inout M m,float k){m.alb=mix(m.alb,vec3(.012),k);m.metal*=1.0-k;m.rough=mix(m.rough,.18,k);m.flake*=1.0-k;m.clear=mix(m.clear,.8,k);}
+void hexmesh(inout M m,vec3 L,float yg,float sc,float bright){vec2 h=vec2(L.z*sc,yg*sc*1.155);h.x+=step(.5,fract(h.y*.5))*.5;vec2 f=abs(fract(h)-.5);float web=step(.34,max(f.x,f.y*1.15));
+  m.alb=vec3(.006)+web*bright;m.metal=web*.3;m.rough=.4;m.clear=0.;m.flake=0.;m.dirtK=.5;}
+void redLamp(inout M m,float led){m.alb=vec3(.32,.012,.012);m.metal=0.;m.rough=.05;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;m.em+=vec3(1.,.03,.02)*(uLamps.y*4.+uLamps.z*26.+.2)*(.35+.65*led);}
+void revLamp(inout M m){m.alb=vec3(.75);m.metal=0.;m.rough=.05;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;m.em+=vec3(1.,.97,.9)*uLamps.w*30.;}
+/* the three faces: 0 classic twin-bar, 1 street split mesh, 2 backcountry quad lamps */
+void face(inout M m,vec3 L,vec3 N,float yg){
+  float az=abs(L.z);int fs=int(uStyle.x+.5);vec3 W=vec3(.95,.93,.86);
+  if(fs==0){
+    /* a tall grille crossed by two heavy chrome bars, chrome-ringed lamps with twin projectors, a wide intake */
+    float gd=rbox(vec2(az,yg-.8),vec2(.4,.125),.05);
+    if(gd<0.){hexmesh(m,L,yg,34.,.04);float bars=max(aa(abs(yg-.836)-.017,0.),aa(abs(yg-.764)-.017,0.))*step(az,.385);chrome(m,bars);}
+    chrome(m,aa(abs(gd+.013),.013));
+    float yc=.815,hd=rbox(vec2(az-.69,yg-yc),vec2(.2,.066),.03);
+    if(hd<0.){lamp(m);float b1=length(vec2(az-.6,yg-yc)),b2=length(vec2(az-.78,yg-yc));
+      float bowl=max(aa(b1,.046),aa(b2,.042));m.alb=mix(m.alb,vec3(.95),bowl*.5);
+      float lens=max(aa(b1,.022),aa(b2,.02));m.em+=W*lens*(uLamps.x*95.+3.)+W*bowl*uLamps.x*6.;
+      float drl=aa(abs(yg-(yc-.05))-.006,0.)*step(.52,az)*step(az,.87);m.em+=vec3(1.,.98,.92)*drl*(10.+uLamps.x*8.);}
+    chrome(m,aa(abs(hd),.006)*.7);
+    float id=rbox(vec2(az,yg-.53),vec2(.36,.045),.02);if(id<0.){m.alb=vec3(.01);m.metal=0.;m.rough=.6;m.clear=0.;m.flake=0.;}
+    chrome(m,aa(abs(id),.005)*.5);
+    float fog=length(vec2(az-.66,yg-.53));if(fog<.04){lamp(m);m.em+=vec3(1.,.95,.8)*aa(fog,.026)*uLamps.x*40.;}
+    chrome(m,aa(abs(fog-.04),.006));
+    chrome(m,aa(abs(yg-.625)-.006,0.)*step(az,.84)*.9);
+  }
+  else if(fs==1){
+    /* a slim upper slot and a big lower mesh with a painted bar between, smoked slim lamps with a light blade */
+    float up=rbox(vec2(az,yg-.885),vec2(.42,.04),.02),lo=rbox(vec2(az*(1.+.3*(yg-.64)),yg-.645),vec2(.43,.115),.05);
+    if(up<0.)hexmesh(m,L,yg,46.,.05);
+    if(lo<0.)hexmesh(m,L,yg,30.,.045);
+    gblack(m,aa(abs(up+.008),.008));gblack(m,aa(abs(lo+.01),.01));
+    if(uStyle.z>.5)m.alb=mix(m.alb,uAcc,aa(abs(yg-.82)-.0035,0.)*step(az,.36));
+    float yc=.875,hd=rbox(vec2(az-.7,yg-yc),vec2(.19,.042),.016);
+    if(hd<0.){lamp(m);m.alb=vec3(.03);m.metal=.9;m.rough=.08;
+      float p1=rbox(vec2(az-.62,yg-yc+.006),vec2(.026,.016),.006),p2=rbox(vec2(az-.75,yg-yc+.006),vec2(.026,.016),.006);
+      float lens=max(aa(p1,0.),aa(p2,0.));m.alb=mix(m.alb,vec3(.5),lens*.6);m.em+=W*lens*(uLamps.x*110.+2.);
+      float blade=aa(abs(yg-yc-.03)-.0045,0.)*step(az,.88)*step(.52,az);m.em+=vec3(.92,.96,1.)*blade*(14.+uLamps.x*6.);}
+    gblack(m,aa(abs(hd),.006));
+    float vd=rbox(vec2(az-.77,yg-.6),vec2(.06,.085),.02);
+    if(vd<0.){m.alb=vec3(.008);m.metal=0.;m.rough=.5;m.clear=0.;m.flake=0.;float fin=aa(abs(fract(yg*42.)-.5)-.2,0.);m.alb+=vec3(.025)*fin;}
+    gblack(m,aa(abs(vd),.006));
+  }
+  else{
+    /* a black bumper with square fog lamps, a black panel with heavy slats, four round lamps with halo rings */
+    if(yg<.68&&yg>.4)satin(m,vec3(.028),1.0);
+    float fd=rbox(vec2(az-.62,yg-.56),vec2(.05,.028),.006);if(fd<0.){lamp(m);m.em+=vec3(1.,.95,.8)*uLamps.x*30.*aa(fd+.008,0.);}
+    m.alb=mix(m.alb,vec3(.006),aa(abs(fd),.004));
+    float pd=rbox(vec2(az,yg-.81),vec2(.9,.11),.035);
+    if(pd<0.){m.alb=vec3(.016);m.metal=0.;m.rough=.55;m.clear=.1;m.flake=0.;m.dirtK=.6;
+      float sl=aa(abs(fract((yg-.71)/.045)-.5)-.2,0.)*step(az,.47);m.alb=mix(m.alb,vec3(.05),sl);m.rough=mix(m.rough,.3,sl);
+      for(int i=0;i<2;i++){float lx=i==0?.62:.8;float r=length(vec2(az-lx,yg-.81));
+        if(r<.062){lamp(m);float lens=aa(r,.03);m.em+=W*lens*(uLamps.x*95.+3.);
+          float halo=aa(abs(r-.047)-.005,0.);m.em+=vec3(1.,.98,.92)*halo*(9.+uLamps.x*6.);}
+        m.alb=mix(m.alb,vec3(.008),aa(abs(r-.064),.004));}
+    }
+    gblack(m,aa(abs(pd),.004)*.6);
+  }
+}
+/* the two tails: 0 wide two-piece lamps with a bright bar between, 1 smoked lamps with square LED rings */
+void tail(inout M m,vec3 L,vec3 N,float yg){
+  float az=abs(L.z);int ts=int(uStyle.y+.5);bool back=N.x<-.2,side=abs(N.z)>.3;
+  if(ts==0){
+    float t1=rbox(vec2(az-.77,yg-.97),vec2(.115,.08),.025),t2=rbox(vec2(az-.51,yg-.985),vec2(.115,.055),.02);
+    if(t1<0.&&(back||side)){float led=aa(abs(fract((yg-.9)/.04)-.5)-.28,0.);redLamp(m,led);}
+    if(t2<0.&&back){if(yg<.958)revLamp(m);else redLamp(m,1.);}
+    if(back){chrome(m,aa(rbox(vec2(az,yg-.985),vec2(.39,.013),.008),0.));chrome(m,max(aa(abs(t1),.005),aa(abs(t2),.005))*.6);}
+  }else{
+    vec2 p=vec2(az-.75,yg-.965);float hb=rbox(p,vec2(.13,.088),.014);
+    if(hb<0.&&(back||side)){m.alb=vec3(.05,.004,.004);m.metal=0.;m.rough=.04;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;
+      float r1=aa(abs(rbox(p,vec2(.1,.062),.01))-.005,0.),r2=aa(abs(rbox(p,vec2(.06,.032),.006))-.004,0.);
+      m.em+=vec3(1.,.03,.02)*(r1+r2*.8)*(uLamps.y*7.+uLamps.z*30.+.6);
+      float rv=aa(rbox(p,vec2(.025,.012),.004),0.);if(rv>0.){m.alb=mix(m.alb,vec3(.6),rv);m.em+=vec3(1.,.97,.9)*rv*uLamps.w*30.;}}
+    if(back){float st=aa(rbox(vec2(az,yg-1.005),vec2(.6,.009),.005),0.);if(st>0.){m.alb=mix(m.alb,vec3(.05,.004,.004),st);m.flake*=1.0-st;m.metal*=1.0-st;m.em+=vec3(1.,.03,.02)*st*(uLamps.y*3.+uLamps.z*10.+.15);}
+      gblack(m,aa(abs(hb),.005));}
+  }
+}
 void paint(inout M m,vec3 L,vec3 N,float yg){
   m.alb=uPaint;m.metal=uMetal;m.rough=uPaintR;m.clear=1.0;m.clearR=.035;m.flake=uFlake;
   float az=abs(L.z),x=L.x;
   livery(m,L,N,yg);
   /* lower cladding: rocker, bumpers below the trim line */
-  float lowY=.56+.02*smoothstep(1.8,2.4,x)+.04*smoothstep(-1.9,-2.35,-x)*0.;
-  bool front=x>2.2&&N.x>.25,rear=x<-2.25&&N.x<-.25;
-  float clad=step(yg,front?.48:rear?.6:lowY);
+  float lowY=.56+.02*smoothstep(1.8,2.4,x);
+  bool front=x>2.3&&N.x>.25,rear=x<-2.3&&N.x<-.25;
+  float clad=step(yg,front?.47:rear?.6:lowY);
   if(clad>0.0){if(uLook.w>.5)satin(m,uLower,1.0);}
   /* the trim line above the cladding, along the sides */
-  if(abs(N.z)>.45&&x<2.2&&x>-2.3)chrome(m,aa(abs(yg-lowY-.008),.008));
+  if(abs(N.z)>.45&&x<2.3&&x>-2.35)chrome(m,aa(abs(yg-lowY-.008),.008));
   /* ---------- the face ---------- */
-  if(x>2.25&&N.x>.2){
-    /* grille: a wide rounded opening, fine hex mesh, a heavy surround */
-    vec2 gp=vec2(az,yg-.705);float gd=rbox(gp,vec2(.44,.115),.07);
-    if(gd<.0){vec2 h=vec2(L.z*30.,yg*34.6);h.x+=step(.5,fract(h.y*.5))*.5;vec2 f=abs(fract(h)-.5);float web=step(.36,max(f.x,f.y*1.15));
-      m.alb=vec3(.008)+web*mix(.02,.25,uLook.x);m.metal=web*uLook.x;m.rough=.4;m.clear=0.;m.flake=0.;m.dirtK=.5;}
-    chrome(m,aa(abs(gd+.012),.014));
-    /* wraparound headlamps */
-    float yc=.795-.025*saturate((az-.52)/.36);vec2 hp=vec2(az-.69,yg-yc);float hd=rbox(hp,vec2(.19,.06),.035);
-    if(hd<0.0){m.alb=vec3(.55);m.metal=1.;m.rough=.12;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;
-      float b1=length(vec2(az-.6,yg-yc)),b2=length(vec2(az-.76,yg-yc+.004));
-      float bowl=max(aa(b1,.042),aa(b2,.038));m.alb=mix(m.alb,vec3(.95),bowl*.5);
-      float lens=max(aa(b1,.02),aa(b2,.018));m.em+=vec3(.95,.93,.85)*lens*(uLamps.x*95.+3.)+vec3(.95,.93,.85)*bowl*uLamps.x*6.;
-      float drl=aa(abs(hd+.008),.004);m.em+=vec3(1.,.98,.92)*drl*(10.+uLamps.x*10.);}
-    chrome(m,aa(abs(hd),.006)*.6);
-    /* lower intake and fog lamps */
-    float id=rbox(vec2(az,yg-.47),vec2(.36,.042),.02);
-    if(id<0.0){m.alb=vec3(.01);m.metal=0.;m.rough=.6;m.clear=0.;m.flake=0.;}
-    float fog=length(vec2(az-.63,yg-.49));
-    if(fog<.05){m.alb=vec3(.6);m.metal=1.;m.rough=.1;m.flake=0.;m.em+=vec3(1.,.95,.8)*aa(fog,.032)*uLamps.x*40.;}
-    chrome(m,aa(abs(fog-.05),.006));
-    if(az<.78)chrome(m,aa(abs(yg-.58),.009)*.9);
-  }
-  /* the lamps wrap onto the fender, and an amber marker sits behind them */
-  if(x>2.12&&abs(N.z)>.3&&x<2.45){
-    float yc=.78;float sd=max(abs(yg-yc)-.055,2.2-x);
-    if(sd<0.0){m.alb=vec3(.55);m.metal=1.;m.rough=.12;m.flake=0.;float mk=step(x,2.26);m.alb=mix(m.alb,vec3(.9,.45,.02),mk*.85);m.metal*=1.0-mk;m.em+=vec3(1.,.5,.05)*mk*(1.5+uLamps.x*8.);}
+  if(x>2.38&&N.x>.25)face(m,L,N,yg);
+  /* the lamps wrap onto the fenders, with an amber marker behind */
+  if(x>2.3&&abs(N.z)>.3&&N.x<.6){
+    int fs=int(uStyle.x+.5);
+    if(fs==0){float sd=max(abs(yg-.815)-.062,2.36-x);if(sd<0.){lamp(m);float mk=step(x,2.43);m.alb=mix(m.alb,vec3(.9,.45,.02),mk*.85);m.metal*=1.0-mk;m.em+=vec3(1.,.5,.05)*mk*(1.5+uLamps.x*8.);}chrome(m,aa(abs(sd),.005)*.6);}
+    else if(fs==1){float sd=max(abs(yg-.875)-.04,2.41-x);if(sd<0.){lamp(m);m.alb=vec3(.03);float mk=step(x,2.45);m.em+=vec3(1.,.5,.05)*mk*(1.2+uLamps.x*6.);}gblack(m,aa(abs(sd),.005));}
+    else{float sd=rbox(vec2(x-2.42,yg-.81),vec2(.03,.016),.006);if(sd<0.){lamp(m);m.alb=vec3(.9,.45,.02);m.metal=0.;m.em+=vec3(1.,.5,.05)*(1.5+uLamps.x*8.);}}
   }
   /* ---------- the sides ---------- */
   if(abs(N.z)>.3){
     float sd=1.0;
     if(yg>.44&&yg<1.14){sd=min(sd,abs(x-.97+.06*(yg-.8)));sd=min(sd,abs(x+.22));}
     if(yg>.86&&yg<1.14)sd=min(sd,abs(x+1.12));
-    if(yg<.88&&x>-1.12&&x<-.22){float ar=length(vec2(x-uArch.y,yg-.375));if(ar<uArch.w+.24)sd=min(sd,abs(ar-uArch.w-.06));}
+    if(yg<.88&&x>-1.12&&x<-.22){float ar=length(vec2(x-uArch.y,yg-.375));if(ar<uArch.w+.24)sd=min(sd,abs(ar-uArch.w-.07));}
     if(x<.97&&x>-1.12)sd=min(sd,abs(yg-.44));
     if(L.z>0.0)sd=min(sd,abs(rbox(vec2(x+1.95,yg-.96),vec2(.07,.07),.03)));
     float gp=aa(sd,.0028);if(gp>0.0){m.alb=mix(m.alb,vec3(.004),gp);m.clear*=1.0-gp;m.flake*=1.0-gp;m.rough=mix(m.rough,.7,gp);}
     for(int i=0;i<2;i++){float hx=i==0?.12:-.98;float h=rbox(vec2(x-hx,yg-1.02),vec2(.075,.013),.012);chrome(m,aa(h,0.));}
   }
-  /* ---------- the hood ---------- */
+  /* ---------- the hood: shut lines, and a crease along each side of the raised centre ---------- */
   if(N.y>.5&&x>.9){
-    float sd=abs(x-.985);sd=min(sd,abs(az-.8+.06*saturate((x-1.)/1.3)));sd=min(sd,abs(x-2.36));
+    float sd=abs(x-.985);sd=min(sd,abs(az-.82+.04*saturate((x-1.)/1.3)));sd=min(sd,abs(x-2.47));
     float gp=aa(sd,.003);if(gp>0.0){m.alb=mix(m.alb,vec3(.004),gp);m.clear*=1.0-gp;m.flake*=1.0-gp;}
   }
   /* ---------- the tail ---------- */
-  if(x<-2.2&&N.x<.3){
-    float tl=rbox(vec2(az-.79,yg-.94),vec2(.1,.19),.04);
-    if(tl<0.0&&(N.x<-.2||abs(N.z)>.3)){
-      bool rev=yg<.83;
-      m.alb=rev?vec3(.75):vec3(.32,.012,.012);m.metal=0.;m.rough=.05;m.clear=1.;m.clearR=.01;m.flake=0.;m.dirtK=.3;
-      if(rev)m.em+=vec3(1.,.97,.9)*uLamps.w*30.;
-      else{float led=aa(abs(fract((yg-.82)/.06)-.5)-.28,.0)*aa(abs(az-.79)-.07,0.);
-        m.em+=vec3(1.,.03,.02)*(uLamps.y*4.+uLamps.z*26.+.2)*(.35+.65*led);}
-    }
-    if(N.x<-.2){
-      float lg=rbox(vec2(az,yg-.85),vec2(.66,.27),.05);
-      float gp=aa(abs(lg),.003)*step(yg,1.1);if(gp>0.0){m.alb=mix(m.alb,vec3(.004),gp);m.clear*=1.0-gp;}
-      float pl=rbox(vec2(az,yg-.83),vec2(.17,.075),.012);
-      if(pl<0.0){vec2 pc=vec2((L.z+.15)/.3*7.,(yg-.78)/.08*5.);vec2 ci=floor(pc);
+  if(x<-2.3&&N.x<.3){
+    bool back=N.x<-.2;
+    if(back){
+      float lg=rbox(vec2(az,yg-.87),vec2(.635,.3),.05);
+      float gp=aa(abs(lg),.003)*step(yg,1.15);if(gp>0.0){m.alb=mix(m.alb,vec3(.004),gp);m.clear*=1.0-gp;}
+      float pl=rbox(vec2(az,yg-.75),vec2(.17,.075),.012);
+      if(pl<0.0){vec2 pc=vec2((L.z+.15)/.3*7.,(yg-.7)/.08*5.);vec2 ci=floor(pc);
         float ch=step(.45,h12(ci+3.+uSeed))*step(0.,pc.x)*step(pc.x,7.)*step(.8,pc.y)*step(pc.y,4.2)*step(.2,fract(pc.x));
         m.alb=mix(vec3(.82,.82,.76),vec3(.03),ch);m.metal=0.;m.flake=0.;m.clear=.5;m.rough=.4;m.em+=vec3(.9,.9,.8)*(1.0-ch)*uLamps.y*.5;}
       chrome(m,aa(abs(pl+.004),.008));
-      chrome(m,aa(rbox(vec2(az,yg-.975),vec2(.42,.014),.01),0.));
-      if(yg<.62)satin(m,uLower,step(.5,uLook.w));
+      if(yg<.6)satin(m,uLower,step(.5,uLook.w));
     }
+    tail(m,L,N,yg);
   }
-  if(N.y>.55&&x<-2.15&&yg<.66)satin(m,vec3(.03),1.0);
+  if(N.y>.55&&x<-2.2&&yg<.66)satin(m,vec3(.03),1.0);
   /* water beads */
   if(uWet>0.0&&m.clear>.5){vec3 v3=voro(vec2(L.x+L.y*.3,L.z+L.y*.7)*55.);float bead=aa(v3.x,.26)*step(.45,v3.z)*uWet*saturate(1.0-length(fwidth(L))*120.);
     m.clearR=mix(m.clearR,.012,bead);m.alb*=1.0-bead*.15;}
@@ -185,7 +238,7 @@ void paint(inout M m,vec3 L,vec3 N,float yg){
 void main(){
   vec3 N=normalize(vN);if(!gl_FrontFacing)N=-N;vec3 NL=normalize(vNL);
   vec3 V=normalize(uCam-vP);uint id=vMat.x;float yg=vL.y+uHcg;float az=abs(vL.z);
-  M m;m.alb=vec3(.5);m.metal=0.;m.rough=.5;m.clear=0.;m.clearR=.05;m.em=vec3(0);m.flake=0.;m.dirtK=1.0;
+  M m;m.alb=vec3(.5);m.metal=0.;m.rough=.5;m.clear=0.;m.clearR=.05;m.em=vec3(0);m.flake=0.;m.dirtK=1.0;m.spec=1.0;
   float alpha=1.0;
   if(id==0u){
     float ax=min(abs(vL.x-uArch.x),abs(vL.x-uArch.y));if(length(vec2(ax,vL.y-uArch.z))<uArch.w&&az>.55)discard;
@@ -231,6 +284,11 @@ void main(){
     else if(k==3u){m.alb=vec3(.05);m.rough=.3;m.clear=.8;}
     else if(k==4u){m.alb=vec3(.025);m.rough=.45;m.clear=.3;}
     else if(k==6u){m.alb=vec3(.85,.62,.22);m.metal=1.;m.rough=.18;}
+    else if(k==7u){/* bronze disc: eight round windows cut through it */
+      float r=length(vL.xy),a=atan(vL.y,vL.x),sec=6.28318/8.,aw=mod(a+sec*.5,sec)-sec*.5;
+      if(r>.09&&length(vec2(r-.15,aw*r))<.033)discard;
+      m.alb=vec3(.42,.27,.12);m.metal=1.;m.rough=.32;m.clear=.4;}
+    else if(k==8u){m.alb=vec3(.045,.047,.05);m.metal=.7;m.rough=.2;m.clear=.9;m.clearR=.04;}
     else{m.alb=uRim;m.metal=.3;m.rough=.3;m.clear=.8;}
     m.dirtK=.6;
   }
@@ -256,10 +314,19 @@ void main(){
     if(k==0u){m.alb=vec3(.02);m.rough=.62;m.clear=.2;}
     else if(k==1u){m.alb=vec3(.12);m.rough=.5;}
     else if(k==2u){m.alb=vec3(.85);m.metal=1.;m.rough=.1;}
+    else if(k==4u){float w=vn(vec2(vL.x*300.,vL.z*300.+vL.y*200.));m.alb=vec3(.15,.16,.085)*(.85+.3*w);m.rough=.88;m.dirtK=.7;}
+    else if(k==5u){m.alb=uAcc;m.rough=.3;m.clear=.8;m.metal=.2;}
+    else if(k==6u){m.alb=uCal;m.rough=.35;m.clear=.6;m.dirtK=.4;}
     else{m.alb=vec3(.6,.03,.02);m.rough=.35;m.clear=.6;}}
+  else if(id==18u){
+    /* textured cladding: grained satin in the lower colour, painted to match if the lower body is body colour; kind 1 is gloss black */
+    float g=vn(vL.xy*170.+vL.z*110.)*.6+vn(vec2(vL.z,vL.y)*330.+vL.x*90.)*.4;
+    m.alb=uLower*(.85+.3*g);m.rough=.7+.12*g;m.clear=0.;m.spec=.42;m.dirtK=.55;
+    if(vMat.y==1u){m.alb=vec3(.016)*(.9+.2*g);m.rough=.3;m.clear=.5;m.clearR=.06;m.spec=.8;}
+    else if(uLook.w<.5){m.alb=uPaint;m.metal=uMetal;m.rough=uPaintR;m.clear=1.0;m.clearR=.035;m.flake=uFlake;m.spec=1.0;m.dirtK=1.0;}}
   if(id!=1u)grime(m,vL,N,yg,m.dirtK*(id==4u?.6:1.));
   /* ---------- light it ---------- */
-  Surf s;s.P=vP;s.V=V;s.N=N;s.Nc=N;s.ao=1.0;s.spec=1.0;s.trans=0.0;
+  Surf s;s.P=vP;s.V=V;s.N=N;s.Nc=N;s.ao=1.0;s.spec=m.spec;s.trans=0.0;
   vec3 flakeN=N;
   if(m.flake>0.0){float fp=length(fwidth(vL))*900.;vec3 c=floor(vL*700.);vec3 r=vec3(h13(c),h13(c+17.1),h13(c+31.7))-.5;flakeN=normalize(N+r*.45*m.flake*saturate(1.0-fp));}
   s.N=flakeN;
@@ -284,7 +351,7 @@ void main(){
   float occ=(1.0-.55*saturate(-N.y)-.25*saturate(1.0-(yg-.1)*2.5))*(inside?.18:1.0);
   col+=s.diff*amb*occ;
   vec3 Rb=reflect(-V,flakeN);vec3 eb=envBRDF(s.F0,NoV,s.rough);
-  vec3 base=env(Rb,s.rough)*eb*occ;
+  vec3 base=env(Rb,s.rough)*eb*occ*m.spec;
   if(s.clear>0.0){float Fc=F_Sch(vec3(.04),NoV).x*s.clear;vec3 Rc=reflect(-V,N);col=col*(1.0-Fc)+base*(1.0-Fc)+env(Rc,s.clearR)*Fc;}
   else col+=base;
   oCol=vec4(col,1.0);
@@ -293,22 +360,6 @@ void main(){
 #endif
 }`;
 
-  /* paint colours for the truck. The first is the factory colour of the one in the driveway */
-  var SUV_PAINTS = {
-    bronze: { name: "Bronze-Grey Metallic", col: [0.2, 0.17, 0.135], metal: 0.75, rough: 0.3, flake: 0.85, price: 0 },
-    black: { name: "Midnight Black", col: [0.008, 0.008, 0.009], metal: 0.4, rough: 0.22, flake: 0.6, price: 900 },
-    pearl: { name: "Pearl White", col: [0.78, 0.77, 0.74], metal: 0.15, rough: 0.22, flake: 0.5, price: 1100 },
-    silver: { name: "Liquid Silver", col: [0.55, 0.56, 0.57], metal: 1, rough: 0.28, flake: 0.6, price: 900 },
-    candy: { name: "Candy Apple Red", col: [0.42, 0.012, 0.012], metal: 0.8, rough: 0.2, flake: 1, price: 1800 },
-    orange: { name: "Safety Orange", col: [0.85, 0.22, 0.02], metal: 0.1, rough: 0.28, flake: 0.2, price: 1200 },
-    lime: { name: "Toxic Lime", col: [0.32, 0.6, 0.02], metal: 0.5, rough: 0.25, flake: 0.8, price: 1500 },
-    sky: { name: "Baja Blue", col: [0.04, 0.2, 0.5], metal: 0.6, rough: 0.26, flake: 0.8, price: 1200 },
-    tan: { name: "Desert Tan", col: [0.42, 0.33, 0.21], metal: 0, rough: 0.45, flake: 0, price: 800 },
-    olive: { name: "Field Green", col: [0.09, 0.11, 0.055], metal: 0, rough: 0.5, flake: 0, price: 800 },
-    matte: { name: "Matte Black", col: [0.012, 0.012, 0.013], metal: 0, rough: 0.6, flake: 0, price: 1400 },
-    primer: { name: "Grey Primer", col: [0.2, 0.2, 0.2], metal: 0, rough: 0.75, flake: 0, price: 300 },
-    purple: { name: "Grape Soda", col: [0.16, 0.02, 0.3], metal: 0.8, rough: 0.22, flake: 1, price: 1600 }
-  };
   function freeMesh(gl, M) {
     M && (gl.deleteVertexArray(M.vao), gl.deleteBuffer(M.vb), M.ib && gl.deleteBuffer(M.ib));
   }
@@ -324,10 +375,14 @@ void main(){
       let key = JSON.stringify(look);
       if (this.models.has(key)) return this.models.get(key);
       let G2 = this.R.G, m = buildSUV(look), w = buildSuvWheel(m.look), up = (B) => G2.mesh(LAYOUT, 36, B.vertexData(), B.indexData()), M = { key, look: m.look, body: up(m.body), glass: up(m.glass), wheelR: up(w), wheelL: up(mirrorZ(w)), used: 0 };
+      if (m.look.calipers) {
+        let c = buildSuvCaliper(m.look);
+        M.calR = up(c), M.calL = up(mirrorZ(c));
+      }
       if (this.models.set(key, M), this.models.size > 6) {
         for (let [k, v] of this.models) if (v !== M && !this.list.some((it) => it.model === v)) {
           let gl = this.R.gl;
-          freeMesh(gl, v.body), freeMesh(gl, v.glass), freeMesh(gl, v.wheelR), freeMesh(gl, v.wheelL), this.models.delete(k);
+          freeMesh(gl, v.body), freeMesh(gl, v.glass), freeMesh(gl, v.wheelR), freeMesh(gl, v.wheelL), freeMesh(gl, v.calR), freeMesh(gl, v.calL), this.models.delete(k);
           break;
         }
       }
@@ -355,7 +410,7 @@ void main(){
       for (let c of S.suvs || []) {
         let model = this.model(c.look), M = qm4(c.q, c.p), key = c.id || 0, pv = this.prev.get(key), wheels = c.wheels.map((w, i) => {
           let base = M4.mul(M, M4.mul(T4(w.hp[0], w.hp[1] - w.len, w.hp[2]), RY(-w.steer))), pw = pv ? pv.wheels[i] : null, dAng = pw ? Math.max(-0.35, Math.min(0.35, w.ang - pw.ang)) : 0;
-          return { M: M4.mul(base, RZ(-w.ang)), left: w.hp[2] < 0, ang: w.ang, base, prevAngM: pw ? M4.mul(pw.base, RZ(-(w.ang - dAng))) : null, disc: w.disc || 0 };
+          return { M: M4.mul(base, RZ(-w.ang)), left: w.hp[2] < 0, ang: w.ang, base, prevBase: pw && !S.cut ? pw.base : base, prevAngM: pw ? M4.mul(pw.base, RZ(-(w.ang - dAng))) : null, disc: w.disc || 0 };
         });
         for (let w of wheels) w.prevAngM || (w.prevAngM = w.M);
         this.list.push({ c, M, prevM: pv && !S.cut ? pv.M : M, wheels, model }), this.prev.set(key, { M, wheels: wheels.map((w) => ({ ang: w.ang, base: w.base })) });
@@ -365,10 +420,11 @@ void main(){
       let c = it.c, p = c.paint || SUV_PAINTS.bronze, s = c.style || {}, L = it.model.look;
       G2.set(P, {
         uPaint: p.col, uMetal: p.metal, uPaintR: p.rough, uFlake: p.flake,
-        uLower: s.lower || [0.075, 0.07, 0.065], uLiv: s.livCol || [0.9, 0.9, 0.88], uRim: s.rimCol || [0.6, 0.6, 0.62],
+        uLower: s.lower || [0.026, 0.025, 0.024], uLiv: s.livCol || [0.9, 0.9, 0.88], uRim: s.rimCol || [0.6, 0.6, 0.62],
         uLook: [s.chrome ?? 1, s.tint ?? 0.3, s.livery || 0, s.clad ?? 1],
         uLamps: c.lamps || [0, 0, 0, 0], uAux: [c.bar || 0, c.pods || 0, s.sunroof ?? 1, s.number || 7],
-        uArch: [SUV.axF, SUV.axR, SUV.R0 - SUV.hcg0, L.archR], uHcg: SUV.hcg0, uDirt: c.dirt || 0, uMud: c.mud || 0, uSeed: s.seed || 0.37
+        uArch: [SUV.axF, SUV.axR, SUV.R0 - SUV.hcg0, L.archR], uHcg: SUV.hcg0, uDirt: c.dirt || 0, uMud: c.mud || 0, uSeed: s.seed || 0.37,
+        uStyle: [s.face || 0, s.tail || 0, s.acc ? 1 : 0, 0], uAcc: s.acc || [0.035, 0.035, 0.038], uCal: s.cal || s.acc || [0.62, 0.03, 0.02]
       });
     }
     draw(G2, P, M, prevM, mesh) {
@@ -381,6 +437,7 @@ void main(){
       for (let it of this.list) {
         this.uniforms(G2, P, it), G2.uni(P, "uDisc", 0), this.draw(G2, P, it.M, it.prevM, it.model.body), this.draw(G2, P, it.M, it.prevM, it.model.glass);
         for (let w of it.wheels) G2.uni(P, "uDisc", w.disc), this.draw(G2, P, w.M, w.prevAngM, w.left ? it.model.wheelL : it.model.wheelR);
+        if (it.model.calR) for (let w of it.wheels) this.draw(G2, P, w.base, w.prevBase, w.left ? it.model.calL : it.model.calR);
       }
       this.drawProps(G2, P, !1);
     }
@@ -397,6 +454,7 @@ void main(){
         if (!(kind === "hl" && it.c.self)) {
           G2.uni(P, "uModel", it.M), G2.draw(it.model.body), G2.draw(it.model.glass);
           for (let w of it.wheels) G2.uni(P, "uModel", w.M), G2.draw(w.left ? it.model.wheelL : it.model.wheelR);
+          if (it.model.calR) for (let w of it.wheels) G2.uni(P, "uModel", w.base), G2.draw(w.left ? it.model.calL : it.model.calR);
         }
       this.drawProps(G2, P, !0), G2.uni(P, "uModel", M4.ident());
     }

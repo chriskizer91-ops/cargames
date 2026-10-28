@@ -2,6 +2,24 @@
   /* Everything you can bolt on, swap or paint, and how a build becomes an engine spec, a chassis,
      a look and a paint job. Prices are in dollars; mass in kg; "loud" is how much a part gives
      the game away to anyone looking (the sleeper meter counts it). */
+  /* paint colours for the truck. The first is the factory colour of the one in the driveway */
+  var SUV_PAINTS = {
+    bronze: { name: "Bronze-Grey Metallic", col: [0.2, 0.17, 0.135], metal: 0.75, rough: 0.3, flake: 0.85, price: 0 },
+    black: { name: "Midnight Black", col: [0.008, 0.008, 0.009], metal: 0.4, rough: 0.22, flake: 0.6, price: 900 },
+    pearl: { name: "Pearl White", col: [0.78, 0.77, 0.74], metal: 0.15, rough: 0.22, flake: 0.5, price: 1100 },
+    silver: { name: "Liquid Silver", col: [0.55, 0.56, 0.57], metal: 1, rough: 0.28, flake: 0.6, price: 900 },
+    candy: { name: "Candy Apple Red", col: [0.42, 0.012, 0.012], metal: 0.8, rough: 0.2, flake: 1, price: 1800 },
+    orange: { name: "Safety Orange", col: [0.85, 0.22, 0.02], metal: 0.1, rough: 0.28, flake: 0.2, price: 1200 },
+    lime: { name: "Toxic Lime", col: [0.32, 0.6, 0.02], metal: 0.5, rough: 0.25, flake: 0.8, price: 1500 },
+    sky: { name: "Baja Blue", col: [0.04, 0.2, 0.5], metal: 0.6, rough: 0.26, flake: 0.8, price: 1200 },
+    tan: { name: "Desert Tan", col: [0.42, 0.33, 0.21], metal: 0, rough: 0.45, flake: 0, price: 800 },
+    olive: { name: "Field Green", col: [0.09, 0.11, 0.055], metal: 0, rough: 0.5, flake: 0, price: 800 },
+    matte: { name: "Matte Black", col: [0.012, 0.012, 0.013], metal: 0, rough: 0.6, flake: 0, price: 1400 },
+    primer: { name: "Grey Primer", col: [0.2, 0.2, 0.2], metal: 0, rough: 0.75, flake: 0, price: 300 },
+    purple: { name: "Grape Soda", col: [0.16, 0.02, 0.3], metal: 0.8, rough: 0.22, flake: 1, price: 1600 },
+    gunmetal: { name: "Gunmetal Grey", col: [0.06, 0.063, 0.068], metal: 0.85, rough: 0.24, flake: 0.7, price: 1000 },
+    stone: { name: "Canyon Stone", col: [0.3, 0.27, 0.22], metal: 0.2, rough: 0.38, flake: 0.25, price: 900 }
+  };
   var TYRES = {
     street32: { R: 0.375, w: 0.245, tread: "street", track: 1.56, mass: 0, kPk: 0.11, aPk: 0.14, slide: 0.8, slideW: 0.6, If: 1 },
     at33: { R: 0.42, w: 0.285, tread: "at", track: 1.6, mass: 20, kPk: 0.13, aPk: 0.16, slide: 0.82, slideW: 0.7, If: 1 },
@@ -124,7 +142,9 @@
       { v: "paddle35", n: "35 in. paddle tyres", d: "Scoops for sand and loose dirt. The dirt-drag secret.", price: 2500, loud: 18, req: (b) => liftOf(b) < 0.04 ? "Needs at least a leveling kit" : null }
     ] },
     { id: "wheel", cat: "wheels", name: "Wheels", opts: [
-      { v: "stock18", n: "Factory 18 in. alloys", d: "Seven bright spokes.", price: 0, rim: 18, style: "stock" },
+      { v: "stock18", n: "Factory 18 in. alloys", d: "Six broad bright spokes.", price: 0, rim: 18, style: "stock" },
+      { v: "street20", n: "20 in. street ten-spokes", d: "Thin graphite spokes, a pinstripe on the lip and red calipers behind.", price: 2400, rim: 20, style: "street10", mass: 14, loud: 9, req: (b) => TYRES[b.tyre].R - 0.254 < 0.07 ? "Tyre sidewall too short" : null },
+      { v: "bronze17", n: "17 in. bronze discs", d: "Flat bronze discs with eight round windows. The overland classic.", price: 1300, rim: 17, style: "bronze8", mass: 6, loud: 6 },
       { v: "steelie17", n: "17 in. black steelies", d: "Cheap and unbreakable.", price: 450, rim: 17, style: "steelie", mass: 12, loud: 2 },
       { v: "chrome22", n: "22 in. chrome", d: "Big shiny dubs.", price: 2200, rim: 22, style: "chrome", mass: 28, loud: 8, req: (b) => TYRES[b.tyre].R - 0.2794 < 0.07 ? "Tyre sidewall too short" : null },
       { v: "beadlock17", n: "17 in. beadlocks", d: "Bolted rings hold the tyre at low pressure.", price: 1500, rim: 17, style: "beadlock", mass: 20, loud: 6 },
@@ -135,19 +155,23 @@
       { v: "stock", n: "Factory", d: "Body coloured.", price: 0 },
       { v: "bullbar", n: "Bull bar", d: "Polished hoop over the grille.", price: 450, mass: 15, loud: 3 },
       { v: "prerunner", n: "Prerunner tube bumper", d: "Light, strong, desert style.", price: 1400, mass: 22, loud: 8 },
-      { v: "winch", n: "Winch bumper", d: "Plate steel, hooks and a 12,000 lb winch.", price: 1900, mass: 55, loud: 6 }
+      { v: "winch", n: "Winch bumper", d: "Plate steel, hooks and a 12,000 lb winch.", price: 1900, mass: 55, loud: 6 },
+      { v: "lip", n: "Splitter lip", d: "A gloss black splitter under the bumper, with canards at the corners.", price: 650, mass: 3, loud: 5 },
+      { v: "recovery", n: "Recovery points", d: "A skid plate under the nose and two red shackles.", price: 750, mass: 12, loud: 4 }
     ] },
     { id: "rear", cat: "body", name: "Rear", opts: [
       { v: "stock", n: "Factory", d: "Body coloured.", price: 0 },
       { v: "tube", n: "Tube bumper and swing-out spare", d: "Carries a full-size spare.", price: 1300, mass: 45, loud: 6 },
       { v: "chute", n: "Drag parachute", d: "Pops after the finish line. Mostly for show.", price: 650, mass: 8, loud: 14 },
-      { v: "wheelie", n: "Wheelie bars", d: "Stops the nose climbing on launch, so you can lean on it harder.", price: 1150, mass: 18, loud: 18 }
+      { v: "wheelie", n: "Wheelie bars", d: "Stops the nose climbing on launch, so you can lean on it harder.", price: 1150, mass: 18, loud: 18 },
+      { v: "diffuser", n: "Rear diffuser", d: "Gloss black fins under the bumper.", price: 700, mass: 4, loud: 6 }
     ] },
     { id: "roof", cat: "body", name: "Roof", opts: [
       { v: "rails", n: "Factory rails", d: "With crossbars.", price: 0 },
       { v: "none", n: "Shaved roof", d: "Rails off. Slicker.", price: 150, mass: -8 },
       { v: "basket", n: "Roof basket", d: "Steel tube rack.", price: 700, mass: 24, loud: 4 },
-      { v: "basketSpare", n: "Basket with spare and cans", d: "The expedition look.", price: 1050, mass: 58, loud: 5 }
+      { v: "basketSpare", n: "Basket with spare and cans", d: "The expedition look.", price: 1050, mass: 58, loud: 5 },
+      { v: "expedition", n: "Expedition rack", d: "A flat platform with two hard cases, an olive duffel, four square LED pods and a whip antenna. The pods light with F.", price: 1800, mass: 48, loud: 8 }
     ] },
     { id: "hood", cat: "body", name: "Hood", opts: [
       { v: "stock", n: "Factory hood", d: "Flat and quiet.", price: 0 },
@@ -162,28 +186,39 @@
       { v: 3, n: "Full lighting", d: "Bar, ditch lights and bumper pods.", price: 1100, mass: 12, loud: 10 }
     ] },
     { id: "sides", cat: "body", name: "Sides", opts: [
-      { v: "boards", n: "Factory running boards", d: "A step up into the cab.", price: 0 },
-      { v: "sliders", n: "Rock sliders", d: "Tube steel that protects the rockers.", price: 850, mass: 20, loud: 4 },
+      { v: "cladding", n: "Factory cladding", d: "Textured panels along the rockers.", price: 0 },
+      { v: "boards", n: "Running boards", d: "A step up into the cab, under the cladding.", price: 250, mass: 14 },
+      { v: "sliders", n: "Rock sliders", d: "Cladding off, tube steel on to protect the rockers.", price: 850, mass: 20, loud: 4 },
       { v: "none", n: "Bare rockers", d: "Boards off for clearance.", price: 100, mass: -14, loud: 1 }
     ] },
     { id: "flares", cat: "body", name: "Fender flares", opts: [
-      { v: 0, n: "Factory arches", d: "Trimmed as needed for tyres.", price: 0 },
-      { v: 1, n: "Pocket flares", d: "Covers the extra track width.", price: 450, mass: 6, loud: 5 },
-      { v: 2, n: "Wide flares", d: "Big boxy flares with bolts.", price: 900, mass: 10, loud: 9 }
+      { v: 0, n: "Factory arch cladding", d: "Textured trim around each arch, trimmed as needed for tyres.", price: 0 },
+      { v: 1, n: "Pocket flares", d: "Deeper, to cover the extra track width.", price: 450, mass: 6, loud: 5 },
+      { v: 2, n: "Wide bolted flares", d: "Big gloss black flares with exposed bolts.", price: 900, mass: 10, loud: 9 }
+    ] },
+    { id: "face", cat: "body", name: "Front end", opts: [
+      { v: "classic", n: "Classic twin-bar", d: "A tall grille crossed by two chrome bars, twin-projector lamps.", price: 0 },
+      { v: "street", n: "Street split mesh", d: "A slim upper slot over a big lower mesh, smoked lamps with a light blade.", price: 1400, loud: 6 },
+      { v: "backcountry", n: "Backcountry quad lamps", d: "Four round lamps with halo rings in a black slatted panel, a black bumper.", price: 1600, loud: 7 }
+    ] },
+    { id: "tails", cat: "body", name: "Tail lamps", opts: [
+      { v: "classic", n: "Classic wide", d: "Two-piece lamps either side of the liftgate, joined by a bright bar.", price: 0 },
+      { v: "led", n: "LED rings", d: "Smoked lenses with square LED rings and a thin bar across the liftgate.", price: 700, loud: 3 }
     ] },
     { id: "snorkel", cat: "body", name: "Snorkel", opts: [
       { v: 0, n: "None", d: "The intake breathes behind the grille.", price: 0 },
       { v: 1, n: "Snorkel", d: "Breathes at the roofline, clear of creek spray and dust.", price: 550, mass: 4, loud: 6 }
     ] },
     { id: "spoiler", cat: "body", name: "Roof spoiler", opts: [
-      { v: 0, n: "None", d: "", price: 0 },
-      { v: 1, n: "Roof spoiler", d: "A lip over the rear glass.", price: 350, mass: 3, loud: 6 }
+      { v: 1, n: "Factory lip", d: "A short lip over the rear glass.", price: 0 },
+      { v: 0, n: "Shaved", d: "No spoiler at all.", price: 100, mass: -2 },
+      { v: 2, n: "Big roof spoiler", d: "Carries the roofline back past the glass and tips it down, with fins down each side.", price: 650, mass: 6, loud: 10 }
     ] },
     { id: "interior", cat: "body", name: "Interior", opts: [
       { v: "stock", n: "Factory leather", d: "Heated seats, third row, the works.", price: 0 },
       { v: "gutted", n: "Gutted", d: "Third row, carpets and spare out. Nobody can tell from outside.", price: 400, mass: -140 }
     ] },
-    { id: "paint", cat: "paint", name: "Paint", opts: Object.entries(SUV_PAINTS).map(([v, p]) => ({ v, n: p.name, d: v === "bronze" ? "The colour it came in." : "", price: p.price, loud: { bronze: 0, silver: 1, black: 2, pearl: 2, tan: 3, olive: 4, primer: 2, matte: 8, candy: 10, orange: 10, lime: 14, sky: 8, purple: 12 }[v] || 4 })) },
+    { id: "paint", cat: "paint", name: "Paint", opts: Object.entries(SUV_PAINTS).map(([v, p]) => ({ v, n: p.name, d: v === "bronze" ? "The colour it came in." : "", price: p.price, loud: { bronze: 0, silver: 1, black: 2, pearl: 2, tan: 3, olive: 4, primer: 2, matte: 8, candy: 10, orange: 10, lime: 14, sky: 8, purple: 12, gunmetal: 2, stone: 2 }[v] ?? 4 })) },
     { id: "livery", cat: "paint", name: "Graphics", opts: [
       { v: 0, n: "None", d: "Clean paint.", price: 0 },
       { v: 1, n: "Twin stripes", d: "Over the hood, roof and liftgate.", price: 550, loud: 14 },
@@ -200,21 +235,32 @@
       { v: "yellow", n: "Yellow", d: "", price: 0, col: [0.9, 0.7, 0.05] },
       { v: "gold", n: "Gold", d: "", price: 0, col: [0.6, 0.42, 0.12] }
     ] },
+    { id: "accent", cat: "paint", name: "Accent", opts: [
+      { v: "none", n: "None", d: "", price: 0 },
+      { v: "red", n: "Red", d: "A pinstripe on the rockers, splitter, diffuser, spoiler and wheel lips, and calipers to match.", price: 250, loud: 3, col: [0.62, 0.025, 0.02] },
+      { v: "copper", n: "Copper", d: "The same lines in burnished copper.", price: 250, loud: 3, col: [0.55, 0.25, 0.1] }
+    ] },
     { id: "trim", cat: "paint", name: "Trim", opts: [
       { v: "chrome", n: "Chrome", d: "Grille surround, handles, belt line.", price: 0 },
       { v: "black", n: "Blacked out", d: "All the bright bits in gloss black.", price: 350, loud: 3 }
     ] },
     { id: "clad", cat: "paint", name: "Lower body", opts: [
-      { v: "body", n: "Body colour", d: "", price: 0 },
-      { v: "satin", n: "Two-tone satin", d: "Darker lower panels and bumpers.", price: 300, loud: 2 }
+      { v: "satin", n: "Two-tone", d: "Dark satin lower panels, bumpers and cladding.", price: 0 },
+      { v: "body", n: "Body colour", d: "Lower panels and cladding painted to match.", price: 300, loud: 1 }
     ] },
     { id: "tint", cat: "paint", name: "Window tint", opts: [
       { v: "stock", n: "Factory privacy glass", d: "", price: 0 },
       { v: "limo", n: "Limo tint", d: "Nobody can see who's driving.", price: 250, loud: 2 }
     ] }
-  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
+  ], SLOT = Object.fromEntries(SLOTS.map((s) => [s.id, s])), CATS = [["looks", "Looks"], ["engine", "Engine"], ["drive", "Drivetrain"], ["chassis", "Suspension"], ["wheels", "Wheels & tyres"], ["body", "Body & parts"], ["paint", "Paint"]];
   var STOCK_BUILD = Object.fromEntries(SLOTS.map((s) => [s.id, s.opts.find((o) => !o.price && (s.id !== "susp" || o.v === "stock")).v]));
   STOCK_BUILD.susp = "stock";
+  /* three finished looks, one click each: only the parts you can see (and the wheels, tyres and ride height under them) */
+  var LOOKS = [
+    { id: "classic", name: "Classic Sleeper", blurb: "Bronze-grey paint, the chrome twin-bar face, six-spoke alloys, factory cladding and the little lip. Looks like it's going to church.", build: { paint: "bronze", face: "classic", tails: "classic", trim: "chrome", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "stock18", tyre: "street32", susp: "stock", flares: 0, sides: "cladding", spoiler: 1, roof: "rails", front: "stock", rear: "stock", hood: "stock", snorkel: 0 } },
+    { id: "street", name: "Street Sleeper", blurb: "Gunmetal, dropped two inches on 20-inch ten-spokes with red calipers. Split-mesh face, smoked lamps, LED tails, a splitter, a diffuser, a big roof spoiler and red pinstripes.", build: { paint: "gunmetal", face: "street", tails: "led", trim: "black", clad: "satin", accent: "red", livery: 0, tint: "limo", wheel: "street20", tyre: "street32", susp: "lowered", flares: 0, sides: "cladding", spoiler: 2, roof: "none", front: "lip", rear: "diffuser", hood: "stock", snorkel: 0 } },
+    { id: "backcountry", name: "Backcountry", blurb: "Canyon stone on bronze discs and all-terrains, a leveling kit, wide black flares, quad round lamps, recovery shackles and the expedition rack.", build: { paint: "stone", face: "backcountry", tails: "classic", trim: "black", clad: "satin", accent: "none", livery: 0, tint: "stock", wheel: "bronze17", tyre: "at33", susp: "level", flares: 2, sides: "cladding", spoiler: 0, roof: "expedition", front: "recovery", rear: "stock", hood: "stock", snorkel: 0 } }
+  ];
   function optOf(b, id) {
     return SLOT[id].opts.find((o) => o.v === b[id]) || SLOT[id].opts[0];
   }
@@ -259,7 +305,7 @@
       body: { L: 4.9, W: 1.9, H: 1.86 },
       tyre: { mu: 1, kPk: ty.kPk, aPk: ty.aPk, slide: ty.slide, slideW: ty.slideW, loadSens: 0.1 },
       brake: 7200 * R / SUV.R0 * m / 2150, bias: 0.62, hbTorque: 3200 * R / SUV.R0, lock: 0.6,
-      cdA: 1.25 + lift * 0.6 + (b.roof === "basket" || b.roof === "basketSpare" ? 0.1 : 0) + (b.lights ? 0.03 : 0) + (ty.w - 0.245) * 0.8,
+      cdA: 1.25 + lift * 0.6 + (b.roof === "basket" || b.roof === "basketSpare" ? 0.1 : b.roof === "expedition" ? 0.13 : 0) + (b.lights ? 0.03 : 0) + (b.spoiler === 2 ? 0.02 : 0) + (ty.w - 0.245) * 0.8,
       clF: 0.03, clR: 0.05,
       diff: { pre: 40, acc: 0.3, dec: 0.15, rLock: !1, fLock: !1, cLock: !1, can: { r: lk >= 1, f: lk >= 2, low } },
       surfMu: TREAD_MU[ty.tread], surfRR: rr, surfDrag: { mud: 0.06 * TREAD_RR_MUD[ty.tread] ** 1.5, water: 0.018 * TREAD_RR_MUD[ty.tread] }, tread: ty.tread, lift
@@ -273,13 +319,15 @@
       front: b.front, rear: b.rear === "chute" || b.rear === "wheelie" ? "stock" : b.rear, chute: b.rear === "chute" ? 1 : 0, wheelie: b.rear === "wheelie" ? 1 : 0,
       roof: b.roof, lightbar: b.lights >= 1 ? 1 : 0, ditch: b.lights >= 2 ? 1 : 0, pods: b.lights >= 3 ? 1 : 0, flares: b.flares,
       hood: b.power === "roots" ? "blower" : b.hood, snorkel: b.snorkel, sides: b.sides,
-      exhaust: { stock: "stock", catback: "dual", headers: "dual", straight: "dual", side: "side", stacks: "none" }[b.exhaust], stacks: b.exhaust === "stacks" ? 1 : 0, spoiler: b.spoiler
+      exhaust: { stock: "stock", catback: "dual", headers: "dual", straight: "dual", side: "side", stacks: "none" }[b.exhaust], stacks: b.exhaust === "stacks" ? 1 : 0, spoiler: b.spoiler,
+      accent: b.accent && b.accent !== "none" ? 1 : 0, calipers: wh.style === "street10" ? 1 : 0
     };
   }
   function buildStyle(b) {
     return {
       livery: b.livery, livCol: optOf(b, "livCol").col, chrome: b.trim === "chrome" ? 1 : 0, clad: b.clad === "satin" ? 1 : 0, tint: b.tint === "limo" ? 0.9 : 0.3,
-      lower: [0.055, 0.05, 0.045], sunroof: b.roof === "basket" || b.roof === "basketSpare" ? 0 : 1, number: b.number || 7, seed: 0.37
+      lower: [0.026, 0.025, 0.024], sunroof: b.roof === "basket" || b.roof === "basketSpare" || b.roof === "expedition" ? 0 : 1, number: b.number || 7, seed: 0.37,
+      face: { classic: 0, street: 1, backcountry: 2 }[b.face] || 0, tail: b.tails === "led" ? 1 : 0, acc: b.accent && b.accent !== "none" ? optOf(b, "accent").col : null
     };
   }
   /* quick numbers for the shop: peak power, and the sleeper rating */
