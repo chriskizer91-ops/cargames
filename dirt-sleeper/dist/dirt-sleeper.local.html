@@ -5185,7 +5185,7 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
       return { y, n: [-gx / l, 1 / l, -gz / l], surf: SURF[code], code };
     };
     /* ---------- the rock garden: its own half-metre heightfield laid over the ground ---------- */
-    let PU = Math.round(RG.w / RG.cell) + 1, PV = Math.round(RG.d / RG.cell) + 1, PH = new Float32Array(PU * PV), PSC = new Uint8Array(PU * PV), PWt = new Float32Array(PU * PV * 4), PN = new Float32Array(PU * PV * 3), Rb = rng(99), boulders = [];
+    let PU = Math.round(RG.w / RG.cell) + 1, PV = Math.round(RG.d / RG.cell) + 1, PH = new Float32Array(PU * PV), PSC = new Uint8Array(PU * PV), PWt = new Float32Array(PU * PV * 4), PN = new Float32Array(PU * PV * 3), PFace = new Uint8Array(PU * PV), Rb = rng(99), boulders = [];
     for (let k = 0; k < 40; k++) {
       let u = 5 + Rb() * (RG.w - 10), v = 4 + Rb() * (RG.d - 8);
       let onRoute = Math.abs(v - 22) < 3.2, h = 0.3 + Rb() * 0.6, r = 0.5 + Rb() * 0.85;
@@ -5207,8 +5207,8 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
           h > b && (b = h, isB = 1);
         }
       }
-      let r = Math.max(terr, stairs, slab, ridge) + b * 0.9;
-      return [r * e, e, isB];
+      let r0 = Math.max(terr, stairs, slab, ridge), r = r0 + b * 0.9;
+      return [r * e, e, isB, r0 * e];
     };
     for (let j = 0; j < PV; j++) for (let i = 0; i < PU; i++) {
       let u = i * RG.cell, v = j * RG.cell, x = RG.x0 + u, z = RG.z0 + v, [rl, e] = relief(u, v);
@@ -5219,9 +5219,9 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
       let k = j * PU + i, nx = pAt(i - 1, j) - pAt(i + 1, j), nz = pAt(i, j - 1) - pAt(i, j + 1), ny = 2 * RG.cell, l = Math.hypot(nx, ny, nz), u = i * RG.cell, v = j * RG.cell, x = RG.x0 + u, z = RG.z0 + v;
       PN[k * 3] = nx / l, PN[k * 3 + 1] = ny / l, PN[k * 3 + 2] = nz / l;
       let [rl, e, isB] = relief(u, v), slope = Math.sqrt(Math.max(0, 1 - (ny / l) ** 2)) / Math.max(ny / l, 0.05), bi = Math.max(0, Math.min(N2 - 1, Math.round((x - x0) / cell))), bj = Math.max(0, Math.min(N2 - 1, Math.round((z - z0) / cell))), bk = bj * N2 + bi;
-      let rock = Math.min(1, slope * 1.8 + (rl > 0.12 ? 0.5 : 0.15) + isB * 0.6 + (NZ.fbm(x / 3, z / 3) - 0.5) * 0.3), curv = (pAt(i - 1, j) + pAt(i + 1, j) + pAt(i, j - 1) + pAt(i, j + 1)) / 4 - PH[k];
-      PWt[k * 4] = W[bk * 4] * (1 - e), PWt[k * 4 + 1] = W[bk * 4 + 1] * (1 - e) + rock * e, PWt[k * 4 + 2] = 0, PWt[k * 4 + 3] = Math.max(0.5, Math.min(1, 1 - curv * 0.9));
-      PSC[k] = e < 0.3 ? SC[bk] : rl > 0.08 || slope > 0.3 ? SF.rock : SF.dirt;
+      let rock = Math.min(1, slope * 3 + (rl > 0.1 ? 0.78 : 0.3) + isB + (NZ.fbm(x / 3, z / 3) - 0.5) * 0.35), curv = (pAt(i - 1, j) + pAt(i + 1, j) + pAt(i, j - 1) + pAt(i, j + 1)) / 4 - PH[k];
+      PWt[k * 4] = W[bk * 4] * (1 - e), PWt[k * 4 + 1] = W[bk * 4 + 1] * (1 - e) + rock * e, PWt[k * 4 + 2] = 0, PWt[k * 4 + 3] = Math.max(0.42, Math.min(1, 1 - curv * 1.6));
+      PSC[k] = e < 0.3 ? SC[bk] : rl > 0.08 || slope > 0.3 ? SF.rock : SF.dirt, PFace[k] = e > 0.5 && (slope > 0.42 || isB && rl > 0.15) ? 1 : 0;
     }
     /* tuck the coarse ground just under the patch, so the two never fight */
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
@@ -5255,17 +5255,38 @@ registerProcessor('dirt-ui',DirtUI);`, GameAudio = class {
     }
     {
       /* the rock garden's own surface */
+      /* every point twice: as ground (terrain material) and as bare rock (the boulder material); each quad
+         takes the rock version where it's a ledge face or a boulder, the ground version elsewhere */
       C2.mat(16);
-      let B = C2.at(RG.x0 + RG.w / 2, RG.z0 + RG.d / 2), idx = [];
+      let B = C2.at(RG.x0 + RG.w / 2, RG.z0 + RG.d / 2), idx = [], idr = [];
       for (let j = 0; j < PV; j++) {
-        let row = [];
+        let row = [], rr = [];
         for (let i = 0; i < PU; i++) {
-          let k = j * PU + i, x = RG.x0 + i * RG.cell, z = RG.z0 + j * RG.cell;
-          B.col(PWt[k * 4] * 255, PWt[k * 4 + 1] * 255, 0, 255), row.push(B.v([x, PH[k], z], [PN[k * 3], PN[k * 3 + 1], PN[k * 3 + 2]], x, z, PWt[k * 4 + 3]));
+          let k = j * PU + i, x = RG.x0 + i * RG.cell, z = RG.z0 + j * RG.cell, n = [PN[k * 3], PN[k * 3 + 1], PN[k * 3 + 2]];
+          B.m = [16, 0, 0, 0], B.col(PWt[k * 4] * 255, PWt[k * 4 + 1] * 255, 0, 255), row.push(B.v([x, PH[k], z], n, x, z, PWt[k * 4 + 3]));
+          B.m = [21, 0, 0, 0], B.col(255, 255, 255, 255), rr.push(B.v([x, PH[k], z], n, x * 0.8 + z * 0.55, PH[k] * 1.6 + (x - z) * 0.25, PWt[k * 4 + 3]));
         }
-        idx.push(row);
+        idx.push(row), idr.push(rr);
       }
-      for (let j = 0; j < PV - 1; j++) for (let i = 0; i < PU - 1; i++) B.idx.push(idx[j][i], idx[j + 1][i + 1], idx[j][i + 1], idx[j][i], idx[j + 1][i], idx[j + 1][i + 1]);
+      for (let j = 0; j < PV - 1; j++) for (let i = 0; i < PU - 1; i++) {
+        let f = PFace[j * PU + i] + PFace[j * PU + i + 1] + PFace[(j + 1) * PU + i] + PFace[(j + 1) * PU + i + 1], I = f >= 2 ? idr : idx;
+        B.idx.push(I[j][i], I[j + 1][i + 1], I[j][i + 1], I[j][i], I[j + 1][i], I[j + 1][i + 1]);
+      }
+      /* the boulders themselves, grey rock sitting on their bumps */
+      C2.mat(21).col(255, 255, 255, 255), B.m = [21, 0, 0, 0], B.c = [255, 255, 255, 255];
+      for (let [bu, bv, br, bh] of boulders) {
+        if (bh < 0.16) continue;
+        let x = RG.x0 + bu, z = RG.z0 + bv, y = baseHeight(x, z) + relief(bu, bv)[3] - 0.05, seg = 10, rings = 6, ix = [], rot = bu * 1.7;
+        for (let j = 0; j <= rings; j++) {
+          let ph = j / rings * Math.PI * 0.62, row = [];
+          for (let i = 0; i <= seg; i++) {
+            let th = i / seg * Math.PI * 2 + rot, wob = 1 + Math.sin(th * 3 + j * 1.7 + bu) * 0.1 + Math.sin(th * 5 - j * 2.3 + bv) * 0.07, n = [Math.sin(ph) * Math.cos(th), Math.cos(ph), Math.sin(ph) * Math.sin(th)];
+            row.push(B.v([x + n[0] * br * 0.95 * wob, y + n[1] * (bh * 0.92 + 0.05) * wob, z + n[2] * br * 0.88 * wob], n, x + n[0] * br, y + n[1] * br));
+          }
+          ix.push(row);
+        }
+        for (let j = 0; j < rings; j++) for (let i = 0; i < seg; i++) B.quad(ix[j][i], ix[j][i + 1], ix[j + 1][i + 1], ix[j + 1][i]);
+      }
     }
     /* a ribbon draped over the ground along a path: uv = (distance along, offset across) */
     let ribbon = (path, half, variant, s0 = 0, s1 = path.len, step = 1.5, lift = 0.035) => {
