@@ -4742,7 +4742,7 @@ if(typeof module!=='undefined')module.exports=SIM;
         let mudF = pitch > 0 ? mudLug / Math.max(pitch, 0.06) : 0;
         /* filters for the grains: high-pass then two low-passes, no resonance */
         let crHa = a1p(gravel ? 200 : 450, sr), crLa = a1p(cab ? 1500 : gravel ? 2200 : 3e3, sr), pelHa = a1p(900, sr), pelLa = a1p(cab ? 1800 : 3500, sr), scHa = a1p(scK === 1 ? 900 : 450, sr), scLa = a1p(scK === 1 ? 6e3 : 3e3, sr), roarHa = a1p(100, sr);
-        let k = 1 - Math.exp(-1 / (sr * 0.04)), vol = (p.vol ?? 1) * 0.6, hp30 = a1p(30, sr), RUM = 0.17;
+        let k = 1 - Math.exp(-1 / (sr * 0.04)), vol = (p.vol ?? 1) * 0.25, hp30 = a1p(30, sr), RUM = 0.17;
         for (let i = 0; i < n; i++) {
           for (let q in T) g[q] += (T[q] - g[q]) * k;
           let w = this.rnd(), b = this.b;
@@ -4817,7 +4817,7 @@ if(typeof module!=='undefined')module.exports=SIM;
               Vo.nS += Vo.nLa * (w - Vo.nS), Vo.nS2 += Vo.nLa * (Vo.nS - Vo.nS2), y += Vo.nS2 * Math.exp(-t / Vo.nT) * Vo.nA * 3;
               Vo.cA && (y += (Vo.c1.run(w), Vo.c1.bp + (Vo.c2.run(w), Vo.c2.bp)) * Math.exp(-t / Vo.cT) * Vo.cA);
             }
-            l += y * (1 - Vo.pan), r += y * (1 + Vo.pan), Vo.t += 1 / sr, Vo.t > Vo.life && this.vo.splice(j, 1);
+            y *= 1.6, l += y * (1 - Vo.pan), r += y * (1 + Vo.pan), Vo.t += 1 / sr, Vo.t > Vo.life && this.vo.splice(j, 1);
           }
           L[i] = l * vol, R2[i] = r * vol;
         }

@@ -222,7 +222,7 @@
           }
           c.appendChild(vs);
         }
-        for (let [k, lab, lo, hi] of S.knobs) {
+        for (let [k, lab, lo, hi] of S.knobs || []) {
           let isInt = k === "n" || k === "every";
           c.appendChild(slider(lab, lo, hi, isInt ? 1 : 0.01, m[k] ?? (lo + hi) / 2, (v) => isInt ? String(v) : pct((v - lo) / (hi - lo)), (v) => {
             m[k] = v, push();
