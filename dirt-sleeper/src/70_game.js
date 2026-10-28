@@ -348,7 +348,7 @@
       if (!w.contact) return;
       let lo = LOOSE[w.surf] ?? 0.3, slip = w.slipV, sv = truck.v, r = () => Math.random() - 0.5;
       loose += lo / 4, w.surf === "mud" && (inMud += 0.25), w.surf === "water" && (inWater += 0.25);
-      if (lo > 0 && (sp > 2.5 || slip > 2)) PS.emit("d" + i, lo * (Math.min(sp, 40) * 0.9 + slip * 3.5) * (w.front ? 0.5 : 1), dt, () => {
+      if (lo > 0 && (sp > 2.5 || slip > 2)) PS.emit("d" + i, lo * (Math.min(sp, 40) * 0.9 + Math.min(slip, 10) * 3.5) * (w.front ? 0.5 : 1), dt, () => {
         let p = madd(madd(w.cp, F, -0.3), U, 0.25);
         PS.spawn(3, p, [sv[0] * 0.25 - F[0] * slip * 0.25 + r() * 1.6, 0.5 + Math.random() * 1.4, sv[2] * 0.25 - F[2] * slip * 0.25 + r() * 1.6], 2.2 + Math.random() * 2.2, 0.5, 3.6 + sp * 0.04, 0.13 * (env.wet > 0.3 ? 0.4 : 1));
       });

@@ -201,7 +201,8 @@ void main(){
   float rot=iD.z*6.2831+iD.w*.6;vec2 cr=vec2(cos(rot)*corner.x-sin(rot)*corner.y,sin(rot)*corner.x+cos(rot)*corner.y);
   vec3 P=p+(rt*cr.x+up*cr.y)*sz;vec4 cp=uVP*vec4(P,1.);gl_Position=cp;vZ=cp.w;
   vQ=corner;vS=vec2(iD.y,iD.z);
-  vC=lightAt(p,V);vA=iD.x;
+  /* puffs thin out as the camera reaches them, so a cloud you're sitting in doesn't wipe out the view */
+  vC=lightAt(p,V);vA=iD.x*smoothstep(sz*.35,sz*1.1+1.5,length(uCam-p));
 }`, PUFF_FS = FRAME + NOISE + SOFT + `
 in vec2 vQ;in vec3 vC;in float vA;in float vZ;in vec2 vS;out vec4 o;
 void main(){
