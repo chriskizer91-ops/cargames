@@ -112,7 +112,17 @@ class Powertrain{
   isDrv(i){const d=this.drv;for(let k=0;k<d.length;k++)if(d[k]===i)return true;return false;}
   /* inertia a wheel's brake has to fight (with the engine attached through a locked clutch) */
   effInertia(i,Iw){if(this.locked&&this.isDrv(i)){const gr=this.ratio();return Iw+this.e.Ie*gr*gr/this.drv.length;}return Iw;}
-  ratio(){return this.e.gears[this.gear-1]*this.e.fd*(this.lo||1)*(this.rev?-1.15:1);}
+  ratio(){return (this.cvtR||this.e.gears[this.gear-1])*this.e.fd*(this.lo||1)*(this.rev?-1.15:1);}
+  /* a belt CVT (the quads, the side-by-side, the golf cart): the ratio slides between its low and high so the
+     engine sits near where the throttle asks (just off idle at a crawl, near peak power floored), and the
+     clutch engages on the revs like a converter */
+  _cvt(dt,W){
+    const e=this.e,C=e.cvt;if(!C)return;const wm=Math.abs(this.meanW(W)),k=e.fd*(this.lo||1);
+    const tgt=lerp(C.eng,C.top,clamp(this.thr,0,1))*TAU/60,want=wm>.05?tgt/(wm*k):C.lo;
+    if(!this.cvtR)this.cvtR=C.lo;
+    const r=clamp(want,C.hi,C.lo),rate=(C.lo-C.hi)*(r<this.cvtR?1.4:3.5);
+    this.cvtR+=clamp(r-this.cvtR,-rate*dt,rate*dt);
+  }
   /* one substep. inp {thr, brk, nos}. W: the four wheels {w, Fx, Kd, Fz, kap}. aid {tc, escThr, fmax, mass} */
   step(dt,inp,W,aid){
     const e=this.e,o=this.o,R=o.R,Iw=o.Iw,drv=this.drv,idleW=e.idle*TAU/60;
@@ -126,6 +136,7 @@ class Powertrain{
     if(this.st==='stopping')thrIn=0;
     const vW=this.meanW(W)*R;
     this.thr+=(thrIn-this.thr)*Math.min(1,dt*(thrIn>this.thr?9:14)*e.resp);
+    if(e.cvt)this._cvt(dt,W);
     let thrE=this.thr,thrSnd=this.thr;const rpm=this.we*60/TAU;
     this.rpm=rpm;
     let dslip=0;for(let k=0;k<drv.length;k++)dslip=Math.max(dslip,W[drv[k]].kap);this.dslip=dslip;
@@ -166,6 +177,9 @@ class Powertrain{
     if(inp.nos&&e.nosKw&&this.nos>0&&this.thr>.5&&!shifting&&!this.hold&&this.running&&this.cutFrac<.5){
       this.nosOn=true;this.nos=Math.max(0,this.nos-dt/e.nosT);Te+=Math.min(e.nosKw*1e3/Math.max(this.we,150),e.tq*1.6);}
     if(this.st==='run'&&this.we<idleW)Te+=(idleW-this.we)*e.Ie*25;
+    /* the jake brake (the semi): off the throttle it opens the exhaust valves at the top of each stroke and holds the truck back */
+    this.jakeOn=!!(this.jake&&e.jake&&this.running&&thrEng<.03&&rpm>e.idle*1.4&&!shifting);
+    if(this.jakeOn)Te-=e.tq*.55*clamp((rpm-e.idle*1.4)/(e.idle*.6),0,1);
     const TeS=SIM.engTq(e,Math.max(rpm,1),thrSnd,this.boost);
     this.load=this.st==='run'?clamp(thrSnd*(TeS>0?1:0)*(.42+.58*Math.min(1,TeS/e.tq)),0,1):0;this.Te=Te;
     if(shifting){this.shiftT-=dt;if(this.shiftT<=0){this.gear=this.shiftTo;this.shiftT=0;}}
@@ -426,6 +440,13 @@ class Vehicle{
     this._apply(U[0]*aF,U[1]*aF,U[2]*aF,p[0]+M[0]*this.a,p[1]+M[3]*this.a,p[2]+M[6]*this.a);
     this._apply(U[0]*aR,U[1]*aR,U[2]*aR,p[0]+M[0]*-this.b,p[1]+M[3]*-this.b,p[2]+M[6]*-this.b);
     if(this.assistTorque){T[0]+=U[0]*this.assistTorque;T[1]+=U[1]*this.assistTorque;T[2]+=U[2]*this.assistTorque;}
+    /* a rider moving their weight (34_machines): on the ground it is the rider's weight hung off to one side or
+       over the bars, a couple about the centre of gravity; in the air, pulling the bars or pushing them pitches the machine */
+    const L=this.lean;
+    if(L&&c.riderKg){
+      if(!this.air){const mg=c.riderKg*G,dz=L.z*c.leanZ,dx=L.x*c.leanX,rx=dz*M[2]+dx*M[0],rz=dz*M[8]+dx*M[6];T[0]+=rz*mg;T[2]-=rx*mg;}
+      else{const k=-L.x*c.riderKg/m*24*this.I[2],kr=L.z*c.riderKg/m*10*this.I[0];T[0]+=M[2]*k+M[0]*kr;T[1]+=M[5]*k+M[3]*kr;T[2]+=M[8]*k+M[6]*kr;}
+    }
     if(P&&P.upright){
       /* Kids: a hand that rolls the car back onto its wheels, and levels it in the air */
       const Fx=M[0],Fy=M[3],Fz=M[6],Rx=M[2],Ry=M[5],Rz=M[8],ax0=U[1]*0-U[2]*1,ax1=U[2]*0-U[0]*0,ax2=U[0]*1-U[1]*0;

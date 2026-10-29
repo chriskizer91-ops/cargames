@@ -9,7 +9,7 @@
    Nothing here draws: it reads the car and the world and calls Feats.pop and Feats.buzz.
    ===================================================================================== */
 const FEAT_DEFS={
-  drift:{name:'Drift',col:'#ff5ab4'},air:{name:'Jump',col:'#4fe3ff'},two:{name:'Two wheels',col:'#ffb040'},save:{name:'Save',col:'#b8ff4a'},
+  drift:{name:'Drift',col:'#ff5ab4'},air:{name:'Jump',col:'#4fe3ff'},two:{name:'Two wheels',col:'#ffb040'},wheelie:{name:'Wheelie',col:'#9a8cff'},save:{name:'Save',col:'#b8ff4a'},
   speed:{name:'Speed run',col:'#ffd84a'},burn:{name:'Burnout',col:'#ff6a3d'},close:{name:'Close call',col:'#a878ff'},splash:{name:'Splash',col:'#4fe3ff'},
   mudpit:{name:'Mud pit',col:'#c8a070'},summit:{name:'Summit',col:'#5dff7a'},rocks:{name:'Rock garden',col:'#cfd6e6'},lap:{name:'Lap',col:'#5dff7a'},run:{name:'Clock run',col:'#5dff7a'}};
 const BANK_AFTER=2.6;
@@ -93,6 +93,11 @@ const Feats=(()=>{
     if(twoUp){const w=L.two||(L.two={m:0,off:0});w.m+=f.v*dt;w.off=0;}
     else if(L.two){const w=L.two;w.off+=dt;if(w.off>.25){delete L.two;if(w.m>6){addFeat('two',w.m*9,`TWO WHEELS ${Math.round(w.m)} M`,{m:w.m});
       if(best('two',w.m,`${Math.round(w.m)} m on two wheels`))API.pop('LONGEST ON TWO WHEELS','#ffb040');}}}
+    /* --- wheelie: the front wheels up, the back ones driving --- */
+    const wh=t.wheels,wUp=!f.air&&f.v>2&&!wh[0].contact&&!wh[1].contact&&(wh[2].contact||wh[3].contact)&&Math.abs(f.roll)<.35&&f.up>.5&&!t.rev;
+    if(wUp){const w=L.wheelie||(L.wheelie={m:0,off:0});w.m+=f.v*dt;w.off=0;}
+    else if(L.wheelie){const w=L.wheelie;w.off+=dt;if(w.off>.25){delete L.wheelie;if(w.m>8){addFeat('wheelie',w.m*7,`WHEELIE ${Math.round(w.m)} M`,{m:w.m});
+      if(best('wheelie',w.m,`${Math.round(w.m)} m wheelie`))API.pop('LONGEST WHEELIE','#9a8cff');}}}
     /* --- the save: tipped past 40 degrees and brought back --- */
     if(f.up<.77&&f.up>.3&&f.v>2){S.saveTilt=Math.max(S.saveTilt,1-f.up);S.saveT=now;}
     else if(S.saveTilt&&f.up>.96&&!f.air){if(now-S.saveT<3){const deg=Math.round(Math.acos(1-S.saveTilt)*57.3);addFeat('save',120+deg*4,`SAVED IT ${deg}°`,{deg});}S.saveTilt=0;}
@@ -154,6 +159,7 @@ const Feats=(()=>{
     if(L.drift&&L.drift.t>.4)out.push(['DRIFT '+Math.round(Math.abs(L.drift.max)*57.3)+'°',FEAT_DEFS.drift.col,L.drift.score*14]);
     if(L.air&&L.air.t>.35)out.push(['AIR '+L.air.t.toFixed(1)+' S',FEAT_DEFS.air.col,0]);
     if(L.two&&L.two.m>3)out.push(['TWO WHEELS '+Math.round(L.two.m)+' M',FEAT_DEFS.two.col,L.two.m*9]);
+    if(L.wheelie&&L.wheelie.m>4)out.push(['WHEELIE '+Math.round(L.wheelie.m)+' M',FEAT_DEFS.wheelie.col,L.wheelie.m*7]);
     if(L.speed&&L.speed.m>60)out.push(['SPEED RUN '+(L.speed.m/1609).toFixed(2)+' MI',FEAT_DEFS.speed.col,0]);
     if(L.burn&&L.burn.t>.6)out.push(['BURNOUT '+L.burn.t.toFixed(1)+' S',FEAT_DEFS.burn.col,L.burn.t*35]);
     const c=S.combo;return {live:out,combo:c?{n:c.n,pot:c.pot,mult:mult(c),bank:clamp(c.t/BANK_AFTER,0,1)}:null};

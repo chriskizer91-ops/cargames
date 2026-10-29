@@ -35,12 +35,15 @@ const G9=9.81;
 const DIFF_K={rocks:{open:.55,etc:.74,lsd:.7,r:.86,rf:1},mud:{open:.72,etc:.86,lsd:.82,r:.93,rf:1},rough:{open:.9,etc:.96,lsd:.95,r:.97,rf:1}};
 /* the car's figures, from its chassis, engine and model */
 function rateSheet(i){
-  const b=BUILDS[i],c=buildChassis(i),e=specOf(i),l=b.look,D=suvDesign(l),rn=RUNNING[b.id]||RUNNING.stock,sp=SUSP[rn.susp]||SUSP.stock;
+  const b=BUILDS[i],c=buildChassis(i),e=specOf(i),l=b.look,MC=b.machine?MACH[l.body]:null,rn=RUNNING[b.id]||RUNNING.stock,sp=SUSP[rn.susp]||SUSP.stock;
   const lr=l.tyreR||l.tyre,R=lr.R,Rf=l.tyre.R,drv=e.drv||'RWD';
-  let sill=9;for(let u=D.uFa;u<=D.uRa;u+=.05)sill=Math.min(sill,D.sill(u));
-  const frame={suv:1,trail:1,pickup:1}[b.car]?.1:.04,solid=l.susp==='solid'||b.car==='trail',solidR=solid||b.car==='pickup'||b.car==='muscle';
-  const clear=Math.min(sill-frame,solid?Rf-.13:Rf-.05,solidR?R-.13:R-.05);
-  const track=(l.track+(l.trackR||l.track))/2,ssf=track/(2*c.hcg);
+  let clear;
+  /* a machine's belly is its frame: its own clearance, raised by a lift and by taller tyres */
+  if(MC)clear=MC.clear+l.lift+(Rf-MC.R)*.6;
+  else{const D=suvDesign(l);let sill=9;for(let u=D.uFa;u<=D.uRa;u+=.05)sill=Math.min(sill,D.sill(u));
+    const frame={suv:1,trail:1,pickup:1}[b.car]?.1:.04,solid=l.susp==='solid'||b.car==='trail',solidR=solid||b.car==='pickup'||b.car==='muscle';
+    clear=Math.min(sill-frame,solid?Rf-.13:Rf-.05,solidR?R-.13:R-.05);}
+  const track=(l.track+(l.trackR||l.track))/2,ssf=(track/2+(MC?MC.leanZ*MC.riderKg/c.mass:0))/c.hcg;
   const can=c.diff.can,dk=can.f?'rf':can.r?'r':c.diff.pre>=70?'lsd':c.diff.etc?'etc':'open';
   const muOf=(s,f)=>{const t=f?c.tyre:(c.tyreR||c.tyre),m=f?c.surfMu:(c.surfMuR||c.surfMu);return t.mu*(m[s]??.8);};
   return {b,c,e,R,Rf,drv,mass:c.mass,hcg:c.hcg,wb:c.wb,wf:c.wf,clear,ssf,track,travel:sp.droop+sp.bump,ride:SHOCKS[rn.shocks]||1,
@@ -49,7 +52,9 @@ function rateSheet(i){
 }
 /* the best drive force at speed v over every gear (low range when the car has it and the going is slow) */
 function gearForce(S,v,g,lo){
-  const e=S.e,R=S.R,ratio=e.gears[g]*e.fd*lo;let rpm=v/R*ratio*60/TAU,mult=1;
+  const e=S.e,R=S.R;
+  /* a belt CVT: whatever ratio puts the engine at its peak, within its range */
+  const ratio=e.cvt?clamp(e.cvt.top*TAU/60*R/Math.max(v,.1)/(e.fd*lo),e.cvt.hi,e.cvt.lo)*e.fd*lo:e.gears[g]*e.fd*lo;let rpm=v/R*ratio*60/TAU,mult=1;
   if(rpm>e.limiterRpm-60)return 0;
   /* pulling away: the clutch slips at launch revs; a torque converter also multiplies the torque */
   const launch=Math.max(e.idle*1.5,Math.min(e.redline*.45,3200));if(rpm<launch){if(S.conv)mult=1+.6*clamp(1-rpm/launch,0,1);rpm=launch;}
@@ -74,7 +79,7 @@ function rateCourse(S,key){
     /* a climb leans the weight back onto the rear axle */
     const tr=S.hcg/S.wb*(o.grade||0),share=S.drv==='AWD'?1:S.drv==='RWD'?(1-S.wf)+.08+tr:S.wf-.06-tr,kind=s==='rock'||o.ledge?'rocks':s==='mud'||s==='ruts'?'mud':o.rough>.3?'rough':null;
     return a*share*(kind?DIFF_K[kind][S.dk]:1);};
-  for(let k=0;k<N;k++){const p=pts[k],o=p.o,s=p.surf;let v=70;
+  for(let k=0;k<N;k++){const p=pts[k],o=p.o,s=p.surf;let v=S.b.gov||70;
     const lim=Math.min(latMu(s),S.ssf*.92);
     if(p.r){let w=Math.sqrt(lim*G9*p.r);for(let q=0;q<6;q++)w=Math.sqrt((lim*G9+S.aero*.5*RHO*w*w/m*(s==='asphalt'?1:.6))*p.r);v=Math.min(v,w);}
     /* bumps: what the suspension can soak up at speed grows with the square of its travel */
@@ -120,7 +125,9 @@ let RATE_REF=null;
 function rateRefs(){
   if(RATE_REF)return RATE_REF;
   RATE_REF={};const best={};
-  for(const id of Object.keys(PRESET_PARTS)){const car=BUILDS.find(b=>b.id===id).car,S=rateSheet(rigBuild(car,presetRig(id)));
+  /* the references are the cars' and trucks' factory builds: the machines are scored on the same scale, so a
+     sport quad can top out on a dirt road and a semi barely registers in the rocks */
+  for(const id of Object.keys(PRESET_PARTS)){const car=BUILDS.find(b=>b.id===id).car;if(MACH[car])continue;const S=rateSheet(rigBuild(car,presetRig(id)));
     for(const [k] of TERRAINS){const t=rateCourse(S,k);best[k]=Math.min(best[k]||1e9,t);}}
   for(const [k] of TERRAINS)RATE_REF[k]=best[k]*.97;
   return RATE_REF;
@@ -137,6 +144,7 @@ function rateBuild(i){
     /* the gearbox up through its gears at the limiter, the drive cut for the shift time at each */
     if(sh<=0&&g<e.nG-1&&v/S.R*e.gears[g]*e.fd*60/TAU>=e.limiterRpm-60){g++;sh=S.shiftT;}
     const res=S.rr('asphalt')*S.mass*G9+.5*RHO*S.cdA*v*v;
+    if(S.b.gov&&v>=S.b.gov)break;
     if(sh>0){sh-=.01;v-=res/S.mass*.01;t+=.01;continue;}
     const F=Math.min(gearForce(S,Math.max(v,.3),g,1),trac),a=(F-res)/S._me;
     if(a<.05&&g>=e.nG-1)break;v+=Math.max(0,a)*.01;t+=.01;if(z60===null&&v>=26.82)z60=t;}

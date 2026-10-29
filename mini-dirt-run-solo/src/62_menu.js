@@ -8,6 +8,9 @@ const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic
   coupe:'A front-engine flat-plane V8 fastback: a track car with plates. Rear-drive.',wagon:'A plain family wagon hiding a turbo five and all-wheel drive.',
   pickup:'A full-size crew cab in off-road trim: 5.7 V8, a rear locker and a low range.',muscle:'A 1970-style big-block fastback with a four-speed. Rear-drive and proud of it.',
   hatch:'A mid-1980s turbo four-wheel-drive homologation hatch: light and eager.'};
+for(const id of MACH_IDS)CAR_HINT[id]=MACH[id].hint;
+const CAR_GROUPS={Cars:'Cars and trucks',Quads:'Quads and side-by-sides',Odd:'The odd ones'};
+const carGroup=car=>MACH[car]?MACH[car].grp:'Cars';
 function openMenu(first){
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
   if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
@@ -29,7 +32,7 @@ function showTab(id){
 }
 function syncMenu(){
   $('mMoney').textContent=Feats.fmtMoney(Feats.S.money);
-  for(const el of $('mCars').children){el.setAttribute('aria-pressed',String(el.dataset.car===APP.car));el.querySelector('small').textContent=rigName(el.dataset.car,rigOf(el.dataset.car));}
+  for(const el of $('mCars').querySelectorAll('.card')){el.setAttribute('aria-pressed',String(el.dataset.car===APP.car));el.querySelector('small').textContent=rigName(el.dataset.car,rigOf(el.dataset.car));}
   $('mCarHint').textContent=CAR_HINT[APP.car];
   /* the presets for this car, and Custom when the garage has changed it */
   const pr=$('mPresets');pr.textContent='';const cur=rigName(APP.car,rigOf(APP.car));
@@ -52,8 +55,10 @@ function syncMenu(){
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
 function buildMenu(){
   for(const b of $('mTabs').children)b.addEventListener('click',()=>showTab(b.dataset.t));
-  const cx=$('mCars');
-  for(const [car,name] of CARS){const el=document.createElement('button');el.type='button';el.className='card';el.dataset.car=car;el.innerHTML='<b></b><small></small>';
+  const cx=$('mCars');let grp='';
+  for(const [car,name] of CARS){
+    if(carGroup(car)!==grp){grp=carGroup(car);const h=document.createElement('div');h.className='cgrp';h.textContent=CAR_GROUPS[grp];cx.appendChild(h);}
+    const el=document.createElement('button');el.type='button';el.className='card';el.dataset.car=car;el.innerHTML='<b></b><small></small>';
     el.querySelector('b').textContent=name;el.querySelector('small').textContent=rigName(car,rigOf(car));
     el.addEventListener('click',()=>{if(car===APP.car)return;APP.car=car;saveGame();spawnRig();syncMenu();});cx.appendChild(el);}
   segButtons($('mLevel'),LEVELS.map(l=>[l[0],l[1]]),id=>{APP.level=id;saveGame();GAME.car.setAssists(id);});
@@ -74,7 +79,7 @@ function buildMenu(){
   buildGarage();
 }
 /* ---------- cool stuff: the money, the last ten, the bests ---------- */
-const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
+const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['wheelie','Longest wheelie'],['speed','Longest speed run'],
   ['burn','Longest burnout'],['mudpit','Fastest mud pit'],['summit','Fastest up Red Hill'],['rocks','Fastest clean rock garden'],['lap','Fastest lap']];
 const ago=ms=>{const s=(Date.now()-ms)/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<129600?Math.round(s/3600)+' h ago':Math.round(s/86400)+' days ago';};
 function syncCool(){

@@ -10,6 +10,7 @@ const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:fals
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
 const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'pickup',muscle:'muscle',hatch:'hatch'};
+for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('mdrs-game','{}'))||{};
   if(CAR_PARTS[s.car])APP.car=s.car;if(['real','middle','kids'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
   if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;
@@ -103,19 +104,22 @@ function placeCar(x,z,yaw){
   const t=GAME.car,y=RANCH.W.heightAt(x,z);
   t.place([x,y+.05,z],yaw);
   for(const w of t.wheels){w.comp=0;w.ang=0;w.w=0;}
+  if(t.lean){t.lean.x=t.lean.z=0;t.lean.bail=null;}
   const pt=t.pt;pt.gear=1;pt.shiftT=0;pt.engage=0;pt.locked=false;t.rev=false;pt.rev=false;t.drift.on=false;
   if(pt.st!=='off')pt.st='run';
   for(let i=0;i<120;i++)t.step(DT,SETTLE);
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;
 }
 /* the meshes of builds no longer driven are let go (the wheels are shared and stay) */
-function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
+function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
 const RECENT=[];
 function spawnCar(i,x,z,yaw){
   const prev=GAME.car,t=makeCar(i,RANCH.world);t.setAssists(APP.level);
   const b=BUILDS[i];RECENT.unshift(b.id);RECENT.length=Math.min(RECENT.length,3);truckEvict(RECENT);truck(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
-  t.pt.maxG=APP.od&&t.pt.e.conv?t.pt.e.nG-1:0;
+  t.pt.maxG=APP.od&&hasOD(t.pt.e)?t.pt.e.nG-1:0;
+  /* a machine's rider leans (34_machines); the semi has its jake brake */
+  if(t.c.riderKg)t.lean={x:0,z:0,bail:null};t.pt.jake=!!t.pt.e.jake;
   GAME.car=t;APP.bi=i;GAME.dirt=b.dirt;
   if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];yaw=Math.atan2(-prev.M[6],prev.M[0]);}else{x=6;z=4;yaw=0;}}
   placeCar(x,z,yaw);
@@ -128,7 +132,8 @@ function spawnRig(keepPlace=true){const t=GAME.car;spawnCar(rigBuild(APP.car,rig
 function resetCar(){const t=GAME.car;placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));}
 function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
 /* overdrive off: the automatic holds out of its top gear (the button on the shifter) */
-function setOD(on){const pt=GAME.car.pt;if(!pt.e.conv)return false;APP.od=on;pt.maxG=on?pt.e.nG-1:0;if(on&&pt.gear>pt.maxG&&pt.shiftT<=0)pt.shift(-1);return true;}
+const hasOD=e=>e.conv&&!e.cvt&&e.nG>2;
+function setOD(on){const pt=GAME.car.pt;if(!hasOD(pt.e))return false;APP.od=on;pt.maxG=on?pt.e.nG-1:0;if(on&&pt.gear>pt.maxG&&pt.shiftT<=0)pt.shift(-1);return true;}
 
 /* ---------- the engine and its sound ---------- */
 async function startEngine(){
@@ -147,7 +152,7 @@ function soundUpdate(c){
   /* the camera sits 7 to 11 m back; the synth hears it from no further than the lab's own 'behind' spot plus a little, so it sounds like the lab */
   let geo={dist:clamp(dist,1.5,5),pan:clamp(-dot2(norm2(sub2(t.p,c.eye)),right)*.9,-1,1),rear:clamp(.5-.5*dot2(toCam,F),0,1)*.6+.4};
   if(mode==='Hood'&&!APP.orbit)geo={dist:3.2,pan:0,rear:.3};
-  const ep=t.pt.soundParams(0,t.speed,geo);ep.horn=GAME.state==='drive'&&keyOn('horn')?1:0;
+  const ep=t.pt.soundParams(0,t.speed,geo);ep.horn=GAME.state==='drive'&&keyOn('horn')?1:0;ep.jake=t.pt.jakeOn?3:0;
   for(const e of t.pt.takeEvents())v.port.post({t:'ev',ev:e});
   v.port.post({t:'p',p:ep});
 }
@@ -197,7 +202,7 @@ function step(dt){
     if(inp.up)pt.shift(1);if(inp.down)pt.shift(-1);
     if(inp.low)say(setLow(t,!t.low)?(t.low?'Low range':'High range'):'No low range on this car',1.4);
     if(inp.lockers)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this car',1.4);
-    if(inp.od)say(setOD(!APP.od)?(APP.od?'Overdrive off':'Overdrive on'):'No overdrive button on a manual',1.4);
+    if(inp.od)say(setOD(!APP.od)?(APP.od?'Overdrive off':'Overdrive on'):pt.e.cvt?'No overdrive on a belt drive':'No overdrive button on a manual',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
     if(inp.ign)toggleEngine();
@@ -207,7 +212,11 @@ function step(dt){
        else gets a line lock (the front brakes held, the drive to the rear wheels) for a burnout */
     if(!pt.e.launch&&inp.brk>.5&&inp.thr>.3&&t.speed<3&&!t.rev&&pt.running)drive=Object.assign({},inp,{brk:0,lock:true});
     if((inp.thr>.1||inp.brk>.1)&&pt.st==='off'&&!GAME.busy&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
+    /* a governor (the kids' quad's limiter screw, the semi's road-speed limit) eases the throttle off at its speed */
+    const gov=t.build.gov;if(gov&&drive.thr>0&&t.speed>gov-1.2)drive=Object.assign({},drive,{thr:drive.thr*clamp((gov-t.speed)/1.2,0,1)});
   }
+  if(t.lean)riderStep(dt,t,drive);
+  if(t.lean&&t.lean.bail)drive=IDLE_IN;
   GAME.acc+=dt;let n=0;
   while(GAME.acc>=DT&&n<24){t.step(DT,drive);GAME.acc-=DT;n++;GAME.time+=DT;}
   if(GAME.acc>DT)GAME.acc=0;
@@ -220,13 +229,31 @@ function step(dt){
   let mud=0,water=0;for(const w of t.wheels)if(w.contact){if(w.surf==='mud')mud++;else if(w.surf==='ruts')mud+=.6;else if(w.surf==='water')water++;}
   GAME.dirt=clamp(GAME.dirt+dt*(mud*.025*Math.min(1,t.speed/3+.3)-water*.02*Math.min(1,t.speed/4)),0,1);
   fxEmit(dt,t);fxStep(dt);
-  const ev=t.takeEvents();if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
+  const ev=t.takeEvents();riderBail(t,ev);if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
   if(ev.wall>4||ev.ground>6)buzz(Math.min(90,20+Math.max(ev.wall,ev.ground)*6));
   /* the phone feels the gearbox and the limiter */
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
   if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);lapStep(dt,t);runStep(dt,t);}
+}
+/* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
+   gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
+   A quad rider who goes over with it, or lands far too hard, bails off ---------- */
+function riderStep(dt,t,drive){
+  const L=t.lean,M=t.M,pitch=Math.asin(clamp(M[3],-1,1)),roll=Math.asin(clamp(M[5],-1,1));
+  if(L.bail)return;
+  let tx,tz;
+  if(t.air&&t.airT>.15){tx=clamp((drive.brk-drive.thr)*.9,-1,1);tz=clamp(drive.steer,-1,1);}
+  else{tz=clamp(drive.steer*clamp(t.speed/6,0,1)*1.1+roll*2.4,-1,1);tx=clamp(pitch*2.6-drive.brk*.3+(t.speed<4?0:drive.thr*.15),-1,1);}
+  const k=Math.min(1,dt*7);L.x+=(tx-L.x)*k;L.z+=(tz-L.z)*k;
+}
+function riderBail(t,ev){
+  const L=t.lean,M=t.M,Mc=MACH[t.c.machine];if(!L||L.bail)return;
+  if(Mc&&Mc.kind==='quad'&&GAME.state==='drive'&&(M[4]<.35||ev.land>13)){
+    const gy=RANCH.W.heightAt(t.p[0],t.p[2]),F=[M[0],M[3],M[6]],side=M[5]>0?-1:1;
+    L.bail={p:[t.p[0]-M[2]*side*.9,gy,t.p[2]-M[8]*side*.9],yaw:Math.atan2(-F[2],F[0])+.6};
+    say(GAME.touch?'BAILED! Tap Reset to get back on':'BAILED! Press R to get back on',3,'#ff3d5a');buzz([80,40,80]);}
 }
 /* ---------- lap times on the road course: over the line, past two checkpoints, over the line again ---------- */
 const LAP={on:false,t0:0,cp:0,s:-1,best:{},offT:0};
@@ -280,8 +307,9 @@ function camUpdate(dt){
   }
   if(mode==='Hood'){
     /* on the hood, just behind the front axle */
-    const u=D.uFa+D.B.wb*.15;eye=body(D.X(u),D.belt(u)+.25,0);if(!CAM.fq||cut)CAM.fq={F,U};const k=1-Math.exp(-dt*20);
+    const u=D.uFa+D.B.wb*.15;eye=D.machine?body(D.eye[0],D.eye[1],D.eye[2]):body(D.X(u),D.belt(u)+.25,0);if(!CAM.fq||cut)CAM.fq={F,U};const k=1-Math.exp(-dt*20);
     CAM.fq.F=norm2(madd(CAM.fq.F,sub2(F,CAM.fq.F),k));CAM.fq.U=norm2(madd(CAM.fq.U,sub2(U,CAM.fq.U),k));fwd=CAM.fq.F;up=CAM.fq.U;fov=1.1;CAM.yaw=null;
+    if(D.machine){const dn=D.eyeDown;fwd=norm2(madd(fwd,up,-dn));up=norm2(madd(up,fwd,dn));fov=1.18;}
   }else{
     const far=mode==='Far',fh=norm2([F[0],0,F[2]]);let dir=fh;
     if(sp>3){const vd=norm2([t.v[0],0,t.v[2]]),k=clamp((sp-3)/12,0,1)*.45*(dot2(vd,fh)>0?1:0);dir=norm2([fh[0]+vd[0]*k,0,fh[2]+vd[2]*k]);}
@@ -342,7 +370,8 @@ function drawWorldCar(t,v,dirt){
   const i=t.bi,b=t.build,T=truck(i),D=T.D,u=P_LIT.u,M0=carMatrix(t);let Mb=M0;
   carUniformsW(t,v,dirt);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
-  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);
+  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);
+  if(T.rider)drawRider(t,T,Mb);
   if(T.engineOut)drawMesh(T.bay.engine);
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
@@ -350,10 +379,25 @@ function drawWorldCar(t,v,dirt){
     const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*v.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
   for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;gl.uniform1f(u.uMudOff,w.R);
-    const M=M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0],w.hp[1]-w.len+t.cg[1],w.hp[2]),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang)))));
-    gl.uniformMatrix4fv(u.uM,false,M);drawMesh(w.front?T.wheel:T.wheelR);}
+    /* the semi's tandem: two axles of duals where the physics has one */
+    const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0];
+    for(const dx of xs)for(const dz of zs){
+      const M=M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang)))));
+      gl.uniformMatrix4fv(u.uM,false,M);drawMesh(w.front?T.wheel:T.wheelR);}}
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);
   return T.tris;
+}
+/* the rider: legs on the pegs, the upper body leaning about the hips; bailed, lying in the dirt beside the machine.
+   From the helmet camera only the legs and hands are drawn */
+function drawRider(t,T,Mb){
+  const u=P_LIT.u,R=T.rider,L=t.lean,P=R.pivot,c=lin('#2a2f3a');
+  if(L&&L.bail){const B=L.bail,M=M4.mul(M4.mul(M4T(B.p[0],B.p[1]+.2,B.p[2]),M4RY(B.yaw)),M4.mul(M4RX(PI/2),M4T(-P[0],-P[1]*.4,-P[2])));
+    gl.uniformMatrix4fv(u.uM,false,M);drawMesh(R.lo);gl.uniformMatrix4fv(u.uM,false,M4.mul(M,M4T(P[0],P[1],P[2])));drawMesh(R.up);gl.uniformMatrix4fv(u.uM,false,Mb);return;}
+  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(R.lo);
+  if(CAMS[APP.cam]==='Hood'&&!APP.orbit)return;
+  const lx=L?L.x:0,lz=L?L.z:0,Mc=MACH[t.c.machine]||{},sh=(Mc.leanZ||0)*.5*lz;
+  gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(P[0]+lx*(Mc.leanX||0)*.3,P[1],P[2]+sh),M4.mul(M4RX(lz*.38),M4RZ(-lx*.42)))));drawMesh(R.up);
+  gl.uniformMatrix4fv(u.uM,false,Mb);
 }
 function render(dt){
   hClear();

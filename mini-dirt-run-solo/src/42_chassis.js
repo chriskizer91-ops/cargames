@@ -20,10 +20,21 @@ const TREAD_MU={
   at:{concrete:.97,strip:.86,dirt:.82,trail:.81,grass:.74,rock:.86,mud:.57,water:.52,gravel:.78,asphalt:.99,ruts:.61},
   gravel:{concrete:.93,strip:.9,dirt:.9,trail:.88,grass:.78,rock:.86,mud:.6,water:.55,gravel:.92,asphalt:.95,ruts:.64},
   drag:{concrete:1.12,strip:1.08,dirt:.68,trail:.64,grass:.56,rock:.7,mud:.36,water:.4,gravel:.6,asphalt:1.15,ruts:.4},
-  runner:{concrete:.82,strip:.78,dirt:.62,trail:.6,grass:.55,rock:.66,mud:.38,water:.4,gravel:.58,asphalt:.84,ruts:.42}};
+  runner:{concrete:.82,strip:.78,dirt:.62,trail:.6,grass:.55,rock:.66,mud:.38,water:.4,gravel:.58,asphalt:.84,ruts:.42},
+  /* the machines' tyres (34_machines): quad knobbies, sand paddles, flat-track, kart slicks and dirt-kart tyres,
+     a tractor's lugs and its ribbed fronts, golf-cart turf tyres, a truck's highway tyres */
+  knobby:{concrete:.9,strip:.88,dirt:.88,trail:.88,grass:.82,rock:.86,mud:.62,water:.55,gravel:.84,asphalt:.9,ruts:.66},
+  paddle:{concrete:.7,strip:.75,dirt:.8,trail:.78,grass:.85,rock:.65,mud:.78,water:.65,gravel:.72,asphalt:.7,ruts:.76},
+  flat:{concrete:1.02,strip:1.0,dirt:.92,trail:.85,grass:.7,rock:.75,mud:.4,water:.45,gravel:.86,asphalt:1.05,ruts:.45},
+  kart:{concrete:1.15,strip:.9,dirt:.6,trail:.55,grass:.45,rock:.6,mud:.25,water:.3,gravel:.5,asphalt:1.2,ruts:.28},
+  kartDirt:{concrete:.95,strip:.95,dirt:.88,trail:.82,grass:.7,rock:.75,mud:.45,water:.45,gravel:.85,asphalt:.98,ruts:.5},
+  ag:{concrete:.7,strip:.75,dirt:.85,trail:.85,grass:.88,rock:.75,mud:.8,water:.6,gravel:.75,asphalt:.72,ruts:.8},
+  rib:{concrete:.8,strip:.75,dirt:.7,trail:.7,grass:.6,rock:.7,mud:.4,water:.4,gravel:.68,asphalt:.82,ruts:.45},
+  turf:{concrete:.9,strip:.75,dirt:.68,trail:.65,grass:.72,rock:.7,mud:.35,water:.4,gravel:.65,asphalt:.92,ruts:.4},
+  truck:{concrete:.95,strip:.8,dirt:.7,trail:.68,grass:.55,rock:.75,mud:.38,water:.45,gravel:.68,asphalt:.98,ruts:.42}};
 /* rolling resistance per surface, and how much more the bog drags each tread */
 const SURF_RR={concrete:.012,strip:.02,dirt:.024,trail:.028,grass:.034,rock:.022,mud:.14,water:.09,gravel:.026,asphalt:.011,ruts:.065};
-const TREAD_RR_MUD={allseason:1,perf:1.05,mud:.8,slick:1.35,at:.9,gravel:.95,drag:1.2,runner:1.4};
+const TREAD_RR_MUD={allseason:1,perf:1.05,mud:.8,slick:1.35,at:.9,gravel:.95,drag:1.2,runner:1.4,knobby:.85,paddle:.7,flat:1.2,kart:1.4,kartDirt:1.1,ag:.65,rib:1.1,turf:1.15,truck:1};
 /* suspension: spring rate against the factory truck's (the springs grow with the weight, so ride height and
    bounce hold), sway bars (N/m of difference across the axle), how far the wheel drops and how far it rises */
 const SUSP={
@@ -33,12 +44,19 @@ const SUSP={
   wagon:{k:1,arbF:26e3,arbR:8e3,droop:.09,bump:.08},wagonLow:{k:1.25,arbF:30e3,arbR:10e3,droop:.07,bump:.07},
   pickup:{k:1,arbF:34e3,arbR:4e3,droop:.11,bump:.11},prerunner:{k:.55,arbF:16e3,arbR:2e3,droop:.23,bump:.23},
   muscle:{k:.95,arbF:22e3,arbR:5e3,droop:.08,bump:.08},drag:{k:.8,arbF:12e3,arbR:0,droop:.08,bump:.06},
-  hatch:{k:1.15,arbF:22e3,arbR:12e3,droop:.085,bump:.085},rally:{k:.85,arbF:20e3,arbR:12e3,droop:.13,bump:.13}};
+  hatch:{k:1.15,arbF:22e3,arbR:12e3,droop:.085,bump:.085},rally:{k:.85,arbF:20e3,arbR:12e3,droop:.13,bump:.13},
+  /* the machines: sway bars sized to their weight; a kart has next to no suspension and a tractor only its tyres */
+  quad:{k:1,arbF:1.5e3,arbR:0,droop:.08,bump:.08},quadSport:{k:.9,arbF:2.5e3,arbR:0,droop:.12,bump:.14},quadLT:{k:.82,arbF:2.5e3,arbR:0,droop:.15,bump:.18},
+  quadUtil:{k:1,arbF:3e3,arbR:2e3,droop:.1,bump:.1},quadUtilLift:{k:.92,arbF:3e3,arbR:2e3,droop:.12,bump:.12},
+  sxs:{k:.8,arbF:6e3,arbR:3e3,droop:.18,bump:.2},sxsLT:{k:.7,arbF:5e3,arbR:2e3,droop:.22,bump:.25},
+  golf:{k:1.2,arbF:3e3,arbR:1e3,droop:.05,bump:.05},golfLift:{k:1,arbF:3e3,arbR:1e3,droop:.08,bump:.08},
+  kart:{k:5,arbF:0,arbR:0,droop:.012,bump:.02},tractor:{k:3,arbF:20e3,arbR:0,droop:.04,bump:.05},semi:{k:2,arbF:150e3,arbR:250e3,droop:.08,bump:.1}};
 /* shock absorbers against the factory truck's: desert bypass shocks and rally dampers take bumps at speed */
 const SHOCKS={stock:1,bypass:1.35,rally:1.3,race:1.2,sport:1.1,drag:.9};
 const BRAKES={stock:1,big:1.15,race:1.35,drag:.9};
 /* the centre of gravity of each body at factory ride height (the factory truck's is Mini 4's .74 m) */
 const HCG={suv:.74,trail:.70,coupe:.46,wagon:.55,pickup:.76,muscle:.50,hatch:.52};
+for(const id of MACH_IDS)HCG[id]=MACH[id].hcg;
 /* the running gear per build. tyre: tread and curve (peak slip, peak angle, grip once sliding, how fast it
    falls away, the wheel's inertia against the factory truck's); a rear tyre where the axles differ. wf: the
    share of weight on the front wheels. tc: traction control the car has of its own, on at every driving
@@ -62,10 +80,22 @@ const RUNNING={
   muscle: {tyre:T_('allseason',.12,.16,.8,.62,.95,1.06),susp:'muscle',shocks:'stock',wm:1,wf:.55,diff:{pre:30,acc:.2,dec:.08}},
   muscleDrag:{tyre:T_('runner',.12,.18,.75,.6,.6,1.0),tyreR:T_('slick',.14,.15,.85,.7,1.3,1.18),susp:'drag',shocks:'drag',wm:1,wmR:1.3,wf:.52,aero:[.02,.04],brake:'drag',diff:{spool:true}},
   hatch:  {tyre:T_('perf',.11,.14,.8,.6,.85,1.02),susp:'hatch',shocks:'stock',wm:.85,wf:.62,lock:.62},
-  hatchB: {tyre:T_('gravel',.13,.16,.88,.85,.9,1.1),susp:'rally',shocks:'rally',wm:.9,wf:.58,aero:[.14,.2],lock:.62,diff:{pre:100,acc:.6,dec:.35}}
+  hatchB: {tyre:T_('gravel',.13,.16,.88,.85,.9,1.1),susp:'rally',shocks:'rally',wm:.9,wf:.58,aero:[.14,.2],lock:.62,diff:{pre:100,acc:.6,dec:.35}},
+  /* the machines as they leave the factory (the garage's parts change them) */
+  quad90:{tyre:T_('knobby',.13,.16,.84,.72,1,1.05),susp:'quad',shocks:'stock',wm:1,wf:.42,lock:.55,diff:{spool:true}},
+  quad450:{tyre:T_('knobby',.13,.16,.84,.72,1,1.08),susp:'quadSport',shocks:'stock',wm:1,wf:.42,lock:.55,diff:{spool:true}},
+  quadUtil:{tyre:T_('at',.13,.16,.84,.72,1,1.06),susp:'quadUtil',shocks:'stock',wm:1,wf:.47,lock:.55,diff:{lockers:2,low:true}},
+  sxs:{tyre:T_('at',.13,.16,.84,.72,1,1.08),susp:'sxs',shocks:'stock',wm:1,wf:.42,lock:.6,diff:{etc:1,lockers:2,low:true}},
+  golf:{tyre:T_('turf',.12,.15,.82,.65,1,1.0),susp:'golf',shocks:'stock',wm:1,wf:.44,lock:.6,diff:{pre:10}},
+  kart:{tyre:T_('kart',.1,.12,.8,.55,1,1.1),susp:'kart',shocks:'stock',wm:1,wf:.42,lock:.5,diff:{spool:true}},
+  tractor:{tyre:T_('rib',.12,.16,.8,.6,1,1.0),tyreR:T_('ag',.16,.2,.86,.85,1,1.05),susp:'tractor',shocks:'stock',wm:1,wmR:1,wf:.3,lock:.6,diff:{lockers:1}},
+  semi:{tyre:T_('truck',.11,.14,.8,.6,1,1.0),susp:'semi',shocks:'stock',wm:1,wf:.6,lock:.62,diff:{pre:40}}
 };
+for(const id of ['quad450X','quadUtilX','sxsX','golfX'])RUNNING[id]=RUNNING[id.slice(0,-1)];
 /* where the centre of gravity sits in the model's coordinates: x along the car, y up from the ground */
 function cgOf(b){
+  if(b.machine){const M=MACH[b.look.body],rn=RUNNING[b.id]||RUNNING[b.look.body],xr=M.xF-M.wb,Rr0=M.Rr||M.R,Rr=(b.look.tyreR||b.look.tyre).R;
+    return [xr+M.wb*rn.wf,M.hcg+b.look.lift+((b.look.tyre.R-M.R)+(Rr-Rr0))/2];}
   const B=BODIES[b.look.body||'suv'],rn=RUNNING[b.id]||RUNNING.stock,dy=b.look.lift+(b.look.tyre.R-B.R0),xr=B.L/2-(B.ovF+B.wb);
   return [xr+B.wb*rn.wf,HCG[b.look.body||'suv']+dy];
 }
@@ -75,14 +105,16 @@ function treadTables(tread){
   return {surfMu:TREAD_MU[tread],surfRR:rr,surfDrag:{mud:.06*k**1.5,water:.018*k,ruts:.012*k}};
 }
 function buildChassis(i){
-  const b=BUILDS[i],l=b.look,rn=RUNNING[b.id]||RUNNING.stock,eg=ENGINE_OF[b.id]||ENGINE_OF.stock,sp=SUSP[rn.susp],B=BODIES[l.body||'suv'],D=suvDesign(l);
+  const b=BUILDS[i],l=b.look,MC=b.machine?MACH[l.body]:null,rn=RUNNING[b.id]||(MC&&RUNNING[l.body])||RUNNING.stock,eg=ENGINE_OF[b.id]||(MC&&ENGINE_OF[l.body])||ENGINE_OF.stock,sp=SUSP[rn.susp];
+  /* a machine has no lofted body: its size and hull come from its own numbers */
+  const B=MC?{wb:MC.wb}:BODIES[l.body||'suv'],D=MC?null:suvDesign(l);
   const m=eg.mass,R=l.tyre.R,Rr=l.tyreR?l.tyreR.R:R,ty=rn.tyre,tyR=rn.tyreR||ty,hcg=cgOf(b)[1];
   const kF=44e3*sp.k*m/2150,kR=48e3*sp.k*m/2150,c0=Math.max(m*9.81*.5/2/kF,m*9.81*.5/2/kR),damp=SHOCKS[rn.shocks]||1,cs=Math.sqrt(kF*m/4);
   const tyre=t=>({mu:t.mu,kPk:t.kPk,aPk:t.aPk,slide:Math.min(1,t.slide),slideW:t.slideW,loadSens:.3});
   const d=rn.diff||{},aero=rn.aero||[.03,.05],bk=BRAKES[rn.brake||l.tyre.brake]||1,TF=treadTables(ty.tread),TR=treadTables(tyR.tread);
   /* the body for its inertia: the factory truck keeps Mini 4's numbers, the rest are measured off their models */
-  let W=0;for(let u=0;u<=B.L;u+=.05)W=Math.max(W,D.plan(u)*2);
-  const body=(l.body||'suv')==='suv'?{L:4.92,W:1.9,H:1.86}:{L:B.L,W,H:D.Hr};
+  let W=0;if(D)for(let u=0;u<=B.L;u+=.05)W=Math.max(W,D.plan(u)*2);
+  const body=MC?{L:MC.L,W:MC.W,H:MC.H}:(l.body||'suv')==='suv'?{L:4.92,W:1.9,H:1.86}:{L:B.L,W,H:D.Hr};
   const c={name:b.id,mass:m,wb:B.wb,wf:rn.wf,hcg,trackF:l.track,trackR:l.trackR||l.track,R,Rr,
     Iw:1.6*Math.pow(R/.375,4)*ty.If*rn.wm,IwR:1.6*Math.pow(Rr/.375,4)*tyR.If*(rn.wmR||rn.wm),rcH:.2,
     susp:{rest:c0+sp.droop,travel:c0+sp.bump,kF,kR,cbF:cs*.55*damp,crF:cs*.85*damp,cbR:cs*.55*damp,crR:cs*.85*damp,arbF:sp.arbF,arbR:sp.arbR},
@@ -91,7 +123,8 @@ function buildChassis(i){
     diff:{pre:d.pre??40,acc:d.acc??.3,dec:d.dec??.15,rLock:!!d.spool,fLock:false,cLock:false,etc:d.etc||0,lowK:d.lowK||2.64,can:{r:(d.lockers||0)>=1,f:(d.lockers||0)>=2,low:!!d.low}},
     surfMu:TF.surfMu,surfRR:TF.surfRR,surfDrag:TF.surfDrag,tread:ty.tread,factoryTC:!!rn.tc};
   if(rn.tyreR){c.surfMuR=TR.surfMu;c.surfRRR=TR.surfRR;c.surfDragR=TR.surfDrag;c.treadR=tyR.tread;}
-  c.hull=hullOf(b,D,cgOf(b));
+  c.hull=MC?machHull(MC,b,cgOf(b)):hullOf(b,D,cgOf(b));
+  if(MC){c.machine=l.body;c.riderKg=MC.riderKg;c.leanZ=MC.leanZ||0;c.leanX=MC.leanX||0;}
   return c;
 }
 /* the hull, from the model's own lines: the sills and bumpers low down, the shoulders, the roof, the nose and

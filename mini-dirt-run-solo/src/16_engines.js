@@ -44,10 +44,18 @@ const ENGINE_OF={
 function engineSpec(b){
   const r=ENGINE_OF[b.id]||ENGINE_OF.stock,base=Object.assign({},DE_ENGINES[r.engine]);let k=1;
   if(r.disp){k*=r.disp/base.disp;base.disp=r.disp;}
+  if(base.exMap){
+    /* a machine (34_machines) keeps its own voice: its intake and exhaust codes are the lab's, the parts only
+       change which of its own pipes it breathes out of and how much it makes */
+    k*=[1,1.04,1.06][r.intake]||1;base.ex=base.exMap[r.exhaust]??base.exMap.stock;k*={stock:1,pipe:1.07,stacks:1.04}[r.exhaust]||1;
+    if(base.cam!==undefined&&r.cam){base.cam=r.cam;k*=[1,1.03,1.06,1.08][r.cam];}
+    if(base.tuneRpm)base.redline+=base.tuneRpm[r.tune]||0;
+    else if(!base.tuneGov){k*=[1,1.05,1.1][r.tune];if(r.tune===2){base.limiter='hard';base.crackle=Math.max(base.crackle,.5);}}
+  }else{
   k*=[1,1.03,1.05][r.intake];base.intake=r.intake;
   base.ex={stock:0,catback:1,headers:2,straight:3,side:3,stacks:9}[r.exhaust];k*={stock:1,catback:1.03,headers:1.07,straight:1.06,side:1.06,stacks:1.06}[r.exhaust];
   if(base.layout!=='V6'){base.cam=r.cam;k*=[1,1.03,1.06,1.08][r.cam];base.cP+=.03*r.cam;base.redline+=150*r.cam;}
-  k*=[1,1.05,1.1][r.tune];base.redline+=[0,150,300][r.tune];if(r.tune===2){base.limiter='hard';base.crackle=Math.max(base.crackle,.65);}
+  k*=[1,1.05,1.1][r.tune];base.redline+=[0,150,300][r.tune];if(r.tune===2){base.limiter='hard';base.crackle=Math.max(base.crackle,.65);}}
   if(r.power==='roots'){base.fi='roots';base.boost=.72;}
   else if(r.power==='twin'){base.fi='twin';base.boost=.95;base.tsize=1;base.bov='flutter';}
   else if(r.power==='bigturbo'){base.boost+=.5;base.tsize=2;}
@@ -60,11 +68,13 @@ function engineSpec(b){
   if(r.antilag){base.antilag=1;base.crackle=Math.max(base.crackle,.95);}
   /* the sim turns the driven wheels: on a car with bigger tyres at the back, those */
   const gears=DE_GEARS[r.trans],R=(r.drv==='FWD'?b.look.tyre:b.look.tyreR||b.look.tyre).R;
-  const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:r.drv||'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:'car'}));
+  const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:r.drv||'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:base.horn||'car'}));
   e.gears=gears.slice();e.nG=gears.length;e.fd=r.axle;e.shiftT=DE_SHIFT[r.trans];e.R=R;
   /* the automatics and the race four-speed pull away through a torque converter; the manuals, sequentials
      and the rally dog box through a clutch (the game's physics reads this) */
-  e.conv=/^auto|^race4/.test(r.trans);
+  e.conv=/^auto|^race4|^cvt/.test(r.trans);
+  /* a belt CVT: its low and high ratios against the final drive, the revs it engages at and the revs it holds floored */
+  if(/^cvt/.test(r.trans)){const pk=e.peak&&e.peak.rpm||e.redline*.85;e.cvt={lo:3,hi:1,eng:Math.max(e.idle*1.7,e.redline*.38),top:Math.min(pk*1.02,e.redline*.97)};}
   return e;
 }
 const SPECS={};

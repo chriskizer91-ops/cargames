@@ -33,7 +33,19 @@ const ENGINES={
   fp52:{name:'5.2 flat-plane V8',note:'The coupe\'s factory flat-plane, past 8,000 rpm.',kg:200,price:0},
   fp55:{name:'5.5 flat-plane V8',note:'The flat-plane bored out: more of everything, still screams.',kg:200,price:9500,base:'fp52',disp:5.5},
   i525:{name:'2.5 turbo five',note:'The wagon\'s factory five, turbocharged from the start.',kg:170,price:0},
-  i18t:{name:'1.8 turbo four',note:'The hatch\'s homologation four, mounted across the nose.',kg:140,price:0}
+  i18t:{name:'1.8 turbo four',note:'The hatch\'s homologation four, mounted across the nose.',kg:140,price:0},
+  /* the machines' engines (34_machines) */
+  q90:{name:'90 cc four-stroke',note:'A little air-cooled single. Starts every time.',kg:14,price:0},
+  q450:{name:'450 four-stroke single',note:'The stock thumper: strong low down, revs to 10,500.',kg:28,price:0},
+  q480:{name:'480 big-bore kit',note:'Bored out: more torque everywhere, same thump.',kg:28,price:1400,base:'q450',disp:.48},
+  q250t:{name:'250 two-stroke',note:'Lighter, snappier and loud: nothing, nothing, then everything.',kg:22,price:2400},
+  q700:{name:'700 single',note:'A big, slow-revving utility single.',kg:45,price:0},
+  q850:{name:'850 V-twin',note:'The biggest utility engine: torque for days.',kg:55,price:3200},
+  sxs1000:{name:'1000 parallel twin',note:'The side-by-side\'s twin, revving to 8,500.',kg:70,price:0},
+  golf400:{name:'400 cc single',note:'Built to go round a golf course all day.',kg:30,price:0},
+  kart212:{name:'212 cc single',note:'A yard-sale engine on a centrifugal clutch.',kg:17,price:0},
+  popper:{name:'5.5 L two-cylinder',note:'Two huge horizontal cylinders: pop, pop, pop.',kg:600,price:0},
+  semi15:{name:'15 L inline-six diesel',note:'About 2,000 lb-ft at 1,200 rpm.',kg:1350,price:0}
 };
 const POWER={
   none:{name:'None',note:'Breathes on its own.',kg:0,price:0},
@@ -52,6 +64,9 @@ const CAM_PARTS=[{name:'Factory cam',note:'Smooth idle, torque low down.',price:
 const TUNES=[{name:'Factory tune',note:'As it left the factory.',price:0},{name:'Street tune',note:'More timing, a higher rev limit.',price:500},{name:'Race tune',note:'Everything it has, a hard limiter that bangs.',price:1200}];
 const NITROUS=[{name:'None',price:0,kg:0},{name:'35-shot',note:'A gentle push. Good for getting through mud.',price:600,kg:10},{name:'75-shot',price:900,kg:10},{name:'125-shot',price:1200,kg:12},{name:'250-shot',note:'Huge, for about eight seconds.',price:1800,kg:14}];
 const TRANS={
+  cvt:{name:'Belt automatic',note:'A CVT: no shifts, the revs just climb.',price:0},cvtHL:{name:'Belt automatic, high and low',note:'A CVT with a low range for pulling.',price:0},
+  quad5:{name:'Five-speed',note:'A thumb clutch and a foot shifter.',price:0},kart1:{name:'Centrifugal clutch',note:'One gear. The clutch grabs when the revs come up.',price:0},
+  trac6:{name:'Six-speed',note:'Six gears from a walk to about 12 mph.',price:0},truck10:{name:'Ten-speed',note:'Ten gears and a long reach between them.',price:0},
   auto4:{name:'Four-speed automatic',note:'The factory four-speed. Tall gaps, tough as a rock.',price:0},
   auto5:{name:'Five-speed automatic',note:'The factory five-speed.',price:0},
   auto6:{name:'Six-speed automatic',note:'Shifts early when you go easy, holds a gear when you floor it.',price:0},
@@ -147,6 +162,52 @@ const CAR_PARTS={
     shocks:['stock','sport','rally'],brakes:['stock','big','race'],weight:[['stock','Factory',0,0],['rally','Rally strip-out',-160,1800]],
     kits:{hatch:{kg:0},hatchB:{kg:30}}}
 };
+/* ---------- the machines (34_machines). slots: the slots the garage shows; opts: a slot's own choices;
+   gov: a speed governor per tune (m/s, 0 for none); power: the power adders that fit ---------- */
+const TF=(o,f)=>Object.assign(o,{front:f});
+const QOPT={tune:[[0,'Stock','',0],[1,'Rejetted, timing','A richer jet and a little more timing.',350],[2,'Race fuel and tune','Everything it has.',800]],
+  exhaust:[['stock','Stock muffler','',0],['pipe','Full system pipe','Louder and a little quicker.',650]],intake:[[0,'Stock airbox','',0],[1,'Lid off, rejetted','More air and the jets to match.',120]]};
+Object.assign(CAR_PARTS,{
+  quad90:{tireK:0.25,chassisKg:129,drv:'RWD',engines:['q90'],trans:['cvt'],axles:[12.9],transfer:[],diffs:['spool'],slots:['tune','exhaust','tires','wheels','paint'],
+    opts:{tune:[[0,'Limiter screw all the way in','The way the dealer set it: about 12 mph.',0],[1,'Limiter screw half out','About 20 mph.',0],[2,'Limiter screw out','All 28 mph of it. Hold on.',0]],
+      exhaust:[['stock','Stock muffler','',0],['pipe','Slip-on pipe','Louder, a little quicker.',180]]},gov:[5.4,8.9,12.5],
+    tires:[T_P('knobby','19x7-8 knobbies',.235,.17,8,'mt','knobby',[.13,.16,.84,.72,1,1.05]),T_P('mud','20x7-8 mud tyres',.25,.17,8,'mt','mud',[.15,.18,.85,.8,1.05,1.05],3,1.05)],
+    rides:[R_P('stock','Stock',0,'quad')],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{quad90:{kg:0}}},
+  quad450:{tireK:0.6,chassisKg:217,drv:'RWD',engines:['q450','q480','q250t'],trans:['quad5'],axles:[8.4,9.4,10.6],transfer:[],diffs:['spool'],slots:['engine','intake','exhaust','tune','axle','tires','ride','shocks','wheels','paint'],
+    opts:Object.assign({axle:[[8.4,'Tall sprockets','More top speed, softer pull.',120],[9.4,'Stock sprockets','',0],[10.6,'Short sprockets','Pulls hard out of corners, tops out early.',120]]},QOPT),
+    tires:[T_P('knobby','21x7-10 / 20x11-9 knobbies',.265,.2,10,'mt','knobby',[.13,.16,.84,.72,1,1.08]),T_P('mud','22-in mud tyres',.28,.2,10,'mt','mud',[.15,.18,.85,.8,1.05,1.08],6,1.06),
+      T_P('paddle','Sand paddles',.27,.24,10,'mt','paddle',[.16,.19,.86,.85,1.05,1.05],4,1.05),T_P('flat','Flat-track tyres',.25,.2,10,'slick','flat',[.1,.13,.8,.6,.95,1.1],-2,.95)],
+    rides:[R_P('stock','Stock',0,'quadSport'),R_P('lt','Long-travel A-arms, 2 in wider',.03,'quadLT',8,.1)],shocks:['stock','rally'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{quad450:{kg:0}}},
+  quadUtil:{tireK:0.7,chassisKg:335,drv:'AWD',engines:['q700','q850'],trans:['cvtHL'],axles:[7.4],transfer:['low'],diffs:['both'],slots:['engine','exhaust','tune','tires','ride','kit','wheels','paint'],
+    opts:QOPT,tires:[T_P('at','25x8-12 all-terrains',.31,.22,12,'at','at',[.13,.16,.84,.72,1,1.06]),T_P('mud','27-in mud tyres',.34,.24,12,'mt','mud',[.15,.18,.85,.8,1.08,1.06],10,1.08,.05)],
+    rides:[R_P('stock','Stock',0,'quadUtil'),R_P('lift','2 in lift',.05,'quadUtilLift',6,.02)],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{quadUtil:{kg:0},quadUtilX:{kg:25}}},
+  sxs:{tireK:1,chassisKg:700,drv:'AWD',engines:['sxs1000'],trans:['cvt'],axles:[8.6,9.6,10.8],transfer:['low'],diffs:['factory','both'],power:['none','turbo'],slots:['power','exhaust','tune','axle','lockers','tires','ride','shocks','wheels','paint'],
+    opts:Object.assign({axle:[[8.6,'Tall clutch kit','More top speed.',300],[9.6,'Stock clutching','',0],[10.8,'Short clutch kit','Snappier off the line and in the dunes.',300]]},QOPT),
+    tires:[T_P('at','29-in all-terrains',.37,.25,14,'at','at',[.13,.16,.84,.72,1,1.08]),T_P('mt','32-in mud tyres',.41,.27,15,'mt','mud',[.15,.18,.85,.8,1.08,1.08],25,1.1,.05)],
+    rides:[R_P('stock','Stock',0,'sxs'),R_P('lt','Long-travel kit, 6 in wider',.05,'sxsLT',25,.15)],shocks:['stock','bypass'],brakes:['stock','big'],weight:[['stock','Factory',0,0]],kits:{sxs:{kg:0}}},
+  golf:{tireK:0.4,chassisKg:380,drv:'RWD',engines:['golf400'],trans:['cvt'],axles:[13.5,11.5],transfer:[],diffs:['factory'],slots:['tune','exhaust','axle','tires','ride','wheels','paint'],
+    opts:{tune:[[0,'Governed','About 15 mph, the way the course likes it.',0],[1,'Governor spring swapped','About 19 mph.',90],[2,'Governor out','About 21 mph and every ball in the bag rattling.',150]],
+      exhaust:[['stock','Stock muffler','',0],['pipe','Open elbow','No muffler at all.',60]],axle:[[13.5,'Stock gears','',0],[11.5,'High-speed gears','A few more mph, a little less pull.',260]]},
+    tires:[T_P('turf','18x8.5-8 turf tyres',.225,.2,8,'hwy','turf',[.12,.15,.82,.65,1,1.0]),T_P('at','22x11-10 all-terrains',.28,.26,10,'at','at',[.13,.16,.84,.72,1.05,1.04],12,1.05,.1)],
+    rides:[R_P('stock','Stock',0,'golf'),R_P('lift','6 in lift kit',.15,'golfLift',20,.04)],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{golf:{kg:0}}},
+  kart:{tireK:0.25,chassisKg:138,drv:'RWD',engines:['kart212'],trans:['kart1'],axles:[3.8,4.4,5.0],transfer:[],diffs:['spool'],slots:['tune','exhaust','axle','tires','wheels','paint'],
+    opts:{tune:[[0,'Governed','The way it came off the shelf.',0],[1,'Governor removed','A lot more revs. Mind the flywheel.',40],[2,'Stage 2: cam, springs, no governor','It screams now.',260]],
+      exhaust:[['stock','Stock muffler','',0],['pipe','Header pipe','Loud.',70]],axle:[[3.8,'Small sprocket','Top speed.',30],[4.4,'Stock sprocket','',0],[5.0,'Big sprocket','Off the line.',30]]},
+    tires:[TF(T_P('kart','Kart slicks',.14,.18,5,'slick','kart',[.1,.12,.8,.55,1,1.1]),{R:.13,W:.12,rim:5,tyre:'slick',tread:'kart',curve:[.1,.12,.8,.55,1,1.1],wm:1}),
+      TF(T_P('dirt','Dirt-track tyres',.145,.18,5,'at','kartDirt',[.13,.16,.86,.8,1,1.05],1),{R:.135,W:.12,rim:5,tyre:'at',tread:'kartDirt',curve:[.13,.16,.86,.8,1,1.05],wm:1})],
+    rides:[R_P('stock','No suspension',0,'kart')],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{kart:{kg:0}}},
+  tractor:{tireK:2.5,chassisKg:1980,drv:'RWD',engines:['popper'],trans:['trac6'],axles:[13.1],transfer:[],diffs:['rear'],slots:['tires','wheels','paint'],
+    tires:[TF(T_P('ag','13.6-38 lugged rears',.74,.36,38,'mt','ag',[.16,.2,.86,.85,1,1.05]),{R:.4,W:.16,rim:16,tyre:'hwy',tread:'rib',curve:[.12,.16,.8,.6,1,1.0],wm:1}),
+      TF(T_P('turf','Turf rears',.72,.38,38,'at','turf',[.12,.15,.82,.65,1,1.0]),{R:.4,W:.16,rim:16,tyre:'hwy',tread:'rib',curve:[.12,.16,.8,.6,1,1.0],wm:1})],
+    rides:[R_P('stock','Stock',0,'tractor')],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{tractor:{kg:0}}},
+  semi:{tireK:0.5,chassisKg:7130,drv:'RWD',engines:['semi15'],trans:['truck10'],axles:[3.36,3.55,3.91],transfer:[],diffs:['factory','rear'],slots:['exhaust','tune','axle','lockers','tires','wheels','paint'],
+    opts:{tune:[[0,'Factory, governed to 70','',0],[1,'Reflash: governed to 80','',900],[2,'Delete and tune','No governor, a lot more torque, black smoke.',4800]],
+      exhaust:[['stock','Muffler and stack','',0],['stacks','Straight stacks','Two chrome stacks with nothing in them.',1800]],
+      axle:[[3.36,'3.36 rears','Built for the highway.',900],[3.55,'3.55 rears','',0],[3.91,'3.91 rears','More pull, less top end.',900]]},gov:[31.3,35.8,0],
+    tires:[T_P('truck','295/75R22.5 highway',.51,.29,22.5,'hwy','truck',[.11,.14,.8,.6,1,1.0]),T_P('lug','11R22.5 drive lugs',.53,.29,22.5,'mt','mud',[.14,.18,.84,.75,1,1.0],200,1.02)],
+    rides:[R_P('stock','Air ride',0,'semi')],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{semi:{kg:0}}}
+});
+const MACH_PRESET=(kit,engine,trans,axle,lockers,tires,extra)=>Object.assign({kit,engine,power:'none',intake:0,exhaust:'stock',cam:0,tune:0,nos:0,trans,axle,lockers,tires,ride:'stock',shocks:'stock',brakes:'stock',weight:'stock',wheels:'kit',paint:-1},extra||{});
 /* the drag car's tyres are two pairs: skinny runners up front and big slicks out back, and only its tubbed body clears them */
 const STAGGER={dragslick:{front:{R:.31,W:.16,rim:15,tyre:'hwy',curve:[.12,.18,.75,.6,.6,1.0],tread:'runner',wm:.6},kit:'muscleDrag'}};
 /* what each car's parts are when it leaves the factory, and the presets built from them */
@@ -166,16 +227,30 @@ const PRESET_PARTS={
   muscle:{kit:'muscle',engine:'bb72',power:'none',intake:0,exhaust:'stock',cam:1,tune:0,nos:0,trans:'man4',axle:3.73,lockers:'factory',tires:'stock',ride:'stock',shocks:'stock',brakes:'stock',weight:'stock',wheels:'kit',paint:-1},
   muscleDrag:{kit:'muscleDrag',engine:'bb74',power:'roots',intake:2,exhaust:'side',cam:3,tune:2,nos:0,trans:'race4',axle:4.56,lockers:'spool',tires:'dragslick',ride:'dragnose',shocks:'drag',brakes:'drag',weight:'race',wheels:'kit',paint:-1},
   hatch:{kit:'hatch',engine:'i18t',power:'stock',intake:0,exhaust:'stock',cam:0,tune:0,nos:0,trans:'man5',axle:4.1,transfer:'none',lockers:'factory',tires:'perf',ride:'stock',shocks:'stock',brakes:'stock',weight:'stock',wheels:'kit',paint:-1},
-  hatchB:{kit:'hatchB',engine:'i18t',power:'antilag',intake:2,exhaust:'straight',cam:2,tune:2,nos:0,trans:'rally5',axle:4.4,transfer:'none',lockers:'lsd',tires:'gravel',ride:'rally',shocks:'rally',brakes:'race',weight:'rally',wheels:'kit',paint:-1}
+  hatchB:{kit:'hatchB',engine:'i18t',power:'antilag',intake:2,exhaust:'straight',cam:2,tune:2,nos:0,trans:'rally5',axle:4.4,transfer:'none',lockers:'lsd',tires:'gravel',ride:'rally',shocks:'rally',brakes:'race',weight:'rally',wheels:'kit',paint:-1},
+  quad90:MACH_PRESET('quad90','q90','cvt',12.9,'spool','knobby'),
+  quad450:MACH_PRESET('quad450','q450','quad5',9.4,'spool','knobby'),
+  quad450X:MACH_PRESET('quad450','q480','quad5',10.6,'spool','knobby',{intake:1,exhaust:'pipe',tune:2,ride:'lt',shocks:'rally'}),
+  quadUtil:MACH_PRESET('quadUtil','q700','cvtHL',7.4,'both','at',{transfer:'low'}),
+  quadUtilX:MACH_PRESET('quadUtilX','q850','cvtHL',7.4,'both','mud',{transfer:'low',exhaust:'pipe',ride:'lift'}),
+  sxs:MACH_PRESET('sxs','sxs1000','cvt',9.6,'factory','at',{transfer:'low'}),
+  sxsX:MACH_PRESET('sxs','sxs1000','cvt',10.8,'both','mt',{transfer:'low',power:'turbo',exhaust:'pipe',ride:'lt',shocks:'bypass'}),
+  golf:MACH_PRESET('golf','golf400','cvt',13.5,'factory','turf'),
+  golfX:MACH_PRESET('golf','golf400','cvt',11.5,'factory','at',{tune:2,ride:'lift'}),
+  kart:MACH_PRESET('kart','kart212','kart1',4.4,'spool','kart'),
+  tractor:MACH_PRESET('tractor','popper','trac6',13.1,'rear','ag'),
+  semi:MACH_PRESET('semi','semi15','truck10',3.55,'factory','truck')
 };
 /* the power adders an engine can take */
-const powerFor=eng=>({tt35:['stockTwin','bigturbo'],i525:['stock','bigturbo'],i18t:['stock','bigturbo','antilag']})[eng]||['none','turbo','twin','roots'];
+const powerFor=(eng,car)=>car&&CAR_PARTS[car]&&CAR_PARTS[car].power||(car&&MACH[car]?['none']:null)||({tt35:['stockTwin','bigturbo'],i525:['stock','bigturbo'],i18t:['stock','bigturbo','antilag']})[eng]||['none','turbo','twin','roots'];
 /* the slot's options for a car: [value, label, note, price] */
 function slotOptions(car,slot,rig){
   const P=CAR_PARTS[car];
+  if(P.slots&&!P.slots.includes(slot))return [];
+  if(P.opts&&P.opts[slot])return P.opts[slot];
   switch(slot){
     case 'engine':return P.engines.map(k=>[k,ENGINES[k].name,ENGINES[k].note,ENGINES[k].price]);
-    case 'power':return powerFor(rig.engine).map(k=>[k,POWER[k].name,POWER[k].note,POWER[k].price]);
+    case 'power':return powerFor(rig.engine,car).map(k=>[k,POWER[k].name,POWER[k].note,POWER[k].price]);
     case 'intake':return INTAKES.map((o,i)=>[i,o.name,o.note,o.price]);
     case 'exhaust':return Object.keys(EXHAUSTS).map(k=>[k,EXHAUSTS[k].name,EXHAUSTS[k].note,EXHAUSTS[k].price]);
     case 'cam':return rig.engine==='tt35'?[[0,CAM_PARTS[0].name,'This V6 keeps its factory cams.',0]]:CAM_PARTS.map((o,i)=>[i,o.name,o.note,o.price]);
@@ -185,12 +260,12 @@ function slotOptions(car,slot,rig){
     case 'axle':return P.axles.map(a=>[a,a.toFixed(2)+' gears',a<=3.6?'Tall: more top speed, slower off the line.':a>=4.8?'Very short: huge pull and crawl, low top speed.':a>=4.3?'Short: quick off the line and strong in the dirt.':'In between.',350]);
     case 'transfer':return P.transfer.map(k=>[k,TRANSFER[k].name,TRANSFER[k].note,TRANSFER[k].price]);
     case 'lockers':return P.diffs.map(k=>[k,DIFFS[k].name,DIFFS[k].note,DIFFS[k].price]);
-    case 'tires':return P.tires.map(t=>[t.id,t.name,TREAD_NOTE[t.tread],Math.round(600+Math.max(0,t.kg)*30+(t.tread==='slick'?900:0))]);
+    case 'tires':return P.tires.map(t=>[t.id,t.name,TREAD_NOTE[t.tread],Math.round((600+Math.max(0,t.kg)*30+(t.tread==='slick'?900:0))*(P.tireK||1)/10)*10]);
     case 'ride':return P.rides.map(r=>[r.id,r.name,r.lift<0?'Lower: less roll on tarmac, but it scrapes over rocks and ruts.':r.lift>0?'Higher: clears rocks and ruts, rolls more in fast turns.':'As it left the factory.',r.lift?Math.round(900+Math.abs(r.lift)*16000):0]);
     case 'shocks':return P.shocks.map(k=>[k,SHOCKS_P[k].name,SHOCKS_P[k].note||'',SHOCKS_P[k].price]);
     case 'brakes':return P.brakes.map(k=>[k,BRAKES_P[k].name,BRAKES_P[k].note||'',BRAKES_P[k].price]);
     case 'weight':return P.weight.map(([k,n,kg,pr])=>[k,n,kg?`${kg} kg.`:'',pr]);
-    case 'kit':return Object.keys(P.kits).map(k=>{const b=BUILDS.find(q=>q.id===k);return [k,b.name+' body',b.blurb,k===car||PRESET_PARTS[k]&&b.name==='Stock'?0:3500];});
+    case 'kit':return Object.keys(P.kits).map(k=>{const b=BUILDS.find(q=>q.id===k);return MACH[car]?[k,k===car?'Stock':b.name+' kit',b.tag,k===car?0:1400]:[k,b.name+' body',b.blurb,k===car||PRESET_PARTS[k]&&b.name==='Stock'?0:3500];});
     case 'wheels':return WHEELS.map(w=>[w[0],w[1],'',w[0]==='kit'?0:900]);
     case 'paint':return [[-1,'As the body kit comes','',0],...PAINTS.map((p,i)=>[i,p[0],'',600])];
   }
@@ -198,7 +273,11 @@ function slotOptions(car,slot,rig){
 }
 const TREAD_NOTE={allseason:'All-season: fine everywhere, best at nothing. Gets an AWD truck down a muddy lane.',perf:'Performance: grips on tarmac, slips on loose ground.',
   at:'All-terrain: nearly as good on tarmac, better everywhere loose.',mud:'Mud-terrain: big lugs that bite in mud and rock, hum and slide on tarmac.',
-  slick:'Slick: the most grip on tarmac there is, and none in the dirt.',drag:'Drag radial: sticky in a straight line on hard ground, lost in the dirt.',gravel:'Gravel rally: made for loose stone and dirt at speed.'};
+  slick:'Slick: the most grip on tarmac there is, and none in the dirt.',drag:'Drag radial: sticky in a straight line on hard ground, lost in the dirt.',gravel:'Gravel rally: made for loose stone and dirt at speed.',
+  knobby:'Knobbies: square lugs that dig into dirt and hold on loose ground.',paddle:'Sand paddles: scoops across the tread. Throw roost in mud and sand, skate on anything hard.',
+  flat:'Flat-track: short, dense knobs for hard-packed dirt and tarmac. Lost in mud.',kart:'Kart slicks: sticky on tarmac and hopeless on anything else.',
+  kartDirt:'Dirt-kart tyres: small blocks that grip a dirt oval.',ag:'Tractor lugs: tall chevrons that pull through mud and grass. Bouncy on the road.',
+  turf:'Turf tyres: made not to tear up a lawn, so they don\'t grip much of anything.',truck:'Highway tyres for a big truck: hard and long-wearing.'};
 
 /* ---------- does a choice fit the rest of the rig? '' if it does, else why not ---------- */
 function fits(car,rig,slot,val){
@@ -207,15 +286,15 @@ function fits(car,rig,slot,val){
   if(ride.lift<t.minLift-1e-6){const need=P.rides.find(q=>q.lift>=t.minLift-1e-6);return slot==='tires'?`Needs the ${need?need.name.toLowerCase():'taller suspension'}`:`Too low for ${t.name.split(' ')[0]} tires`;}
   if(ride.lift>t.maxLift+1e-6)return slot==='tires'?'Not on a lifted truck':`Too high for ${t.tread==='slick'?'slicks':'drag radials'}`;
   const st=STAGGER[r.tires];if(st&&st.kit!==r.kit)return slot==='kit'?'The slicks need the tubbed body':'Needs the tubbed drag body';
-  if(slot==='power'&&!powerFor(r.engine).includes(val))return 'Not on this engine';
-  if(slot==='lockers'&&val==='spool'&&!st)return 'Drag slicks only';
+  if(slot==='power'&&!powerFor(r.engine,car).includes(val))return 'Not on this engine';
+  if(slot==='lockers'&&val==='spool'&&!st&&!MACH[car])return 'Drag slicks only';
   return '';
 }
 /* changing the engine can leave the power adder on one it doesn't fit: take the nearest that does */
 function fixRig(car,rig){
-  const p=powerFor(rig.engine);if(!p.includes(rig.power))rig.power=p.includes('turbo')&&['turbo','bigturbo','antilag','stock','stockTwin'].includes(rig.power)?'turbo':p[0];
+  const p=powerFor(rig.engine,car);if(!p.includes(rig.power))rig.power=p.includes('turbo')&&['turbo','bigturbo','antilag','stock','stockTwin'].includes(rig.power)?'turbo':p[0];
   if(rig.engine==='tt35')rig.cam=0;
-  if(rig.lockers==='spool'&&!STAGGER[rig.tires])rig.lockers='factory';
+  if(rig.lockers==='spool'&&!STAGGER[rig.tires]&&!MACH[car])rig.lockers='factory';
   return rig;
 }
 
@@ -227,22 +306,24 @@ function rigBuild(car,rig){
   const key=rigKey(car,rig);if(RIG_BUILD.has(key))return RIG_BUILD.get(key);
   const P=CAR_PARTS[car],K=BUILDS.find(b=>b.id===rig.kit),KR=RUNNING[rig.kit]||RUNNING.stock,KE=ENGINE_OF[rig.kit]||ENGINE_OF.stock;
   const kitTire=P.tires.find(t=>Math.abs(t.R-K.look.tyre.R)<.004&&t.W>=K.look.tyre.W-.01)||P.tires[0],kitRide=P.rides.find(q=>Math.abs(q.lift-K.look.lift)<.004)||P.rides.find(q=>q.id==='stock')||P.rides[0];
-  const t=P.tires.find(q=>q.id===rig.tires)||P.tires[0],ride=P.rides.find(q=>q.id===rig.ride)||kitRide,st=STAGGER[t.id];
+  const t=P.tires.find(q=>q.id===rig.tires)||P.tires[0],ride=P.rides.find(q=>q.id===rig.ride)||kitRide,st=t.front?{front:t.front}:STAGGER[t.id],mach=!!K.machine;
   const id='rig:'+key,look=JSON.parse(JSON.stringify(K.look,(k,v)=>v instanceof Float32Array?Array.from(v):v));
   /* things in the look that are not plain data (material colours) come across by reference */
   for(const k of Object.keys(K.look))if(typeof K.look[k]==='object'&&K.look[k]&&!Array.isArray(K.look[k])&&k!=='tyre'&&k!=='tyreR'&&k!=='flares')look[k]=K.look[k];
   const wh=WHEELS.find(w=>w[0]===rig.wheels),style=rig.wheels==='kit'||!wh?K.look.tyre.style:rig.wheels==='beadB'?'bead':rig.wheels;
   const brakeLook=rig.brakes==='drag'?'race':rig.brakes;
-  if(st){look.tyre={R:st.front.R,W:st.front.W,rim:st.front.rim,tyre:st.front.tyre,style,brake:brakeLook};look.tyreR={R:t.R,W:t.W,rim:t.rim,tyre:t.vis,style:'bead',brake:brakeLook};}
-  else{look.tyre={R:t.R,W:t.W,rim:t.rim,tyre:t.vis,style,brake:brakeLook};delete look.tyreR;delete look.trackR;}
+  if(st){look.tyre={R:st.front.R,W:st.front.W,rim:st.front.rim,tyre:st.front.tyre,style,brake:brakeLook};look.tyreR={R:t.R,W:t.W,rim:t.rim,tyre:t.vis,style:mach?style:'bead',brake:brakeLook};}
+  else{look.tyre={R:t.R,W:t.W,rim:t.rim,tyre:t.vis,style,brake:brakeLook};delete look.tyreR;if(!mach)delete look.trackR;}
   look.lift=ride.lift;
   if(ride.solid)look.susp='solid';else if(kitRide.solid&&!ride.solid&&car!=='trail')look.susp='ifs';
   /* bigger tyres: the arches open up to clear them and flares cover the wider tread (the drag car's tubs
      were made for its slicks) */
-  if(!st&&t.R+.035>look.archR+.005)look.archR=t.R+.035;
-  if(!st&&(t.R>kitTire.R+.02||t.W>kitTire.W+.03)){const f=look.flares||{w:0,out:0};look.flares=Object.assign({},f,{w:Math.max(f.w||0,.12),out:Math.max(f.out||0,.07)});}
-  if(!st)look.track=+(K.look.track+(t.W-kitTire.W)+(ride.trackAdd-kitRide.trackAdd)).toFixed(3);
-  const b={id,car,name:'Custom',tag:'Your build',blurb:K.blurb,paint:rig.paint>=0?PAINTS[rig.paint][1]:K.paint,paint2:K.paint2,rim:rig.wheels==='kit'||!wh?K.rim:wh[2],cal:K.cal,clad:K.clad,dirt:K.dirt,liv:K.liv,look,specs:K.specs,rig:Object.assign({},rig),kit:rig.kit};
+  if(!st&&!mach&&t.R+.035>look.archR+.005)look.archR=t.R+.035;
+  if(!st&&!mach&&(t.R>kitTire.R+.02||t.W>kitTire.W+.03)){const f=look.flares||{w:0,out:0};look.flares=Object.assign({},f,{w:Math.max(f.w||0,.12),out:Math.max(f.out||0,.07)});}
+  if(!st||mach)look.track=+(K.look.track+(st?0:t.W-kitTire.W)+(ride.trackAdd-kitRide.trackAdd)).toFixed(3);
+  if(mach&&K.look.trackR){look.trackR=K.look.trackR+(ride.trackAdd-kitRide.trackAdd);}
+  const gov=P.gov?P.gov[rig.tune|0]||0:0;
+  const b={id,car,machine:K.machine,gov,name:'Custom',tag:'Your build',blurb:K.blurb,paint:rig.paint>=0?PAINTS[rig.paint][1]:K.paint,paint2:K.paint2,rim:rig.wheels==='kit'||!wh?K.rim:wh[2],cal:K.cal,clad:K.clad,dirt:K.dirt,liv:K.liv,look,specs:K.specs,rig:Object.assign({},rig),kit:rig.kit};
   /* the running gear */
   const L=DIFFS[rig.lockers]||DIFFS.factory,kd=Object.assign({},KR.diff||{});delete kd.lockers;delete kd.low;delete kd.spool;
   if(rig.lockers==='lsd')Object.assign(kd,{pre:80,acc:.5,dec:.3});

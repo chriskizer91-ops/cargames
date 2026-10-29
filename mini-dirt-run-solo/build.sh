@@ -7,7 +7,7 @@
 set -e
 cd "$(dirname "$0")"
 MODS="10_core 11_display 12_gl_mesh 13_lit 14_loft 15_digital_engine 16_engines 17_audio 20_instruments
-  21_suv 22_faces 23_parts 24_4x4 25_coupe 26_wagon 27_pickup 28_muscle 29_hatch 30_wheels 31_engine_bay 32_builds 33_car_mesh
+  21_suv 22_faces 23_parts 24_4x4 25_coupe 26_wagon 27_pickup 28_muscle 29_hatch 30_wheels 31_engine_bay 32_builds 33_car_mesh 34_machines
   40_physics 41_ground 42_chassis 50_country 51_ranch 52_world_gl 53_fx
   55_rigs 56_ratings 57_feats 58_sky 60_game 61_hud 62_menu 63_garage 64_touch 69_boot"
 out=mini-dirt-run-solo.html

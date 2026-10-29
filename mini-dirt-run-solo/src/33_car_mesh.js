@@ -5,6 +5,8 @@
 /* ---------- meshes, built on demand ---------- */
 const TRUCK={};
 function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
+  /* the quads, the carts, the tractor and the semi are built from parts, not lofted (34_machines) */
+  if(b.machine){const t0=performance.now(),T=buildMachine(b);T.ms=performance.now()-t0;return TRUCK[b.id]=T;}
   const t0=performance.now(),s=buildSUV(b.look,b),w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
   return TRUCK[b.id]={body:s.body,hood:s.hood,hide:s.hide,D:s.D,wheel:w,wheelR:wr,bay:s.bay,engineOut:!!s.bay,
     tris:s.tris+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}

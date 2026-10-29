@@ -33,7 +33,8 @@ function skyLights(t){
   const u=P_LIT.u;let n=0;
   if(SKY.night&&APP.lights&&t){
     const M=t.M,D=carD(t),F=[M[0],M[3],M[6]],U=[M[1],M[4],M[7]],R=[M[2],M[5],M[8]],lift=liftOf(t),dir=V3.norm([F[0]-U[0]*.06,F[1]-U[1]*.06,F[2]-U[2]*.06]);
-    for(const s of [-1,1]){const x=D.L/2-.15-t.cg[0],y=.78+lift-t.cg[1],z=s*.62,w=[t.p[0]+F[0]*x+U[0]*y+R[0]*z,t.p[1]+F[1]*x+U[1]*y+R[1]*z,t.p[2]+F[2]*x+U[2]*y+R[2]*z];
+    const Mc=t.c.machine&&MACH[t.c.machine];
+    for(const s of [-1,1]){const x=D.L/2-.15-t.cg[0],y=(Mc?Mc.lampY:.78)+lift-t.cg[1],z=s*(Mc?Math.min(.62,Mc.W*.3):.62),w=[t.p[0]+F[0]*x+U[0]*y+R[0]*z,t.p[1]+F[1]*x+U[1]*y+R[1]*z,t.p[2]+F[2]*x+U[2]*y+R[2]*z];
       LP.set([w[0],w[1],w[2],70],n*4);LC.set([6.5,6.1,5.3,0],n*4);LD.set([dir[0],dir[1],dir[2],Math.cos(.5)],n*4);n++;}}
   if(SKY.night){
     const p=t?t.p:CAM.last.eye,F=fixtures().map(f=>({f,d:Math.hypot(f.p[0]-p[0],f.p[2]-p[2])-f.r})).filter(q=>q.d<160).sort((a,b)=>a.d-b.d);

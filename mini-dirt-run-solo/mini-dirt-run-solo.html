@@ -88,6 +88,7 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .tab{display:flex;flex-direction:column;gap:16px}
 .cars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 @media (max-width:720px){.cars{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.cgrp{grid-column:1/-1;font:600 10.5px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 -2px}
 .card{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
 .card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase}
 .card small{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2158,10 +2159,18 @@ const ENGINE_OF={
 function engineSpec(b){
   const r=ENGINE_OF[b.id]||ENGINE_OF.stock,base=Object.assign({},DE_ENGINES[r.engine]);let k=1;
   if(r.disp){k*=r.disp/base.disp;base.disp=r.disp;}
+  if(base.exMap){
+    /* a machine (34_machines) keeps its own voice: its intake and exhaust codes are the lab's, the parts only
+       change which of its own pipes it breathes out of and how much it makes */
+    k*=[1,1.04,1.06][r.intake]||1;base.ex=base.exMap[r.exhaust]??base.exMap.stock;k*={stock:1,pipe:1.07,stacks:1.04}[r.exhaust]||1;
+    if(base.cam!==undefined&&r.cam){base.cam=r.cam;k*=[1,1.03,1.06,1.08][r.cam];}
+    if(base.tuneRpm)base.redline+=base.tuneRpm[r.tune]||0;
+    else if(!base.tuneGov){k*=[1,1.05,1.1][r.tune];if(r.tune===2){base.limiter='hard';base.crackle=Math.max(base.crackle,.5);}}
+  }else{
   k*=[1,1.03,1.05][r.intake];base.intake=r.intake;
   base.ex={stock:0,catback:1,headers:2,straight:3,side:3,stacks:9}[r.exhaust];k*={stock:1,catback:1.03,headers:1.07,straight:1.06,side:1.06,stacks:1.06}[r.exhaust];
   if(base.layout!=='V6'){base.cam=r.cam;k*=[1,1.03,1.06,1.08][r.cam];base.cP+=.03*r.cam;base.redline+=150*r.cam;}
-  k*=[1,1.05,1.1][r.tune];base.redline+=[0,150,300][r.tune];if(r.tune===2){base.limiter='hard';base.crackle=Math.max(base.crackle,.65);}
+  k*=[1,1.05,1.1][r.tune];base.redline+=[0,150,300][r.tune];if(r.tune===2){base.limiter='hard';base.crackle=Math.max(base.crackle,.65);}}
   if(r.power==='roots'){base.fi='roots';base.boost=.72;}
   else if(r.power==='twin'){base.fi='twin';base.boost=.95;base.tsize=1;base.bov='flutter';}
   else if(r.power==='bigturbo'){base.boost+=.5;base.tsize=2;}
@@ -2174,11 +2183,13 @@ function engineSpec(b){
   if(r.antilag){base.antilag=1;base.crackle=Math.max(base.crackle,.95);}
   /* the sim turns the driven wheels: on a car with bigger tyres at the back, those */
   const gears=DE_GEARS[r.trans],R=(r.drv==='FWD'?b.look.tyre:b.look.tyreR||b.look.tyre).R;
-  const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:r.drv||'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:'car'}));
+  const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:r.drv||'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:base.horn||'car'}));
   e.gears=gears.slice();e.nG=gears.length;e.fd=r.axle;e.shiftT=DE_SHIFT[r.trans];e.R=R;
   /* the automatics and the race four-speed pull away through a torque converter; the manuals, sequentials
      and the rally dog box through a clutch (the game's physics reads this) */
-  e.conv=/^auto|^race4/.test(r.trans);
+  e.conv=/^auto|^race4|^cvt/.test(r.trans);
+  /* a belt CVT: its low and high ratios against the final drive, the revs it engages at and the revs it holds floored */
+  if(/^cvt/.test(r.trans)){const pk=e.peak&&e.peak.rpm||e.redline*.85;e.cvt={lo:3,hi:1,eng:Math.max(e.idle*1.7,e.redline*.38),top:Math.min(pk*1.02,e.redline*.97)};}
   return e;
 }
 const SPECS={};
@@ -3893,6 +3904,8 @@ const carBuilds=car=>BUILDS.map((b,i)=>b.car===car?i:-1).filter(i=>i>=0);
 /* ---------- meshes, built on demand ---------- */
 const TRUCK={};
 function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
+  /* the quads, the carts, the tractor and the semi are built from parts, not lofted (34_machines) */
+  if(b.machine){const t0=performance.now(),T=buildMachine(b);T.ms=performance.now()-t0;return TRUCK[b.id]=T;}
   const t0=performance.now(),s=buildSUV(b.look,b),w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
   return TRUCK[b.id]={body:s.body,hood:s.hood,hide:s.hide,D:s.D,wheel:w,wheelR:wr,bay:s.bay,engineOut:!!s.bay,
     tris:s.tris+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}
@@ -3908,6 +3921,263 @@ const M4RZ=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s
 let FLAME=null;
 function flameMesh(){if(FLAME)return FLAME;const mb=new MB(),seg=[[0,.18,1,.92,[1,.92,.62],9],[.18,.48,.92,.7,[1,.7,.22],7],[.48,.78,.7,.38,[1,.42,.08],5],[.78,1,.38,.04,[.9,.18,.04],3.5]];
   for(const [a,b,r0,r1,c,em] of seg)tubeAB(mb,[a,0,0],[b,0,0],r0,10,V(c,MAT.EMIT,em),a===0,r1);return FLAME=mb.build();}
+/* =====================================================================================
+   THE OTHER MACHINES: three quads (a kids' 90, a 450 sport quad, a utility ranch quad), a side-by-side,
+   a golf cart, a go-kart, an old two-cylinder tractor and a semi with no trailer. Each is drawn from
+   boxes, tubes and rounded shells (PS2-era detail, which the dot matrix is kind to), drives on the same
+   physics as the cars, and has a Digital Engine voice the lab already has: the Thumper 450 and the
+   Two-Stroke 250 for the quads, the small-engine single for the kids' quad, the golf cart and the kart,
+   the popper for the tractor, and the long-haul semi with its jake brake and air horn.
+   A quad's rider leans: into turns, and forward up a hill. That moves the rider's weight, and the physics
+   feels it (Vehicle.lean). A rider who goes over the bars bails.
+   Model axes as for the cars: +X forward, +Y up, +Z right, origin on the ground under the middle.
+   ===================================================================================== */
+const MACH={
+  quad90:{name:"Kids' quad",grp:'Quads',kind:'quad',s:.78,L:1.45,W:.95,H:1.1,wb:.95,xF:.46,track:.74,R:.235,tw:.17,rim:8,kg:105,riderKg:38,riderS:.7,hcg:.5,wf:.42,clear:.13,
+    tread:'knobby',style:'steel',drv:'RWD',susp:'quad',cdA:.45,lock:.55,lampY:.52,paint:'#d8611e',paint2:'#141416',rimCol:'#141416',
+    hint:'A 90 cc kids\' quad with an automatic and a throttle limiter screw. Back the screw out in the garage.'},
+  quad450:{name:'Sport quad',grp:'Quads',kind:'quad',s:1,L:1.85,W:1.18,H:1.18,wb:1.27,xF:.6,track:1.0,R:.265,tw:.2,rim:10,kg:165,riderKg:80,riderS:1,hcg:.62,wf:.42,clear:.17,
+    tread:'knobby',style:'race',drv:'RWD',susp:'quadSport',cdA:.55,lock:.55,lampY:.62,paint:'#2f74c8',paint2:'#e9e8e2',rimCol:'#d6a63a',
+    hint:'A 450 four-stroke sport quad: five speeds, no rear diff (both rear wheels always turn together), long travel.'},
+  quadUtil:{name:'Ranch quad',grp:'Quads',kind:'quad',util:1,s:1.12,L:2.12,W:1.22,H:1.25,wb:1.3,xF:.66,track:.98,R:.31,tw:.22,rim:12,kg:300,riderKg:80,riderS:1,hcg:.72,wf:.47,clear:.25,
+    tread:'at',style:'steel',drv:'AWD',susp:'quadUtil',cdA:.7,lock:.55,lampY:.95,paint:'#4a5238',paint2:'#2a2a2c',rimCol:'#1d1d1f',
+    hint:'A big utility quad: a 700 single, an automatic with high and low, four-wheel drive with a front diff lock, racks front and back.'},
+  sxs:{name:'Side-by-side',grp:'Quads',kind:'sxs',s:1,L:3.05,W:1.62,H:1.88,wb:2.24,xF:1.06,track:1.36,R:.37,tw:.25,rim:14,kg:690,riderKg:80,riderS:1,hcg:.62,wf:.42,clear:.33,
+    tread:'at',style:'bead',drv:'AWD',susp:'sxs',cdA:1.3,lock:.6,lampY:.78,paint:'#c8261e',paint2:'#141416',rimCol:'#141416',
+    hint:'A two-seat side-by-side: a 1,000 cc twin, a belt automatic, long-travel suspension and a roll cage.'},
+  golf:{name:'Golf cart',grp:'Odd',kind:'golf',s:1,L:2.42,W:1.22,H:1.82,wb:1.66,xF:.85,track:.9,R:.225,tw:.2,rim:8,kg:330,riderKg:80,riderS:1,hcg:.56,wf:.44,clear:.12,
+    tread:'turf',style:'cap',drv:'RWD',susp:'golf',cdA:1.0,lock:.6,lampY:.62,paint:'#ece9e2',paint2:'#2f4636',rimCol:'#c3c6cb',
+    hint:'A gas golf cart: a 400 cc single, a belt automatic, top speed about 15 mph. Unlocked in the career by doing something silly.'},
+  kart:{name:'Go-kart',grp:'Odd',kind:'kart',s:1,L:1.8,W:1.3,H:.75,wb:1.05,xF:.55,track:1.0,R:.13,Rr:.14,tw:.12,twR:.18,rim:5,kg:75,riderKg:80,riderS:1,hcg:.3,wf:.42,clear:.05,
+    tread:'kart',style:'flat',drv:'RWD',susp:'kart',cdA:.55,lock:.5,lampY:.3,paint:'#ffb43c',paint2:'#141416',rimCol:'#c9ccd1',
+    hint:'A yard go-kart: a 212 cc single on a centrifugal clutch, a solid rear axle and no suspension at all.'},
+  tractor:{name:'Old tractor',grp:'Odd',kind:'tractor',s:1,L:3.35,W:1.95,H:2.35,wb:2.1,xF:1.15,track:1.25,trackR:1.55,R:.4,Rr:.74,tw:.16,twR:.36,rim:16,rimR:38,kg:2500,riderKg:80,riderS:1,hcg:.95,wf:.3,clear:.4,
+    tread:'rib',treadR:'ag',style:'steel',drv:'RWD',susp:'tractor',cdA:2.4,lock:.6,lampY:1.25,paint:'#b8461f',paint2:'#e2d6b0',rimCol:'#e2d6b0',
+    hint:'A 1940s two-cylinder tractor that pops. Six gears up to about 12 mph, a diff lock, and huge lugged rear tyres.'},
+  semi:{name:'Semi',grp:'Odd',kind:'semi',s:1,L:7.05,W:2.5,H:3.95,wb:5.0,xF:2.6,track:2.05,R:.51,tw:.29,rim:22.5,kg:8400,riderKg:0,riderS:1,hcg:1.15,wf:.6,clear:.28,
+    tread:'truck',style:'steel',drv:'RWD',susp:'semi',cdA:6,lock:.62,lampY:1.35,paint:'#7a1418',paint2:'#c9ccd1',rimCol:'#c9ccd1',
+    hint:'A long-haul tractor without its trailer: a 15-litre six, ten gears, a jake brake and an air horn. Governed to 70 mph from the factory.'}
+};
+const MACH_IDS=Object.keys(MACH);
+/* how far the rider can move their weight: across (hanging off) and along (over the bars or back), in metres */
+for(const id of MACH_IDS){const M=MACH[id];[M.leanZ,M.leanX]=M.kind==='quad'?[.3*M.s,.22*M.s]:M.kind==='kart'?[.08,.05]:M.kind==='semi'?[0,0]:[.05,.04];}
+/* the engines: the lab's voices (exhaust and intake codes from its tables), with the torque each machine really makes */
+Object.assign(DE_ENGINES,{
+  q90:{layout:'S1',disp:.09,redline:7000,idle:1800,tq:6.5,cP:.6,cW:.6,cA:.7,Ie:.012,ex:13,intake:5,crackle:.15,mech:.25,mechTone:3500,limiter:'soft',exMap:{stock:13,pipe:3},tuneGov:1,gain:.85},
+  q450:{layout:'S1',disp:.45,redline:10500,idle:1500,tq:38,cP:.7,cW:.5,cA:.5,Ie:.012,ex:5,intake:1,cam:2,crackle:.6,ch:{td:1.1},limiter:'hard',exMap:{stock:5,pipe:3}},
+  q250t:{layout:'S1T',disp:.25,redline:9500,idle:1600,tq:42,cP:.86,cW:.24,cA:.32,Ie:.008,ex:6,intake:1,cam:0,crackle:.4,limiter:'hard',exMap:{stock:6,pipe:6}},
+  q700:{layout:'S1',disp:.7,redline:7000,idle:1300,tq:62,cP:.55,cW:.55,cA:.6,Ie:.03,ex:0,intake:0,crackle:.15,limiter:'soft',exMap:{stock:0,pipe:5}},
+  q850:{layout:'V2L',disp:.85,redline:7500,idle:1250,tq:78,cP:.6,cW:.55,cA:.6,Ie:.034,ex:0,intake:0,crackle:.2,limiter:'soft',exMap:{stock:0,pipe:5}},
+  sxs1000:{layout:'P2X',disp:1.0,redline:8500,idle:1200,tq:96,cP:.65,cW:.5,cA:.5,Ie:.03,ex:5,intake:1,cam:1,crackle:.45,limiter:'hard',exMap:{stock:5,pipe:2}},
+  golf400:{layout:'S1',disp:.4,redline:3800,idle:1700,tq:20,cP:.55,cW:.6,cA:.7,Ie:.04,ex:13,intake:5,crackle:.1,mech:.3,mechTone:3200,limiter:'soft',exMap:{stock:13,pipe:17},tuneRpm:[0,800,1400],gain:.9},
+  kart212:{layout:'S1',disp:.21,redline:4000,idle:1800,tq:13,cP:.6,cW:.6,cA:.65,Ie:.02,ex:13,intake:5,crackle:.2,mech:.2,mechTone:3600,limiter:'soft',exMap:{stock:13,pipe:3},tuneRpm:[0,1200,2200]},
+  popper:{layout:'P2T',disp:5.5,redline:975,idle:450,tq:290,cP:.75,cW:.6,cA:.7,Ie:4,ex:12,intake:4,crackle:.3,mech:.5,mechTone:1500,limiter:'soft',starter:'hand',exMap:{stock:12},gain:1.3},
+  semi15:{layout:'I6',disp:15,redline:2100,idle:650,tq:1050,cP:.55,cW:.5,cA:.55,Ie:3.2,fi:'turbo',boost:2.4,tsize:2,bov:'none',ex:8,intake:4,cam:0,crackle:0,limiter:'soft',
+    diesel:1,mech:1.2,mechTone:2700,jake:1,horn:'air',stF:.6,crankRpm:160,crankT:1.1,flare:.3,catchT:.5,twK:1.6,twF:1.15,gain:1.6,exMap:{stock:8,stacks:9}}
+});
+Object.assign(DE_GEARS,{cvt:[1],cvtHL:[1],quad5:[2.6,1.8,1.4,1.15,.95],kart1:[1],trac6:[5.9,4.0,2.88,2.08,1.44,1],truck10:[12.8,9.25,6.76,4.94,3.55,2.53,1.86,1.36,1,.74]});
+Object.assign(DE_SHIFT,{cvt:.1,cvtHL:.1,quad5:.12,kart1:.1,trac6:.6,truck10:.75});
+/* each machine's engine recipe and running gear as it leaves the factory (the garage changes them) */
+const MACH_ENGINE={
+  quad90:{engine:'q90',trans:'cvt',axle:12.9},quad450:{engine:'q450',trans:'quad5',axle:9.4},quadUtil:{engine:'q700',trans:'cvtHL',axle:7.4},sxs:{engine:'sxs1000',trans:'cvt',axle:9.6},
+  golf:{engine:'golf400',trans:'cvt',axle:13.5},kart:{engine:'kart212',trans:'kart1',axle:4.4},tractor:{engine:'popper',trans:'trac6',axle:13.1},semi:{engine:'semi15',trans:'truck10',axle:3.55}};
+for(const id of MACH_IDS){const M=MACH[id],E=MACH_ENGINE[id];
+  ENGINE_OF[id]={desc:M.hint,engine:E.engine,power:'none',intake:0,exhaust:'stock',cam:0,tune:0,nos:0,trans:E.trans,axle:E.axle,mass:M.kg+M.riderKg,cdA:M.cdA,mu:1,drv:M.drv};}
+/* the builds: one look per machine (paint, wheels and tyres change on it), plus a second preset where there is one */
+for(const id of MACH_IDS){const M=MACH[id];
+  BUILDS.push({id,car:id,name:'Stock',tag:M.hint.split(':')[0],blurb:M.hint,machine:1,paint:M.paint,paint2:M.paint2,rim:M.rimCol,cal:'#3a3a3e',clad:'#1c1c1e',dirt:0,liv:0,
+    look:{body:id,machine:1,lift:0,track:M.track,trackR:M.trackR,archR:.5,tyre:{R:M.R,W:M.tw,rim:M.rim,tyre:'mt',style:M.style,brake:'stock'},
+      tyreR:M.Rr?{R:M.Rr,W:M.twR||M.tw,rim:M.rimR||M.rim,tyre:'mt',style:M.style,brake:'stock'}:undefined},specs:[]});
+  CARS.push([id,M.name]);}
+for(const [id,base,name,tag] of [['quad450X','quad450','Built','Big bore, pipe, long-travel arms'],['quadUtilX','quadUtil','Mudder','Snorkel, winch, mud tyres, locked'],['sxsX','sxs','Turbo','Turbo, bypass shocks, 32s'],['golfX','golf','Lifted','Lift kit, all-terrains, governor out']]){
+  const B=BUILDS.find(b=>b.id===base);BUILDS.push(Object.assign({},B,{id,name,tag,look:B.look}));ENGINE_OF[id]=ENGINE_OF[base];}
+const isMach=b=>!!(b&&b.machine);
+const machOf=b=>MACH[b.look.body];
+
+/* ---------- the meshes ---------- */
+const mc=(h,mat=MAT.METAL,em=0)=>V(lin(h),mat,em);
+const MP={PAINT:V([1,1,1],MAT.PAINT),ACC:V([1,1,1],MAT.ACCENT),BLK:mc('#18181a',MAT.CLAD),RUB:V([.02,.02,.022],MAT.RUBBER),MET:mc('#3a3c40'),DARK:mc('#1c1d20'),
+  CHR:V([1,1,1],MAT.CHROME),GL:V([0,0,0],MAT.GLASS),HEAD:V([1,1,1],MAT.HEAD),TAIL:V([1,1,1],MAT.TAIL),AMB:V([1,1,1],MAT.AMBER),SEAT:mc('#141416',MAT.FABRIC),TAN:mc('#9a8a6a',MAT.FABRIC)};
+const XZ=[1,0,0],YY=[0,1,0],ZZ=[0,0,1];
+/* a rider: hips and legs fixed to the machine, the upper body (torso, arms, helmet) on its own mesh so it can lean about the hips */
+function buildRider(o){
+  const lo=new MB(),up=new MB(),s=o.s,P=o.hip,SU=mc(o.suit||'#2a2f3a',MAT.FABRIC),S2=mc(o.suit2||'#c8261e',MAT.FABRIC),BOOT=mc('#141416',MAT.RUBBER),HM=mc(o.helmet||'#e9e8e2',MAT.METAL);
+  for(const z of [-1,1]){const hip=[P[0],P[1],P[2]+z*.1*s],knee=[o.knee[0],o.knee[1],P[2]+z*o.knee[2]],foot=[o.foot[0],o.foot[1],P[2]+z*o.foot[2]];
+    tubeAB(lo,hip,knee,.075*s,8,SU);ball(lo,knee,.07*s,8,SU);tubeAB(lo,knee,foot,.06*s,8,SU);abox(lo,[foot[0]+.05*s,foot[1]-.02,foot[2]],[.1*s,.05*s,.05*s],BOOT);}
+  abox(lo,[P[0]-.02,P[1]+.02,P[2]],[.12*s,.07*s,.15*s],SU);
+  /* the upper body, built round the hips at the origin and moved there when drawn */
+  const sh=[.02*s,.5*s,0],L=(v)=>[v[0]-P[0],v[1]-P[1],v[2]-P[2]];
+  rbox(up,[.0,.27*s,0],XZ,YY,ZZ,[.13*s,.26*s,.18*s],SU,.5,10,6);rbox(up,[.02,.36*s,0],XZ,YY,ZZ,[.135*s,.08*s,.185*s],S2,.5,10,4);
+  for(const z of [-1,1]){const shl=[sh[0],sh[1],z*.19*s],hand=L([o.hand[0],o.hand[1],P[2]+z*o.hand[2]]),el=[(shl[0]+hand[0])/2+.02*s,(shl[1]+hand[1])/2-.1*s,(shl[2]+hand[2])/2+z*.05*s];
+    tubeAB(up,shl,el,.055*s,8,SU);ball(up,el,.05*s,6,SU);tubeAB(up,el,hand,.045*s,8,SU);ball(up,hand,.05*s,6,BOOT);}
+  ball(up,[.04*s,.73*s,0],.15*s,12,HM);
+  /* the visor: a dark band across the front of the helmet */
+  rbox(up,[.15*s,.72*s,0],XZ,YY,ZZ,[.04*s,.05*s,.11*s],MP.GL,.4,8,4);
+  if(o.peak)abox(up,[.17*s,.84*s,0],[.07*s,.012,.08*s],HM);
+  return {lo:lo.build(),up:up.build(),pivot:P.slice(),tris:(lo.p.length+up.p.length)/9};
+}
+/* the quads: fenders front and back, a tank and seat, bars, a frame and engine, A-arms and shocks up front, a
+   swingarm and solid axle behind, nerf bars, a pipe; the ranch quad adds racks and a brush guard */
+function meshQuad(M,b,mb,D){
+  const s=M.s,xf=M.xF,xr=M.xF-M.wb,R=M.R,lift=b.look.lift,y0=lift,tr=b.look.track/2,mud=(b.kit||b.id)==='quadUtilX';
+  const Y=v=>v+y0;
+  /* fenders */
+  rbox(mb,[xf-.02,Y(R+.36*s),0],XZ,YY,ZZ,[.4*s,.07*s,tr+.12],MP.PAINT,.45,16,6);
+  rbox(mb,[xf+.32*s,Y(R+.25*s),0],XZ,YY,ZZ,[.14*s,.12*s,.26*s],MP.PAINT,.5,12,6);
+  rbox(mb,[xr+.04,Y(R+.4*s),0],XZ,YY,ZZ,[.44*s,.07*s,tr+.12],MP.PAINT,.45,16,6);
+  /* tank, seat, frame and engine */
+  rbox(mb,[xf-.35*s,Y(R+.52*s),0],XZ,YY,ZZ,[.2*s,.09*s,.18*s],MP.PAINT,.4,10,5);
+  rbox(mb,[xr+.32*s,Y(R+.56*s),0],XZ,YY,ZZ,[.42*s,.055*s,.17*s],MP.SEAT,.35,12,4);
+  abox(mb,[(xf+xr)/2,Y(R+.14*s),0],[.36*s,.16*s,.16*s],MP.DARK);
+  for(let k=0;k<4;k++)abox(mb,[(xf+xr)/2+.12*s,Y(R+.32*s+k*.04*s),0],[.09*s,.012,.13*s],MP.MET);
+  tubeAB(mb,[xf-.15,Y(R+.08*s),0],[xr+.1,Y(R+.08*s),0],.035*s,8,MP.DARK);
+  /* the bars */
+  const by=Y(R+.72*s),bx=xf-.12*s;tubeAB(mb,[bx-.08*s,Y(R+.5*s),0],[bx,by,0],.03*s,8,MP.DARK);
+  tubeAB(mb,[bx,by,-.36*s],[bx,by,.36*s],.022*s,8,MP.DARK);for(const z of [-1,1])tubeAB(mb,[bx,by,z*.28*s],[bx,by,z*.38*s],.03*s,8,MP.RUB);
+  /* lights */
+  for(const z of [-1,1])rbox(mb,[xf+.45*s,Y(R+.27*s),z*.11*s],XZ,YY,ZZ,[.02,.04*s,.06*s],MP.HEAD,.3,8,4);
+  rbox(mb,[xr-.47*s,Y(R+.36*s),0],XZ,YY,ZZ,[.015,.03*s,.07*s],MP.TAIL,.3,8,4);
+  /* front A-arms and shocks, the rear swingarm and axle */
+  for(const z of [-1,1]){const hub=[xf,Y(R),z*(tr-.08)],in1=[xf,Y(R+.06*s),z*.13*s],in2=[xf,Y(R-.08*s),z*.13*s];
+    tubeAB(mb,in1,hub,.018*s,6,MP.DARK);tubeAB(mb,in2,hub,.018*s,6,MP.DARK);tubeAB(mb,[xf-.06,Y(R+.32*s),z*.2*s],[xf,Y(R+.04),z*(tr-.16)],.03*s,8,MP.ACC);}
+  for(const z of [-1,1])tubeAB(mb,[(xf+xr)/2-.05,Y(R+.05*s),z*.13*s],[xr,Y(R),z*.13*s],.03*s,8,MP.DARK);
+  tubeAB(mb,[xr,Y(R),-tr+.1],[xr,Y(R),tr-.1],.03*s,8,MP.MET);
+  /* nerf bars and footwells */
+  for(const z of [-1,1]){const zz=z*(tr+.02);tubePath(mb,[[xf-.25*s,Y(R+.02*s),z*.24*s],[xf-.3*s,Y(R+.02*s),zz],[xr+.3*s,Y(R+.02*s),zz],[xr+.25*s,Y(R+.02*s),z*.24*s]],.02*s,6,MP.DARK);
+    abox(mb,[(xf+xr)/2,Y(R-.02*s),z*.3*s],[.28*s,.012,.08*s],MP.BLK);}
+  /* the pipe */
+  const tip=[xr-.38*s,Y(R+.32*s),.2*s];tubePath(mb,[[(xf+xr)/2+.1,Y(R+.25*s),.12*s],[(xf+xr)/2-.1,Y(R+.3*s),.24*s],[xr+.05,Y(R+.3*s),.24*s],tip],.035*s,8,M.util?MP.DARK:MP.CHR);
+  D.tips=[{p:tip,d:[-1,0,0],r:.03*s}];
+  /* the ranch quad: steel racks, a brush guard, and in the mud kit a snorkel and a winch */
+  if(M.util){for(const [x0,x1,yy] of [[xf-.05,xf+.42*s,R+.48*s],[xr-.45*s,xr+.12,R+.5*s]]){const y=Y(yy);
+      for(const z of [-1,1])tubeAB(mb,[x0,y,z*.36*s],[x1,y,z*.36*s],.015,6,MP.DARK);for(let k=0;k<=4;k++){const x=x0+(x1-x0)*k/4;tubeAB(mb,[x,y,-.36*s],[x,y,.36*s],.012,6,MP.DARK);}}
+    tubePath(mb,[[xf+.5*s,Y(R-.05),-.25*s],[xf+.56*s,Y(R+.25*s),-.25*s],[xf+.56*s,Y(R+.25*s),.25*s],[xf+.5*s,Y(R-.05),.25*s]],.025,8,MP.DARK);
+    if(mud){tubePath(mb,[[xf-.3*s,Y(R+.6*s),-.12*s],[xf-.25*s,Y(R+1.0*s),-.12*s]],.035,8,MP.BLK);abox(mb,[xf+.52*s,Y(R+.05),0],[.06,.07,.14],MP.DARK);}}
+  /* a number plate on the sport quad */
+  if(!M.util&&M.s>=1)rbox(mb,[xf+.42*s,Y(R+.46*s),0],XZ,YY,ZZ,[.01,.07*s,.11*s],mc('#e9e8e2',MAT.COL),.3,8,4);
+}
+/* the side-by-side: a tub, hood and fenders, two bucket seats, a roll cage with a light bar, a short bed */
+function meshSxs(M,b,mb,D){
+  const xf=M.xF,xr=M.xF-M.wb,R=M.R,lift=b.look.lift,Y=v=>v+lift,hw=b.look.track/2,turbo=b.rig&&b.rig.power==='turbo';
+  rbox(mb,[(xf+xr)/2,Y(R+.25),0],XZ,YY,ZZ,[1.22,.22,.62],MP.BLK,.35,18,6);
+  rbox(mb,[xf+.08,Y(R+.48),0],XZ,YY,ZZ,[.42,.08,.58],MP.PAINT,.4,14,5);
+  for(const z of [-1,1]){rbox(mb,[xf,Y(R+.38),z*(hw+.02)],XZ,YY,ZZ,[.4,.06,.18],MP.PAINT,.45,12,5);rbox(mb,[xr,Y(R+.4),z*(hw+.02)],XZ,YY,ZZ,[.42,.06,.18],MP.PAINT,.45,12,5);}
+  rbox(mb,[xr-.12,Y(R+.62),0],XZ,YY,ZZ,[.38,.1,.56],MP.PAINT,.3,12,5);
+  for(const z of [-1,1]){const zz=z*.32;rbox(mb,[-.12,Y(R+.38),zz],XZ,YY,ZZ,[.24,.06,.2],MP.SEAT,.4,10,4);rbox(mb,[-.36,Y(R+.68),zz],XZ,YY,ZZ,[.06,.3,.2],MP.SEAT,.4,8,6);}
+  /* the cage */
+  const top=Y(M.H),C=MP.DARK;
+  for(const z of [-1,1]){const zz=z*.6;tubePath(mb,[[.55,Y(R+.45),zz],[.15,top,zz*.97],[-.62,top,zz*.97],[-.7,Y(R+.5),zz]],.03,8,C);}
+  for(const x of [.15,-.62])tubeAB(mb,[x,top,-.58],[x,top,.58],.03,8,C);tubeAB(mb,[-.25,top,-.58],[-.25,top,.58],.025,8,C);
+  rbox(mb,[.15,top+.05,0],XZ,YY,ZZ,[.04,.035,.45],MP.BLK,.3,10,4);rbox(mb,[.19,top+.05,0],XZ,YY,ZZ,[.005,.025,.42],V([1,1,1],MAT.LED),.2,8,4);
+  /* steering wheel, lights, the pipe */
+  tubeAB(mb,[.35,Y(R+.45),-.32],[.15,Y(R+.75),-.32],.02,6,C);ring(mb,[.13,Y(R+.78),-.32],.17,.018,MP.RUB);
+  for(const z of [-1,1])rbox(mb,[xf+.48,Y(R+.42),z*.4],XZ,YY,ZZ,[.015,.04,.1],MP.HEAD,.3,8,4);
+  for(const z of [-1,1])rbox(mb,[xr-.5,Y(R+.55),z*.45],XZ,YY,ZZ,[.01,.035,.06],MP.TAIL,.3,8,4);
+  const tip=[xr-.52,Y(R+.42),.25];tubePath(mb,[[-.2,Y(R+.15),.15],[xr+.1,Y(R+.3),.25],tip],.04,8,MP.DARK);D.tips=[{p:tip,d:[-1,0,0],r:.035}];
+  if(turbo)ball(mb,[xr+.2,Y(R+.7),.2],.08,8,MP.CHR);
+}
+/* a ring (steering wheels) */
+function ring(mb,c,r,t,m){const n=16;for(let i=0;i<n;i++){const a=i/n*TAU,b2=(i+1)/n*TAU;tubeAB(mb,[c[0]+Math.sin(a)*r*.3,c[1]+Math.cos(a)*r,c[2]+Math.sin(a)*r],[c[0]+Math.sin(b2)*r*.3,c[1]+Math.cos(b2)*r,c[2]+Math.sin(b2)*r],t,5,m,false);}}
+/* the golf cart: a cowl, a floor, a rear body, a bench seat, a roof on four struts, a bag on the back */
+function meshGolf(M,b,mb,D){
+  const xf=M.xF,xr=M.xF-M.wb,R=M.R,lift=b.look.lift,Y=v=>v+lift,lifted=lift>.05;
+  rbox(mb,[xf+.18,Y(R+.32),0],XZ,YY,ZZ,[.36,.26,.56],MP.PAINT,.45,14,6);
+  abox(mb,[(xf+xr)/2,Y(R+.1),0],[.62,.04,.5],MP.BLK);
+  rbox(mb,[xr-.05,Y(R+.3),0],XZ,YY,ZZ,[.48,.26,.58],MP.PAINT,.45,14,6);
+  rbox(mb,[-.35,Y(R+.56),0],XZ,YY,ZZ,[.26,.07,.52],MP.TAN,.35,12,4);rbox(mb,[-.6,Y(R+.82),0],XZ,YY,ZZ,[.05,.22,.52],MP.TAN,.35,8,6);
+  const top=Y(M.H);abox(mb,[-.18,top,0],[.78,.03,.62],MP.ACC);
+  for(const z of [-1,1]){tubeAB(mb,[xf-.32,Y(R+.62),z*.5],[xf-.3,top,z*.52],.025,8,MP.DARK);tubeAB(mb,[-.78,Y(R+.6),z*.5],[-.8,top,z*.52],.025,8,MP.DARK);}
+  /* the steering wheel, the bag */
+  tubeAB(mb,[xf-.15,Y(R+.45),-.25],[.15,Y(R+.85),-.25],.02,6,MP.DARK);ring(mb,[.13,Y(R+.88),-.25],.16,.016,MP.RUB);
+  tubeAB(mb,[xr-.45,Y(R+.45),.15],[xr-.45,Y(R+1.25),.15],.13,10,mc('#2f4636',MAT.FABRIC));for(const dz of [-.05,0,.05])tubeAB(mb,[xr-.45,Y(R+1.25),.15+dz],[xr-.42,Y(R+1.42),.15+dz],.012,5,MP.CHR);
+  for(const z of [-1,1])rbox(mb,[xf+.53,Y(R+.36),z*.32],XZ,YY,ZZ,[.01,.035,.06],MP.HEAD,.3,8,4);
+  if(lifted)for(const z of [-1,1]){abox(mb,[xf,Y(R+.02),z*.32],[.04,.04,.22],MP.DARK);abox(mb,[xr,Y(R+.02),z*.32],[.04,.04,.22],MP.DARK);}
+  D.tips=[{p:[xr-.46,Y(R-.05),.3],d:[-1,0,0],r:.02}];
+}
+/* the go-kart: a tube frame, a floor pan, a seat, side pods and a nose, the engine on the left at the back */
+function meshKart(M,b,mb,D){
+  const xf=M.xF,xr=M.xF-M.wb,Y=v=>v+.02,F=MP.DARK;
+  for(const z of [-1,1])tubePath(mb,[[xf+.3,Y(.12),z*.22],[xf,Y(.12),z*.42],[xr+.1,Y(.12),z*.4],[xr-.35,Y(.14),z*.3]],.018,6,F);
+  tubeAB(mb,[xf+.3,Y(.12),-.22],[xf+.3,Y(.12),.22],.018,6,F);tubeAB(mb,[xr-.35,Y(.14),-.3],[xr-.35,Y(.14),.3],.018,6,F);
+  abox(mb,[(xf+xr)/2,Y(.08),0],[.5,.008,.3],MP.MET);
+  rbox(mb,[-.15,Y(.26),0],XZ,YY,ZZ,[.2,.13,.2],MP.SEAT,.5,10,6);
+  for(const z of [-1,1])rbox(mb,[0,Y(.18),z*.5],XZ,YY,ZZ,[.3,.06,.08],MP.PAINT,.5,10,4);
+  rbox(mb,[xf+.25,Y(.18),0],XZ,YY,ZZ,[.15,.08,.36],MP.PAINT,.5,10,4);
+  tubeAB(mb,[xf+.05,Y(.15),0],[.25,Y(.42),0],.015,6,F);ring(mb,[.24,Y(.43),0],.14,.014,MP.RUB);
+  abox(mb,[xr-.05,Y(.3),-.36],[.14,.14,.12],MP.MET);ball(mb,[xr+.02,Y(.42),-.36],.08,8,MP.DARK);
+  const tip=[xr-.3,Y(.42),-.3];tubePath(mb,[[xr-.05,Y(.32),-.24],[xr-.2,Y(.4),-.28],tip],.025,8,MP.CHR);D.tips=[{p:tip,d:[-.8,.6,0],r:.02}];
+  tubeAB(mb,[xr,Y(.14),-.55],[xr,Y(.14),.55],.02,6,MP.MET);
+}
+/* the old tractor: a long hood over a horizontal twin, a stack, a pan seat on a spring, big rear fenders */
+function meshTractor(M,b,mb,D){
+  const xf=M.xF,xr=M.xF-M.wb,R=M.R,Rr=M.Rr,P=MP.PAINT,A=mc('#e2d6b0',MAT.METAL);
+  rbox(mb,[xf-.38,1.22,0],XZ,YY,ZZ,[.78,.24,.3],P,.25,14,6);
+  abox(mb,[xf+.42,1.12,0],[.06,.32,.3],A);for(let k=0;k<6;k++)abox(mb,[xf+.48,.9+k*.08,0],[.01,.015,.27],MP.DARK);
+  abox(mb,[xf-.4,.78,0],[.62,.2,.2],MP.DARK);for(const z of [-1,1])tubeAB(mb,[xf-.25,.8,z*.2],[xf-.25,.8,z*.36],.14,10,MP.DARK);
+  tubeAB(mb,[xf,R,-.62],[xf,R,.62],.05,8,MP.DARK);tubeAB(mb,[xf-.1,R+.05,0],[xf-.3,.85,0],.06,8,MP.DARK);
+  abox(mb,[xr+.35,1.0,0],[.4,.32,.32],P);abox(mb,[xr+.1,.85,0],[.3,.2,.45],MP.DARK);
+  /* the seat on its spring, the wheel on its column, the fenders */
+  tubeAB(mb,[xr-.15,1.05,0],[xr-.35,1.42,0],.04,6,MP.DARK);rbox(mb,[xr-.38,1.47,0],XZ,YY,ZZ,[.2,.04,.22],mc('#1c1d20',MAT.METAL),.5,10,4);
+  tubeAB(mb,[xf-.6,1.4,0],[xr+.25,1.85,0],.03,6,MP.DARK);ring(mb,[xr+.22,1.87,0],.21,.018,MP.DARK);
+  const tw=b.look.trackR/2;
+  for(const z of [-1,1]){const n=10;for(let i=0;i<n;i++){const a0=PI*.05+i/n*PI*.75,a1=PI*.05+(i+1)/n*PI*.75,r=Rr+.1;
+      const p=(a,w)=>[xr+Math.cos(a)*r,Rr+Math.sin(a)*r,z*(tw+w)];mb.quad(p(a0,-.22),p(a1,-.22),p(a1,.2),p(a0,.2),[1,1,1],0,MAT.PAINT);}}
+  const tip=[xf-.3,2.3,-.15];tubeAB(mb,[xf-.3,1.42,-.15],tip,.05,10,MP.DARK);tubeAB(mb,tip,[tip[0],tip[1]+.03,tip[2]],.07,10,MP.DARK,false);D.tips=[{p:[tip[0],tip[1]+.04,tip[2]],d:[0,1,0],r:.05}];
+  for(const z of [-1,1])rbox(mb,[xf+.1,1.38,z*.25],XZ,YY,ZZ,[.04,.06,.06],MP.HEAD,.4,8,4);
+  abox(mb,[xr-.5,.55,0],[.25,.04,.08],MP.DARK);
+}
+/* the semi: a long hood and grille, a cab and sleeper, chrome tanks and stacks, frame rails and a fifth wheel */
+function meshSemi(M,b,mb,D){
+  const xf=M.xF,xr=M.xF-M.wb,P=MP.PAINT,stacks=b.rig&&b.rig.exhaust==='stacks';
+  rbox(mb,[xf-.15,1.75,0],XZ,YY,ZZ,[1.15,.55,1.0],P,.3,16,6);
+  abox(mb,[xf+.98,1.6,0],[.04,.6,.55],MP.CHR);for(let k=0;k<9;k++)abox(mb,[xf+1.02,1.12+k*.11,0],[.01,.02,.5],MP.DARK);
+  abox(mb,[xf+1.05,.82,0],[.12,.2,1.22],MP.CHR);
+  for(const z of [-1,1]){rbox(mb,[xf+.05,1.25,z*1.05],XZ,YY,ZZ,[.62,.1,.2],P,.5,12,5);rbox(mb,[xf+.85,1.35,z*.85],XZ,YY,ZZ,[.03,.1,.14],MP.HEAD,.3,8,4);}
+  rbox(mb,[xf-1.75,2.4,0],XZ,YY,ZZ,[.7,1.0,1.2],P,.25,14,6);
+  obox(mb,[xf-1.07,2.85,0],[.3,.954,0],YY,ZZ,[.01,.42,1.1],MP.GL);for(const z of [-1,1])abox(mb,[xf-1.6,2.85,z*1.205],[.5,.35,.01],MP.GL);
+  rbox(mb,[xf-2.9,2.5,0],XZ,YY,ZZ,[.6,1.12,1.2],P,.25,14,6);rbox(mb,[xf-2.0,3.62,0],XZ,YY,ZZ,[.7,.12,1.1],P,.4,12,4);
+  for(let k=-2;k<=2;k++)rbox(mb,[xf-1.15,3.48,k*.35],XZ,YY,ZZ,[.03,.03,.06],MP.AMB,.3,6,4);
+  for(const z of [-1,1]){tubeAB(mb,[xf-2.1,1.05,z*1.05],[xf-1.0,1.05,z*1.05],.32,14,MP.CHR);abox(mb,[xr+.3,1.0,z*.45],[2.3,.13,.07],MP.DARK);}
+  abox(mb,[xr,1.3,0],[.62,.06,.62],MP.DARK);
+  const tops=[];for(const z of [-1,1]){const base=[xf-2.25,1.3,z*1.18],top=[xf-2.25,3.95,z*1.18];tubeAB(mb,base,top,.1,12,MP.CHR);tops.push({p:top,d:[0,1,0],r:.1});}
+  D.tips=tops;
+  for(const z of [-1,1])abox(mb,[xr-.9,.75,z*1.1],[.02,.35,.25],MP.RUB);
+  /* the tandem behind the physics' rear axle: two axles, duals on each */
+  D.tandem=[.65,-.65];D.dual=.16;
+}
+const MESH_OF={quad:meshQuad,sxs:meshSxs,golf:meshGolf,kart:meshKart,tractor:meshTractor,semi:meshSemi};
+/* a machine's meshes and the design numbers the game reads off a car's (length, axles, heights, the hood camera) */
+function buildMachine(b){
+  const M=machOf(b),mb=new MB(),xf=M.xF,xr=M.xF-M.wb,L=M.L,lift=b.look.lift||0;
+  const D={look:b.look,L,R:b.look.tyre.R,Rr:(b.look.tyreR||b.look.tyre).R,dy:lift,uC:L/2,uFa:L/2-xf,uRa:L/2-xr,B:{wb:M.wb,R0:M.R,L,ovF:L/2-xf,fit:{}},Hr:M.H+lift,pitch:0,tips:[],spares:[],machine:1};
+  D.X=u=>D.uC-u;D.belt=()=>M.lampY+.2+lift;D.sill=()=>M.clear+lift;D.plan=()=>M.W/2;D.top=()=>M.H+lift;
+  MESH_OF[M.kind](M,b,mb,D);
+  /* the rider or driver */
+  let rider=null;const s=M.riderS,R=M.R+lift;
+  if(M.kind==='quad')rider=buildRider({s,hip:[xr+.38*M.s,R+.6*M.s,0],knee:[xf-.25*M.s,R+.55*M.s,.24*s],foot:[(xf+xr)/2-.02,R-.02*M.s,.3*M.s],hand:[xf-.12*M.s,R+.72*M.s,.3*M.s],helmet:M.s<1?'#ffd84a':'#e9e8e2',suit:M.s<1?'#2f74c8':'#2a2f3a',peak:1});
+  else if(M.kind==='sxs')rider=buildRider({s,hip:[-.2,R+.45,-.32],knee:[.25,R+.48,.12],foot:[.55,R+.12,.12],hand:[.13,R+.8,.12],helmet:'#141416'});
+  else if(M.kind==='golf')rider=buildRider({s,hip:[-.4,R+.62,-.25],knee:[0,R+.62,.12],foot:[.2,R+.18,.12],hand:[.15,R+.88,.12],suit:'#e9e8e2',suit2:'#2f4636',helmet:'#e9e8e2'});
+  else if(M.kind==='kart')rider=buildRider({s,hip:[-.22,.28,0],knee:[.25,.38,.16],foot:[.5,.18,.14],hand:[.23,.45,.12],helmet:'#c8261e'});
+  else if(M.kind==='tractor')rider=buildRider({s,hip:[xr-.4,1.55,0],knee:[xr+.05,1.45,.2],foot:[xr+.2,1.05,.28],hand:[xr+.25,1.88,.18],suit:'#3a4a6a',suit2:'#3a4a6a',helmet:'#9a6a32',peak:1});
+  /* the hood (helmet) camera: just above the rider's eyes, or in the semi's cab */
+  D.eye=M.kind==='semi'?[xf-.98,2.62,-.5]:rider?[rider.pivot[0]+.12*s,rider.pivot[1]+.7*s,rider.pivot[2]]:[0,M.H*.8,0];
+  /* how far the helmet camera looks down: enough to see the bars, the wheel or the hood */
+  D.eyeDown={quad:.2,kart:.22,sxs:.1,golf:.1,tractor:.12,semi:.06}[M.kind]||.1;
+  const body=mb.build(),w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
+  const tris=mb.p.length/9+(w.tris+wr.tris)*2*(D.tandem?3:1)+(rider?rider.tris:0);
+  return {body,hood:null,hide:null,D,wheel:w,wheelR:wr,rider,bay:null,engineOut:false,tris};
+}
+/* the hull a machine collides with: its corners low and high, and the rider's helmet on top */
+function machHull(M,b,cg){
+  const P=[],xf=M.xF,xr=M.xF-M.wb,lift=b.look.lift||0,lo=M.clear+lift+.03,mid=Math.max(lo+.1,M.lampY+lift),hi=M.H+lift,hw=M.W/2*.92,f=xf+(M.L/2-xf)*.95,r=-M.L/2*.95;
+  const at=(x,y,z)=>P.push([x-cg[0],y-cg[1],z]);
+  for(const x of [f,(xf+xr)/2,r])for(const z of [-hw,hw])at(x,lo,z);
+  for(const x of [f,r])for(const z of [-hw,hw])at(x,mid,z);
+  if(M.kind==='quad'){const hx=xr+.38*M.s,hy=M.R+lift+.6*M.s+.85*M.riderS;at(hx,hy,0);at(hx,hy-.4,-.25);at(hx,hy-.4,.25);}
+  else for(const x of [M.kind==='semi'?xf-1.2:xf*.3,M.kind==='semi'?xf-3.4:xr*.6])for(const z of [-hw*.85,hw*.85])at(x,hi,z);
+  at(f+.02,mid,0);at(r-.02,mid,0);
+  return P;
+}
 /* =====================================================================================
    THE PHYSICS. Dirt Sleeper Mini 4's (Shiftlight 3's car physics with Dirt Sleeper's off-road changes:
    rolling resistance as wheel torque, mud and water drag, the tyre-circle ground contact, line lock,
@@ -4022,7 +4292,17 @@ class Powertrain{
   isDrv(i){const d=this.drv;for(let k=0;k<d.length;k++)if(d[k]===i)return true;return false;}
   /* inertia a wheel's brake has to fight (with the engine attached through a locked clutch) */
   effInertia(i,Iw){if(this.locked&&this.isDrv(i)){const gr=this.ratio();return Iw+this.e.Ie*gr*gr/this.drv.length;}return Iw;}
-  ratio(){return this.e.gears[this.gear-1]*this.e.fd*(this.lo||1)*(this.rev?-1.15:1);}
+  ratio(){return (this.cvtR||this.e.gears[this.gear-1])*this.e.fd*(this.lo||1)*(this.rev?-1.15:1);}
+  /* a belt CVT (the quads, the side-by-side, the golf cart): the ratio slides between its low and high so the
+     engine sits near where the throttle asks (just off idle at a crawl, near peak power floored), and the
+     clutch engages on the revs like a converter */
+  _cvt(dt,W){
+    const e=this.e,C=e.cvt;if(!C)return;const wm=Math.abs(this.meanW(W)),k=e.fd*(this.lo||1);
+    const tgt=lerp(C.eng,C.top,clamp(this.thr,0,1))*TAU/60,want=wm>.05?tgt/(wm*k):C.lo;
+    if(!this.cvtR)this.cvtR=C.lo;
+    const r=clamp(want,C.hi,C.lo),rate=(C.lo-C.hi)*(r<this.cvtR?1.4:3.5);
+    this.cvtR+=clamp(r-this.cvtR,-rate*dt,rate*dt);
+  }
   /* one substep. inp {thr, brk, nos}. W: the four wheels {w, Fx, Kd, Fz, kap}. aid {tc, escThr, fmax, mass} */
   step(dt,inp,W,aid){
     const e=this.e,o=this.o,R=o.R,Iw=o.Iw,drv=this.drv,idleW=e.idle*TAU/60;
@@ -4036,6 +4316,7 @@ class Powertrain{
     if(this.st==='stopping')thrIn=0;
     const vW=this.meanW(W)*R;
     this.thr+=(thrIn-this.thr)*Math.min(1,dt*(thrIn>this.thr?9:14)*e.resp);
+    if(e.cvt)this._cvt(dt,W);
     let thrE=this.thr,thrSnd=this.thr;const rpm=this.we*60/TAU;
     this.rpm=rpm;
     let dslip=0;for(let k=0;k<drv.length;k++)dslip=Math.max(dslip,W[drv[k]].kap);this.dslip=dslip;
@@ -4076,6 +4357,9 @@ class Powertrain{
     if(inp.nos&&e.nosKw&&this.nos>0&&this.thr>.5&&!shifting&&!this.hold&&this.running&&this.cutFrac<.5){
       this.nosOn=true;this.nos=Math.max(0,this.nos-dt/e.nosT);Te+=Math.min(e.nosKw*1e3/Math.max(this.we,150),e.tq*1.6);}
     if(this.st==='run'&&this.we<idleW)Te+=(idleW-this.we)*e.Ie*25;
+    /* the jake brake (the semi): off the throttle it opens the exhaust valves at the top of each stroke and holds the truck back */
+    this.jakeOn=!!(this.jake&&e.jake&&this.running&&thrEng<.03&&rpm>e.idle*1.4&&!shifting);
+    if(this.jakeOn)Te-=e.tq*.55*clamp((rpm-e.idle*1.4)/(e.idle*.6),0,1);
     const TeS=SIM.engTq(e,Math.max(rpm,1),thrSnd,this.boost);
     this.load=this.st==='run'?clamp(thrSnd*(TeS>0?1:0)*(.42+.58*Math.min(1,TeS/e.tq)),0,1):0;this.Te=Te;
     if(shifting){this.shiftT-=dt;if(this.shiftT<=0){this.gear=this.shiftTo;this.shiftT=0;}}
@@ -4336,6 +4620,13 @@ class Vehicle{
     this._apply(U[0]*aF,U[1]*aF,U[2]*aF,p[0]+M[0]*this.a,p[1]+M[3]*this.a,p[2]+M[6]*this.a);
     this._apply(U[0]*aR,U[1]*aR,U[2]*aR,p[0]+M[0]*-this.b,p[1]+M[3]*-this.b,p[2]+M[6]*-this.b);
     if(this.assistTorque){T[0]+=U[0]*this.assistTorque;T[1]+=U[1]*this.assistTorque;T[2]+=U[2]*this.assistTorque;}
+    /* a rider moving their weight (34_machines): on the ground it is the rider's weight hung off to one side or
+       over the bars, a couple about the centre of gravity; in the air, pulling the bars or pushing them pitches the machine */
+    const L=this.lean;
+    if(L&&c.riderKg){
+      if(!this.air){const mg=c.riderKg*G,dz=L.z*c.leanZ,dx=L.x*c.leanX,rx=dz*M[2]+dx*M[0],rz=dz*M[8]+dx*M[6];T[0]+=rz*mg;T[2]-=rx*mg;}
+      else{const k=-L.x*c.riderKg/m*24*this.I[2],kr=L.z*c.riderKg/m*10*this.I[0];T[0]+=M[2]*k+M[0]*kr;T[1]+=M[5]*k+M[3]*kr;T[2]+=M[8]*k+M[6]*kr;}
+    }
     if(P&&P.upright){
       /* Kids: a hand that rolls the car back onto its wheels, and levels it in the air */
       const Fx=M[0],Fy=M[3],Fz=M[6],Rx=M[2],Ry=M[5],Rz=M[8],ax0=U[1]*0-U[2]*1,ax1=U[2]*0-U[0]*0,ax2=U[0]*1-U[1]*0;
@@ -4518,10 +4809,21 @@ const TREAD_MU={
   at:{concrete:.97,strip:.86,dirt:.82,trail:.81,grass:.74,rock:.86,mud:.57,water:.52,gravel:.78,asphalt:.99,ruts:.61},
   gravel:{concrete:.93,strip:.9,dirt:.9,trail:.88,grass:.78,rock:.86,mud:.6,water:.55,gravel:.92,asphalt:.95,ruts:.64},
   drag:{concrete:1.12,strip:1.08,dirt:.68,trail:.64,grass:.56,rock:.7,mud:.36,water:.4,gravel:.6,asphalt:1.15,ruts:.4},
-  runner:{concrete:.82,strip:.78,dirt:.62,trail:.6,grass:.55,rock:.66,mud:.38,water:.4,gravel:.58,asphalt:.84,ruts:.42}};
+  runner:{concrete:.82,strip:.78,dirt:.62,trail:.6,grass:.55,rock:.66,mud:.38,water:.4,gravel:.58,asphalt:.84,ruts:.42},
+  /* the machines' tyres (34_machines): quad knobbies, sand paddles, flat-track, kart slicks and dirt-kart tyres,
+     a tractor's lugs and its ribbed fronts, golf-cart turf tyres, a truck's highway tyres */
+  knobby:{concrete:.9,strip:.88,dirt:.88,trail:.88,grass:.82,rock:.86,mud:.62,water:.55,gravel:.84,asphalt:.9,ruts:.66},
+  paddle:{concrete:.7,strip:.75,dirt:.8,trail:.78,grass:.85,rock:.65,mud:.78,water:.65,gravel:.72,asphalt:.7,ruts:.76},
+  flat:{concrete:1.02,strip:1.0,dirt:.92,trail:.85,grass:.7,rock:.75,mud:.4,water:.45,gravel:.86,asphalt:1.05,ruts:.45},
+  kart:{concrete:1.15,strip:.9,dirt:.6,trail:.55,grass:.45,rock:.6,mud:.25,water:.3,gravel:.5,asphalt:1.2,ruts:.28},
+  kartDirt:{concrete:.95,strip:.95,dirt:.88,trail:.82,grass:.7,rock:.75,mud:.45,water:.45,gravel:.85,asphalt:.98,ruts:.5},
+  ag:{concrete:.7,strip:.75,dirt:.85,trail:.85,grass:.88,rock:.75,mud:.8,water:.6,gravel:.75,asphalt:.72,ruts:.8},
+  rib:{concrete:.8,strip:.75,dirt:.7,trail:.7,grass:.6,rock:.7,mud:.4,water:.4,gravel:.68,asphalt:.82,ruts:.45},
+  turf:{concrete:.9,strip:.75,dirt:.68,trail:.65,grass:.72,rock:.7,mud:.35,water:.4,gravel:.65,asphalt:.92,ruts:.4},
+  truck:{concrete:.95,strip:.8,dirt:.7,trail:.68,grass:.55,rock:.75,mud:.38,water:.45,gravel:.68,asphalt:.98,ruts:.42}};
 /* rolling resistance per surface, and how much more the bog drags each tread */
 const SURF_RR={concrete:.012,strip:.02,dirt:.024,trail:.028,grass:.034,rock:.022,mud:.14,water:.09,gravel:.026,asphalt:.011,ruts:.065};
-const TREAD_RR_MUD={allseason:1,perf:1.05,mud:.8,slick:1.35,at:.9,gravel:.95,drag:1.2,runner:1.4};
+const TREAD_RR_MUD={allseason:1,perf:1.05,mud:.8,slick:1.35,at:.9,gravel:.95,drag:1.2,runner:1.4,knobby:.85,paddle:.7,flat:1.2,kart:1.4,kartDirt:1.1,ag:.65,rib:1.1,turf:1.15,truck:1};
 /* suspension: spring rate against the factory truck's (the springs grow with the weight, so ride height and
    bounce hold), sway bars (N/m of difference across the axle), how far the wheel drops and how far it rises */
 const SUSP={
@@ -4531,12 +4833,19 @@ const SUSP={
   wagon:{k:1,arbF:26e3,arbR:8e3,droop:.09,bump:.08},wagonLow:{k:1.25,arbF:30e3,arbR:10e3,droop:.07,bump:.07},
   pickup:{k:1,arbF:34e3,arbR:4e3,droop:.11,bump:.11},prerunner:{k:.55,arbF:16e3,arbR:2e3,droop:.23,bump:.23},
   muscle:{k:.95,arbF:22e3,arbR:5e3,droop:.08,bump:.08},drag:{k:.8,arbF:12e3,arbR:0,droop:.08,bump:.06},
-  hatch:{k:1.15,arbF:22e3,arbR:12e3,droop:.085,bump:.085},rally:{k:.85,arbF:20e3,arbR:12e3,droop:.13,bump:.13}};
+  hatch:{k:1.15,arbF:22e3,arbR:12e3,droop:.085,bump:.085},rally:{k:.85,arbF:20e3,arbR:12e3,droop:.13,bump:.13},
+  /* the machines: sway bars sized to their weight; a kart has next to no suspension and a tractor only its tyres */
+  quad:{k:1,arbF:1.5e3,arbR:0,droop:.08,bump:.08},quadSport:{k:.9,arbF:2.5e3,arbR:0,droop:.12,bump:.14},quadLT:{k:.82,arbF:2.5e3,arbR:0,droop:.15,bump:.18},
+  quadUtil:{k:1,arbF:3e3,arbR:2e3,droop:.1,bump:.1},quadUtilLift:{k:.92,arbF:3e3,arbR:2e3,droop:.12,bump:.12},
+  sxs:{k:.8,arbF:6e3,arbR:3e3,droop:.18,bump:.2},sxsLT:{k:.7,arbF:5e3,arbR:2e3,droop:.22,bump:.25},
+  golf:{k:1.2,arbF:3e3,arbR:1e3,droop:.05,bump:.05},golfLift:{k:1,arbF:3e3,arbR:1e3,droop:.08,bump:.08},
+  kart:{k:5,arbF:0,arbR:0,droop:.012,bump:.02},tractor:{k:3,arbF:20e3,arbR:0,droop:.04,bump:.05},semi:{k:2,arbF:150e3,arbR:250e3,droop:.08,bump:.1}};
 /* shock absorbers against the factory truck's: desert bypass shocks and rally dampers take bumps at speed */
 const SHOCKS={stock:1,bypass:1.35,rally:1.3,race:1.2,sport:1.1,drag:.9};
 const BRAKES={stock:1,big:1.15,race:1.35,drag:.9};
 /* the centre of gravity of each body at factory ride height (the factory truck's is Mini 4's .74 m) */
 const HCG={suv:.74,trail:.70,coupe:.46,wagon:.55,pickup:.76,muscle:.50,hatch:.52};
+for(const id of MACH_IDS)HCG[id]=MACH[id].hcg;
 /* the running gear per build. tyre: tread and curve (peak slip, peak angle, grip once sliding, how fast it
    falls away, the wheel's inertia against the factory truck's); a rear tyre where the axles differ. wf: the
    share of weight on the front wheels. tc: traction control the car has of its own, on at every driving
@@ -4560,10 +4869,22 @@ const RUNNING={
   muscle: {tyre:T_('allseason',.12,.16,.8,.62,.95,1.06),susp:'muscle',shocks:'stock',wm:1,wf:.55,diff:{pre:30,acc:.2,dec:.08}},
   muscleDrag:{tyre:T_('runner',.12,.18,.75,.6,.6,1.0),tyreR:T_('slick',.14,.15,.85,.7,1.3,1.18),susp:'drag',shocks:'drag',wm:1,wmR:1.3,wf:.52,aero:[.02,.04],brake:'drag',diff:{spool:true}},
   hatch:  {tyre:T_('perf',.11,.14,.8,.6,.85,1.02),susp:'hatch',shocks:'stock',wm:.85,wf:.62,lock:.62},
-  hatchB: {tyre:T_('gravel',.13,.16,.88,.85,.9,1.1),susp:'rally',shocks:'rally',wm:.9,wf:.58,aero:[.14,.2],lock:.62,diff:{pre:100,acc:.6,dec:.35}}
+  hatchB: {tyre:T_('gravel',.13,.16,.88,.85,.9,1.1),susp:'rally',shocks:'rally',wm:.9,wf:.58,aero:[.14,.2],lock:.62,diff:{pre:100,acc:.6,dec:.35}},
+  /* the machines as they leave the factory (the garage's parts change them) */
+  quad90:{tyre:T_('knobby',.13,.16,.84,.72,1,1.05),susp:'quad',shocks:'stock',wm:1,wf:.42,lock:.55,diff:{spool:true}},
+  quad450:{tyre:T_('knobby',.13,.16,.84,.72,1,1.08),susp:'quadSport',shocks:'stock',wm:1,wf:.42,lock:.55,diff:{spool:true}},
+  quadUtil:{tyre:T_('at',.13,.16,.84,.72,1,1.06),susp:'quadUtil',shocks:'stock',wm:1,wf:.47,lock:.55,diff:{lockers:2,low:true}},
+  sxs:{tyre:T_('at',.13,.16,.84,.72,1,1.08),susp:'sxs',shocks:'stock',wm:1,wf:.42,lock:.6,diff:{etc:1,lockers:2,low:true}},
+  golf:{tyre:T_('turf',.12,.15,.82,.65,1,1.0),susp:'golf',shocks:'stock',wm:1,wf:.44,lock:.6,diff:{pre:10}},
+  kart:{tyre:T_('kart',.1,.12,.8,.55,1,1.1),susp:'kart',shocks:'stock',wm:1,wf:.42,lock:.5,diff:{spool:true}},
+  tractor:{tyre:T_('rib',.12,.16,.8,.6,1,1.0),tyreR:T_('ag',.16,.2,.86,.85,1,1.05),susp:'tractor',shocks:'stock',wm:1,wmR:1,wf:.3,lock:.6,diff:{lockers:1}},
+  semi:{tyre:T_('truck',.11,.14,.8,.6,1,1.0),susp:'semi',shocks:'stock',wm:1,wf:.6,lock:.62,diff:{pre:40}}
 };
+for(const id of ['quad450X','quadUtilX','sxsX','golfX'])RUNNING[id]=RUNNING[id.slice(0,-1)];
 /* where the centre of gravity sits in the model's coordinates: x along the car, y up from the ground */
 function cgOf(b){
+  if(b.machine){const M=MACH[b.look.body],rn=RUNNING[b.id]||RUNNING[b.look.body],xr=M.xF-M.wb,Rr0=M.Rr||M.R,Rr=(b.look.tyreR||b.look.tyre).R;
+    return [xr+M.wb*rn.wf,M.hcg+b.look.lift+((b.look.tyre.R-M.R)+(Rr-Rr0))/2];}
   const B=BODIES[b.look.body||'suv'],rn=RUNNING[b.id]||RUNNING.stock,dy=b.look.lift+(b.look.tyre.R-B.R0),xr=B.L/2-(B.ovF+B.wb);
   return [xr+B.wb*rn.wf,HCG[b.look.body||'suv']+dy];
 }
@@ -4573,14 +4894,16 @@ function treadTables(tread){
   return {surfMu:TREAD_MU[tread],surfRR:rr,surfDrag:{mud:.06*k**1.5,water:.018*k,ruts:.012*k}};
 }
 function buildChassis(i){
-  const b=BUILDS[i],l=b.look,rn=RUNNING[b.id]||RUNNING.stock,eg=ENGINE_OF[b.id]||ENGINE_OF.stock,sp=SUSP[rn.susp],B=BODIES[l.body||'suv'],D=suvDesign(l);
+  const b=BUILDS[i],l=b.look,MC=b.machine?MACH[l.body]:null,rn=RUNNING[b.id]||(MC&&RUNNING[l.body])||RUNNING.stock,eg=ENGINE_OF[b.id]||(MC&&ENGINE_OF[l.body])||ENGINE_OF.stock,sp=SUSP[rn.susp];
+  /* a machine has no lofted body: its size and hull come from its own numbers */
+  const B=MC?{wb:MC.wb}:BODIES[l.body||'suv'],D=MC?null:suvDesign(l);
   const m=eg.mass,R=l.tyre.R,Rr=l.tyreR?l.tyreR.R:R,ty=rn.tyre,tyR=rn.tyreR||ty,hcg=cgOf(b)[1];
   const kF=44e3*sp.k*m/2150,kR=48e3*sp.k*m/2150,c0=Math.max(m*9.81*.5/2/kF,m*9.81*.5/2/kR),damp=SHOCKS[rn.shocks]||1,cs=Math.sqrt(kF*m/4);
   const tyre=t=>({mu:t.mu,kPk:t.kPk,aPk:t.aPk,slide:Math.min(1,t.slide),slideW:t.slideW,loadSens:.3});
   const d=rn.diff||{},aero=rn.aero||[.03,.05],bk=BRAKES[rn.brake||l.tyre.brake]||1,TF=treadTables(ty.tread),TR=treadTables(tyR.tread);
   /* the body for its inertia: the factory truck keeps Mini 4's numbers, the rest are measured off their models */
-  let W=0;for(let u=0;u<=B.L;u+=.05)W=Math.max(W,D.plan(u)*2);
-  const body=(l.body||'suv')==='suv'?{L:4.92,W:1.9,H:1.86}:{L:B.L,W,H:D.Hr};
+  let W=0;if(D)for(let u=0;u<=B.L;u+=.05)W=Math.max(W,D.plan(u)*2);
+  const body=MC?{L:MC.L,W:MC.W,H:MC.H}:(l.body||'suv')==='suv'?{L:4.92,W:1.9,H:1.86}:{L:B.L,W,H:D.Hr};
   const c={name:b.id,mass:m,wb:B.wb,wf:rn.wf,hcg,trackF:l.track,trackR:l.trackR||l.track,R,Rr,
     Iw:1.6*Math.pow(R/.375,4)*ty.If*rn.wm,IwR:1.6*Math.pow(Rr/.375,4)*tyR.If*(rn.wmR||rn.wm),rcH:.2,
     susp:{rest:c0+sp.droop,travel:c0+sp.bump,kF,kR,cbF:cs*.55*damp,crF:cs*.85*damp,cbR:cs*.55*damp,crR:cs*.85*damp,arbF:sp.arbF,arbR:sp.arbR},
@@ -4589,7 +4912,8 @@ function buildChassis(i){
     diff:{pre:d.pre??40,acc:d.acc??.3,dec:d.dec??.15,rLock:!!d.spool,fLock:false,cLock:false,etc:d.etc||0,lowK:d.lowK||2.64,can:{r:(d.lockers||0)>=1,f:(d.lockers||0)>=2,low:!!d.low}},
     surfMu:TF.surfMu,surfRR:TF.surfRR,surfDrag:TF.surfDrag,tread:ty.tread,factoryTC:!!rn.tc};
   if(rn.tyreR){c.surfMuR=TR.surfMu;c.surfRRR=TR.surfRR;c.surfDragR=TR.surfDrag;c.treadR=tyR.tread;}
-  c.hull=hullOf(b,D,cgOf(b));
+  c.hull=MC?machHull(MC,b,cgOf(b)):hullOf(b,D,cgOf(b));
+  if(MC){c.machine=l.body;c.riderKg=MC.riderKg;c.leanZ=MC.leanZ||0;c.leanX=MC.leanX||0;}
   return c;
 }
 /* the hull, from the model's own lines: the sills and bumpers low down, the shoulders, the roof, the nose and
@@ -6043,7 +6367,19 @@ const ENGINES={
   fp52:{name:'5.2 flat-plane V8',note:'The coupe\'s factory flat-plane, past 8,000 rpm.',kg:200,price:0},
   fp55:{name:'5.5 flat-plane V8',note:'The flat-plane bored out: more of everything, still screams.',kg:200,price:9500,base:'fp52',disp:5.5},
   i525:{name:'2.5 turbo five',note:'The wagon\'s factory five, turbocharged from the start.',kg:170,price:0},
-  i18t:{name:'1.8 turbo four',note:'The hatch\'s homologation four, mounted across the nose.',kg:140,price:0}
+  i18t:{name:'1.8 turbo four',note:'The hatch\'s homologation four, mounted across the nose.',kg:140,price:0},
+  /* the machines' engines (34_machines) */
+  q90:{name:'90 cc four-stroke',note:'A little air-cooled single. Starts every time.',kg:14,price:0},
+  q450:{name:'450 four-stroke single',note:'The stock thumper: strong low down, revs to 10,500.',kg:28,price:0},
+  q480:{name:'480 big-bore kit',note:'Bored out: more torque everywhere, same thump.',kg:28,price:1400,base:'q450',disp:.48},
+  q250t:{name:'250 two-stroke',note:'Lighter, snappier and loud: nothing, nothing, then everything.',kg:22,price:2400},
+  q700:{name:'700 single',note:'A big, slow-revving utility single.',kg:45,price:0},
+  q850:{name:'850 V-twin',note:'The biggest utility engine: torque for days.',kg:55,price:3200},
+  sxs1000:{name:'1000 parallel twin',note:'The side-by-side\'s twin, revving to 8,500.',kg:70,price:0},
+  golf400:{name:'400 cc single',note:'Built to go round a golf course all day.',kg:30,price:0},
+  kart212:{name:'212 cc single',note:'A yard-sale engine on a centrifugal clutch.',kg:17,price:0},
+  popper:{name:'5.5 L two-cylinder',note:'Two huge horizontal cylinders: pop, pop, pop.',kg:600,price:0},
+  semi15:{name:'15 L inline-six diesel',note:'About 2,000 lb-ft at 1,200 rpm.',kg:1350,price:0}
 };
 const POWER={
   none:{name:'None',note:'Breathes on its own.',kg:0,price:0},
@@ -6062,6 +6398,9 @@ const CAM_PARTS=[{name:'Factory cam',note:'Smooth idle, torque low down.',price:
 const TUNES=[{name:'Factory tune',note:'As it left the factory.',price:0},{name:'Street tune',note:'More timing, a higher rev limit.',price:500},{name:'Race tune',note:'Everything it has, a hard limiter that bangs.',price:1200}];
 const NITROUS=[{name:'None',price:0,kg:0},{name:'35-shot',note:'A gentle push. Good for getting through mud.',price:600,kg:10},{name:'75-shot',price:900,kg:10},{name:'125-shot',price:1200,kg:12},{name:'250-shot',note:'Huge, for about eight seconds.',price:1800,kg:14}];
 const TRANS={
+  cvt:{name:'Belt automatic',note:'A CVT: no shifts, the revs just climb.',price:0},cvtHL:{name:'Belt automatic, high and low',note:'A CVT with a low range for pulling.',price:0},
+  quad5:{name:'Five-speed',note:'A thumb clutch and a foot shifter.',price:0},kart1:{name:'Centrifugal clutch',note:'One gear. The clutch grabs when the revs come up.',price:0},
+  trac6:{name:'Six-speed',note:'Six gears from a walk to about 12 mph.',price:0},truck10:{name:'Ten-speed',note:'Ten gears and a long reach between them.',price:0},
   auto4:{name:'Four-speed automatic',note:'The factory four-speed. Tall gaps, tough as a rock.',price:0},
   auto5:{name:'Five-speed automatic',note:'The factory five-speed.',price:0},
   auto6:{name:'Six-speed automatic',note:'Shifts early when you go easy, holds a gear when you floor it.',price:0},
@@ -6157,6 +6496,52 @@ const CAR_PARTS={
     shocks:['stock','sport','rally'],brakes:['stock','big','race'],weight:[['stock','Factory',0,0],['rally','Rally strip-out',-160,1800]],
     kits:{hatch:{kg:0},hatchB:{kg:30}}}
 };
+/* ---------- the machines (34_machines). slots: the slots the garage shows; opts: a slot's own choices;
+   gov: a speed governor per tune (m/s, 0 for none); power: the power adders that fit ---------- */
+const TF=(o,f)=>Object.assign(o,{front:f});
+const QOPT={tune:[[0,'Stock','',0],[1,'Rejetted, timing','A richer jet and a little more timing.',350],[2,'Race fuel and tune','Everything it has.',800]],
+  exhaust:[['stock','Stock muffler','',0],['pipe','Full system pipe','Louder and a little quicker.',650]],intake:[[0,'Stock airbox','',0],[1,'Lid off, rejetted','More air and the jets to match.',120]]};
+Object.assign(CAR_PARTS,{
+  quad90:{tireK:0.25,chassisKg:129,drv:'RWD',engines:['q90'],trans:['cvt'],axles:[12.9],transfer:[],diffs:['spool'],slots:['tune','exhaust','tires','wheels','paint'],
+    opts:{tune:[[0,'Limiter screw all the way in','The way the dealer set it: about 12 mph.',0],[1,'Limiter screw half out','About 20 mph.',0],[2,'Limiter screw out','All 28 mph of it. Hold on.',0]],
+      exhaust:[['stock','Stock muffler','',0],['pipe','Slip-on pipe','Louder, a little quicker.',180]]},gov:[5.4,8.9,12.5],
+    tires:[T_P('knobby','19x7-8 knobbies',.235,.17,8,'mt','knobby',[.13,.16,.84,.72,1,1.05]),T_P('mud','20x7-8 mud tyres',.25,.17,8,'mt','mud',[.15,.18,.85,.8,1.05,1.05],3,1.05)],
+    rides:[R_P('stock','Stock',0,'quad')],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{quad90:{kg:0}}},
+  quad450:{tireK:0.6,chassisKg:217,drv:'RWD',engines:['q450','q480','q250t'],trans:['quad5'],axles:[8.4,9.4,10.6],transfer:[],diffs:['spool'],slots:['engine','intake','exhaust','tune','axle','tires','ride','shocks','wheels','paint'],
+    opts:Object.assign({axle:[[8.4,'Tall sprockets','More top speed, softer pull.',120],[9.4,'Stock sprockets','',0],[10.6,'Short sprockets','Pulls hard out of corners, tops out early.',120]]},QOPT),
+    tires:[T_P('knobby','21x7-10 / 20x11-9 knobbies',.265,.2,10,'mt','knobby',[.13,.16,.84,.72,1,1.08]),T_P('mud','22-in mud tyres',.28,.2,10,'mt','mud',[.15,.18,.85,.8,1.05,1.08],6,1.06),
+      T_P('paddle','Sand paddles',.27,.24,10,'mt','paddle',[.16,.19,.86,.85,1.05,1.05],4,1.05),T_P('flat','Flat-track tyres',.25,.2,10,'slick','flat',[.1,.13,.8,.6,.95,1.1],-2,.95)],
+    rides:[R_P('stock','Stock',0,'quadSport'),R_P('lt','Long-travel A-arms, 2 in wider',.03,'quadLT',8,.1)],shocks:['stock','rally'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{quad450:{kg:0}}},
+  quadUtil:{tireK:0.7,chassisKg:335,drv:'AWD',engines:['q700','q850'],trans:['cvtHL'],axles:[7.4],transfer:['low'],diffs:['both'],slots:['engine','exhaust','tune','tires','ride','kit','wheels','paint'],
+    opts:QOPT,tires:[T_P('at','25x8-12 all-terrains',.31,.22,12,'at','at',[.13,.16,.84,.72,1,1.06]),T_P('mud','27-in mud tyres',.34,.24,12,'mt','mud',[.15,.18,.85,.8,1.08,1.06],10,1.08,.05)],
+    rides:[R_P('stock','Stock',0,'quadUtil'),R_P('lift','2 in lift',.05,'quadUtilLift',6,.02)],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{quadUtil:{kg:0},quadUtilX:{kg:25}}},
+  sxs:{tireK:1,chassisKg:700,drv:'AWD',engines:['sxs1000'],trans:['cvt'],axles:[8.6,9.6,10.8],transfer:['low'],diffs:['factory','both'],power:['none','turbo'],slots:['power','exhaust','tune','axle','lockers','tires','ride','shocks','wheels','paint'],
+    opts:Object.assign({axle:[[8.6,'Tall clutch kit','More top speed.',300],[9.6,'Stock clutching','',0],[10.8,'Short clutch kit','Snappier off the line and in the dunes.',300]]},QOPT),
+    tires:[T_P('at','29-in all-terrains',.37,.25,14,'at','at',[.13,.16,.84,.72,1,1.08]),T_P('mt','32-in mud tyres',.41,.27,15,'mt','mud',[.15,.18,.85,.8,1.08,1.08],25,1.1,.05)],
+    rides:[R_P('stock','Stock',0,'sxs'),R_P('lt','Long-travel kit, 6 in wider',.05,'sxsLT',25,.15)],shocks:['stock','bypass'],brakes:['stock','big'],weight:[['stock','Factory',0,0]],kits:{sxs:{kg:0}}},
+  golf:{tireK:0.4,chassisKg:380,drv:'RWD',engines:['golf400'],trans:['cvt'],axles:[13.5,11.5],transfer:[],diffs:['factory'],slots:['tune','exhaust','axle','tires','ride','wheels','paint'],
+    opts:{tune:[[0,'Governed','About 15 mph, the way the course likes it.',0],[1,'Governor spring swapped','About 19 mph.',90],[2,'Governor out','About 21 mph and every ball in the bag rattling.',150]],
+      exhaust:[['stock','Stock muffler','',0],['pipe','Open elbow','No muffler at all.',60]],axle:[[13.5,'Stock gears','',0],[11.5,'High-speed gears','A few more mph, a little less pull.',260]]},
+    tires:[T_P('turf','18x8.5-8 turf tyres',.225,.2,8,'hwy','turf',[.12,.15,.82,.65,1,1.0]),T_P('at','22x11-10 all-terrains',.28,.26,10,'at','at',[.13,.16,.84,.72,1.05,1.04],12,1.05,.1)],
+    rides:[R_P('stock','Stock',0,'golf'),R_P('lift','6 in lift kit',.15,'golfLift',20,.04)],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{golf:{kg:0}}},
+  kart:{tireK:0.25,chassisKg:138,drv:'RWD',engines:['kart212'],trans:['kart1'],axles:[3.8,4.4,5.0],transfer:[],diffs:['spool'],slots:['tune','exhaust','axle','tires','wheels','paint'],
+    opts:{tune:[[0,'Governed','The way it came off the shelf.',0],[1,'Governor removed','A lot more revs. Mind the flywheel.',40],[2,'Stage 2: cam, springs, no governor','It screams now.',260]],
+      exhaust:[['stock','Stock muffler','',0],['pipe','Header pipe','Loud.',70]],axle:[[3.8,'Small sprocket','Top speed.',30],[4.4,'Stock sprocket','',0],[5.0,'Big sprocket','Off the line.',30]]},
+    tires:[TF(T_P('kart','Kart slicks',.14,.18,5,'slick','kart',[.1,.12,.8,.55,1,1.1]),{R:.13,W:.12,rim:5,tyre:'slick',tread:'kart',curve:[.1,.12,.8,.55,1,1.1],wm:1}),
+      TF(T_P('dirt','Dirt-track tyres',.145,.18,5,'at','kartDirt',[.13,.16,.86,.8,1,1.05],1),{R:.135,W:.12,rim:5,tyre:'at',tread:'kartDirt',curve:[.13,.16,.86,.8,1,1.05],wm:1})],
+    rides:[R_P('stock','No suspension',0,'kart')],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{kart:{kg:0}}},
+  tractor:{tireK:2.5,chassisKg:1980,drv:'RWD',engines:['popper'],trans:['trac6'],axles:[13.1],transfer:[],diffs:['rear'],slots:['tires','wheels','paint'],
+    tires:[TF(T_P('ag','13.6-38 lugged rears',.74,.36,38,'mt','ag',[.16,.2,.86,.85,1,1.05]),{R:.4,W:.16,rim:16,tyre:'hwy',tread:'rib',curve:[.12,.16,.8,.6,1,1.0],wm:1}),
+      TF(T_P('turf','Turf rears',.72,.38,38,'at','turf',[.12,.15,.82,.65,1,1.0]),{R:.4,W:.16,rim:16,tyre:'hwy',tread:'rib',curve:[.12,.16,.8,.6,1,1.0],wm:1})],
+    rides:[R_P('stock','Stock',0,'tractor')],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{tractor:{kg:0}}},
+  semi:{tireK:0.5,chassisKg:7130,drv:'RWD',engines:['semi15'],trans:['truck10'],axles:[3.36,3.55,3.91],transfer:[],diffs:['factory','rear'],slots:['exhaust','tune','axle','lockers','tires','wheels','paint'],
+    opts:{tune:[[0,'Factory, governed to 70','',0],[1,'Reflash: governed to 80','',900],[2,'Delete and tune','No governor, a lot more torque, black smoke.',4800]],
+      exhaust:[['stock','Muffler and stack','',0],['stacks','Straight stacks','Two chrome stacks with nothing in them.',1800]],
+      axle:[[3.36,'3.36 rears','Built for the highway.',900],[3.55,'3.55 rears','',0],[3.91,'3.91 rears','More pull, less top end.',900]]},gov:[31.3,35.8,0],
+    tires:[T_P('truck','295/75R22.5 highway',.51,.29,22.5,'hwy','truck',[.11,.14,.8,.6,1,1.0]),T_P('lug','11R22.5 drive lugs',.53,.29,22.5,'mt','mud',[.14,.18,.84,.75,1,1.0],200,1.02)],
+    rides:[R_P('stock','Air ride',0,'semi')],shocks:['stock'],brakes:['stock'],weight:[['stock','Factory',0,0]],kits:{semi:{kg:0}}}
+});
+const MACH_PRESET=(kit,engine,trans,axle,lockers,tires,extra)=>Object.assign({kit,engine,power:'none',intake:0,exhaust:'stock',cam:0,tune:0,nos:0,trans,axle,lockers,tires,ride:'stock',shocks:'stock',brakes:'stock',weight:'stock',wheels:'kit',paint:-1},extra||{});
 /* the drag car's tyres are two pairs: skinny runners up front and big slicks out back, and only its tubbed body clears them */
 const STAGGER={dragslick:{front:{R:.31,W:.16,rim:15,tyre:'hwy',curve:[.12,.18,.75,.6,.6,1.0],tread:'runner',wm:.6},kit:'muscleDrag'}};
 /* what each car's parts are when it leaves the factory, and the presets built from them */
@@ -6176,16 +6561,30 @@ const PRESET_PARTS={
   muscle:{kit:'muscle',engine:'bb72',power:'none',intake:0,exhaust:'stock',cam:1,tune:0,nos:0,trans:'man4',axle:3.73,lockers:'factory',tires:'stock',ride:'stock',shocks:'stock',brakes:'stock',weight:'stock',wheels:'kit',paint:-1},
   muscleDrag:{kit:'muscleDrag',engine:'bb74',power:'roots',intake:2,exhaust:'side',cam:3,tune:2,nos:0,trans:'race4',axle:4.56,lockers:'spool',tires:'dragslick',ride:'dragnose',shocks:'drag',brakes:'drag',weight:'race',wheels:'kit',paint:-1},
   hatch:{kit:'hatch',engine:'i18t',power:'stock',intake:0,exhaust:'stock',cam:0,tune:0,nos:0,trans:'man5',axle:4.1,transfer:'none',lockers:'factory',tires:'perf',ride:'stock',shocks:'stock',brakes:'stock',weight:'stock',wheels:'kit',paint:-1},
-  hatchB:{kit:'hatchB',engine:'i18t',power:'antilag',intake:2,exhaust:'straight',cam:2,tune:2,nos:0,trans:'rally5',axle:4.4,transfer:'none',lockers:'lsd',tires:'gravel',ride:'rally',shocks:'rally',brakes:'race',weight:'rally',wheels:'kit',paint:-1}
+  hatchB:{kit:'hatchB',engine:'i18t',power:'antilag',intake:2,exhaust:'straight',cam:2,tune:2,nos:0,trans:'rally5',axle:4.4,transfer:'none',lockers:'lsd',tires:'gravel',ride:'rally',shocks:'rally',brakes:'race',weight:'rally',wheels:'kit',paint:-1},
+  quad90:MACH_PRESET('quad90','q90','cvt',12.9,'spool','knobby'),
+  quad450:MACH_PRESET('quad450','q450','quad5',9.4,'spool','knobby'),
+  quad450X:MACH_PRESET('quad450','q480','quad5',10.6,'spool','knobby',{intake:1,exhaust:'pipe',tune:2,ride:'lt',shocks:'rally'}),
+  quadUtil:MACH_PRESET('quadUtil','q700','cvtHL',7.4,'both','at',{transfer:'low'}),
+  quadUtilX:MACH_PRESET('quadUtilX','q850','cvtHL',7.4,'both','mud',{transfer:'low',exhaust:'pipe',ride:'lift'}),
+  sxs:MACH_PRESET('sxs','sxs1000','cvt',9.6,'factory','at',{transfer:'low'}),
+  sxsX:MACH_PRESET('sxs','sxs1000','cvt',10.8,'both','mt',{transfer:'low',power:'turbo',exhaust:'pipe',ride:'lt',shocks:'bypass'}),
+  golf:MACH_PRESET('golf','golf400','cvt',13.5,'factory','turf'),
+  golfX:MACH_PRESET('golf','golf400','cvt',11.5,'factory','at',{tune:2,ride:'lift'}),
+  kart:MACH_PRESET('kart','kart212','kart1',4.4,'spool','kart'),
+  tractor:MACH_PRESET('tractor','popper','trac6',13.1,'rear','ag'),
+  semi:MACH_PRESET('semi','semi15','truck10',3.55,'factory','truck')
 };
 /* the power adders an engine can take */
-const powerFor=eng=>({tt35:['stockTwin','bigturbo'],i525:['stock','bigturbo'],i18t:['stock','bigturbo','antilag']})[eng]||['none','turbo','twin','roots'];
+const powerFor=(eng,car)=>car&&CAR_PARTS[car]&&CAR_PARTS[car].power||(car&&MACH[car]?['none']:null)||({tt35:['stockTwin','bigturbo'],i525:['stock','bigturbo'],i18t:['stock','bigturbo','antilag']})[eng]||['none','turbo','twin','roots'];
 /* the slot's options for a car: [value, label, note, price] */
 function slotOptions(car,slot,rig){
   const P=CAR_PARTS[car];
+  if(P.slots&&!P.slots.includes(slot))return [];
+  if(P.opts&&P.opts[slot])return P.opts[slot];
   switch(slot){
     case 'engine':return P.engines.map(k=>[k,ENGINES[k].name,ENGINES[k].note,ENGINES[k].price]);
-    case 'power':return powerFor(rig.engine).map(k=>[k,POWER[k].name,POWER[k].note,POWER[k].price]);
+    case 'power':return powerFor(rig.engine,car).map(k=>[k,POWER[k].name,POWER[k].note,POWER[k].price]);
     case 'intake':return INTAKES.map((o,i)=>[i,o.name,o.note,o.price]);
     case 'exhaust':return Object.keys(EXHAUSTS).map(k=>[k,EXHAUSTS[k].name,EXHAUSTS[k].note,EXHAUSTS[k].price]);
     case 'cam':return rig.engine==='tt35'?[[0,CAM_PARTS[0].name,'This V6 keeps its factory cams.',0]]:CAM_PARTS.map((o,i)=>[i,o.name,o.note,o.price]);
@@ -6195,12 +6594,12 @@ function slotOptions(car,slot,rig){
     case 'axle':return P.axles.map(a=>[a,a.toFixed(2)+' gears',a<=3.6?'Tall: more top speed, slower off the line.':a>=4.8?'Very short: huge pull and crawl, low top speed.':a>=4.3?'Short: quick off the line and strong in the dirt.':'In between.',350]);
     case 'transfer':return P.transfer.map(k=>[k,TRANSFER[k].name,TRANSFER[k].note,TRANSFER[k].price]);
     case 'lockers':return P.diffs.map(k=>[k,DIFFS[k].name,DIFFS[k].note,DIFFS[k].price]);
-    case 'tires':return P.tires.map(t=>[t.id,t.name,TREAD_NOTE[t.tread],Math.round(600+Math.max(0,t.kg)*30+(t.tread==='slick'?900:0))]);
+    case 'tires':return P.tires.map(t=>[t.id,t.name,TREAD_NOTE[t.tread],Math.round((600+Math.max(0,t.kg)*30+(t.tread==='slick'?900:0))*(P.tireK||1)/10)*10]);
     case 'ride':return P.rides.map(r=>[r.id,r.name,r.lift<0?'Lower: less roll on tarmac, but it scrapes over rocks and ruts.':r.lift>0?'Higher: clears rocks and ruts, rolls more in fast turns.':'As it left the factory.',r.lift?Math.round(900+Math.abs(r.lift)*16000):0]);
     case 'shocks':return P.shocks.map(k=>[k,SHOCKS_P[k].name,SHOCKS_P[k].note||'',SHOCKS_P[k].price]);
     case 'brakes':return P.brakes.map(k=>[k,BRAKES_P[k].name,BRAKES_P[k].note||'',BRAKES_P[k].price]);
     case 'weight':return P.weight.map(([k,n,kg,pr])=>[k,n,kg?`${kg} kg.`:'',pr]);
-    case 'kit':return Object.keys(P.kits).map(k=>{const b=BUILDS.find(q=>q.id===k);return [k,b.name+' body',b.blurb,k===car||PRESET_PARTS[k]&&b.name==='Stock'?0:3500];});
+    case 'kit':return Object.keys(P.kits).map(k=>{const b=BUILDS.find(q=>q.id===k);return MACH[car]?[k,k===car?'Stock':b.name+' kit',b.tag,k===car?0:1400]:[k,b.name+' body',b.blurb,k===car||PRESET_PARTS[k]&&b.name==='Stock'?0:3500];});
     case 'wheels':return WHEELS.map(w=>[w[0],w[1],'',w[0]==='kit'?0:900]);
     case 'paint':return [[-1,'As the body kit comes','',0],...PAINTS.map((p,i)=>[i,p[0],'',600])];
   }
@@ -6208,7 +6607,11 @@ function slotOptions(car,slot,rig){
 }
 const TREAD_NOTE={allseason:'All-season: fine everywhere, best at nothing. Gets an AWD truck down a muddy lane.',perf:'Performance: grips on tarmac, slips on loose ground.',
   at:'All-terrain: nearly as good on tarmac, better everywhere loose.',mud:'Mud-terrain: big lugs that bite in mud and rock, hum and slide on tarmac.',
-  slick:'Slick: the most grip on tarmac there is, and none in the dirt.',drag:'Drag radial: sticky in a straight line on hard ground, lost in the dirt.',gravel:'Gravel rally: made for loose stone and dirt at speed.'};
+  slick:'Slick: the most grip on tarmac there is, and none in the dirt.',drag:'Drag radial: sticky in a straight line on hard ground, lost in the dirt.',gravel:'Gravel rally: made for loose stone and dirt at speed.',
+  knobby:'Knobbies: square lugs that dig into dirt and hold on loose ground.',paddle:'Sand paddles: scoops across the tread. Throw roost in mud and sand, skate on anything hard.',
+  flat:'Flat-track: short, dense knobs for hard-packed dirt and tarmac. Lost in mud.',kart:'Kart slicks: sticky on tarmac and hopeless on anything else.',
+  kartDirt:'Dirt-kart tyres: small blocks that grip a dirt oval.',ag:'Tractor lugs: tall chevrons that pull through mud and grass. Bouncy on the road.',
+  turf:'Turf tyres: made not to tear up a lawn, so they don\'t grip much of anything.',truck:'Highway tyres for a big truck: hard and long-wearing.'};
 
 /* ---------- does a choice fit the rest of the rig? '' if it does, else why not ---------- */
 function fits(car,rig,slot,val){
@@ -6217,15 +6620,15 @@ function fits(car,rig,slot,val){
   if(ride.lift<t.minLift-1e-6){const need=P.rides.find(q=>q.lift>=t.minLift-1e-6);return slot==='tires'?`Needs the ${need?need.name.toLowerCase():'taller suspension'}`:`Too low for ${t.name.split(' ')[0]} tires`;}
   if(ride.lift>t.maxLift+1e-6)return slot==='tires'?'Not on a lifted truck':`Too high for ${t.tread==='slick'?'slicks':'drag radials'}`;
   const st=STAGGER[r.tires];if(st&&st.kit!==r.kit)return slot==='kit'?'The slicks need the tubbed body':'Needs the tubbed drag body';
-  if(slot==='power'&&!powerFor(r.engine).includes(val))return 'Not on this engine';
-  if(slot==='lockers'&&val==='spool'&&!st)return 'Drag slicks only';
+  if(slot==='power'&&!powerFor(r.engine,car).includes(val))return 'Not on this engine';
+  if(slot==='lockers'&&val==='spool'&&!st&&!MACH[car])return 'Drag slicks only';
   return '';
 }
 /* changing the engine can leave the power adder on one it doesn't fit: take the nearest that does */
 function fixRig(car,rig){
-  const p=powerFor(rig.engine);if(!p.includes(rig.power))rig.power=p.includes('turbo')&&['turbo','bigturbo','antilag','stock','stockTwin'].includes(rig.power)?'turbo':p[0];
+  const p=powerFor(rig.engine,car);if(!p.includes(rig.power))rig.power=p.includes('turbo')&&['turbo','bigturbo','antilag','stock','stockTwin'].includes(rig.power)?'turbo':p[0];
   if(rig.engine==='tt35')rig.cam=0;
-  if(rig.lockers==='spool'&&!STAGGER[rig.tires])rig.lockers='factory';
+  if(rig.lockers==='spool'&&!STAGGER[rig.tires]&&!MACH[car])rig.lockers='factory';
   return rig;
 }
 
@@ -6237,22 +6640,24 @@ function rigBuild(car,rig){
   const key=rigKey(car,rig);if(RIG_BUILD.has(key))return RIG_BUILD.get(key);
   const P=CAR_PARTS[car],K=BUILDS.find(b=>b.id===rig.kit),KR=RUNNING[rig.kit]||RUNNING.stock,KE=ENGINE_OF[rig.kit]||ENGINE_OF.stock;
   const kitTire=P.tires.find(t=>Math.abs(t.R-K.look.tyre.R)<.004&&t.W>=K.look.tyre.W-.01)||P.tires[0],kitRide=P.rides.find(q=>Math.abs(q.lift-K.look.lift)<.004)||P.rides.find(q=>q.id==='stock')||P.rides[0];
-  const t=P.tires.find(q=>q.id===rig.tires)||P.tires[0],ride=P.rides.find(q=>q.id===rig.ride)||kitRide,st=STAGGER[t.id];
+  const t=P.tires.find(q=>q.id===rig.tires)||P.tires[0],ride=P.rides.find(q=>q.id===rig.ride)||kitRide,st=t.front?{front:t.front}:STAGGER[t.id],mach=!!K.machine;
   const id='rig:'+key,look=JSON.parse(JSON.stringify(K.look,(k,v)=>v instanceof Float32Array?Array.from(v):v));
   /* things in the look that are not plain data (material colours) come across by reference */
   for(const k of Object.keys(K.look))if(typeof K.look[k]==='object'&&K.look[k]&&!Array.isArray(K.look[k])&&k!=='tyre'&&k!=='tyreR'&&k!=='flares')look[k]=K.look[k];
   const wh=WHEELS.find(w=>w[0]===rig.wheels),style=rig.wheels==='kit'||!wh?K.look.tyre.style:rig.wheels==='beadB'?'bead':rig.wheels;
   const brakeLook=rig.brakes==='drag'?'race':rig.brakes;
-  if(st){look.tyre={R:st.front.R,W:st.front.W,rim:st.front.rim,tyre:st.front.tyre,style,brake:brakeLook};look.tyreR={R:t.R,W:t.W,rim:t.rim,tyre:t.vis,style:'bead',brake:brakeLook};}
-  else{look.tyre={R:t.R,W:t.W,rim:t.rim,tyre:t.vis,style,brake:brakeLook};delete look.tyreR;delete look.trackR;}
+  if(st){look.tyre={R:st.front.R,W:st.front.W,rim:st.front.rim,tyre:st.front.tyre,style,brake:brakeLook};look.tyreR={R:t.R,W:t.W,rim:t.rim,tyre:t.vis,style:mach?style:'bead',brake:brakeLook};}
+  else{look.tyre={R:t.R,W:t.W,rim:t.rim,tyre:t.vis,style,brake:brakeLook};delete look.tyreR;if(!mach)delete look.trackR;}
   look.lift=ride.lift;
   if(ride.solid)look.susp='solid';else if(kitRide.solid&&!ride.solid&&car!=='trail')look.susp='ifs';
   /* bigger tyres: the arches open up to clear them and flares cover the wider tread (the drag car's tubs
      were made for its slicks) */
-  if(!st&&t.R+.035>look.archR+.005)look.archR=t.R+.035;
-  if(!st&&(t.R>kitTire.R+.02||t.W>kitTire.W+.03)){const f=look.flares||{w:0,out:0};look.flares=Object.assign({},f,{w:Math.max(f.w||0,.12),out:Math.max(f.out||0,.07)});}
-  if(!st)look.track=+(K.look.track+(t.W-kitTire.W)+(ride.trackAdd-kitRide.trackAdd)).toFixed(3);
-  const b={id,car,name:'Custom',tag:'Your build',blurb:K.blurb,paint:rig.paint>=0?PAINTS[rig.paint][1]:K.paint,paint2:K.paint2,rim:rig.wheels==='kit'||!wh?K.rim:wh[2],cal:K.cal,clad:K.clad,dirt:K.dirt,liv:K.liv,look,specs:K.specs,rig:Object.assign({},rig),kit:rig.kit};
+  if(!st&&!mach&&t.R+.035>look.archR+.005)look.archR=t.R+.035;
+  if(!st&&!mach&&(t.R>kitTire.R+.02||t.W>kitTire.W+.03)){const f=look.flares||{w:0,out:0};look.flares=Object.assign({},f,{w:Math.max(f.w||0,.12),out:Math.max(f.out||0,.07)});}
+  if(!st||mach)look.track=+(K.look.track+(st?0:t.W-kitTire.W)+(ride.trackAdd-kitRide.trackAdd)).toFixed(3);
+  if(mach&&K.look.trackR){look.trackR=K.look.trackR+(ride.trackAdd-kitRide.trackAdd);}
+  const gov=P.gov?P.gov[rig.tune|0]||0:0;
+  const b={id,car,machine:K.machine,gov,name:'Custom',tag:'Your build',blurb:K.blurb,paint:rig.paint>=0?PAINTS[rig.paint][1]:K.paint,paint2:K.paint2,rim:rig.wheels==='kit'||!wh?K.rim:wh[2],cal:K.cal,clad:K.clad,dirt:K.dirt,liv:K.liv,look,specs:K.specs,rig:Object.assign({},rig),kit:rig.kit};
   /* the running gear */
   const L=DIFFS[rig.lockers]||DIFFS.factory,kd=Object.assign({},KR.diff||{});delete kd.lockers;delete kd.low;delete kd.spool;
   if(rig.lockers==='lsd')Object.assign(kd,{pre:80,acc:.5,dec:.3});
@@ -6310,12 +6715,15 @@ const G9=9.81;
 const DIFF_K={rocks:{open:.55,etc:.74,lsd:.7,r:.86,rf:1},mud:{open:.72,etc:.86,lsd:.82,r:.93,rf:1},rough:{open:.9,etc:.96,lsd:.95,r:.97,rf:1}};
 /* the car's figures, from its chassis, engine and model */
 function rateSheet(i){
-  const b=BUILDS[i],c=buildChassis(i),e=specOf(i),l=b.look,D=suvDesign(l),rn=RUNNING[b.id]||RUNNING.stock,sp=SUSP[rn.susp]||SUSP.stock;
+  const b=BUILDS[i],c=buildChassis(i),e=specOf(i),l=b.look,MC=b.machine?MACH[l.body]:null,rn=RUNNING[b.id]||RUNNING.stock,sp=SUSP[rn.susp]||SUSP.stock;
   const lr=l.tyreR||l.tyre,R=lr.R,Rf=l.tyre.R,drv=e.drv||'RWD';
-  let sill=9;for(let u=D.uFa;u<=D.uRa;u+=.05)sill=Math.min(sill,D.sill(u));
-  const frame={suv:1,trail:1,pickup:1}[b.car]?.1:.04,solid=l.susp==='solid'||b.car==='trail',solidR=solid||b.car==='pickup'||b.car==='muscle';
-  const clear=Math.min(sill-frame,solid?Rf-.13:Rf-.05,solidR?R-.13:R-.05);
-  const track=(l.track+(l.trackR||l.track))/2,ssf=track/(2*c.hcg);
+  let clear;
+  /* a machine's belly is its frame: its own clearance, raised by a lift and by taller tyres */
+  if(MC)clear=MC.clear+l.lift+(Rf-MC.R)*.6;
+  else{const D=suvDesign(l);let sill=9;for(let u=D.uFa;u<=D.uRa;u+=.05)sill=Math.min(sill,D.sill(u));
+    const frame={suv:1,trail:1,pickup:1}[b.car]?.1:.04,solid=l.susp==='solid'||b.car==='trail',solidR=solid||b.car==='pickup'||b.car==='muscle';
+    clear=Math.min(sill-frame,solid?Rf-.13:Rf-.05,solidR?R-.13:R-.05);}
+  const track=(l.track+(l.trackR||l.track))/2,ssf=(track/2+(MC?MC.leanZ*MC.riderKg/c.mass:0))/c.hcg;
   const can=c.diff.can,dk=can.f?'rf':can.r?'r':c.diff.pre>=70?'lsd':c.diff.etc?'etc':'open';
   const muOf=(s,f)=>{const t=f?c.tyre:(c.tyreR||c.tyre),m=f?c.surfMu:(c.surfMuR||c.surfMu);return t.mu*(m[s]??.8);};
   return {b,c,e,R,Rf,drv,mass:c.mass,hcg:c.hcg,wb:c.wb,wf:c.wf,clear,ssf,track,travel:sp.droop+sp.bump,ride:SHOCKS[rn.shocks]||1,
@@ -6324,7 +6732,9 @@ function rateSheet(i){
 }
 /* the best drive force at speed v over every gear (low range when the car has it and the going is slow) */
 function gearForce(S,v,g,lo){
-  const e=S.e,R=S.R,ratio=e.gears[g]*e.fd*lo;let rpm=v/R*ratio*60/TAU,mult=1;
+  const e=S.e,R=S.R;
+  /* a belt CVT: whatever ratio puts the engine at its peak, within its range */
+  const ratio=e.cvt?clamp(e.cvt.top*TAU/60*R/Math.max(v,.1)/(e.fd*lo),e.cvt.hi,e.cvt.lo)*e.fd*lo:e.gears[g]*e.fd*lo;let rpm=v/R*ratio*60/TAU,mult=1;
   if(rpm>e.limiterRpm-60)return 0;
   /* pulling away: the clutch slips at launch revs; a torque converter also multiplies the torque */
   const launch=Math.max(e.idle*1.5,Math.min(e.redline*.45,3200));if(rpm<launch){if(S.conv)mult=1+.6*clamp(1-rpm/launch,0,1);rpm=launch;}
@@ -6349,7 +6759,7 @@ function rateCourse(S,key){
     /* a climb leans the weight back onto the rear axle */
     const tr=S.hcg/S.wb*(o.grade||0),share=S.drv==='AWD'?1:S.drv==='RWD'?(1-S.wf)+.08+tr:S.wf-.06-tr,kind=s==='rock'||o.ledge?'rocks':s==='mud'||s==='ruts'?'mud':o.rough>.3?'rough':null;
     return a*share*(kind?DIFF_K[kind][S.dk]:1);};
-  for(let k=0;k<N;k++){const p=pts[k],o=p.o,s=p.surf;let v=70;
+  for(let k=0;k<N;k++){const p=pts[k],o=p.o,s=p.surf;let v=S.b.gov||70;
     const lim=Math.min(latMu(s),S.ssf*.92);
     if(p.r){let w=Math.sqrt(lim*G9*p.r);for(let q=0;q<6;q++)w=Math.sqrt((lim*G9+S.aero*.5*RHO*w*w/m*(s==='asphalt'?1:.6))*p.r);v=Math.min(v,w);}
     /* bumps: what the suspension can soak up at speed grows with the square of its travel */
@@ -6395,7 +6805,9 @@ let RATE_REF=null;
 function rateRefs(){
   if(RATE_REF)return RATE_REF;
   RATE_REF={};const best={};
-  for(const id of Object.keys(PRESET_PARTS)){const car=BUILDS.find(b=>b.id===id).car,S=rateSheet(rigBuild(car,presetRig(id)));
+  /* the references are the cars' and trucks' factory builds: the machines are scored on the same scale, so a
+     sport quad can top out on a dirt road and a semi barely registers in the rocks */
+  for(const id of Object.keys(PRESET_PARTS)){const car=BUILDS.find(b=>b.id===id).car;if(MACH[car])continue;const S=rateSheet(rigBuild(car,presetRig(id)));
     for(const [k] of TERRAINS){const t=rateCourse(S,k);best[k]=Math.min(best[k]||1e9,t);}}
   for(const [k] of TERRAINS)RATE_REF[k]=best[k]*.97;
   return RATE_REF;
@@ -6412,6 +6824,7 @@ function rateBuild(i){
     /* the gearbox up through its gears at the limiter, the drive cut for the shift time at each */
     if(sh<=0&&g<e.nG-1&&v/S.R*e.gears[g]*e.fd*60/TAU>=e.limiterRpm-60){g++;sh=S.shiftT;}
     const res=S.rr('asphalt')*S.mass*G9+.5*RHO*S.cdA*v*v;
+    if(S.b.gov&&v>=S.b.gov)break;
     if(sh>0){sh-=.01;v-=res/S.mass*.01;t+=.01;continue;}
     const F=Math.min(gearForce(S,Math.max(v,.3),g,1),trac),a=(F-res)/S._me;
     if(a<.05&&g>=e.nG-1)break;v+=Math.max(0,a)*.01;t+=.01;if(z60===null&&v>=26.82)z60=t;}
@@ -6442,7 +6855,7 @@ function measure60(i){
    Nothing here draws: it reads the car and the world and calls Feats.pop and Feats.buzz.
    ===================================================================================== */
 const FEAT_DEFS={
-  drift:{name:'Drift',col:'#ff5ab4'},air:{name:'Jump',col:'#4fe3ff'},two:{name:'Two wheels',col:'#ffb040'},save:{name:'Save',col:'#b8ff4a'},
+  drift:{name:'Drift',col:'#ff5ab4'},air:{name:'Jump',col:'#4fe3ff'},two:{name:'Two wheels',col:'#ffb040'},wheelie:{name:'Wheelie',col:'#9a8cff'},save:{name:'Save',col:'#b8ff4a'},
   speed:{name:'Speed run',col:'#ffd84a'},burn:{name:'Burnout',col:'#ff6a3d'},close:{name:'Close call',col:'#a878ff'},splash:{name:'Splash',col:'#4fe3ff'},
   mudpit:{name:'Mud pit',col:'#c8a070'},summit:{name:'Summit',col:'#5dff7a'},rocks:{name:'Rock garden',col:'#cfd6e6'},lap:{name:'Lap',col:'#5dff7a'},run:{name:'Clock run',col:'#5dff7a'}};
 const BANK_AFTER=2.6;
@@ -6526,6 +6939,11 @@ const Feats=(()=>{
     if(twoUp){const w=L.two||(L.two={m:0,off:0});w.m+=f.v*dt;w.off=0;}
     else if(L.two){const w=L.two;w.off+=dt;if(w.off>.25){delete L.two;if(w.m>6){addFeat('two',w.m*9,`TWO WHEELS ${Math.round(w.m)} M`,{m:w.m});
       if(best('two',w.m,`${Math.round(w.m)} m on two wheels`))API.pop('LONGEST ON TWO WHEELS','#ffb040');}}}
+    /* --- wheelie: the front wheels up, the back ones driving --- */
+    const wh=t.wheels,wUp=!f.air&&f.v>2&&!wh[0].contact&&!wh[1].contact&&(wh[2].contact||wh[3].contact)&&Math.abs(f.roll)<.35&&f.up>.5&&!t.rev;
+    if(wUp){const w=L.wheelie||(L.wheelie={m:0,off:0});w.m+=f.v*dt;w.off=0;}
+    else if(L.wheelie){const w=L.wheelie;w.off+=dt;if(w.off>.25){delete L.wheelie;if(w.m>8){addFeat('wheelie',w.m*7,`WHEELIE ${Math.round(w.m)} M`,{m:w.m});
+      if(best('wheelie',w.m,`${Math.round(w.m)} m wheelie`))API.pop('LONGEST WHEELIE','#9a8cff');}}}
     /* --- the save: tipped past 40 degrees and brought back --- */
     if(f.up<.77&&f.up>.3&&f.v>2){S.saveTilt=Math.max(S.saveTilt,1-f.up);S.saveT=now;}
     else if(S.saveTilt&&f.up>.96&&!f.air){if(now-S.saveT<3){const deg=Math.round(Math.acos(1-S.saveTilt)*57.3);addFeat('save',120+deg*4,`SAVED IT ${deg}°`,{deg});}S.saveTilt=0;}
@@ -6587,6 +7005,7 @@ const Feats=(()=>{
     if(L.drift&&L.drift.t>.4)out.push(['DRIFT '+Math.round(Math.abs(L.drift.max)*57.3)+'°',FEAT_DEFS.drift.col,L.drift.score*14]);
     if(L.air&&L.air.t>.35)out.push(['AIR '+L.air.t.toFixed(1)+' S',FEAT_DEFS.air.col,0]);
     if(L.two&&L.two.m>3)out.push(['TWO WHEELS '+Math.round(L.two.m)+' M',FEAT_DEFS.two.col,L.two.m*9]);
+    if(L.wheelie&&L.wheelie.m>4)out.push(['WHEELIE '+Math.round(L.wheelie.m)+' M',FEAT_DEFS.wheelie.col,L.wheelie.m*7]);
     if(L.speed&&L.speed.m>60)out.push(['SPEED RUN '+(L.speed.m/1609).toFixed(2)+' MI',FEAT_DEFS.speed.col,0]);
     if(L.burn&&L.burn.t>.6)out.push(['BURNOUT '+L.burn.t.toFixed(1)+' S',FEAT_DEFS.burn.col,L.burn.t*35]);
     const c=S.combo;return {live:out,combo:c?{n:c.n,pot:c.pot,mult:mult(c),bank:clamp(c.t/BANK_AFTER,0,1)}:null};
@@ -6628,7 +7047,8 @@ function skyLights(t){
   const u=P_LIT.u;let n=0;
   if(SKY.night&&APP.lights&&t){
     const M=t.M,D=carD(t),F=[M[0],M[3],M[6]],U=[M[1],M[4],M[7]],R=[M[2],M[5],M[8]],lift=liftOf(t),dir=V3.norm([F[0]-U[0]*.06,F[1]-U[1]*.06,F[2]-U[2]*.06]);
-    for(const s of [-1,1]){const x=D.L/2-.15-t.cg[0],y=.78+lift-t.cg[1],z=s*.62,w=[t.p[0]+F[0]*x+U[0]*y+R[0]*z,t.p[1]+F[1]*x+U[1]*y+R[1]*z,t.p[2]+F[2]*x+U[2]*y+R[2]*z];
+    const Mc=t.c.machine&&MACH[t.c.machine];
+    for(const s of [-1,1]){const x=D.L/2-.15-t.cg[0],y=(Mc?Mc.lampY:.78)+lift-t.cg[1],z=s*(Mc?Math.min(.62,Mc.W*.3):.62),w=[t.p[0]+F[0]*x+U[0]*y+R[0]*z,t.p[1]+F[1]*x+U[1]*y+R[1]*z,t.p[2]+F[2]*x+U[2]*y+R[2]*z];
       LP.set([w[0],w[1],w[2],70],n*4);LC.set([6.5,6.1,5.3,0],n*4);LD.set([dir[0],dir[1],dir[2],Math.cos(.5)],n*4);n++;}}
   if(SKY.night){
     const p=t?t.p:CAM.last.eye,F=fixtures().map(f=>({f,d:Math.hypot(f.p[0]-p[0],f.p[2]-p[2])-f.r})).filter(q=>q.d<160).sort((a,b)=>a.d-b.d);
@@ -6647,6 +7067,7 @@ const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:fals
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
 const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'pickup',muscle:'muscle',hatch:'hatch'};
+for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('mdrs-game','{}'))||{};
   if(CAR_PARTS[s.car])APP.car=s.car;if(['real','middle','kids'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
   if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;
@@ -6740,19 +7161,22 @@ function placeCar(x,z,yaw){
   const t=GAME.car,y=RANCH.W.heightAt(x,z);
   t.place([x,y+.05,z],yaw);
   for(const w of t.wheels){w.comp=0;w.ang=0;w.w=0;}
+  if(t.lean){t.lean.x=t.lean.z=0;t.lean.bail=null;}
   const pt=t.pt;pt.gear=1;pt.shiftT=0;pt.engage=0;pt.locked=false;t.rev=false;pt.rev=false;t.drift.on=false;
   if(pt.st!=='off')pt.st='run';
   for(let i=0;i<120;i++)t.step(DT,SETTLE);
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;
 }
 /* the meshes of builds no longer driven are let go (the wheels are shared and stay) */
-function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
+function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
 const RECENT=[];
 function spawnCar(i,x,z,yaw){
   const prev=GAME.car,t=makeCar(i,RANCH.world);t.setAssists(APP.level);
   const b=BUILDS[i];RECENT.unshift(b.id);RECENT.length=Math.min(RECENT.length,3);truckEvict(RECENT);truck(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
-  t.pt.maxG=APP.od&&t.pt.e.conv?t.pt.e.nG-1:0;
+  t.pt.maxG=APP.od&&hasOD(t.pt.e)?t.pt.e.nG-1:0;
+  /* a machine's rider leans (34_machines); the semi has its jake brake */
+  if(t.c.riderKg)t.lean={x:0,z:0,bail:null};t.pt.jake=!!t.pt.e.jake;
   GAME.car=t;APP.bi=i;GAME.dirt=b.dirt;
   if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];yaw=Math.atan2(-prev.M[6],prev.M[0]);}else{x=6;z=4;yaw=0;}}
   placeCar(x,z,yaw);
@@ -6765,7 +7189,8 @@ function spawnRig(keepPlace=true){const t=GAME.car;spawnCar(rigBuild(APP.car,rig
 function resetCar(){const t=GAME.car;placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));}
 function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
 /* overdrive off: the automatic holds out of its top gear (the button on the shifter) */
-function setOD(on){const pt=GAME.car.pt;if(!pt.e.conv)return false;APP.od=on;pt.maxG=on?pt.e.nG-1:0;if(on&&pt.gear>pt.maxG&&pt.shiftT<=0)pt.shift(-1);return true;}
+const hasOD=e=>e.conv&&!e.cvt&&e.nG>2;
+function setOD(on){const pt=GAME.car.pt;if(!hasOD(pt.e))return false;APP.od=on;pt.maxG=on?pt.e.nG-1:0;if(on&&pt.gear>pt.maxG&&pt.shiftT<=0)pt.shift(-1);return true;}
 
 /* ---------- the engine and its sound ---------- */
 async function startEngine(){
@@ -6784,7 +7209,7 @@ function soundUpdate(c){
   /* the camera sits 7 to 11 m back; the synth hears it from no further than the lab's own 'behind' spot plus a little, so it sounds like the lab */
   let geo={dist:clamp(dist,1.5,5),pan:clamp(-dot2(norm2(sub2(t.p,c.eye)),right)*.9,-1,1),rear:clamp(.5-.5*dot2(toCam,F),0,1)*.6+.4};
   if(mode==='Hood'&&!APP.orbit)geo={dist:3.2,pan:0,rear:.3};
-  const ep=t.pt.soundParams(0,t.speed,geo);ep.horn=GAME.state==='drive'&&keyOn('horn')?1:0;
+  const ep=t.pt.soundParams(0,t.speed,geo);ep.horn=GAME.state==='drive'&&keyOn('horn')?1:0;ep.jake=t.pt.jakeOn?3:0;
   for(const e of t.pt.takeEvents())v.port.post({t:'ev',ev:e});
   v.port.post({t:'p',p:ep});
 }
@@ -6834,7 +7259,7 @@ function step(dt){
     if(inp.up)pt.shift(1);if(inp.down)pt.shift(-1);
     if(inp.low)say(setLow(t,!t.low)?(t.low?'Low range':'High range'):'No low range on this car',1.4);
     if(inp.lockers)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this car',1.4);
-    if(inp.od)say(setOD(!APP.od)?(APP.od?'Overdrive off':'Overdrive on'):'No overdrive button on a manual',1.4);
+    if(inp.od)say(setOD(!APP.od)?(APP.od?'Overdrive off':'Overdrive on'):pt.e.cvt?'No overdrive on a belt drive':'No overdrive button on a manual',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
     if(inp.ign)toggleEngine();
@@ -6844,7 +7269,11 @@ function step(dt){
        else gets a line lock (the front brakes held, the drive to the rear wheels) for a burnout */
     if(!pt.e.launch&&inp.brk>.5&&inp.thr>.3&&t.speed<3&&!t.rev&&pt.running)drive=Object.assign({},inp,{brk:0,lock:true});
     if((inp.thr>.1||inp.brk>.1)&&pt.st==='off'&&!GAME.busy&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
+    /* a governor (the kids' quad's limiter screw, the semi's road-speed limit) eases the throttle off at its speed */
+    const gov=t.build.gov;if(gov&&drive.thr>0&&t.speed>gov-1.2)drive=Object.assign({},drive,{thr:drive.thr*clamp((gov-t.speed)/1.2,0,1)});
   }
+  if(t.lean)riderStep(dt,t,drive);
+  if(t.lean&&t.lean.bail)drive=IDLE_IN;
   GAME.acc+=dt;let n=0;
   while(GAME.acc>=DT&&n<24){t.step(DT,drive);GAME.acc-=DT;n++;GAME.time+=DT;}
   if(GAME.acc>DT)GAME.acc=0;
@@ -6857,13 +7286,31 @@ function step(dt){
   let mud=0,water=0;for(const w of t.wheels)if(w.contact){if(w.surf==='mud')mud++;else if(w.surf==='ruts')mud+=.6;else if(w.surf==='water')water++;}
   GAME.dirt=clamp(GAME.dirt+dt*(mud*.025*Math.min(1,t.speed/3+.3)-water*.02*Math.min(1,t.speed/4)),0,1);
   fxEmit(dt,t);fxStep(dt);
-  const ev=t.takeEvents();if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
+  const ev=t.takeEvents();riderBail(t,ev);if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
   if(ev.wall>4||ev.ground>6)buzz(Math.min(90,20+Math.max(ev.wall,ev.ground)*6));
   /* the phone feels the gearbox and the limiter */
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
   if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);lapStep(dt,t);runStep(dt,t);}
+}
+/* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
+   gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
+   A quad rider who goes over with it, or lands far too hard, bails off ---------- */
+function riderStep(dt,t,drive){
+  const L=t.lean,M=t.M,pitch=Math.asin(clamp(M[3],-1,1)),roll=Math.asin(clamp(M[5],-1,1));
+  if(L.bail)return;
+  let tx,tz;
+  if(t.air&&t.airT>.15){tx=clamp((drive.brk-drive.thr)*.9,-1,1);tz=clamp(drive.steer,-1,1);}
+  else{tz=clamp(drive.steer*clamp(t.speed/6,0,1)*1.1+roll*2.4,-1,1);tx=clamp(pitch*2.6-drive.brk*.3+(t.speed<4?0:drive.thr*.15),-1,1);}
+  const k=Math.min(1,dt*7);L.x+=(tx-L.x)*k;L.z+=(tz-L.z)*k;
+}
+function riderBail(t,ev){
+  const L=t.lean,M=t.M,Mc=MACH[t.c.machine];if(!L||L.bail)return;
+  if(Mc&&Mc.kind==='quad'&&GAME.state==='drive'&&(M[4]<.35||ev.land>13)){
+    const gy=RANCH.W.heightAt(t.p[0],t.p[2]),F=[M[0],M[3],M[6]],side=M[5]>0?-1:1;
+    L.bail={p:[t.p[0]-M[2]*side*.9,gy,t.p[2]-M[8]*side*.9],yaw:Math.atan2(-F[2],F[0])+.6};
+    say(GAME.touch?'BAILED! Tap Reset to get back on':'BAILED! Press R to get back on',3,'#ff3d5a');buzz([80,40,80]);}
 }
 /* ---------- lap times on the road course: over the line, past two checkpoints, over the line again ---------- */
 const LAP={on:false,t0:0,cp:0,s:-1,best:{},offT:0};
@@ -6917,8 +7364,9 @@ function camUpdate(dt){
   }
   if(mode==='Hood'){
     /* on the hood, just behind the front axle */
-    const u=D.uFa+D.B.wb*.15;eye=body(D.X(u),D.belt(u)+.25,0);if(!CAM.fq||cut)CAM.fq={F,U};const k=1-Math.exp(-dt*20);
+    const u=D.uFa+D.B.wb*.15;eye=D.machine?body(D.eye[0],D.eye[1],D.eye[2]):body(D.X(u),D.belt(u)+.25,0);if(!CAM.fq||cut)CAM.fq={F,U};const k=1-Math.exp(-dt*20);
     CAM.fq.F=norm2(madd(CAM.fq.F,sub2(F,CAM.fq.F),k));CAM.fq.U=norm2(madd(CAM.fq.U,sub2(U,CAM.fq.U),k));fwd=CAM.fq.F;up=CAM.fq.U;fov=1.1;CAM.yaw=null;
+    if(D.machine){const dn=D.eyeDown;fwd=norm2(madd(fwd,up,-dn));up=norm2(madd(up,fwd,dn));fov=1.18;}
   }else{
     const far=mode==='Far',fh=norm2([F[0],0,F[2]]);let dir=fh;
     if(sp>3){const vd=norm2([t.v[0],0,t.v[2]]),k=clamp((sp-3)/12,0,1)*.45*(dot2(vd,fh)>0?1:0);dir=norm2([fh[0]+vd[0]*k,0,fh[2]+vd[2]*k]);}
@@ -6979,7 +7427,8 @@ function drawWorldCar(t,v,dirt){
   const i=t.bi,b=t.build,T=truck(i),D=T.D,u=P_LIT.u,M0=carMatrix(t);let Mb=M0;
   carUniformsW(t,v,dirt);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
-  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);
+  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);
+  if(T.rider)drawRider(t,T,Mb);
   if(T.engineOut)drawMesh(T.bay.engine);
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
@@ -6987,10 +7436,25 @@ function drawWorldCar(t,v,dirt){
     const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*v.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
   for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;gl.uniform1f(u.uMudOff,w.R);
-    const M=M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0],w.hp[1]-w.len+t.cg[1],w.hp[2]),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang)))));
-    gl.uniformMatrix4fv(u.uM,false,M);drawMesh(w.front?T.wheel:T.wheelR);}
+    /* the semi's tandem: two axles of duals where the physics has one */
+    const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0];
+    for(const dx of xs)for(const dz of zs){
+      const M=M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang)))));
+      gl.uniformMatrix4fv(u.uM,false,M);drawMesh(w.front?T.wheel:T.wheelR);}}
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);
   return T.tris;
+}
+/* the rider: legs on the pegs, the upper body leaning about the hips; bailed, lying in the dirt beside the machine.
+   From the helmet camera only the legs and hands are drawn */
+function drawRider(t,T,Mb){
+  const u=P_LIT.u,R=T.rider,L=t.lean,P=R.pivot,c=lin('#2a2f3a');
+  if(L&&L.bail){const B=L.bail,M=M4.mul(M4.mul(M4T(B.p[0],B.p[1]+.2,B.p[2]),M4RY(B.yaw)),M4.mul(M4RX(PI/2),M4T(-P[0],-P[1]*.4,-P[2])));
+    gl.uniformMatrix4fv(u.uM,false,M);drawMesh(R.lo);gl.uniformMatrix4fv(u.uM,false,M4.mul(M,M4T(P[0],P[1],P[2])));drawMesh(R.up);gl.uniformMatrix4fv(u.uM,false,Mb);return;}
+  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(R.lo);
+  if(CAMS[APP.cam]==='Hood'&&!APP.orbit)return;
+  const lx=L?L.x:0,lz=L?L.z:0,Mc=MACH[t.c.machine]||{},sh=(Mc.leanZ||0)*.5*lz;
+  gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(P[0]+lx*(Mc.leanX||0)*.3,P[1],P[2]+sh),M4.mul(M4RX(lz*.38),M4RZ(-lx*.42)))));drawMesh(R.up);
+  gl.uniformMatrix4fv(u.uM,false,Mb);
 }
 function render(dt){
   hClear();
@@ -7100,7 +7564,7 @@ function drawHud(c){
   /* with the touch controls along the bottom the instruments move up to the top middle */
   const r=Math.round(H*.15),cx=tch?Math.round(W/2+r+30):W-r-7,cy=tch?r+16:H-11;
   hDisc(cx,cy-r*.3,r*1.02,pack(4,3,8,150));engTach(cx,cy,r,e,rpm);
-  const g=t.rev?'R':pt.shiftT>0?'-':String(pt.gear);otxt5(g,cx,cy-r+12,rpm>pt.upRpm[Math.min(pt.gear,e.nG)-1]-50?GR.cyan:GR.volt,2,'c');
+  const g=t.rev?'R':pt.shiftT>0?'-':e.nG===1?'D':String(pt.gear);otxt5(g,cx,cy-r+12,rpm>pt.upRpm[Math.min(pt.gear,e.nG)-1]-50?GR.cyan:GR.volt,2,'c');
   const sx=cx-r-47,sy=tch?cy-9:H-20;hRect(sx-3,sy,47,18,pack(4,3,8,150));
   seg7(String(Math.round(t.speed*2.237)).padStart(3,' '),sx,sy+3,11,PAL.white,pack(40,36,52),2);txt3('MPH',sx+29,sy+11,PAL.dim);
   let bx=sx-10;const by=tch?cy-26:H-36;
@@ -7108,7 +7572,7 @@ function drawHud(c){
   if(e.nosKw){const k=clamp(pt.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*k),4,Math.round(28*k),pt.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
   /* bottom left: what the car is doing */
   const can=t.c.diff.can,C=[['TC',pt.tcOn||pt.etcOn,PAL.green],['ABS',t.absOn,PAL.amber],['ESC',t.escOn,PAL.amber]];
-  if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(e.conv)C.push(['O/D OFF',APP.od,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
+  if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
   drawFeatsHud();
   if(!on){const msg=GAME.touch?'TAP GAS TO START':'PRESS W OR I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-26,GR.steel,1,'c');}
@@ -7147,6 +7611,9 @@ const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic
   coupe:'A front-engine flat-plane V8 fastback: a track car with plates. Rear-drive.',wagon:'A plain family wagon hiding a turbo five and all-wheel drive.',
   pickup:'A full-size crew cab in off-road trim: 5.7 V8, a rear locker and a low range.',muscle:'A 1970-style big-block fastback with a four-speed. Rear-drive and proud of it.',
   hatch:'A mid-1980s turbo four-wheel-drive homologation hatch: light and eager.'};
+for(const id of MACH_IDS)CAR_HINT[id]=MACH[id].hint;
+const CAR_GROUPS={Cars:'Cars and trucks',Quads:'Quads and side-by-sides',Odd:'The odd ones'};
+const carGroup=car=>MACH[car]?MACH[car].grp:'Cars';
 function openMenu(first){
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
   if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
@@ -7168,7 +7635,7 @@ function showTab(id){
 }
 function syncMenu(){
   $('mMoney').textContent=Feats.fmtMoney(Feats.S.money);
-  for(const el of $('mCars').children){el.setAttribute('aria-pressed',String(el.dataset.car===APP.car));el.querySelector('small').textContent=rigName(el.dataset.car,rigOf(el.dataset.car));}
+  for(const el of $('mCars').querySelectorAll('.card')){el.setAttribute('aria-pressed',String(el.dataset.car===APP.car));el.querySelector('small').textContent=rigName(el.dataset.car,rigOf(el.dataset.car));}
   $('mCarHint').textContent=CAR_HINT[APP.car];
   /* the presets for this car, and Custom when the garage has changed it */
   const pr=$('mPresets');pr.textContent='';const cur=rigName(APP.car,rigOf(APP.car));
@@ -7191,8 +7658,10 @@ function syncMenu(){
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
 function buildMenu(){
   for(const b of $('mTabs').children)b.addEventListener('click',()=>showTab(b.dataset.t));
-  const cx=$('mCars');
-  for(const [car,name] of CARS){const el=document.createElement('button');el.type='button';el.className='card';el.dataset.car=car;el.innerHTML='<b></b><small></small>';
+  const cx=$('mCars');let grp='';
+  for(const [car,name] of CARS){
+    if(carGroup(car)!==grp){grp=carGroup(car);const h=document.createElement('div');h.className='cgrp';h.textContent=CAR_GROUPS[grp];cx.appendChild(h);}
+    const el=document.createElement('button');el.type='button';el.className='card';el.dataset.car=car;el.innerHTML='<b></b><small></small>';
     el.querySelector('b').textContent=name;el.querySelector('small').textContent=rigName(car,rigOf(car));
     el.addEventListener('click',()=>{if(car===APP.car)return;APP.car=car;saveGame();spawnRig();syncMenu();});cx.appendChild(el);}
   segButtons($('mLevel'),LEVELS.map(l=>[l[0],l[1]]),id=>{APP.level=id;saveGame();GAME.car.setAssists(id);});
@@ -7213,7 +7682,7 @@ function buildMenu(){
   buildGarage();
 }
 /* ---------- cool stuff: the money, the last ten, the bests ---------- */
-const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
+const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['wheelie','Longest wheelie'],['speed','Longest speed run'],
   ['burn','Longest burnout'],['mudpit','Fastest mud pit'],['summit','Fastest up Red Hill'],['rocks','Fastest clean rock garden'],['lap','Fastest lap']];
 const ago=ms=>{const s=(Date.now()-ms)/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<129600?Math.round(s/3600)+' h ago':Math.round(s/86400)+' days ago';};
 function syncCool(){
@@ -7421,7 +7890,7 @@ else{
       $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
     }catch(e){console.error(e);$('loading').textContent='Something went wrong building the ranch: '+e.message;}
   },30));
-  window.__game={APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
+  window.__game={APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,MACH,RIDER:riderStep,
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }
 
