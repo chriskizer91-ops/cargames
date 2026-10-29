@@ -148,15 +148,16 @@ float ggx(float NH,float NV,float NL,float a){float a2=a*a,d=NH*NH*(a2-1.)+1.,D=
 vec3 shade(vec3 P,vec3 N,vec3 V,vec3 alb,float spec,float sh){
   float a=sqrt(2./(sh+2.));
   /* specular anti-aliasing: a normal that turns within the pixel widens the highlight */
-  vec3 dnx=dFdx(N),dny=dFdy(N);float var=.25*(dot(dnx,dnx)+dot(dny,dny));a=sqrt(sqrt(sat(a*a*a*a+min(2.*var,.18))));a=max(a,.03);
+  vec3 dnx=dFdx(N),dny=dFdy(N);float var=.25*(dot(dnx,dnx)+dot(dny,dny));a=sqrt(sqrt(sat(a*a*a*a+min(.5*var,.012))));a=max(a,.006);
   vec3 amb=alb*(uSkyAmb*(.55+.45*N.y)+uGndAmb*(.45-.45*N.y))*gAO;
   /* the material's specular strength as a reflectance at normal incidence: a dielectric's few per cent, a
      metal's (gMet) much more; Fresnel takes it toward all at grazing angles */
   float NV=max(dot(N,V),1e-3),NL=max(dot(N,uSunDir),0.);vec3 H=normalize(uSunDir+V);float f0=spec*mix(.12,.75,gMet);
-  float F=f0+(1.-f0)*pow(1.-max(dot(V,H),0.),5.)*min(spec*10.,1.);
+  float F=f0+(1.-f0)*pow(1.-max(dot(V,H),0.),5.)*min(spec*4.,1.);
   /* (the sun's highlight is capped: a mirror-smooth glint of the real sun would be thousands of times white,
-     and the bloom would make it a flare across the screen) */
-  vec3 c=amb+uSunCol*gSun*(alb*NL*(.3+.7*gAO)+min(NL*F*ggx(max(dot(N,H),0.),NV,NL,a),3.));
+     and the bloom would make it a flare across the screen. The smoother the surface the lower the cap, so a
+     window's glint is a spark, not a patch) */
+  vec3 c=amb+uSunCol*gSun*(alb*NL*(.3+.7*gAO)+min(NL*F*ggx(max(dot(N,H),0.),NV,NL,a),3.*clamp(a/.12,.25,1.)));
   /* leaves: light through them from behind, brightest looking toward the sun */
   if(gTrans>0.)c+=uSunCol*gSun*alb*gTrans*(sat(-dot(N,uSunDir))*.6+pow(sat(dot(-V,uSunDir)),4.)*.8);
   for(int i=0;i<8;i++){if(i>=uNL)break;vec3 L=uLP[i].xyz-P;float d2=dot(L,L),r=uLP[i].w;if(d2>r*r)continue;
@@ -279,11 +280,11 @@ void main(){
     vec3 fc=floor(vL*420.);float fl=h13(fc),fk=near(.004);alb*=.975+.05*fl;
     vec3 Nf=normalize(N+(vec3(fl,h13(fc+17.1),h13(fc+31.7))-.5)*.35*fk);
     float NHc=max(dot(N,normalize(uSunDir+V)),0.);
-    add+=envR(R,900.)*F*.75+pc*envR(reflect(-V,Nf),60.)*.12*(1.-NV)+uSunCol*gSun*min(ggx(NHc,max(NV,.001),max(dot(N,uSunDir),0.),.08)*.025*max(dot(N,uSunDir),0.),2.);
-    spec=.08;shin=60.;N=Nf;dirty=true;
+    add+=envR(R,900.)*F*.75+pc*envR(reflect(-V,Nf),60.)*.12*(1.-NV)+uSunCol*gSun*min(ggx(NHc,max(NV,.05),max(dot(N,uSunDir),0.),.08)*.025*max(dot(N,uSunDir),0.),1.);
+    spec=.03;shin=60.;N=Nf;dirty=true;
   }
-  else if(m==2){alb=vec3(.012,.014,.018);spec=.9;shin=3000.;add+=envR(R,900.)*(.05+.6*F);}
-  else if(m==3){alb=vec3(.03,.036,.042);spec=.9;shin=3000.;add+=envR(R,900.)*(.07+.6*F);}
+  else if(m==2){alb=vec3(.012,.014,.018);spec=.9;shin=40000.;add+=envR(R,900.)*(.05+.6*F);}
+  else if(m==3){alb=vec3(.03,.036,.042);spec=.9;shin=40000.;add+=envR(R,900.)*(.07+.6*F);}
   else if(m==5){alb=vec3(.55,.56,.6);spec=1.;shin=90.;gMet=1.;add+=envR(R,400.)*vec3(.8,.82,.86);}
   else if(m==6){
     /* rubber: a darker tread band and sipes cut across it */
@@ -449,6 +450,10 @@ void main(){
   if(uCloud.z>0.)fc+=uSunCol*pow(max(dot(dir,uSunDir),0.),6.)*.2*uCloud.z;
   col=mix(col,fc,fog);
   o=vec4(col,1.);
+/* (a debugging view: the material, the brightness, the specular strength and exponent) */
+#ifdef DEBUG_MAT
+  o=vec4(float(m),dot(col,vec3(.3,.59,.11)),spec,shin);
+#endif
   /* for the screen-space passes: the normal, and how much of this colour is ambient light */
   oN=vec4(N*.5+.5,sat(gAmb/max(dot(col,vec3(.3,.59,.11)),1e-4))*(1.-fog));
 }`;
