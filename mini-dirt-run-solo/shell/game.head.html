@@ -88,6 +88,14 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .tab{display:flex;flex-direction:column;gap:16px}
 .cars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 @media (max-width:720px){.cars{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.goals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:720px){.goals{grid-template-columns:1fr}}
+.goal{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.goal b{font:700 12px/1.1 var(--f);letter-spacing:.1em;text-transform:uppercase}.goal small{font-size:11.5px;color:var(--ink-2)}
+.goal .gb{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}.goal .gb i{display:block;height:100%;background:var(--go)}
+.goal.done{border-color:var(--go)}.goal.done b{color:var(--go)}
+#sCodeBox{width:100%;margin-top:8px;background:var(--panel);color:var(--ink);border:1px solid var(--edge);border-radius:8px;font:11px/1.3 ui-monospace,monospace;padding:8px;resize:vertical}
+.card.lock{opacity:.62}.card .price{color:var(--amber,#ffb040)}
 .cgrp{grid-column:1/-1;font:600 10.5px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 -2px}
 .card{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
 .card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase}
@@ -194,11 +202,12 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 <div id="menu">
   <div class="mwrap">
     <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free play</span><h1>Mini Dirt Run Solo</h1></div>
-      <div class="wallet"><small>Free play money</small><b id="mMoney">$0</b></div></div>
+      <div class="wallet"><small id="mWalletL">Free play money</small><b id="mMoney">$0</b></div></div>
     <nav class="tabs" role="tablist" id="mTabs">
       <button type="button" role="tab" data-t="drive">Drive</button><button type="button" role="tab" data-t="garage">Garage</button>
       <button type="button" role="tab" data-t="cool">Cool stuff</button><button type="button" role="tab" data-t="runs">Clock runs</button><button type="button" role="tab" data-t="settings">Settings</button></nav>
     <div class="tab" data-tab="drive">
+      <section><h2>Mode</h2><div class="seg" id="mMode" role="group" aria-label="Mode"></div><p class="hint" id="mModeHint"></p></section>
       <section><h2>Car</h2><div class="cars" id="mCars"></div><p class="hint" id="mCarHint"></p></section>
       <section><h2>Build</h2><div class="places" id="mPresets"></div></section>
       <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
@@ -215,7 +224,8 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <div class="slots" id="gSlots"></div>
     </div>
     <div class="tab" data-tab="cool" hidden>
-      <section class="row2"><div><h2>This session</h2><b id="cSession" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div><div><h2>All free play</h2><b id="cTotal" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div></section>
+      <section id="cCareer" hidden><h2>Career</h2><p class="hint" id="cCareerNote" style="margin:0 0 10px"></p><div class="goals" id="cGoals"></div></section>
+      <section class="row2"><div><h2>This session</h2><b id="cSession" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div><div><h2 id="cTotalL">All free play</h2><b id="cTotal" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div></section>
       <section><h2>Your last 10 cool things</h2><ul class="log" id="cLog"></ul></section>
       <section><h2>Bests</h2><div class="bests" id="cBests"></div></section>
       <section><h2>How the money works</h2><p class="hint" style="margin:0">Every feat pays: drifts, jumps, two wheels, saving it from a roll, speed runs on dirt and gravel, burnouts, close calls past the trees, splashes, the mud pit, Red Hill, the rock garden, laps and clock runs. Do them back to back and they stack into a combo: the multiplier grows with every feat and more with every new kind. The combo banks after a few quiet seconds. Roll it, wreck it or reset before then and the unbanked money is gone.</p></section>
@@ -231,7 +241,10 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <section class="row2"><div><h2>Detail</h2><div class="seg" id="sDetail" role="group" aria-label="Detail"></div></div>
         <div><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></div></section>
       <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>
-      <section><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
+      <section id="sFreeSec"><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
+      <section id="sCareerSec"><h2>Career save</h2><p class="hint" style="margin:0 0 8px">The career is saved on this device. A save code is the whole career as one line of text: keep it somewhere and paste it back in on any device.</p>
+        <div class="places"><button class="btn sm" id="sCode" type="button">Show my save code</button><button class="btn sm" id="sLoad" type="button">Load a save code</button><button class="btn sm" id="sNew" type="button">Start a new career</button></div>
+        <textarea id="sCodeBox" hidden spellcheck="false" rows="3"></textarea><div id="sLoadRow" hidden><button class="btn sm" id="sLoadGo" type="button">Load it</button></div><p class="status" id="sCNote"></p></section>
       <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> e-brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>O</kbd> overdrive off ·
         <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
       <p class="status" id="mStatus"></p>

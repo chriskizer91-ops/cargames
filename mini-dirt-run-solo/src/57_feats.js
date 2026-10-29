@@ -35,6 +35,7 @@ const Feats=(()=>{
     API.pop(label+'  +'+fmtMoney(value),FEAT_DEFS[kind].col);
     S.pendingLog=S.pendingLog||[];S.pendingLog.push({kind,label,detail,value});
     API.buzz(18);
+    if(API.onFeat)API.onFeat(kind,detail,value);
   }
   function bank(){
     const c=S.combo;S.combo=null;if(!c)return;const m=mult(c),tot=Math.round(c.pot*m);

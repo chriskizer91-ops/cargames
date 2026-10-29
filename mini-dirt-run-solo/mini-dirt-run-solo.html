@@ -88,6 +88,14 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .tab{display:flex;flex-direction:column;gap:16px}
 .cars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 @media (max-width:720px){.cars{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.goals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:720px){.goals{grid-template-columns:1fr}}
+.goal{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.goal b{font:700 12px/1.1 var(--f);letter-spacing:.1em;text-transform:uppercase}.goal small{font-size:11.5px;color:var(--ink-2)}
+.goal .gb{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}.goal .gb i{display:block;height:100%;background:var(--go)}
+.goal.done{border-color:var(--go)}.goal.done b{color:var(--go)}
+#sCodeBox{width:100%;margin-top:8px;background:var(--panel);color:var(--ink);border:1px solid var(--edge);border-radius:8px;font:11px/1.3 ui-monospace,monospace;padding:8px;resize:vertical}
+.card.lock{opacity:.62}.card .price{color:var(--amber,#ffb040)}
 .cgrp{grid-column:1/-1;font:600 10.5px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 -2px}
 .card{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
 .card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase}
@@ -194,11 +202,12 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 <div id="menu">
   <div class="mwrap">
     <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free play</span><h1>Mini Dirt Run Solo</h1></div>
-      <div class="wallet"><small>Free play money</small><b id="mMoney">$0</b></div></div>
+      <div class="wallet"><small id="mWalletL">Free play money</small><b id="mMoney">$0</b></div></div>
     <nav class="tabs" role="tablist" id="mTabs">
       <button type="button" role="tab" data-t="drive">Drive</button><button type="button" role="tab" data-t="garage">Garage</button>
       <button type="button" role="tab" data-t="cool">Cool stuff</button><button type="button" role="tab" data-t="runs">Clock runs</button><button type="button" role="tab" data-t="settings">Settings</button></nav>
     <div class="tab" data-tab="drive">
+      <section><h2>Mode</h2><div class="seg" id="mMode" role="group" aria-label="Mode"></div><p class="hint" id="mModeHint"></p></section>
       <section><h2>Car</h2><div class="cars" id="mCars"></div><p class="hint" id="mCarHint"></p></section>
       <section><h2>Build</h2><div class="places" id="mPresets"></div></section>
       <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
@@ -215,7 +224,8 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <div class="slots" id="gSlots"></div>
     </div>
     <div class="tab" data-tab="cool" hidden>
-      <section class="row2"><div><h2>This session</h2><b id="cSession" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div><div><h2>All free play</h2><b id="cTotal" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div></section>
+      <section id="cCareer" hidden><h2>Career</h2><p class="hint" id="cCareerNote" style="margin:0 0 10px"></p><div class="goals" id="cGoals"></div></section>
+      <section class="row2"><div><h2>This session</h2><b id="cSession" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div><div><h2 id="cTotalL">All free play</h2><b id="cTotal" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div></section>
       <section><h2>Your last 10 cool things</h2><ul class="log" id="cLog"></ul></section>
       <section><h2>Bests</h2><div class="bests" id="cBests"></div></section>
       <section><h2>How the money works</h2><p class="hint" style="margin:0">Every feat pays: drifts, jumps, two wheels, saving it from a roll, speed runs on dirt and gravel, burnouts, close calls past the trees, splashes, the mud pit, Red Hill, the rock garden, laps and clock runs. Do them back to back and they stack into a combo: the multiplier grows with every feat and more with every new kind. The combo banks after a few quiet seconds. Roll it, wreck it or reset before then and the unbanked money is gone.</p></section>
@@ -231,7 +241,10 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <section class="row2"><div><h2>Detail</h2><div class="seg" id="sDetail" role="group" aria-label="Detail"></div></div>
         <div><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></div></section>
       <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>
-      <section><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
+      <section id="sFreeSec"><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
+      <section id="sCareerSec"><h2>Career save</h2><p class="hint" style="margin:0 0 8px">The career is saved on this device. A save code is the whole career as one line of text: keep it somewhere and paste it back in on any device.</p>
+        <div class="places"><button class="btn sm" id="sCode" type="button">Show my save code</button><button class="btn sm" id="sLoad" type="button">Load a save code</button><button class="btn sm" id="sNew" type="button">Start a new career</button></div>
+        <textarea id="sCodeBox" hidden spellcheck="false" rows="3"></textarea><div id="sLoadRow" hidden><button class="btn sm" id="sLoadGo" type="button">Load it</button></div><p class="status" id="sCNote"></p></section>
       <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> e-brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>O</kbd> overdrive off ·
         <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
       <p class="status" id="mStatus"></p>
@@ -6881,6 +6894,7 @@ const Feats=(()=>{
     API.pop(label+'  +'+fmtMoney(value),FEAT_DEFS[kind].col);
     S.pendingLog=S.pendingLog||[];S.pendingLog.push({kind,label,detail,value});
     API.buzz(18);
+    if(API.onFeat)API.onFeat(kind,detail,value);
   }
   function bank(){
     const c=S.combo;S.combo=null;if(!c)return;const m=mult(c),tot=Math.round(c.pot*m);
@@ -7063,13 +7077,13 @@ function skyLights(t){
    through the Digital Engine synth (17_audio), heard from behind the car.
    ===================================================================================== */
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
-const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:false,tod:'day',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
+const APP={t:0,bi:0,mode:'free',car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:false,tod:'day',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
 const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'pickup',muscle:'muscle',hatch:'hatch'};
 for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('mdrs-game','{}'))||{};
-  if(CAR_PARTS[s.car])APP.car=s.car;if(['real','middle','kids'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
+  if(CAR_PARTS[s.car])APP.car=s.car;if(s.mode==='career')APP.wantCareer=true;if(['real','middle','kids'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
   if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;
   if(s.rigs)for(const car in s.rigs)if(CAR_PARTS[car])RIGS[car]=cleanRig(car,s.rigs[car]);}catch(e){}
 /* a saved rig against today's parts: anything that no longer exists goes back to stock */
@@ -7078,7 +7092,10 @@ function cleanRig(car,r){const base=presetRig(CAR_STOCK[car]),out=Object.assign(
   for(const [k] of SLOTS)if(fits(car,out,k,out[k]))out[k]=base[k];
   return fixRig(car,out);}
 const rigOf=car=>RIGS[car]||(RIGS[car]=presetRig(CAR_STOCK[car]));
-const saveGame=()=>store.set('mdrs-game',JSON.stringify({car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,rigs:RIGS}));
+/* free play's car and rigs are saved here; the career keeps its own (65_career) */
+const saveGame=()=>{const F=APP.mode==='career'?Career.freeState():{car:APP.car,rigs:RIGS};
+  store.set('mdrs-game',JSON.stringify({mode:APP.mode,car:F.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,rigs:F.rigs}));
+  if(APP.mode==='career')Career.save();};
 const LEVELS=[['real','Realistic','The car as it is: ABS, the automatic gearbox and, on the cars that have it, the factory traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
   ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.']];
@@ -7292,7 +7309,7 @@ function step(dt){
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);lapStep(dt,t);runStep(dt,t);}
+  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);lapStep(dt,t);runStep(dt,t);Career.step(dt,t);}
 }
 /* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
    gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
@@ -7606,7 +7623,37 @@ function drawFeatsHud(){
    (63_garage), Cool stuff (free play's money, the last ten cool things and the bests), Clock runs and
    Settings.
    ===================================================================================== */
-const MENU={tab:'drive'};
+const MENU={tab:'drive',sure:null};
+const MODE_HINT={free:'Every car and every part is yours from the start. The money is a score.',
+  career:'The slow grind: your own truck and $1,500. Every feat pays; spend it on parts and on cars. The odd ones can\'t be bought: each is earned by doing something silly.'};
+/* a preset's button: in free play it just goes on; in the career it shows what its parts you don't own would
+   cost, and the first tap asks before buying them */
+function presetButton(car,id,cur,done){
+  const b=BUILDS.find(q=>q.id===id),el=document.createElement('button');el.type='button';el.className='place';el.title=b.tag;
+  const m=Career.on()?Career.missing(car,id):{cost:0},key=car+':'+id;
+  el.textContent=MENU.sure===key?'Tap again: buy the parts for '+Feats.fmtMoney(m.cost):b.name+(m.cost?' · '+Feats.fmtMoney(m.cost):'');
+  el.setAttribute('aria-pressed',String(cur===b.name));
+  el.addEventListener('click',()=>{
+    if(m.cost){if(m.cost>Career.money()){say('Need '+Feats.fmtMoney(m.cost-Career.money())+' more for that build',2.2);MENU.sure=null;return done(false);}
+      if(MENU.sure!==key){MENU.sure=key;return done(false);}
+      MENU.sure=null;if(!Career.buyPreset(car,id))return done(false);}
+    MENU.sure=null;RIGS[car]=presetRig(id);saveGame();spawnRig();done(true);});
+  return el;
+}
+/* a car card's tap in the career: an odd one says how to earn it; one for sale asks, then buys */
+function careerCarTap(car){
+  if(Career.hasCar(car))return true;
+  if(JOKES[car]){say('Earn it: '+JOKES[car].goal,3.4);return false;}
+  const pr=CAR_PRICE[car];if(pr>Career.money()){say('Need '+Feats.fmtMoney(pr-Career.money())+' more',2);MENU.sure=null;return false;}
+  if(MENU.sure!=='car:'+car){MENU.sure='car:'+car;return false;}
+  MENU.sure=null;return Career.buyCar(car);
+}
+function setMode(v){
+  if(v===APP.mode)return;if(Feats.S.combo)Feats.bankNow();
+  if(v==='career')Career.enter();else Career.leave();
+  GAR.open=null;spawnRig();syncMenu();
+  if($('mEyebrow').textContent!=='Paused')$('mEyebrow').textContent=v==='career'?'Career: earn it, buy it':'Free play: every car and part is yours';if(MENU.tab==='garage')syncGarage();if(MENU.tab==='cool')syncCool();
+}
 const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic and all-wheel drive with a low range.',trail:'A short two-door off-roader on a ladder frame: solid axles and a low range from the factory.',
   coupe:'A front-engine flat-plane V8 fastback: a track car with plates. Rear-drive.',wagon:'A plain family wagon hiding a turbo five and all-wheel drive.',
   pickup:'A full-size crew cab in off-road trim: 5.7 V8, a rear locker and a low range.',muscle:'A 1970-style big-block fastback with a four-speed. Rear-drive and proud of it.',
@@ -7618,7 +7665,7 @@ function openMenu(first){
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
   if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
   GAME.state='menu';$('menu').hidden=false;syncTouch();
-  $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?'Free play: every car and part is yours':'Paused';
+  $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?(APP.mode==='career'?'Career: earn it, buy it':'Free play: every car and part is yours'):'Paused';
   showTab(MENU.tab);syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
 }
 function closeMenu(){
@@ -7634,13 +7681,16 @@ function showTab(id){
   if(id==='garage')syncGarage();if(id==='cool')syncCool();if(id==='runs')syncRuns();
 }
 function syncMenu(){
-  $('mMoney').textContent=Feats.fmtMoney(Feats.S.money);
-  for(const el of $('mCars').querySelectorAll('.card')){el.setAttribute('aria-pressed',String(el.dataset.car===APP.car));el.querySelector('small').textContent=rigName(el.dataset.car,rigOf(el.dataset.car));}
-  $('mCarHint').textContent=CAR_HINT[APP.car];
+  const car0=APP.car,cr=Career.on();
+  $('mMoney').textContent=Feats.fmtMoney(Feats.S.money);$('mWalletL').textContent=cr?'Career money':'Free play money';
+  for(const el of $('mMode').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.mode));$('mModeHint').textContent=MODE_HINT[APP.mode];
+  for(const el of $('mCars').querySelectorAll('.card')){const c=el.dataset.car,has=Career.hasCar(c);el.setAttribute('aria-pressed',String(c===car0));el.classList.toggle('lock',!has);
+    const sm=el.querySelector('small');sm.classList.toggle('price',!has&&!JOKES[c]);
+    sm.textContent=has?rigName(c,rigOf(c)):JOKES[c]?'Earn it':MENU.sure==='car:'+c?'Tap: buy '+Feats.fmtMoney(CAR_PRICE[c]):Feats.fmtMoney(CAR_PRICE[c]);}
+  $('mCarHint').textContent=CAR_HINT[car0];
   /* the presets for this car, and Custom when the garage has changed it */
   const pr=$('mPresets');pr.textContent='';const cur=rigName(APP.car,rigOf(APP.car));
-  for(const id of presetsOf(APP.car)){const b=BUILDS.find(q=>q.id===id),el=document.createElement('button');el.type='button';el.className='place';el.textContent=b.name;el.title=b.tag;
-    el.setAttribute('aria-pressed',String(cur===b.name));el.addEventListener('click',()=>{RIGS[APP.car]=presetRig(id);saveGame();spawnRig();syncMenu();});pr.appendChild(el);}
+  for(const id of presetsOf(APP.car))pr.appendChild(presetButton(APP.car,id,cur,()=>syncMenu()));
   if(cur==='Custom'){const el=document.createElement('button');el.type='button';el.className='place';el.textContent='Your custom build';el.setAttribute('aria-pressed','true');el.addEventListener('click',()=>showTab('garage'));pr.appendChild(el);}
   for(const el of $('mLevel').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.level));
   $('mLevelHint').textContent=LEVELS.find(l=>l[0]===APP.level)[2];
@@ -7654,6 +7704,7 @@ function syncMenu(){
   for(const el of $('sDots').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.res));
   $('sDetailHint').textContent='Detail is how finely the picture is drawn behind each dot. Auto starts sharp (smooth on a phone) and steps down by itself if the frame rate drops while you drive.';
   $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
+  $('sFreeSec').hidden=cr;$('sCareerSec').hidden=!cr;
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
 function buildMenu(){
@@ -7663,7 +7714,9 @@ function buildMenu(){
     if(carGroup(car)!==grp){grp=carGroup(car);const h=document.createElement('div');h.className='cgrp';h.textContent=CAR_GROUPS[grp];cx.appendChild(h);}
     const el=document.createElement('button');el.type='button';el.className='card';el.dataset.car=car;el.innerHTML='<b></b><small></small>';
     el.querySelector('b').textContent=name;el.querySelector('small').textContent=rigName(car,rigOf(car));
-    el.addEventListener('click',()=>{if(car===APP.car)return;APP.car=car;saveGame();spawnRig();syncMenu();});cx.appendChild(el);}
+    el.addEventListener('click',()=>{if(car===APP.car)return;if(Career.on()&&!careerCarTap(car)){syncMenu();if(JOKES[car])$('mCarHint').textContent=CAR_HINT[car]+' To earn it: '+JOKES[car].goal;return;}
+      APP.car=car;saveGame();spawnRig();syncMenu();});cx.appendChild(el);}
+  segButtons($('mMode'),[['free','Free play'],['career','Career']],v=>setMode(v));
   segButtons($('mLevel'),LEVELS.map(l=>[l[0],l[1]]),id=>{APP.level=id;saveGame();GAME.car.setAssists(id);});
   segButtons($('mTod'),Object.entries(TOD).map(([k,v])=>[k,v.name]),id=>{APP.tod=id;applyTod(id);APP.lights=id==='night';saveGame();syncTouch();});
   segButtons($('mCam'),CAMS.map((n,i)=>[i,n]),i=>{APP.cam=+i;CAM.cut=true;saveGame();});
@@ -7676,6 +7729,14 @@ function buildMenu(){
   $('sClear').addEventListener('click',()=>{if($('sClear').dataset.sure!=='1'){$('sClear').dataset.sure='1';$('sClear').textContent='Tap again to clear it all';return;}
     Feats.clear();$('sClear').dataset.sure='';$('sClear').textContent='Clear money, cool stuff and bests';$('sNote').textContent='Cleared.';syncMenu();});
   $('vol').addEventListener('input',e=>setVolume(e.target.value));
+  /* the career's save code */
+  $('sCode').addEventListener('click',()=>{const c=Career.code(),box=$('sCodeBox');box.hidden=false;box.readOnly=true;box.value=c;$('sLoadRow').hidden=true;box.select();
+    let ok=false;try{if(navigator.clipboard){navigator.clipboard.writeText(c).then(()=>{$('sCNote').textContent='Copied. It is also in the box above.';},()=>{});ok=true;}}catch(e){}
+    $('sCNote').textContent=ok?'Copying…':'Select it in the box and copy it.';});
+  $('sLoad').addEventListener('click',()=>{const box=$('sCodeBox');box.hidden=false;box.readOnly=false;box.value='';box.placeholder='Paste a save code here';$('sLoadRow').hidden=false;box.focus();$('sCNote').textContent='';});
+  $('sLoadGo').addEventListener('click',()=>{const err=Career.loadCode($('sCodeBox').value);$('sCNote').textContent=err||'Loaded.';if(!err){$('sLoadRow').hidden=true;$('sCodeBox').hidden=true;spawnRig();syncMenu();}});
+  $('sNew').addEventListener('click',()=>{if($('sNew').dataset.sure!=='1'){$('sNew').dataset.sure='1';$('sNew').textContent='Tap again: lose this career';return;}
+    $('sNew').dataset.sure='';$('sNew').textContent='Start a new career';Career.restart();spawnRig();syncMenu();$('sCNote').textContent='A new career: your truck and $1,500.';});
   $('mGo').addEventListener('click',closeMenu);
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
@@ -7686,7 +7747,16 @@ const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','
   ['burn','Longest burnout'],['mudpit','Fastest mud pit'],['summit','Fastest up Red Hill'],['rocks','Fastest clean rock garden'],['lap','Fastest lap']];
 const ago=ms=>{const s=(Date.now()-ms)/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<129600?Math.round(s/3600)+' h ago':Math.round(s/86400)+' days ago';};
 function syncCool(){
-  const S=Feats.S;$('cSession').textContent=Feats.fmtMoney(S.session);$('cTotal').textContent=Feats.fmtMoney(S.money);
+  const S=Feats.S,cr=Career.on();$('cSession').textContent=Feats.fmtMoney(S.session);$('cTotal').textContent=Feats.fmtMoney(S.money);$('cTotalL').textContent=cr?'Career money':'All free play';
+  /* the career: the odd ones and how far along each is, and what's for sale */
+  $('cCareer').hidden=!cr;
+  if(cr){const G=$('cGoals');G.textContent='';const P=Career.S.prog;
+    for(const id of Object.keys(JOKES)){const J=JOKES[id],has=!!Career.S.cars[id],v=Math.min(J.need,P[id]||0),el=document.createElement('div');el.className='goal'+(has?' done':'');
+      el.innerHTML='<b></b><small></small><div class="gb"><i></i></div>';el.querySelector('b').textContent=MACH[id].name+(has?': yours':'');
+      el.querySelector('small').textContent=has?J.line:J.goal+(J.need>1?` (${J.unit?v.toFixed(1)+' of '+J.need+' '+J.unit:Math.floor(v)+' of '+J.need})`:'');
+      el.querySelector('i').style.width=(has?100:v/J.need*100).toFixed(1)+'%';G.appendChild(el);}
+    const sale=Object.keys(CAR_PRICE).filter(c=>!Career.S.cars[c]).map(c=>carName({car:c})+' '+Feats.fmtMoney(CAR_PRICE[c]));
+    $('cCareerNote').textContent=sale.length?'For sale: '+sale.join(' · ')+'. Tap one in Drive to buy it.':'You own every car and quad that\'s for sale.';}
   const L=$('cLog');L.textContent='';
   if(!S.log.length){const p=document.createElement('p');p.className='empty';p.textContent='Nothing yet. Go drift, jump, or get sideways on the gravel.';L.appendChild(p);}
   for(const e of S.log){const li=document.createElement('li');li.innerHTML='<b></b><em></em><small></small>';li.querySelector('b').textContent=e.what;li.querySelector('em').textContent='+'+Feats.fmtMoney(e.money);
@@ -7729,7 +7799,7 @@ function buildGarage(){
 /* a change: on the car at once, the car rebuilt where it stands */
 function setPart(slot,val){
   if(GAR.busy)return;const car=APP.car,rig=Object.assign({},rigOf(car),{[slot]:val});
-  if(fits(car,rigOf(car),slot,val))return;
+  if(fits(car,rigOf(car),slot,val)||!Career.owns(car,slot,val))return;
   RIGS[car]=fixRig(car,rig);saveGame();spawnRig();syncGarage();syncMenu();
 }
 function rateTile(k,name,v,dv){
@@ -7744,11 +7814,10 @@ function rateTile(k,name,v,dv){
 }
 function syncGarage(preview){
   const car=APP.car,rig=rigOf(car),r=rateRig(car,rig),p=preview?rateRig(car,preview):null;
-  for(const el of $('gCars').children)el.setAttribute('aria-pressed',String(el.dataset.v===car));
+  for(const el of $('gCars').children){el.setAttribute('aria-pressed',String(el.dataset.v===car));el.disabled=!Career.hasCar(el.dataset.v);el.hidden=Career.on()&&!Career.hasCar(el.dataset.v);}
   /* the presets */
   const pr=$('gPresets');pr.textContent='';const cur=rigName(car,rig);
-  for(const id of presetsOf(car)){const b=BUILDS.find(q=>q.id===id),el=document.createElement('button');el.type='button';el.className='place';el.textContent=b.name;el.title=b.tag;
-    el.setAttribute('aria-pressed',String(cur===b.name));el.addEventListener('click',()=>{if(GAR.busy)return;RIGS[car]=presetRig(id);saveGame();spawnRig();syncGarage();syncMenu();});pr.appendChild(el);}
+  for(const id of presetsOf(car))pr.appendChild(presetButton(car,id,cur,()=>{syncGarage();syncMenu();}));
   /* the ratings: tap one to build for it */
   const R=$('gRatings');R.textContent='';
   R.appendChild(rateTile('all','All-round',score(r,'all'),p?score(p,'all')-score(r,'all'):0));
@@ -7759,7 +7828,7 @@ function syncGarage(preview){
     `<span>top <b>${f.top}</b> mph${d(f.top,F.top,'')}</span><span>clearance <b>${f.clear}</b> cm${d(f.clear,F.clear,'')}</span><span>travel <b>${f.travel}</b> cm${d(f.travel,F.travel,'')}</span>`+
     `<span>tips at <b>${f.tip.toFixed(2)}</b> g${d(f.tip,F.tip,'',2)}</span><span><b>${f.drv}</b>${f.low?' · low '+f.low.toFixed(2):''}${f.lockers?' · '+(f.lockers>1?'two lockers':'rear locker'):''}</span>`;
   $('gGuide').textContent=GUIDE[GAR.target];
-  $('gSuggest').textContent=GAR.busy?'Trying parts…':'Build it for me: '+(GAR.target==='all'?'all-round':TERRAINS.find(t=>t[0]===GAR.target)[1].toLowerCase());
+  $('gSuggest').textContent=GAR.busy?'Trying parts…':(Career.on()?'Build it from parts I own: ':'Build it for me: ')+(GAR.target==='all'?'all-round':TERRAINS.find(t=>t[0]===GAR.target)[1].toLowerCase());
   if(!preview)drawSlots();
 }
 function drawSlots(){
@@ -7781,8 +7850,15 @@ function optionList(car,rig,s,opts){
   for(const [v,name,note,price] of opts){
     const why=fits(car,rig,s,v),el=document.createElement('button');el.type='button';el.className='opt';el.disabled=!!why;if(v===rig[s])el.setAttribute('aria-current','true');
     el.innerHTML='<b></b><span class="tag"></span><small></small><div class="dl"></div>';el.querySelector('b').textContent=name;el.querySelector('small').textContent=why||note||'';
-    const tag=el.querySelector('.tag');tag.textContent=price?Feats.fmtMoney(price):'Factory';
-    el.addEventListener('click',()=>setPart(s,v));
+    const tag=el.querySelector('.tag'),owned=Career.owns(car,s,v),cr=Career.on();tag.textContent=!price?'Factory':cr&&owned?'Owned':Feats.fmtMoney(price);
+    if(cr&&!owned&&!why&&price>Career.money())el.querySelector('small').textContent='Need '+Feats.fmtMoney(price-Career.money())+' more. '+(note||'');
+    el.addEventListener('click',()=>{
+      if(owned)return setPart(s,v);
+      if(why)return;if(price>Career.money()){say('Need '+Feats.fmtMoney(price-Career.money())+' more',1.8);return;}
+      /* the career: the first tap asks, the second buys it and puts it on */
+      if(el.dataset.sure!=='1'){for(const o of list.querySelectorAll('.opt'))if(o.dataset.sure==='1'){o.dataset.sure='';o.querySelector('.tag').textContent=o.dataset.tag;}
+        el.dataset.sure='1';el.dataset.tag=tag.textContent;tag.textContent='Tap to buy: '+Feats.fmtMoney(price);return;}
+      if(Career.buyPart(car,s,v)){setPart(s,v);syncMenu();}});
     el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'&&!why)syncGarage(fixRig(car,Object.assign({},rig,{[s]:v})));});
     el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')syncGarage(null);});
     list.appendChild(el);rows.push({v,el,why});}
@@ -7794,7 +7870,8 @@ function optionList(car,rig,s,opts){
       if(!dl.children.length&&q.v!==rig[s]){const sp=document.createElement('span');sp.style.color='var(--ink-3)';sp.textContent=s==='paint'||s==='wheels'?'LOOKS ONLY':'NO CHANGE TO THE RATINGS';dl.appendChild(sp);}
       if(!best||q.sc>best.sc+.01)best=q;}
     if(i<rows.length)setTimeout(next,0);
-    else if(best&&s!=='paint'&&s!=='wheels'){const t=best.el.querySelector('.tag');t.classList.add('rec');t.textContent='Best for '+(GAR.target==='all'?'all-round':TERRAINS.find(x=>x[0]===GAR.target)[1].toLowerCase());}};
+    else if(best&&s!=='paint'&&s!=='wheels'){const t=best.el.querySelector('.tag'),pv=best.v;t.classList.add('rec');
+      t.textContent='Best for '+(GAR.target==='all'?'all-round':TERRAINS.find(x=>x[0]===GAR.target)[1].toLowerCase())+(Career.on()&&!Career.owns(car,s,pv)?' · '+Feats.fmtMoney(Career.priceOf(car,s,pv)):'');}};
   setTimeout(next,0);
   return list;
 }
@@ -7805,7 +7882,7 @@ function suggestBuild(){
   let n=0;$('gSuggest').textContent='Trying parts…';
   const next=()=>{const t0=performance.now();
     while(n<order.length&&performance.now()-t0<20){const s=order[n++];
-      for(const [v] of slotOptions(car,s,rig)){if(v===rig[s]||fits(car,rig,s,v))continue;const r2=fixRig(car,Object.assign({},rig,{[s]:v})),sc=score(rateRig(car,r2),k);if(sc>bestS+.2){bestS=sc;rig=r2;}}}
+      for(const [v] of slotOptions(car,s,rig)){if(v===rig[s]||fits(car,rig,s,v)||!Career.owns(car,s,v))continue;const r2=fixRig(car,Object.assign({},rig,{[s]:v})),sc=score(rateRig(car,r2),k);if(sc>bestS+.2){bestS=sc;rig=r2;}}}
     $('gNote').textContent=n<order.length?`${Math.round(n/order.length*100)}%`:'';
     if(n<order.length){setTimeout(next,0);return;}
     GAR.busy=false;RIGS[car]=rig;saveGame();spawnRig();syncGarage();syncMenu();$('gNote').textContent='Done. Every part it chose is on the car.';};
@@ -7874,6 +7951,100 @@ async function enableTilt(){TOUCH.tilt0=null;TOUCH.tiltOK=false;try{if(window.De
   setTimeout(()=>{if(APP.steer==='tilt'&&!TOUCH.tiltOK){APP.steer='slide';saveGame();syncTouch();if(typeof syncMenu==='function')syncMenu();
     const h=$('sSteerHint');if(h)h.textContent='This view doesn\'t pass on the phone\'s tilt, so steering is back on Slide. Opening the game file straight in Chrome lets tilt work.';}},2000);}
 /* =====================================================================================
+   CAREER: the slow grind. You start with your own truck (the stock Mountaineer) and $1,500. Every feat pays
+   the same as in free play, and the money is yours to spend: parts at their garage prices, a car or a quad
+   at its price. The odd ones can't be bought at all: each is a joke reward for something silly, and none of
+   them helps (a golf cart for getting the stock truck through the mud pit, a kids' quad for rolling it five
+   times...). Free play keeps its own money, rigs and bests; the career has its own, saved on this device,
+   and as a code you can copy out and paste back in.
+   ===================================================================================== */
+const CAR_PRICE={trail:9500,wagon:14000,pickup:16000,hatch:38000,muscle:45000,coupe:72000,quad450:6500,quadUtil:7800,sxs:17500};
+/* the joke rewards: what earns each one, how much of it, and the line it comes with */
+const JOKES={
+  golf:{goal:'Get the stock Mountaineer through the mud pit, no parts changed.',need:1,line:'Fine on the cart path. It will not go through the mud pit.'},
+  quad90:{goal:'Roll something over five times.',need:5,line:'Something a little closer to the ground. Mind the limiter screw.'},
+  kart:{goal:'Lap the race track in under 1:30.',need:1,line:'Fast on the track. Useless anywhere else on the ranch.'},
+  tractor:{goal:'Get stuck in the mud and dig yourself out, three times.',need:3,line:'You clearly need a tow. Top speed: about 12 mph.'},
+  semi:{goal:'Drive 30 miles of county road.',need:30,unit:'mi',line:'No trailer, no load, and it tips over on Red Hill.'}};
+const CAREER_START=1500;
+const Career=(()=>{
+  const C={S:null,free:null,stuck:null,upright:true,mi:0};
+  const fresh=()=>({v:1,started:Date.now(),cars:{suv:1},parts:{},rigs:{},car:'suv',prog:{golf:0,quad90:0,kart:0,tractor:0,semi:0}});
+  const on=()=>APP.mode==='career'&&!!C.S;
+  /* ---------- saving ---------- */
+  function load(){try{const d=JSON.parse(store.get('mdrs-career-own','null'));if(d&&d.v===1&&d.cars){d.prog=Object.assign(fresh().prog,d.prog||{});d.parts=d.parts||{};d.rigs=d.rigs||{};return d;}}catch(e){}return null;}
+  function save(){if(!C.S)return;C.S.car=APP.mode==='career'?APP.car:C.S.car;if(APP.mode==='career')C.S.rigs=Object.assign({},RIGS);store.set('mdrs-career-own',JSON.stringify(C.S));}
+  /* ---------- what you own ---------- */
+  const priceOf=(car,slot,val)=>{const o=slotOptions(car,slot,Object.assign({},rigOf(car),{[slot]:val})).find(q=>q[0]===val);return o?o[3]||0:0;};
+  function owns(car,slot,val){if(!on())return true;if(!priceOf(car,slot,val))return true;const p=C.S.parts[car];return !!(p&&p[slot]&&p[slot].includes(String(val)));}
+  function own(car,slot,val){const p=C.S.parts[car]||(C.S.parts[car]={}),l=p[slot]||(p[slot]=[]);if(!l.includes(String(val)))l.push(String(val));}
+  const hasCar=car=>!on()||!!C.S.cars[car];
+  /* a car comes with its factory parts */
+  function giveCar(car){C.S.cars[car]=1;const st=presetRig(CAR_STOCK[car]);for(const [k] of SLOTS)if(st[k]!==undefined)own(car,k,st[k]);}
+  const money=()=>Feats.S.money;
+  function spend(n){Feats.S.money-=n;Feats.save();}
+  /* buy one part and put it on; false if it can't be afforded */
+  function buyPart(car,slot,val){const pr=priceOf(car,slot,val);if(pr>money())return false;spend(pr);own(car,slot,val);save();say('BOUGHT  -'+Feats.fmtMoney(pr),2,'#ffd84a');return true;}
+  /* a preset: what its parts you don't own yet would cost */
+  function missing(car,id){const P=presetRig(id),out=[];let cost=0;
+    for(const [k] of SLOTS){if(P[k]===undefined||owns(car,k,P[k]))continue;const pr=priceOf(car,k,P[k]);out.push([k,P[k]]);cost+=pr;}
+    return {cost,parts:out};}
+  function buyPreset(car,id){const m=missing(car,id);if(m.cost>money())return false;spend(m.cost);for(const [k,v] of m.parts)own(car,k,v);save();if(m.cost)say('BOUGHT THE PARTS  -'+Feats.fmtMoney(m.cost),2.2,'#ffd84a');return true;}
+  function buyCar(car){const pr=CAR_PRICE[car];if(!pr||pr>money())return false;spend(pr);giveCar(car);save();say('BOUGHT: '+carName({car}).toUpperCase(),2.6,'#ffd84a');return true;}
+  /* a saved rig that has parts you don't own goes back to the factory part in each such slot */
+  function ownedRig(car,r){const st=presetRig(CAR_STOCK[car]),out=Object.assign({},r);for(const [k] of SLOTS)if(!owns(car,k,out[k]))out[k]=st[k];return fixRig(car,out);}
+  /* ---------- in and out of the career ---------- */
+  function enter(F){
+    if(C.S&&APP.mode==='career')return;
+    C.free=F||{car:APP.car,rigs:Object.assign({},RIGS)};
+    let S=load();const isNew=!S;if(!S)S=fresh();C.S=S;APP.mode='career';
+    Feats.load('mdrs-career');Feats.S.session=0;if(isNew){Feats.S.money=CAREER_START;Feats.S.log=[];Feats.S.best={};Feats.save();giveCar('suv');}
+    for(const k of Object.keys(RIGS))delete RIGS[k];
+    for(const car in S.rigs)if(CAR_PARTS[car]&&S.cars[car])RIGS[car]=ownedRig(car,cleanRig(car,S.rigs[car]));
+    APP.car=S.cars[S.car]?S.car:'suv';save();saveGame();
+    if(isNew)say('CAREER STARTED: $1,500 AND YOUR TRUCK',3.2,'#ffd84a');
+  }
+  function leave(){
+    if(APP.mode!=='career')return;save();
+    APP.mode='free';for(const k of Object.keys(RIGS))delete RIGS[k];
+    const F=C.free||{car:'suv',rigs:{}};Object.assign(RIGS,F.rigs);APP.car=F.car;C.S=null;
+    Feats.load('mdrs-free');Feats.S.session=0;saveGame();
+  }
+  /* the free-play rigs while the career is on, for saveGame */
+  const freeState=()=>C.free||{car:APP.car,rigs:RIGS};
+  function restart(){store.set('mdrs-career-own','null');store.set('mdrs-career','{}');if(APP.mode==='career'){const F=C.free;C.S=null;APP.mode='free';enter(F);}}
+  /* the save code: everything in the career as one line of text */
+  function code(){save();const d={own:C.S||load(),feats:JSON.parse(store.get('mdrs-career','{}')||'{}')};return 'MDRS1.'+btoa(unescape(encodeURIComponent(JSON.stringify(d))));}
+  function loadCode(txt){
+    try{const s=String(txt).trim();if(!s.startsWith('MDRS1.'))return 'That is not a Mini Dirt Run Solo save code.';
+      const d=JSON.parse(decodeURIComponent(escape(atob(s.slice(6)))));if(!d.own||d.own.v!==1||!d.own.cars)return 'That save code is damaged.';
+      store.set('mdrs-career-own',JSON.stringify(d.own));store.set('mdrs-career',JSON.stringify(d.feats||{}));
+      if(APP.mode==='career'){const F=C.free;C.S=null;APP.mode='free';enter(F);}
+      return '';}catch(e){return 'That save code could not be read.';}
+  }
+  /* ---------- the joke rewards ---------- */
+  function progress(id,v,abs){if(!on()||C.S.cars[id])return;const J=JOKES[id],p=C.S.prog;const before=p[id];p[id]=abs?Math.max(p[id],v):p[id]+v;
+    if(p[id]>=J.need){giveCar(id);save();say('UNLOCKED: '+MACH[id].name.toUpperCase(),3.4,'#ffd84a');say(J.line,4);buzz([40,40,40,40,120]);}
+    else if(!J.unit&&Math.floor(p[id])!==Math.floor(before)){save();say(`${MACH[id].name.toUpperCase()} ${Math.floor(p[id])}/${J.need}`,1.8,'#ffd84a');}}
+  Feats.onFeat=(kind,detail)=>{
+    if(!on())return;
+    if(kind==='mudpit'&&APP.car==='suv'&&rigName('suv',rigOf('suv'))==='Stock')progress('golf',1);
+    if(kind==='lap'&&detail&&detail.s<90)progress('kart',1);
+  };
+  function step(dt,t){
+    if(!on()||GAME.state!=='drive')return;
+    /* rolled over (counted once each time, until it's back on its wheels) */
+    const up=t.M[4];if(C.upright&&up<.25){C.upright=false;progress('quad90',1);}else if(!C.upright&&up>.8)C.upright=true;
+    /* stuck in the mud: on the gas, going nowhere, for a few seconds; then out and moving again */
+    let mud=0;for(const w of t.wheels)if(w.contact&&(w.surf==='mud'||w.surf==='ruts'))mud++;
+    if(!C.stuck){if(mud>=2&&t.speed<.5&&t.thrIn>.5){C.stuckT=(C.stuckT||0)+dt;if(C.stuckT>3){C.stuck={t:0};say('STUCK',1.6,'#c8a070');}}else C.stuckT=0;}
+    else{if(t.speed>3){C.stuck.t+=dt;if(C.stuck.t>1){C.stuck=null;C.stuckT=0;progress('tractor',1);}}else C.stuck.t=0;}
+    /* county road miles */
+    if(GAME.place==='County road'&&!C.S.cars.semi){C.mi+=t.speed*dt/1609.34;if(C.mi>.05){progress('semi',C.mi);C.mi=0;}}
+  }
+  return {on,enter,leave,save,owns,hasCar,priceOf,buyPart,missing,buyPreset,buyCar,ownedRig,freeState,restart,code,loadCode,step,money,get S(){return C.S;}};
+})();
+/* =====================================================================================
    THE BOOT: the dots, the GL, the ranch, the car and the menu, once every module above is in place.
    ===================================================================================== */
 if(!gl){$('err').style.display='grid';$('loading').hidden=true;}
@@ -7886,11 +8057,12 @@ else{
   requestAnimationFrame(()=>setTimeout(()=>{
     try{
       buildRanchGL();computePlaces();mapBitmap();bindTouch();setDetail(APP.detail);
+      if(APP.wantCareer)Career.enter();
       spawnCar(rigBuild(APP.car,rigOf(APP.car)),6,4,0);buildMenu();
       $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
     }catch(e){console.error(e);$('loading').textContent='Something went wrong building the ranch: '+e.message;}
   },30));
-  window.__game={APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,MACH,RIDER:riderStep,
+  window.__game={APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,MACH,RIDER:riderStep,Career,syncMenu,
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }
 

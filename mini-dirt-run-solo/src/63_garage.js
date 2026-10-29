@@ -21,7 +21,7 @@ function buildGarage(){
 /* a change: on the car at once, the car rebuilt where it stands */
 function setPart(slot,val){
   if(GAR.busy)return;const car=APP.car,rig=Object.assign({},rigOf(car),{[slot]:val});
-  if(fits(car,rigOf(car),slot,val))return;
+  if(fits(car,rigOf(car),slot,val)||!Career.owns(car,slot,val))return;
   RIGS[car]=fixRig(car,rig);saveGame();spawnRig();syncGarage();syncMenu();
 }
 function rateTile(k,name,v,dv){
@@ -36,11 +36,10 @@ function rateTile(k,name,v,dv){
 }
 function syncGarage(preview){
   const car=APP.car,rig=rigOf(car),r=rateRig(car,rig),p=preview?rateRig(car,preview):null;
-  for(const el of $('gCars').children)el.setAttribute('aria-pressed',String(el.dataset.v===car));
+  for(const el of $('gCars').children){el.setAttribute('aria-pressed',String(el.dataset.v===car));el.disabled=!Career.hasCar(el.dataset.v);el.hidden=Career.on()&&!Career.hasCar(el.dataset.v);}
   /* the presets */
   const pr=$('gPresets');pr.textContent='';const cur=rigName(car,rig);
-  for(const id of presetsOf(car)){const b=BUILDS.find(q=>q.id===id),el=document.createElement('button');el.type='button';el.className='place';el.textContent=b.name;el.title=b.tag;
-    el.setAttribute('aria-pressed',String(cur===b.name));el.addEventListener('click',()=>{if(GAR.busy)return;RIGS[car]=presetRig(id);saveGame();spawnRig();syncGarage();syncMenu();});pr.appendChild(el);}
+  for(const id of presetsOf(car))pr.appendChild(presetButton(car,id,cur,()=>{syncGarage();syncMenu();}));
   /* the ratings: tap one to build for it */
   const R=$('gRatings');R.textContent='';
   R.appendChild(rateTile('all','All-round',score(r,'all'),p?score(p,'all')-score(r,'all'):0));
@@ -51,7 +50,7 @@ function syncGarage(preview){
     `<span>top <b>${f.top}</b> mph${d(f.top,F.top,'')}</span><span>clearance <b>${f.clear}</b> cm${d(f.clear,F.clear,'')}</span><span>travel <b>${f.travel}</b> cm${d(f.travel,F.travel,'')}</span>`+
     `<span>tips at <b>${f.tip.toFixed(2)}</b> g${d(f.tip,F.tip,'',2)}</span><span><b>${f.drv}</b>${f.low?' · low '+f.low.toFixed(2):''}${f.lockers?' · '+(f.lockers>1?'two lockers':'rear locker'):''}</span>`;
   $('gGuide').textContent=GUIDE[GAR.target];
-  $('gSuggest').textContent=GAR.busy?'Trying parts…':'Build it for me: '+(GAR.target==='all'?'all-round':TERRAINS.find(t=>t[0]===GAR.target)[1].toLowerCase());
+  $('gSuggest').textContent=GAR.busy?'Trying parts…':(Career.on()?'Build it from parts I own: ':'Build it for me: ')+(GAR.target==='all'?'all-round':TERRAINS.find(t=>t[0]===GAR.target)[1].toLowerCase());
   if(!preview)drawSlots();
 }
 function drawSlots(){
@@ -73,8 +72,15 @@ function optionList(car,rig,s,opts){
   for(const [v,name,note,price] of opts){
     const why=fits(car,rig,s,v),el=document.createElement('button');el.type='button';el.className='opt';el.disabled=!!why;if(v===rig[s])el.setAttribute('aria-current','true');
     el.innerHTML='<b></b><span class="tag"></span><small></small><div class="dl"></div>';el.querySelector('b').textContent=name;el.querySelector('small').textContent=why||note||'';
-    const tag=el.querySelector('.tag');tag.textContent=price?Feats.fmtMoney(price):'Factory';
-    el.addEventListener('click',()=>setPart(s,v));
+    const tag=el.querySelector('.tag'),owned=Career.owns(car,s,v),cr=Career.on();tag.textContent=!price?'Factory':cr&&owned?'Owned':Feats.fmtMoney(price);
+    if(cr&&!owned&&!why&&price>Career.money())el.querySelector('small').textContent='Need '+Feats.fmtMoney(price-Career.money())+' more. '+(note||'');
+    el.addEventListener('click',()=>{
+      if(owned)return setPart(s,v);
+      if(why)return;if(price>Career.money()){say('Need '+Feats.fmtMoney(price-Career.money())+' more',1.8);return;}
+      /* the career: the first tap asks, the second buys it and puts it on */
+      if(el.dataset.sure!=='1'){for(const o of list.querySelectorAll('.opt'))if(o.dataset.sure==='1'){o.dataset.sure='';o.querySelector('.tag').textContent=o.dataset.tag;}
+        el.dataset.sure='1';el.dataset.tag=tag.textContent;tag.textContent='Tap to buy: '+Feats.fmtMoney(price);return;}
+      if(Career.buyPart(car,s,v)){setPart(s,v);syncMenu();}});
     el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'&&!why)syncGarage(fixRig(car,Object.assign({},rig,{[s]:v})));});
     el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')syncGarage(null);});
     list.appendChild(el);rows.push({v,el,why});}
@@ -86,7 +92,8 @@ function optionList(car,rig,s,opts){
       if(!dl.children.length&&q.v!==rig[s]){const sp=document.createElement('span');sp.style.color='var(--ink-3)';sp.textContent=s==='paint'||s==='wheels'?'LOOKS ONLY':'NO CHANGE TO THE RATINGS';dl.appendChild(sp);}
       if(!best||q.sc>best.sc+.01)best=q;}
     if(i<rows.length)setTimeout(next,0);
-    else if(best&&s!=='paint'&&s!=='wheels'){const t=best.el.querySelector('.tag');t.classList.add('rec');t.textContent='Best for '+(GAR.target==='all'?'all-round':TERRAINS.find(x=>x[0]===GAR.target)[1].toLowerCase());}};
+    else if(best&&s!=='paint'&&s!=='wheels'){const t=best.el.querySelector('.tag'),pv=best.v;t.classList.add('rec');
+      t.textContent='Best for '+(GAR.target==='all'?'all-round':TERRAINS.find(x=>x[0]===GAR.target)[1].toLowerCase())+(Career.on()&&!Career.owns(car,s,pv)?' · '+Feats.fmtMoney(Career.priceOf(car,s,pv)):'');}};
   setTimeout(next,0);
   return list;
 }
@@ -97,7 +104,7 @@ function suggestBuild(){
   let n=0;$('gSuggest').textContent='Trying parts…';
   const next=()=>{const t0=performance.now();
     while(n<order.length&&performance.now()-t0<20){const s=order[n++];
-      for(const [v] of slotOptions(car,s,rig)){if(v===rig[s]||fits(car,rig,s,v))continue;const r2=fixRig(car,Object.assign({},rig,{[s]:v})),sc=score(rateRig(car,r2),k);if(sc>bestS+.2){bestS=sc;rig=r2;}}}
+      for(const [v] of slotOptions(car,s,rig)){if(v===rig[s]||fits(car,rig,s,v)||!Career.owns(car,s,v))continue;const r2=fixRig(car,Object.assign({},rig,{[s]:v})),sc=score(rateRig(car,r2),k);if(sc>bestS+.2){bestS=sc;rig=r2;}}}
     $('gNote').textContent=n<order.length?`${Math.round(n/order.length*100)}%`:'';
     if(n<order.length){setTimeout(next,0);return;}
     GAR.busy=false;RIGS[car]=rig;saveGame();spawnRig();syncGarage();syncMenu();$('gNote').textContent='Done. Every part it chose is on the car.';};
