@@ -39,16 +39,27 @@ Three driving levels:
   factory all-wheel-drive traction control that brakes a spinning wheel so the others pull. It slides,
   spins its tyres and rolls.
 - **Middle**: a steering helper, stability control and traction control.
-- **Kids**: all of that, extra grip, a hand that keeps it on its wheels, about 40 mph at most, and it
-  flips itself back over if it does go over.
+- **Kids**: all of that, extra grip and a hand that keeps it on its wheels, at full speed, and it flips
+  itself back over if it does go over.
 
 Keys: W/↑ gas, S/↓ brake and reverse, A/D steer, Space handbrake, Q/E shift, N nitrous, L low range,
-K lockers, H horn, J headlights, C camera, M map, R reset, I engine, Esc menu. A game controller works too. On a phone
+K lockers, H horn, J headlights, C camera, M map, T traction (developer), R reset, I engine, Esc menu. A game controller works too. On a phone
 or tablet there are on-screen pedals.
 
 - `src/50_physmath.js`, `51_tyre.js`, `52_tune.js`, `53_vehicle.js`: Dirt Sleeper's physics (Shiftlight
   3's vehicle with Dirt Sleeper's off-road changes), at 240 steps a second. The three driving levels are
   its assist sets.
+- Handling: the trucks carry 55% of their weight on the front and most of their roll stiffness there, and
+  their tyres lose some grip as they're loaded, so at the limit they push wide like real SUVs instead of
+  swapping ends. ABS lets the rear wheels slip far less than the fronts (brake proportioning), so braking
+  into a turn keeps the tail in line. Full steering narrows with speed to what the front tyres can use
+  (full lock at parking speeds, for donuts), and steering into a slide may go as far as the slide.
+  `tools/handling_check.js` runs keyboard manoeuvres (braking into a turn, lane changes, S-bends, lifting
+  mid-turn) for each truck and level and reports how sideways each one got.
+- Developer traction panel (`DEV` in `src/70_game.js`; set it to false to ship): in the menu, Traction
+  (grip on every surface), Back-end grip, Grip once sliding and Steering at speed, on top of whichever
+  driving level is picked, remembered between visits; T while driving steps Traction through 75, 100, 125
+  and 150%. The HUD shows when it's off the defaults.
 - `src/54_truckphys.js`: each build's chassis by Dirt Sleeper's rules (springs from ride height, shocks,
   sway bars, brakes, grip and rolling resistance per tread and surface), with the body's real size.
   The Stock runs all-season tyres and the Sleeper street performance tyres; both have the factory
@@ -124,6 +135,7 @@ node tools/phys_check.js                     # each truck and driving level on f
 node tools/ranch_check.js                    # the ranch: size, tiles, the ground at each area
 node tools/ranch_drive.js [level]            # a driver through the ranch's mud pit, rocks, climb, mud track, a jump
 node tools/country_drive.js [level]          # the home lane, the county road, a timed lap, the woods trail, a ditch
+node tools/handling_check.js [level]         # keyboard manoeuvres on flat ground: how sideways each truck gets
 node tools/world_map.js map.ppm 800          # a top-down map of the whole world
 python3 tools/tri_count.py                   # triangles drawn at spots round the world
 python3 tools/game_shots.py '{"runs":[{"name":"mud","build":2,"place":"mud","keys":["KeyW"],"secs":3}]}' /tmp/g

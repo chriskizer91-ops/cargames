@@ -3,12 +3,22 @@
    drawn from the sim, a chase camera, keyboard and touch, the engine through the lab's synth.
    ===================================================================================== */
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
+/* DEV: the developer traction panel in the menu and the T key. Set to false to ship: the panel and the key
+   go away and the trucks drive on the defaults. */
+const DEV=true;
+const DEV_KEYS=['gAll','gRear','slideDev','steerLim'],DEV_LABEL={gAll:'Traction',gRear:'Back-end grip',slideDev:'Grip once sliding',steerLim:'Steering at speed'};
+const DEV_NOTE={gAll:'Grip on every surface, for every truck. 100% is the game as tuned.',gRear:'The rear tyres only. Up: the tail holds and the truck pushes wide. Down: the tail steps out sooner.',
+  slideDev:'How much grip a tyre keeps once it breaks loose. Up makes slides gentler and easier to catch.',steerLim:'How far full steering turns the wheels at speed. Up turns harder and slides sooner.'};
+function devLoad(){if(!DEV)return;try{const d=JSON.parse(store.get('dsmini-dev','{}'))||{};const t=tuneFill(Object.assign({},TUNE,d));for(const k of DEV_KEYS)TUNE[k]=t[k];}catch(e){}}
+function devSave(){if(!DEV)return;const d={};for(const k of DEV_KEYS)d[k]=TUNE[k];store.set('dsmini-dev',JSON.stringify(d));}
+function devApply(){if(GAME.truck)GAME.truck.applySlide();devSave();}
+devLoad();
 const APP={t:0,build:0,level:'real',cam:0,fps:60,tris:0,res:2,lights:false};
 try{const s=JSON.parse(store.get('dsmini-game','{}'));if(s.build>=0&&s.build<4)APP.build=s.build|0;if(['real','middle','kids'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;}catch(e){}
 const saveGame=()=>store.set('dsmini-game',JSON.stringify({build:APP.build,level:APP.level,cam:APP.cam}));
 const LEVELS=[['real','Realistic','The truck as it is: ABS, the automatic gearbox and, on the Stock and the Sleeper, the factory all-wheel-drive traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
-  ['kids','Kids','Extra grip, every helper on, top speed held to about 40 mph, and a hand that keeps it on its wheels. If it does go over, it flips itself back.']];
+  ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.']];
 const CAMS=['Chase','Far','Hood'];
 const DT=1/240;
 const GAME={truck:null,state:'boot',acc:0,time:0,flipT:0,place:'',msgs:[],dirt:0,engineWanted:false,touch:false};
@@ -82,7 +92,7 @@ function placeTruck(x,z,yaw){
   t.v=[0,0,0];t.w=[0,0,0];t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;
 }
 function spawnTruck(i,x,z,yaw){
-  const prev=GAME.truck,t=makeTruck(i,RANCH.world);t.setAssists(APP.level);truckMesh(i);
+  const prev=GAME.truck,t=makeTruck(i,RANCH.world);t.setAssists(APP.level);t.applySlide();truckMesh(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
   GAME.truck=t;GAME.dirt=BUILDS[i].dirt;
   if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];const F=mcol(qmat(prev.q),0);yaw=Math.atan2(-F[2],F[0]);}else{x=6;z=4;yaw=0;}}
@@ -115,7 +125,7 @@ function soundUpdate(c){
 
 /* ---------- keyboard, game controller and the touch pedals (Dirt Sleeper's input) ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lock:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lock:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],trac:['KeyT']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -129,7 +139,7 @@ function pollInput(dt){
   INPUT.steer+=clamp(tgt-INPUT.steer,-rate*dt,rate*dt);
   INPUT.thr+=clamp((keyOn('thr')?1:0)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
   out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
-  for(const k of ['up','down','cam','reset','menu','low','lock','lights','ign','purge','map'])out[k]=keyHit(k);
+  for(const k of ['up','down','cam','reset','menu','low','lock','lights','ign','purge','map','trac'])out[k]=keyHit(k);
   const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const p of pads)if(p&&p.connected){gp=p;break;}
   if(gp){const dz=(v,d=.08)=>Math.abs(v)<d?0:(v-Math.sign(v)*d)/(1-d),sx=dz(gp.axes[0]||0),rt=gp.buttons[7]?gp.buttons[7].value:0,lt=gp.buttons[6]?gp.buttons[6].value:0;
     if(Math.abs(sx)>0||rt>.02||lt>.02||gp.buttons.some(b=>b.pressed))INPUT.usingPad=true;
@@ -166,12 +176,11 @@ function step(dt){
     if(inp.lock)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this truck',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
+    if(inp.trac&&DEV){const steps=[.75,1,1.25,1.5],i=steps.findIndex(v=>Math.abs(v-TUNE.gAll)<.01);TUNE.gAll=steps[(i+1)%steps.length];devApply();say('TRACTION '+Math.round(TUNE.gAll*100)+'%',1.4);}
     if(inp.ign)toggleEngine();
     if(inp.purge&&ENG.audio&&pt.e.nosKw)ENG.audio.port.post({t:'ev',ev:{type:'purge'}});
     drive=inp;
     if((inp.thr>.1||inp.brk>.1)&&pt.st==='off'&&!ENG.busy&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
-    /* Kids: the pedal is softened and the truck is held to about 40 mph */
-    if(APP.level==='kids')drive=Object.assign({},inp,{thr:Math.min(inp.thr,.8)*clamp((18-t.speed)/3,0,1)});
   }
   GAME.acc+=dt;let n=0;
   while(GAME.acc>=DT&&n<24){t.step(DT,drive);GAME.acc-=DT;n++;GAME.time+=DT;}

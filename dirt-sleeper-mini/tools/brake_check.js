@@ -9,7 +9,7 @@ const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};const 
 const SUVB={L:4.92,ovF:.93,wb:2.89,R0:.378};const MAT={COL:0,EMIT:15};
 const BUILDS=[{id:'stock',name:'Stock',look:{lift:0,track:1.6,roof:'bars',tyre:{R:.378}}},{id:'sleeper',name:'Sleeper',look:{lift:-.05,track:1.62,roof:'rails',tyre:{R:.372}}},
  {id:'crawler',name:'Rock & Mud',look:{lift:.15,track:1.74,roof:'rack',tyre:{R:.47}}},{id:'race',name:'Race',look:{lift:-.1,track:1.76,roof:'none',tyre:{R:.345}}}];`;
-vm.runInContext(stub+src('15_de_engine.js')+src('16_engines.js')+src('50_physmath.js')+src('51_tyre.js')+src('52_tune.js')+src('53_vehicle.js')+src('54_truckphys.js')+src('60_ranch.js')+'\nthis.makeTruck=makeTruck;this.Ranch=Ranch;this.FlatWorld=FlatWorld;',ctx);
+vm.runInContext(stub+src('15_de_engine.js')+src('16_engines.js')+src('50_physmath.js')+src('51_tyre.js')+src('52_tune.js')+src('53_vehicle.js')+src('54_truckphys.js')+src('59_country.js')+src('60_ranch.js')+'\nthis.makeTruck=makeTruck;this.Ranch=Ranch;this.FlatWorld=FlatWorld;',ctx);
 const W=ctx.Ranch.buildRanch(),world=new ctx.Ranch.RanchWorld(W),DT=1/240;
 function place(v,wd,x,z,yaw){const y=wd===world?W.heightAt(x,z):0;v.place([x,y+.05,z],yaw);for(const w of v.wheels){w.comp=0;w.w=0;}v.pt.st='run';v.pt.we=v.pt.e.idle*Math.PI*2/60;for(let i=0;i<240;i++)v.step(DT,{thr:0,brk:1,steer:0});v.rev=false;v.pt.rev=false;v.revT=0;v.v=[0,0,0];v.w=[0,0,0];}
 /* steepest point of the climb */

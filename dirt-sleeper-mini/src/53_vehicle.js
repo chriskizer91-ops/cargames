@@ -261,7 +261,7 @@
      truck on its wheels (the game also flips it back over and caps its speed). */
   var G = 9.81, RHO = 1.2, ASSISTS = {
     real: { id: "real", name: "Realistic", steer: 0, esc: 0, tc: 0, abs: 1, drift: 0, auto: 1, catchSpin: 0 },
-    middle: { id: "middle", name: "Middle", steer: 0.75, esc: 0.65, tc: 1, abs: 1, drift: 0, auto: 1, catchSpin: 0 },
+    middle: { id: "middle", name: "Middle", steer: 0.75, esc: 0.85, tc: 1, abs: 1, drift: 0, auto: 1, catchSpin: 0 },
     kids: { id: "kids", name: "Kids", steer: 1, esc: 1, tc: 1, abs: 1, drift: 0, auto: 1, catchSpin: 1, plus: { grip: 1.15, upright: !0 } }
   }, SURF_MU = { road: 1, curb: 0.95, shoulder: 0.9, ground: 0.7 }, Vehicle = class {
     constructor(chassis, spec2, world2) {
@@ -330,6 +330,10 @@
       let b = this.surfMu ? this.surfMu[s] ?? 0.8 : SURF_MU[s] || 1;
       return this.tuned ? b * tuneGrip(s, n) : b;
     }
+    /* the developer panel's sliding-grip knob, applied to this truck's own tyre */
+    applySlide(base) {
+      this.tyre.slide = Math.min(1, (base ?? this.c.tyre.slide) * (this.tuned ? TUNE.slideDev : 1));
+    }
     setAssists(id) {
       this.aid = ASSISTS[id] || ASSISTS.real, this.pt.auto = !!this.aid.auto, this.plus = this.aid.plus || null;
     }
@@ -380,7 +384,7 @@
           continue;
         }
         let st = wh.front ? this.steer : 0, fw = mvec(M, [Math.cos(st), 0, Math.sin(st)]), n = wh.n, f2 = norm2(sub2(fw, scale(n, dot2(fw, n)))), r = norm2(cross2(f2, n)), vc = add(v, cross2(w, sub2(wh.cp, p))), vl = dot2(vc, f2), vt = dot2(vc, r), vn = Math.max(Math.abs(vl), 2.5), kap = (wh.w * R2 - vl) / vn, tanA = vt / vn, tg = wh.temp < 0.62 ? 0.92 + 0.08 * sstep(0.15, 0.62, wh.temp) : wh.temp < 0.85 ? 1.02 : 1.02 - 0.15 * sstep(0.85, 1.15, wh.temp);
-        tyreForce(this.tyre, wh.Fz, kap, tanA, this._smu(wh.surf, wh.n) * wetMu * tg, TY), wh.Fx = TY.fx, wh.rr = (this.surfRR ? this.surfRR[wh.surf] ?? 0.015 : 0.012) * wh.Fz, wh.vd = (this.surfDrag ? this.surfDrag[wh.surf] || 0 : 0) * wh.Fz * vl, wh.Fy = TY.fy, wh.Kd = TY.dk * R2 / vn, wh.kap = kap, wh.tanA = tanA, wh.sg = TY.sg, wh.f = f2, wh.r = r, wh.vl = vl, wh.slipV = Math.hypot(wh.w * R2 - vl, vt), wh.temp += dt * (wh.slipV * wh.Fz / (m * G) * 0.02 - (wh.temp - 0.42) * (0.015 + this.speed * 8e-4)), wh.temp = clamp(wh.temp, 0.2, 1.25);
+        tyreForce(this.tyre, wh.Fz, kap, tanA, this._smu(wh.surf, wh.n) * wetMu * tg * (wh.front || !this.tuned ? 1 : TUNE.gRear), TY), wh.Fx = TY.fx, wh.rr = (this.surfRR ? this.surfRR[wh.surf] ?? 0.015 : 0.012) * wh.Fz, wh.vd = (this.surfDrag ? this.surfDrag[wh.surf] || 0 : 0) * wh.Fz * vl, wh.Fy = TY.fy, wh.Kd = TY.dk * R2 / vn, wh.kap = kap, wh.tanA = tanA, wh.sg = TY.sg, wh.f = f2, wh.r = r, wh.vl = vl, wh.slipV = Math.hypot(wh.w * R2 - vl, vt), wh.temp += dt * (wh.slipV * wh.Fz / (m * G) * 0.02 - (wh.temp - 0.42) * (0.015 + this.speed * 8e-4)), wh.temp = clamp(wh.temp, 0.2, 1.25);
       }
       let escThr = this._stability(dt, inp, vb, wb, thr), fmax = 0;
       for (let i of pt.drv) {
@@ -396,8 +400,11 @@
       for (let wh of W2) {
         let Tb = brk * c.brake * (wh.front ? c.bias : 1 - c.bias) / 2;
         inp.lock && wh.front && (Tb = Math.max(Tb, c.brake * 0.75));
-        if (aid.abs && brk > 0.1 && this.speed > 2.5 && wh.kap < -0.1) {
-          let k = clamp(1 - (-wh.kap - 0.1) * 7, 0.2, 1);
+        /* ABS; on the rear wheels it lets them slip far less (the job brake proportioning does on the real
+           truck), so they keep their side grip and the tail stays behind you when you brake into a turn */
+        let abT = wh.front ? 0.1 : 0.03;
+        if (aid.abs && brk > 0.1 && this.speed > 2.5 && wh.kap < -abT) {
+          let k = clamp(1 - (-wh.kap - abT) * 7, 0.2, 1);
           Tb *= k, k < 0.95 && (this.absOn = !0);
         }
         !wh.front && hb > 0 && (Tb += c.hbTorque * hb), Tb += wh.escBrake + (wh.rr || 0) * R2, (hold || pt.hold) && (Tb += 1500);
@@ -442,7 +449,10 @@
     }
     /* the steering assist: aim the front tyres at their peak slip angle relative to how the front axle is moving */
     _steer(dt, sIn, vb, wb) {
-      let c = this.c, aid = this.aid, lock = c.lock, vx = vb[0], v = Math.abs(vx), tgt = sIn * lock / (1 + v / (aid.steer > 0 ? 20 : 45));
+      /* Mini: full steering narrows with speed to about what the front tyres can use (just past their peak
+         slip angle, plus what the turn itself needs), as a driver's hands would, with full lock at parking
+         speeds for donuts; steering into a slide may go further, as far as the slide itself */
+      let c = this.c, aid = this.aid, lock = c.lock, vx = vb[0], v = Math.abs(vx), lim = Math.min(lock, this.tyre.aPk * 1.6 * (this.tuned ? TUNE.steerLim : 1) + c.wb * 9 / Math.max(v * v, 1) + (sIn * this.beta > 0 ? Math.abs(this.beta) : 0)), tgt = sIn * lim;
       if (aid.steer > 0 && vx > 1.5) {
         let vzF = vb[2] - wb[1] * this.a, thF = Math.atan2(vzF, Math.max(vx, 0.5)), aPk = this.tyre.aPk * 0.92, assist = thF + sIn * aPk * (this.drift.on ? 1.35 : 1);
         tgt = lerp(tgt, assist, aid.steer * sstep(1.5, 8, vx));

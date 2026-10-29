@@ -4,6 +4,10 @@
    applied to the four Mini builds, with the body's real dimensions from the model.
    ===================================================================================== */
 const HCG0=.74;                 /* centre of gravity above the ground, factory truck */
+/* Mini: the weight sits 55/45 front to rear like the real truck's (it was 50/50), and most of the roll
+   stiffness is at the front. With tyres that lose some grip as they're loaded (load sensitivity .3), that
+   makes the truck push wide at the limit the way a real SUV does, instead of swapping ends. */
+const WF=.55,ARB_F=36e3,ARB_R=6e3;
 /* grip per tread and surface, rolling resistance, and how much more the bog drags each tread (Dirt Sleeper) */
 /* allseason: the factory P245/65R17s, which get an AWD truck down a muddy country lane every spring.
    perf: the sleeper's street-legal performance tyres, a touch better on hard ground, much the same off it. */
@@ -22,16 +26,16 @@ const RUNNING={
   race:   {tyre:{tread:'slick',kPk:.1,aPk:.12,slide:.75,slideW:.5,If:.9},   susp:'lowered',shocks:'bypass',lockers:0,low:false,wm:.95}};
 const SUSP={lowered:{k:1.3,arb:1.4,droop:.06,bump:.06},stock:{k:1,arb:1,droop:.1,bump:.09},lift6:{k:.78,arb:.5,droop:.18,bump:.18}};
 /* where the centre of gravity sits in the model's coordinates (x along the truck, y up from the ground) */
-function cgOf(b){const B=SUVB,dy=b.look.lift+(b.look.tyre.R-B.R0),xr=B.L/2-(B.ovF+B.wb);return [xr+B.wb*(1.44/2.89),HCG0+dy];}
+function cgOf(b){const B=SUVB,dy=b.look.lift+(b.look.tyre.R-B.R0),xr=B.L/2-(B.ovF+B.wb);return [xr+B.wb*WF,HCG0+dy];}
 function buildChassis(b){
   const T=TUNE,rn=RUNNING[b.id]||RUNNING.stock,ty=rn.tyre,eg=ENGINE_OF[b.id]||ENGINE_OF.stock,sp=SUSP[rn.susp],R=b.look.tyre.R;
   const m=eg.mass*T.mass,hcg=cgOf(b)[1],kMul=sp.k*T.spring,arbMul=sp.arb*T.arb,kF=44e3*kMul*m/2150,kR=48e3*kMul*m/2150;
   const c0=Math.max(m*9.81*.5/2/kF,m*9.81*.5/2/kR),damp=(rn.shocks==='bypass'?1.35:1)*T.damp,cs=Math.sqrt(kF*m/4),rr=Object.assign({},SURF_RR);
   rr.mud*=TREAD_RR_MUD[ty.tread];rr.water*=TREAD_RR_MUD[ty.tread];rr.ruts*=TREAD_RR_MUD[ty.tread];
-  return {name:b.id,mass:m,wb:SUVB.wb,wf:1.44/2.89,hcg,trackF:b.look.track,trackR:b.look.track,R,Iw:1.6*Math.pow(R/.375,4)*ty.If*rn.wm,rcH:T.roll,
-    susp:{rest:c0+sp.droop,travel:c0+sp.bump,kF,kR,cbF:cs*.55*damp,crF:cs*.85*damp,cbR:cs*.55*damp,crR:cs*.85*damp,arbF:24e3*arbMul,arbR:14e3*arbMul},
+  return {name:b.id,mass:m,wb:SUVB.wb,wf:WF,hcg,trackF:b.look.track,trackR:b.look.track,R,Iw:1.6*Math.pow(R/.375,4)*ty.If*rn.wm,rcH:T.roll,
+    susp:{rest:c0+sp.droop,travel:c0+sp.bump,kF,kR,cbF:cs*.55*damp,crF:cs*.85*damp,cbR:cs*.55*damp,crR:cs*.85*damp,arbF:ARB_F*arbMul,arbR:ARB_R*arbMul},
     body:{L:4.92,W:1.9,H:1.86},
-    tyre:{mu:1,kPk:ty.kPk,aPk:ty.aPk,slide:Math.min(1,ty.slide*T.slide),slideW:ty.slideW,loadSens:.1},
+    tyre:{mu:1.08,kPk:ty.kPk,aPk:ty.aPk,slide:Math.min(1,ty.slide*T.slide),slideW:ty.slideW,loadSens:.3},
     brake:7200*R/.375*m/2150*T.brake,bias:.62,hbTorque:3200*R/.375,lock:.6*T.lock,cdA:eg.cdA,clF:.03,clR:.05,
     diff:{pre:40,acc:.3,dec:.15,rLock:false,fLock:false,cLock:false,etc:rn.etc||0,can:{r:rn.lockers>=1,f:rn.lockers>=2,low:rn.low}},
     surfMu:TREAD_MU[ty.tread],surfRR:rr,surfDrag:{mud:.06*TREAD_RR_MUD[ty.tread]**1.5,water:.018*TREAD_RR_MUD[ty.tread],ruts:.012*TREAD_RR_MUD[ty.tread]},tread:ty.tread};

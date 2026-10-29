@@ -77,6 +77,18 @@ h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform
 .keys kbd{font:600 9.5px/1 var(--f);color:var(--ink-2);border:1px solid var(--edge);border-radius:4px;padding:2px 5px}
 @media (hover:none){.keys{display:none}}
 .status{color:var(--ink-3);font-size:11.5px}
+/* the developer panel (only while the game is being made) */
+.dev{border:1px dashed rgba(255,176,64,.45);border-radius:12px;padding:12px 14px}
+.dev h2{color:var(--amber)}
+.devrows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+@media (max-width:640px){.devrows{grid-template-columns:minmax(0,1fr)}}
+.devrow{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:2px 10px;align-items:center}
+.devrow label{font:600 11px/1.2 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.devrow output{font:600 12px/1 var(--f);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.devrow input{grid-column:1/-1;width:100%;accent-color:var(--amber)}
+.devrow small{grid-column:1/-1;color:var(--ink-3);font-size:11px;line-height:1.35}
+.devacts{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.btn.sm{height:32px;padding:0 14px;font-size:11px;border-radius:9px}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 #loading{position:fixed;inset:0;display:grid;place-items:center;z-index:9;font:600 13px/1 var(--f);letter-spacing:.24em;text-transform:uppercase;color:var(--amber);background:var(--bg)}
 #err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:500 14px/1.6 var(--f);color:var(--ink-2);z-index:10}
@@ -101,13 +113,17 @@ h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform
     <section><h2>Truck</h2><div class="cards" id="mTrucks"></div></section>
     <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
     <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
+    <section class="dev" id="mDev" hidden><h2>Developer: traction</h2>
+      <p class="hint" style="margin:0 0 10px">For tuning while the game is made; the finished game won't have this. It works on top of whichever driving level is picked, changes take hold as you drive, and it's remembered. <b>T</b> while driving steps Traction through 75, 100, 125 and 150%.</p>
+      <div class="devrows" id="mDevRows"></div>
+      <div class="devacts"><button class="btn sm" id="mDevReset" type="button">Reset to the defaults</button><span class="status" id="mDevNote"></span></div></section>
     <section class="row2">
       <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div>
       <div><h2>Sound</h2><label class="vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label></div>
     </section>
     <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button></div>
     <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> handbrake · <kbd>Q</kbd> <kbd>E</kbd> shift ·
-      <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
+      <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
   </div>
 </div>
 <div id="loading">Building the ranch and the country round it</div>
@@ -2934,7 +2950,10 @@ const BUILDS=[
   ];
   /* id, group, label, min, max, step, base, format, kind, note */
   var TUNE_SPEC = [
-    ["gAll", "grip", "Every surface", 0.5, 1.6, 0.01, 1, "x", "live", "Multiplies all of the ones below."],
+    ["gAll", "grip", "Every surface", 0.5, 2, 0.01, 1, "x", "live", "Multiplies all of the ones below."],
+    ["gRear", "grip", "Back-end grip", 0.7, 1.4, 0.01, 1, "x", "live", "The rear tyres only. Up: the tail holds on and the truck pushes wide. Down: the tail steps out sooner."],
+    ["slideDev", "tyre", "Grip once sliding", 0.8, 1.25, 0.01, 1, "x", "live", "How much grip a tyre keeps once it breaks loose (up to all of it)."],
+    ["steerLim", "body", "Steering at speed", 0.7, 2, 0.01, 1, "x", "live", "How far full steering turns the wheels at speed. Up turns harder (and slides sooner)."],
     ["gDirt", "grip", "Dirt", 0.4, 1.6, 0.01, 1, "x", "live", "Ranch roads, the burnout pad, the yard's edges."],
     ["gTrail", "grip", "Trail", 0.4, 1.6, 0.01, 1, "x", "live", "The trail loop and the hill climb."],
     ["gGrass", "grip", "Grass", 0.4, 1.6, 0.01, 1, "x", "live", "The open hills."],
@@ -3267,7 +3286,7 @@ const BUILDS=[
      truck on its wheels (the game also flips it back over and caps its speed). */
   var G = 9.81, RHO = 1.2, ASSISTS = {
     real: { id: "real", name: "Realistic", steer: 0, esc: 0, tc: 0, abs: 1, drift: 0, auto: 1, catchSpin: 0 },
-    middle: { id: "middle", name: "Middle", steer: 0.75, esc: 0.65, tc: 1, abs: 1, drift: 0, auto: 1, catchSpin: 0 },
+    middle: { id: "middle", name: "Middle", steer: 0.75, esc: 0.85, tc: 1, abs: 1, drift: 0, auto: 1, catchSpin: 0 },
     kids: { id: "kids", name: "Kids", steer: 1, esc: 1, tc: 1, abs: 1, drift: 0, auto: 1, catchSpin: 1, plus: { grip: 1.15, upright: !0 } }
   }, SURF_MU = { road: 1, curb: 0.95, shoulder: 0.9, ground: 0.7 }, Vehicle = class {
     constructor(chassis, spec2, world2) {
@@ -3336,6 +3355,10 @@ const BUILDS=[
       let b = this.surfMu ? this.surfMu[s] ?? 0.8 : SURF_MU[s] || 1;
       return this.tuned ? b * tuneGrip(s, n) : b;
     }
+    /* the developer panel's sliding-grip knob, applied to this truck's own tyre */
+    applySlide(base) {
+      this.tyre.slide = Math.min(1, (base ?? this.c.tyre.slide) * (this.tuned ? TUNE.slideDev : 1));
+    }
     setAssists(id) {
       this.aid = ASSISTS[id] || ASSISTS.real, this.pt.auto = !!this.aid.auto, this.plus = this.aid.plus || null;
     }
@@ -3386,7 +3409,7 @@ const BUILDS=[
           continue;
         }
         let st = wh.front ? this.steer : 0, fw = mvec(M, [Math.cos(st), 0, Math.sin(st)]), n = wh.n, f2 = norm2(sub2(fw, scale(n, dot2(fw, n)))), r = norm2(cross2(f2, n)), vc = add(v, cross2(w, sub2(wh.cp, p))), vl = dot2(vc, f2), vt = dot2(vc, r), vn = Math.max(Math.abs(vl), 2.5), kap = (wh.w * R2 - vl) / vn, tanA = vt / vn, tg = wh.temp < 0.62 ? 0.92 + 0.08 * sstep(0.15, 0.62, wh.temp) : wh.temp < 0.85 ? 1.02 : 1.02 - 0.15 * sstep(0.85, 1.15, wh.temp);
-        tyreForce(this.tyre, wh.Fz, kap, tanA, this._smu(wh.surf, wh.n) * wetMu * tg, TY), wh.Fx = TY.fx, wh.rr = (this.surfRR ? this.surfRR[wh.surf] ?? 0.015 : 0.012) * wh.Fz, wh.vd = (this.surfDrag ? this.surfDrag[wh.surf] || 0 : 0) * wh.Fz * vl, wh.Fy = TY.fy, wh.Kd = TY.dk * R2 / vn, wh.kap = kap, wh.tanA = tanA, wh.sg = TY.sg, wh.f = f2, wh.r = r, wh.vl = vl, wh.slipV = Math.hypot(wh.w * R2 - vl, vt), wh.temp += dt * (wh.slipV * wh.Fz / (m * G) * 0.02 - (wh.temp - 0.42) * (0.015 + this.speed * 8e-4)), wh.temp = clamp(wh.temp, 0.2, 1.25);
+        tyreForce(this.tyre, wh.Fz, kap, tanA, this._smu(wh.surf, wh.n) * wetMu * tg * (wh.front || !this.tuned ? 1 : TUNE.gRear), TY), wh.Fx = TY.fx, wh.rr = (this.surfRR ? this.surfRR[wh.surf] ?? 0.015 : 0.012) * wh.Fz, wh.vd = (this.surfDrag ? this.surfDrag[wh.surf] || 0 : 0) * wh.Fz * vl, wh.Fy = TY.fy, wh.Kd = TY.dk * R2 / vn, wh.kap = kap, wh.tanA = tanA, wh.sg = TY.sg, wh.f = f2, wh.r = r, wh.vl = vl, wh.slipV = Math.hypot(wh.w * R2 - vl, vt), wh.temp += dt * (wh.slipV * wh.Fz / (m * G) * 0.02 - (wh.temp - 0.42) * (0.015 + this.speed * 8e-4)), wh.temp = clamp(wh.temp, 0.2, 1.25);
       }
       let escThr = this._stability(dt, inp, vb, wb, thr), fmax = 0;
       for (let i of pt.drv) {
@@ -3402,8 +3425,11 @@ const BUILDS=[
       for (let wh of W2) {
         let Tb = brk * c.brake * (wh.front ? c.bias : 1 - c.bias) / 2;
         inp.lock && wh.front && (Tb = Math.max(Tb, c.brake * 0.75));
-        if (aid.abs && brk > 0.1 && this.speed > 2.5 && wh.kap < -0.1) {
-          let k = clamp(1 - (-wh.kap - 0.1) * 7, 0.2, 1);
+        /* ABS; on the rear wheels it lets them slip far less (the job brake proportioning does on the real
+           truck), so they keep their side grip and the tail stays behind you when you brake into a turn */
+        let abT = wh.front ? 0.1 : 0.03;
+        if (aid.abs && brk > 0.1 && this.speed > 2.5 && wh.kap < -abT) {
+          let k = clamp(1 - (-wh.kap - abT) * 7, 0.2, 1);
           Tb *= k, k < 0.95 && (this.absOn = !0);
         }
         !wh.front && hb > 0 && (Tb += c.hbTorque * hb), Tb += wh.escBrake + (wh.rr || 0) * R2, (hold || pt.hold) && (Tb += 1500);
@@ -3448,7 +3474,10 @@ const BUILDS=[
     }
     /* the steering assist: aim the front tyres at their peak slip angle relative to how the front axle is moving */
     _steer(dt, sIn, vb, wb) {
-      let c = this.c, aid = this.aid, lock = c.lock, vx = vb[0], v = Math.abs(vx), tgt = sIn * lock / (1 + v / (aid.steer > 0 ? 20 : 45));
+      /* Mini: full steering narrows with speed to about what the front tyres can use (just past their peak
+         slip angle, plus what the turn itself needs), as a driver's hands would, with full lock at parking
+         speeds for donuts; steering into a slide may go further, as far as the slide itself */
+      let c = this.c, aid = this.aid, lock = c.lock, vx = vb[0], v = Math.abs(vx), lim = Math.min(lock, this.tyre.aPk * 1.6 * (this.tuned ? TUNE.steerLim : 1) + c.wb * 9 / Math.max(v * v, 1) + (sIn * this.beta > 0 ? Math.abs(this.beta) : 0)), tgt = sIn * lim;
       if (aid.steer > 0 && vx > 1.5) {
         let vzF = vb[2] - wb[1] * this.a, thF = Math.atan2(vzF, Math.max(vx, 0.5)), aPk = this.tyre.aPk * 0.92, assist = thF + sIn * aPk * (this.drift.on ? 1.35 : 1);
         tgt = lerp(tgt, assist, aid.steer * sstep(1.5, 8, vx));
@@ -3525,6 +3554,10 @@ const BUILDS=[
    applied to the four Mini builds, with the body's real dimensions from the model.
    ===================================================================================== */
 const HCG0=.74;                 /* centre of gravity above the ground, factory truck */
+/* Mini: the weight sits 55/45 front to rear like the real truck's (it was 50/50), and most of the roll
+   stiffness is at the front. With tyres that lose some grip as they're loaded (load sensitivity .3), that
+   makes the truck push wide at the limit the way a real SUV does, instead of swapping ends. */
+const WF=.55,ARB_F=36e3,ARB_R=6e3;
 /* grip per tread and surface, rolling resistance, and how much more the bog drags each tread (Dirt Sleeper) */
 /* allseason: the factory P245/65R17s, which get an AWD truck down a muddy country lane every spring.
    perf: the sleeper's street-legal performance tyres, a touch better on hard ground, much the same off it. */
@@ -3543,16 +3576,16 @@ const RUNNING={
   race:   {tyre:{tread:'slick',kPk:.1,aPk:.12,slide:.75,slideW:.5,If:.9},   susp:'lowered',shocks:'bypass',lockers:0,low:false,wm:.95}};
 const SUSP={lowered:{k:1.3,arb:1.4,droop:.06,bump:.06},stock:{k:1,arb:1,droop:.1,bump:.09},lift6:{k:.78,arb:.5,droop:.18,bump:.18}};
 /* where the centre of gravity sits in the model's coordinates (x along the truck, y up from the ground) */
-function cgOf(b){const B=SUVB,dy=b.look.lift+(b.look.tyre.R-B.R0),xr=B.L/2-(B.ovF+B.wb);return [xr+B.wb*(1.44/2.89),HCG0+dy];}
+function cgOf(b){const B=SUVB,dy=b.look.lift+(b.look.tyre.R-B.R0),xr=B.L/2-(B.ovF+B.wb);return [xr+B.wb*WF,HCG0+dy];}
 function buildChassis(b){
   const T=TUNE,rn=RUNNING[b.id]||RUNNING.stock,ty=rn.tyre,eg=ENGINE_OF[b.id]||ENGINE_OF.stock,sp=SUSP[rn.susp],R=b.look.tyre.R;
   const m=eg.mass*T.mass,hcg=cgOf(b)[1],kMul=sp.k*T.spring,arbMul=sp.arb*T.arb,kF=44e3*kMul*m/2150,kR=48e3*kMul*m/2150;
   const c0=Math.max(m*9.81*.5/2/kF,m*9.81*.5/2/kR),damp=(rn.shocks==='bypass'?1.35:1)*T.damp,cs=Math.sqrt(kF*m/4),rr=Object.assign({},SURF_RR);
   rr.mud*=TREAD_RR_MUD[ty.tread];rr.water*=TREAD_RR_MUD[ty.tread];rr.ruts*=TREAD_RR_MUD[ty.tread];
-  return {name:b.id,mass:m,wb:SUVB.wb,wf:1.44/2.89,hcg,trackF:b.look.track,trackR:b.look.track,R,Iw:1.6*Math.pow(R/.375,4)*ty.If*rn.wm,rcH:T.roll,
-    susp:{rest:c0+sp.droop,travel:c0+sp.bump,kF,kR,cbF:cs*.55*damp,crF:cs*.85*damp,cbR:cs*.55*damp,crR:cs*.85*damp,arbF:24e3*arbMul,arbR:14e3*arbMul},
+  return {name:b.id,mass:m,wb:SUVB.wb,wf:WF,hcg,trackF:b.look.track,trackR:b.look.track,R,Iw:1.6*Math.pow(R/.375,4)*ty.If*rn.wm,rcH:T.roll,
+    susp:{rest:c0+sp.droop,travel:c0+sp.bump,kF,kR,cbF:cs*.55*damp,crF:cs*.85*damp,cbR:cs*.55*damp,crR:cs*.85*damp,arbF:ARB_F*arbMul,arbR:ARB_R*arbMul},
     body:{L:4.92,W:1.9,H:1.86},
-    tyre:{mu:1,kPk:ty.kPk,aPk:ty.aPk,slide:Math.min(1,ty.slide*T.slide),slideW:ty.slideW,loadSens:.1},
+    tyre:{mu:1.08,kPk:ty.kPk,aPk:ty.aPk,slide:Math.min(1,ty.slide*T.slide),slideW:ty.slideW,loadSens:.3},
     brake:7200*R/.375*m/2150*T.brake,bias:.62,hbTorque:3200*R/.375,lock:.6*T.lock,cdA:eg.cdA,clF:.03,clR:.05,
     diff:{pre:40,acc:.3,dec:.15,rLock:false,fLock:false,cLock:false,etc:rn.etc||0,can:{r:rn.lockers>=1,f:rn.lockers>=2,low:rn.low}},
     surfMu:TREAD_MU[ty.tread],surfRR:rr,surfDrag:{mud:.06*TREAD_RR_MUD[ty.tread]**1.5,water:.018*TREAD_RR_MUD[ty.tread],ruts:.012*TREAD_RR_MUD[ty.tread]},tread:ty.tread};
@@ -5017,12 +5050,22 @@ function fxDraw(){
    drawn from the sim, a chase camera, keyboard and touch, the engine through the lab's synth.
    ===================================================================================== */
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
+/* DEV: the developer traction panel in the menu and the T key. Set to false to ship: the panel and the key
+   go away and the trucks drive on the defaults. */
+const DEV=true;
+const DEV_KEYS=['gAll','gRear','slideDev','steerLim'],DEV_LABEL={gAll:'Traction',gRear:'Back-end grip',slideDev:'Grip once sliding',steerLim:'Steering at speed'};
+const DEV_NOTE={gAll:'Grip on every surface, for every truck. 100% is the game as tuned.',gRear:'The rear tyres only. Up: the tail holds and the truck pushes wide. Down: the tail steps out sooner.',
+  slideDev:'How much grip a tyre keeps once it breaks loose. Up makes slides gentler and easier to catch.',steerLim:'How far full steering turns the wheels at speed. Up turns harder and slides sooner.'};
+function devLoad(){if(!DEV)return;try{const d=JSON.parse(store.get('dsmini-dev','{}'))||{};const t=tuneFill(Object.assign({},TUNE,d));for(const k of DEV_KEYS)TUNE[k]=t[k];}catch(e){}}
+function devSave(){if(!DEV)return;const d={};for(const k of DEV_KEYS)d[k]=TUNE[k];store.set('dsmini-dev',JSON.stringify(d));}
+function devApply(){if(GAME.truck)GAME.truck.applySlide();devSave();}
+devLoad();
 const APP={t:0,build:0,level:'real',cam:0,fps:60,tris:0,res:2,lights:false};
 try{const s=JSON.parse(store.get('dsmini-game','{}'));if(s.build>=0&&s.build<4)APP.build=s.build|0;if(['real','middle','kids'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;}catch(e){}
 const saveGame=()=>store.set('dsmini-game',JSON.stringify({build:APP.build,level:APP.level,cam:APP.cam}));
 const LEVELS=[['real','Realistic','The truck as it is: ABS, the automatic gearbox and, on the Stock and the Sleeper, the factory all-wheel-drive traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
-  ['kids','Kids','Extra grip, every helper on, top speed held to about 40 mph, and a hand that keeps it on its wheels. If it does go over, it flips itself back.']];
+  ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.']];
 const CAMS=['Chase','Far','Hood'];
 const DT=1/240;
 const GAME={truck:null,state:'boot',acc:0,time:0,flipT:0,place:'',msgs:[],dirt:0,engineWanted:false,touch:false};
@@ -5096,7 +5139,7 @@ function placeTruck(x,z,yaw){
   t.v=[0,0,0];t.w=[0,0,0];t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;
 }
 function spawnTruck(i,x,z,yaw){
-  const prev=GAME.truck,t=makeTruck(i,RANCH.world);t.setAssists(APP.level);truckMesh(i);
+  const prev=GAME.truck,t=makeTruck(i,RANCH.world);t.setAssists(APP.level);t.applySlide();truckMesh(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
   GAME.truck=t;GAME.dirt=BUILDS[i].dirt;
   if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];const F=mcol(qmat(prev.q),0);yaw=Math.atan2(-F[2],F[0]);}else{x=6;z=4;yaw=0;}}
@@ -5129,7 +5172,7 @@ function soundUpdate(c){
 
 /* ---------- keyboard, game controller and the touch pedals (Dirt Sleeper's input) ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lock:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lock:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],trac:['KeyT']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -5143,7 +5186,7 @@ function pollInput(dt){
   INPUT.steer+=clamp(tgt-INPUT.steer,-rate*dt,rate*dt);
   INPUT.thr+=clamp((keyOn('thr')?1:0)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
   out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
-  for(const k of ['up','down','cam','reset','menu','low','lock','lights','ign','purge','map'])out[k]=keyHit(k);
+  for(const k of ['up','down','cam','reset','menu','low','lock','lights','ign','purge','map','trac'])out[k]=keyHit(k);
   const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const p of pads)if(p&&p.connected){gp=p;break;}
   if(gp){const dz=(v,d=.08)=>Math.abs(v)<d?0:(v-Math.sign(v)*d)/(1-d),sx=dz(gp.axes[0]||0),rt=gp.buttons[7]?gp.buttons[7].value:0,lt=gp.buttons[6]?gp.buttons[6].value:0;
     if(Math.abs(sx)>0||rt>.02||lt>.02||gp.buttons.some(b=>b.pressed))INPUT.usingPad=true;
@@ -5180,12 +5223,11 @@ function step(dt){
     if(inp.lock)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this truck',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
+    if(inp.trac&&DEV){const steps=[.75,1,1.25,1.5],i=steps.findIndex(v=>Math.abs(v-TUNE.gAll)<.01);TUNE.gAll=steps[(i+1)%steps.length];devApply();say('TRACTION '+Math.round(TUNE.gAll*100)+'%',1.4);}
     if(inp.ign)toggleEngine();
     if(inp.purge&&ENG.audio&&pt.e.nosKw)ENG.audio.port.post({t:'ev',ev:{type:'purge'}});
     drive=inp;
     if((inp.thr>.1||inp.brk>.1)&&pt.st==='off'&&!ENG.busy&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
-    /* Kids: the pedal is softened and the truck is held to about 40 mph */
-    if(APP.level==='kids')drive=Object.assign({},inp,{thr:Math.min(inp.thr,.8)*clamp((18-t.speed)/3,0,1)});
   }
   GAME.acc+=dt;let n=0;
   while(GAME.acc>=DT&&n<24){t.step(DT,drive);GAME.acc-=DT;n++;GAME.time+=DT;}
@@ -5371,6 +5413,8 @@ function drawHud(c){
   otxt5(b.name.toUpperCase(),5,5,GR.volt,sc,'l',.12);
   otxt3(GAME.place.toUpperCase(),5,7+7*sc+2,PAL.ink);
   otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':''),5,7+7*sc+10,APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:PAL.dim);
+  /* the developer panel's settings, when they're off the defaults */
+  if(DEV){const ch=DEV_KEYS.filter(k=>Math.abs(TUNE[k]-TUNE_BASE[k])>1e-6);if(ch.length)otxt3((Math.abs(TUNE.gAll-1)>1e-6?'TRACTION '+Math.round(TUNE.gAll*100)+'%':'DEV')+(ch.some(k=>k!=='gAll')?' +':''),5,7+7*sc+(GAME.touch?28:18),PAL.amber);}
   /* top right: the map */
   const [mx0,my0,ms]=miniRect();drawMap(mx0,my0,ms);
   if(GAME.state!=='drive')return;
@@ -5420,7 +5464,10 @@ function syncMenu(){
   $('mLevelHint').textContent=LEVELS.find(l=>l[0]===APP.level)[2];
   for(const el of $('mCam').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.cam));
   $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
+  syncDev();
 }
+function syncDev(){if(!DEV)return;for(const k of DEV_KEYS){const inp=$('dev_'+k);if(!inp)continue;inp.value=TUNE[k];inp.parentNode.querySelector('output').textContent=Math.round(TUNE[k]*100)+'%';}
+  $('mDevNote').textContent=DEV_KEYS.every(k=>Math.abs(TUNE[k]-TUNE_BASE[k])<1e-6)?'On the defaults.':'Changed from the defaults.';}
 function buildMenu(){
   const tx=$('mTrucks');BUILDS.forEach((b,i)=>{const el=document.createElement('button');el.type='button';el.className='card';
     el.innerHTML='<b></b><small></small>';el.querySelector('b').textContent=b.name;el.querySelector('small').textContent=b.specs[3][1];
@@ -5432,6 +5479,13 @@ function buildMenu(){
   const cm=$('mCam');CAMS.forEach((n,i)=>{const el=document.createElement('button');el.type='button';el.dataset.v=String(i);el.textContent=n;
     el.addEventListener('click',()=>{APP.cam=i;CAM.cut=true;saveGame();syncMenu();});cm.appendChild(el);});
   $('vol').addEventListener('input',e=>setVolume(e.target.value));
+  /* the developer traction panel */
+  if(DEV){$('mDev').hidden=false;const rows=$('mDevRows');
+    for(const k of DEV_KEYS){const s=TUNE_SPEC.find(q=>q[0]===k),el=document.createElement('div');el.className='devrow';
+      el.innerHTML='<label></label><output></output><input type="range"><small></small>';const lb=el.querySelector('label'),inp=el.querySelector('input'),out=el.querySelector('output');
+      lb.textContent=DEV_LABEL[k];lb.htmlFor=inp.id='dev_'+k;inp.min=s[3];inp.max=s[4];inp.step=s[5];el.querySelector('small').textContent=DEV_NOTE[k];
+      inp.addEventListener('input',()=>{TUNE[k]=+inp.value;out.textContent=Math.round(TUNE[k]*100)+'%';devApply();syncDev();});rows.appendChild(el);}
+    $('mDevReset').addEventListener('click',()=>{for(const k of DEV_KEYS)TUNE[k]=TUNE_BASE[k];devApply();syncDev();});}
   $('mGo').addEventListener('click',closeMenu);
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});

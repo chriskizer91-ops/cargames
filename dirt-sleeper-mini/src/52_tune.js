@@ -18,7 +18,10 @@
   ];
   /* id, group, label, min, max, step, base, format, kind, note */
   var TUNE_SPEC = [
-    ["gAll", "grip", "Every surface", 0.5, 1.6, 0.01, 1, "x", "live", "Multiplies all of the ones below."],
+    ["gAll", "grip", "Every surface", 0.5, 2, 0.01, 1, "x", "live", "Multiplies all of the ones below."],
+    ["gRear", "grip", "Back-end grip", 0.7, 1.4, 0.01, 1, "x", "live", "The rear tyres only. Up: the tail holds on and the truck pushes wide. Down: the tail steps out sooner."],
+    ["slideDev", "tyre", "Grip once sliding", 0.8, 1.25, 0.01, 1, "x", "live", "How much grip a tyre keeps once it breaks loose (up to all of it)."],
+    ["steerLim", "body", "Steering at speed", 0.7, 2, 0.01, 1, "x", "live", "How far full steering turns the wheels at speed. Up turns harder (and slides sooner)."],
     ["gDirt", "grip", "Dirt", 0.4, 1.6, 0.01, 1, "x", "live", "Ranch roads, the burnout pad, the yard's edges."],
     ["gTrail", "grip", "Trail", 0.4, 1.6, 0.01, 1, "x", "live", "The trail loop and the hill climb."],
     ["gGrass", "grip", "Grass", 0.4, 1.6, 0.01, 1, "x", "live", "The open hills."],

@@ -16,7 +16,10 @@ function syncMenu(){
   $('mLevelHint').textContent=LEVELS.find(l=>l[0]===APP.level)[2];
   for(const el of $('mCam').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.cam));
   $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
+  syncDev();
 }
+function syncDev(){if(!DEV)return;for(const k of DEV_KEYS){const inp=$('dev_'+k);if(!inp)continue;inp.value=TUNE[k];inp.parentNode.querySelector('output').textContent=Math.round(TUNE[k]*100)+'%';}
+  $('mDevNote').textContent=DEV_KEYS.every(k=>Math.abs(TUNE[k]-TUNE_BASE[k])<1e-6)?'On the defaults.':'Changed from the defaults.';}
 function buildMenu(){
   const tx=$('mTrucks');BUILDS.forEach((b,i)=>{const el=document.createElement('button');el.type='button';el.className='card';
     el.innerHTML='<b></b><small></small>';el.querySelector('b').textContent=b.name;el.querySelector('small').textContent=b.specs[3][1];
@@ -28,6 +31,13 @@ function buildMenu(){
   const cm=$('mCam');CAMS.forEach((n,i)=>{const el=document.createElement('button');el.type='button';el.dataset.v=String(i);el.textContent=n;
     el.addEventListener('click',()=>{APP.cam=i;CAM.cut=true;saveGame();syncMenu();});cm.appendChild(el);});
   $('vol').addEventListener('input',e=>setVolume(e.target.value));
+  /* the developer traction panel */
+  if(DEV){$('mDev').hidden=false;const rows=$('mDevRows');
+    for(const k of DEV_KEYS){const s=TUNE_SPEC.find(q=>q[0]===k),el=document.createElement('div');el.className='devrow';
+      el.innerHTML='<label></label><output></output><input type="range"><small></small>';const lb=el.querySelector('label'),inp=el.querySelector('input'),out=el.querySelector('output');
+      lb.textContent=DEV_LABEL[k];lb.htmlFor=inp.id='dev_'+k;inp.min=s[3];inp.max=s[4];inp.step=s[5];el.querySelector('small').textContent=DEV_NOTE[k];
+      inp.addEventListener('input',()=>{TUNE[k]=+inp.value;out.textContent=Math.round(TUNE[k]*100)+'%';devApply();syncDev();});rows.appendChild(el);}
+    $('mDevReset').addEventListener('click',()=>{for(const k of DEV_KEYS)TUNE[k]=TUNE_BASE[k];devApply();syncDev();});}
   $('mGo').addEventListener('click',closeMenu);
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
