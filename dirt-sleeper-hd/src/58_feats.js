@@ -17,7 +17,7 @@ const LOOSE={dirt:1,gravel:1,trail:1,grass:1,ruts:1,mud:1,strip:1,rock:1};
 const Feats=(()=>{
   const S={money:0,session:0,log:[],best:{},combo:null,live:{},lastHit:0,lastGround:null,closeCd:new Map(),splashT:-9,saveTilt:0,saveT:0,
     pit:null,climb:null,rocks:null,pending:null,wreckT:-9,t:0};
-  const API={S,pop:(text,col,big)=>{},buzz:ms=>{},carName:()=>'',place:()=>''};
+  const API={S,pop:(text,col,big)=>{},buzz:ms=>{},carName:()=>'',place:()=>'',racing:()=>false};
   /* ---------- saving: free play's score, last ten and bests ---------- */
   let KEY='dshd-free';
   API.load=key=>{KEY=key||KEY;try{const d=JSON.parse(store.get(KEY,'{}'))||{};S.money=+d.money||0;S.log=Array.isArray(d.log)?d.log.slice(0,10):[];S.best=d.best&&typeof d.best==='object'?d.best:{};}catch(e){}};
@@ -98,7 +98,8 @@ const Feats=(()=>{
     else if(S.saveTilt&&f.up>.96&&!f.air){if(now-S.saveT<3){const deg=Math.round(Math.acos(1-S.saveTilt)*57.3);addFeat('save',120+deg*4,`SAVED IT ${deg}°`,{deg});}S.saveTilt=0;}
     else if(S.saveTilt&&now-S.saveT>3)S.saveTilt=0;
     /* --- speed run: flat out on loose ground --- */
-    const fast=f.v>22.35&&(LOOSE[f.surf]||f.air);
+    /* (not in a race: every lap of the oval would be one) */
+    const fast=f.v>22.35&&(LOOSE[f.surf]||f.air)&&!API.racing();
     if(fast){const r=L.speed||(L.speed={m:0,t:0,slow:0,surf:{}});r.m+=f.v*dt;r.t+=dt;r.slow=0;if(f.surf)r.surf[f.surf]=(r.surf[f.surf]||0)+dt;}
     else if(L.speed){const r=L.speed;r.slow+=dt;if(f.v>20.1&&(LOOSE[f.surf]||f.air)&&r.slow<1.2){r.m+=f.v*dt;r.t+=dt;}else if(r.slow>1){delete L.speed;
       if(r.m>200){const mph=r.m/r.t*2.237,s=Object.entries(r.surf).sort((a,b)=>b[1]-a[1])[0],nm=s?{gravel:'GRAVEL',dirt:'DIRT',trail:'TRAIL',grass:'GRASS',mud:'MUD',ruts:'MUD',strip:'DIRT',rock:'ROCK'}[s[0]]||'DIRT':'DIRT';
@@ -146,6 +147,9 @@ const Feats=(()=>{
         if(clean&&best('rocks',r.t,`Rock garden clean in ${r.t.toFixed(1)} s`,true))API.pop('BEST CLEAN ROCK RUN','#cfd6e6');}
       else if(!inR&&(x<R.x0-2||z<R.z0-4||z>R.z0+R.d+4))S.rocks=null;}
   }
+  /* prize money (a race): straight into the bank and the log, not the combo */
+  API.award=(what,money)=>{S.money+=money;S.session+=money;S.log.unshift({what,money,where:API.place(),car:API.carName(),at:Date.now(),kind:'race'});S.log.length=Math.min(S.log.length,10);
+    API.pop('PRIZE '+fmtMoney(money),'#5dff7a',true);API.save();};
   /* a lap of the track or a clock run, from the game's timers */
   API.timed=(kind,label,val,detail,bestKey,bestVal,bestLabel)=>{addFeat(kind,val,label,detail);if(bestKey&&best(bestKey,bestVal,bestLabel,true))API.pop('NEW BEST','#5dff7a');};
   /* what the HUD shows: the feats going on now, and the combo */

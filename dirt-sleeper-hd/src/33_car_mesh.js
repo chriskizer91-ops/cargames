@@ -8,6 +8,10 @@ function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
   const t0=performance.now(),s=buildSUV(b.look,b),w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
   return TRUCK[b.id]={body:s.body,hood:s.hood,hide:s.hide,D:s.D,wheel:w,wheelR:wr,bay:s.bay,engineOut:!!s.bay,
     tris:s.tris+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}
+/* a far-away copy of the body and hood (stations four times coarser), for the other cars in a race */
+function truckFar(i){const T=truck(i);if(T.far)return T.far;BODY_LOD=4;let s;try{s=buildSUV(BUILDS[i].look,BUILDS[i]);}finally{BODY_LOD=1;}
+  if(s.bay&&s.bay.engine&&s.bay.engine.vao)freeMesh(s.bay.engine);if(s.hide&&s.hide.vao)freeMesh(s.hide);
+  return T.far={body:s.body,hood:s.hood,tris:(s.body.n+s.hood.n)/3};}
 /* the engine bay: built the first time this build's hood opens, never with it shut */
 const bayOf=i=>{const T=truck(i);return T.bay||(T.bay=buildBay(BUILDS[i],T.D));};
 /* ---------- matrices ---------- */

@@ -1,8 +1,9 @@
 # Dirt Sleeper HD
 
-Free roam on the ranch and the country round it, in any of seven cars built any way the garage
-allows, for money, drawn on an LED dot matrix. This is its own version of the game, kept apart from
-the others in this repo. It started as two forks of Dirt Sleeper Mini's game merged into one:
+Free roam on the ranch and the country round it, two miles square, in any of seven cars built any way
+the garage allows, for money, and races against robot drivers; drawn on an LED dot matrix or clear.
+This is its own version of the game, kept apart from the others in this repo. It started as two forks
+of Dirt Sleeper Mini's game merged into one:
 
 - **Mini Dirt Run Solo**: the garage (every car built a part at a time, from presets), ratings on
   six kinds of ground, feats that pay (drifts, jumps, two wheels, saves, speed runs, burnouts, close
@@ -13,9 +14,54 @@ the others in this repo. It started as two forks of Dirt Sleeper Mini's game mer
   real sun shadows, clouds and rain.
 
 On top of those it has a new renderer, after Shiftlight 7's, with graphics levels for a phone and for
-a laptop (below).
+a laptop, a world four times the size and races (below).
 
 Open `dirt-sleeper-hd.html` in a browser with WebGL2.
+
+## The world
+
+Two miles square (`src/50_far.js`). The mile in the middle is the ranch and the country round it as
+they were; the county road now runs on east and west to the edge, and round them is new land:
+
+- **Speedway Park** (east): a banked dirt oval (14 degrees in the turns) with a wall and catch fence,
+  a grandstand, haulers in the infield and light poles for night racing; north of it a short course
+  with two tabletop jumps, whoops, banked hairpins and a big sweeper.
+- **Bald Mountain** (north): about 150 m high, with the paved Summit Road switching back up its south
+  face at a steady 8 per cent (laid out by walking up the slope at that grade), guard rails where the
+  ground falls away, and a radio mast with a red light at the top.
+- **The Cedar Hills** (west): wooded hills with a 2.6 km gravel rally stage through them (crests to get
+  light over, hairpins, a ford through the brook), and Mill Road back to the forest road.
+- **The dry lake** (south): a flat clay pan 1.3 km across at the end of Lake Road, with a cone course.
+
+Every new place is in Go to and on the big map (M).
+
+## Races
+
+The Races tab. You race the car you're in, as it's built, against drivers in factory cars rated close
+to yours for that kind of ground (`src/57_ratings.js`), on the same physics as yours. Places pay into
+the free play money. **How hard** sets how much of their cars the others use (85, 90 or nearly 100%),
+where you start on the grid and how much it pays.
+
+| Race | What it is |
+| --- | --- |
+| Speedway 25 | Eight laps of the dirt oval, six cars |
+| Last Car Out | The oval, six cars: every time a lap is done the last car is out |
+| Short Course | Four laps of the short course, six cars |
+| Road Course | Three laps of the paved road course, six cars |
+| Dry Lake Dash | Two laps of the cone course on the dry lake, six cars |
+| Mud Bog Dash | Three laps of the ranch's mud track, four cars |
+| Eighth-Mile Drag | One on one down the strip, the tree counting down; off the gas until it goes green |
+| Cedar Hills Rally | The rally stage against the clock and five rivals' times, with splits |
+| Summit Hill Climb | Summit Road against the clock and five rivals' times, with splits |
+
+The robots (`src/44_ai.js`) work out a line through each course that bends as little as its edges
+allow, and for their own car how fast each bit of it can be taken (the tyres' grip on that ground, the
+banking, the speed at which a tall car would tip, braking back from every corner, slowing over crests
+and through water). They learn their car's real grip as they go, back off when they run towards the
+edge, pass slower cars on the side with more room, and are put back on the course if they get stuck,
+roll or end up facing the wrong way. The cars touch: each car's hull against the others' boxes. Far off,
+the other cars are drawn from a coarser copy of their body. The rivals' stage times are the robots' own
+times in each factory build (`tools/races.js par`). In a race R puts you back on the course.
 
 ## Graphics
 
@@ -55,10 +101,11 @@ game suggests the level below.
 | --- | --- |
 | `dirt-sleeper-hd.html` | The whole game in one file (built) |
 | `build.sh` | Builds the page: the shell's head, the source modules in order, the shell's tail. Run `./build.sh` after changing anything in `src/` or `shell/` |
-| `src/` | The modules. 10-33: the display, the meshes, the engines and their sound, the seven bodies, their parts, wheels and builds. 40-43: the physics, the ground contact, each build's chassis and the Sim level. 50-55: the country, the ranch, its drawing, the dust and mud, the developer panel, the graphics levels with the shadows and the probe (`55_gfx`), the passes between the scene and the screen and the displays (`55_post`), and the grass (`55_grass`). 56-65: the garage's parts, the ratings, the feats, day and night, the game, its HUD, menu, garage, touch controls and boot |
+| `src/` | The modules. 10-33: the display, the meshes, the engines and their sound, the seven bodies, their parts, wheels and builds. 40-44: the physics, the ground contact, each build's chassis, the Sim level and the robot drivers (`44_ai`). 50-55: the far country (`50_far`), the country, the ranch, its drawing, the dust and mud, the developer panel, the graphics levels with the shadows and the probe (`55_gfx`), the passes between the scene and the screen and the displays (`55_post`), and the grass (`55_grass`). 56-65: the garage's parts, the ratings, the feats, day and night, the game, the races (`60_race`), its HUD, menu, garage, touch controls and boot |
 | `shell/` | The page's head (title, styles, markup) and tail |
 | `tools/physcheck.js` | Steps the physics beside Dirt Sleeper Mini 4's (`tools/ref/dsm4-physics.js`) on the first three levels, with the e-brake's free centre diff switched off (`hbCentre`), and reports the worst difference: `node tools/physcheck.js` |
 | `tools/proving.js` | Every factory build through a drag run, grip tests and a 60-0 stop: `node tools/proving.js [build ids...]` |
+| `tools/races.js` | The whole world built as the game builds it and the robot drivers on it: `node tools/races.js oval stock race` (each build alone round a course: lap or stage time, top speed, how far it strayed, how often it was put back), `node tools/races.js field short 6` (a race), `node tools/races.js par` (the rivals' stage times, for `60_race`) |
 
 ## Where the pieces came from
 
@@ -74,5 +121,5 @@ the time of the split, with each fork's changes merged in:
   ground and rain (`55_gfx`), and the scene drawn at no more than the screen's own pixels.
 
 The game, HUD, menu, garage and touch modules are Mini Dirt Run Solo's, with the Sim card, the
-graphics choice and the developer panel (a Dev tab) added. Saved settings use their own `dshd-`
+graphics choice, the Races tab and the developer panel (a Dev tab) added. Saved settings use their own `dshd-`
 keys, so this version never reads or overwrites another version's.

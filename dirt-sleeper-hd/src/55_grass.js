@@ -73,7 +73,7 @@ function grassInit(){
   GRASS.tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,GRASS.tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.R32F,N,N,0,gl.RED,gl.FLOAT,W.H);
   for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
   const G=new Uint8Array(N*N*4),grass=W.D&&Ranch.SF?Ranch.SF.grass:0;
-  for(let k=0;k<N*N;k++){G[k*4]=Math.round(clamp(W.W[k*4],0,1)*255);G[k*4+3]=W.SC[k]===grass?255:0;}
+  for(let k=0;k<N*N;k++){G[k*4]=W.W[k*4];G[k*4+3]=W.SC[k]===grass?255:0;}
   GRASS.wt=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,GRASS.wt);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,N,N,0,gl.RGBA,gl.UNSIGNED_BYTE,G);
   for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
 }

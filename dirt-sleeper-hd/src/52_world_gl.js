@@ -1,7 +1,7 @@
 /* =====================================================================================
    THE WORLD ON THE GPU. The ground is cut into 64 m tiles, each meshed three times (every 2 m,
    4 m and 8 m) with a skirt hanging from its edges so tiles of different detail never show a
-   crack; near tiles get the fine mesh, far ones the coarse. On the mile-square map the fine
+   crack; near tiles get the fine mesh, far ones the coarse. On the two-mile map the fine
    meshes are made only for the tiles round the truck and let go behind it. Everything else the
    ranch code drew comes in tiles too, and the trees are drawn instanced, full shape near and a
    single lump far. Tiles behind the camera or past the fog are skipped.
@@ -11,7 +11,8 @@ const LOD_STEP=[1,2,4],LOD_DIST=[150,290],TREE_NEAR=95;
 /* one ground tile at one level of detail: every st-th grid point, skirts hanging off its edges */
 function groundMesh(W,t,st){
   const N=W.N,H=W.H,NR=W.NRM,WT=W.W,{i0,j0,i1,j1}=t,P=[],Nn=[],C=[],M=[],I=[],grid=[];let nv=0;
-  const put=(i,j,drop)=>{const k=j*N+i;P.push(W.x0+i*W.cell,H[k]-drop,W.z0+j*W.cell);Nn.push(NR[k*3],NR[k*3+1],NR[k*3+2]);C.push(WT[k*4],WT[k*4+1],WT[k*4+2],WT[k*4+3]);M.push(RMAT.TERRAIN);return nv++;};
+  /* (weights a byte each, 0 to 255; normals a signed byte each) */
+  const put=(i,j,drop)=>{const k=j*N+i;P.push(W.x0+i*W.cell,H[k]-drop,W.z0+j*W.cell);Nn.push(NR[k*3]/127,NR[k*3+1]/127,NR[k*3+2]/127);C.push(WT[k*4]/255,WT[k*4+1]/255,WT[k*4+2]/255,WT[k*4+3]/255);M.push(RMAT.TERRAIN);return nv++;};
   const is=[],js=[];for(let i=i0;i<i1;i+=st)is.push(i);is.push(i1);for(let j=j0;j<j1;j+=st)js.push(j);js.push(j1);
   for(const j of js){const row=[];for(const i of is)row.push(put(i,j,0));grid.push(row);}
   for(let b=0;b<js.length-1;b++)for(let a=0;a<is.length-1;a++){const p=grid[b][a],q=grid[b][a+1],r=grid[b+1][a],s=grid[b+1][a+1];I.push(p,s,q,p,r,s);}
@@ -48,7 +49,7 @@ function buildTrees(W){
 }
 function buildRanchGL(){
   const t0=performance.now(),W=Ranch.buildRanch(),t1=performance.now();
-  RANCH.W=W;RANCH.world=new GroundWorld(W.groundInto,W.colliders,790);
+  RANCH.W=W;RANCH.world=new GroundWorld(W.groundInto,W.colliders,FAR.EDGE-10);
   /* ground tiles: the middle and far meshes now, the fine one when the truck comes near */
   const N=W.N,TS=32,nt=Math.ceil((N-1)/TS),H=W.H;
   for(let tj=0;tj<nt;tj++)for(let ti=0;ti<nt;ti++){
@@ -63,6 +64,8 @@ function buildRanchGL(){
     const m=makeMesh({pos:new Float32Array(B.P),nrm:new Float32Array(B.N),col:new Float32Array(B.C),mat:new Float32Array(B.M),idx:new Uint32Array(B.idx)});
     m.tris=B.idx.length/3;RANCH.props.push({mesh:m,mn:B.mn,mx:B.mx,big:B.mx[0]-B.mn[0]>90||B.mx[2]-B.mn[2]>90});
   }
+  /* the builders' arrays are on the GPU now */
+  W.geo=null;
   RANCH.trees=buildTrees(W);
   RANCH.ms=performance.now()-t0;RANCH.shapeMs=t1-t0;
   return RANCH;

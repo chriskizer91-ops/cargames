@@ -2,8 +2,8 @@
    DAY AND NIGHT. High noon is the ranch as it always was. Night is a moon low in the east, a sky full of
    stars, fog that closes in to a few hundred metres (so the world past it isn't drawn at all, which makes
    night a little cheaper than day), your headlights, and the lights the ranch and the country already
-   have: the shop's yard lights, the drag strip's poles, the canopy at Feed & Fuel, the porch at home and
-   the paddock's floodlights. The scene shader takes eight lights; the headlights are two of them and the
+   have: the shop's yard lights, the drag strip's poles, the canopy at Feed & Fuel, the porch at home,
+   the paddock's floodlights, the speedway's light poles and the red light on the mast up the mountain. The scene shader takes eight lights; the headlights are two of them and the
    six fixtures nearest the car are the rest.
    ===================================================================================== */
 const TOD={
@@ -29,6 +29,8 @@ function fixtures(){
   out.push({p:at(-492,2.7,644.6),r:16,c:[2.6,2,1.3],d:null});out.push({p:at(-462,5.2,630),r:24,c:[3.2,2.7,1.9],d:V3.norm([0,-.8,.6]),cs:Math.cos(1.1)});
   /* the paddock's floodlights */
   for(const x of [380,455,530])out.push({p:at(x,10,458),r:42,c:[5.5,5.3,4.8],d:V3.norm([0,-1,.5]),cs:Math.cos(1.05)});
+  /* the far country's: the speedway's light poles, the mast's red light (50_far) */
+  for(const f of W.country.far.fix)out.push(f);
   return FIXTURES=out;
 }
 const LP=new Float32Array(32),LC=new Float32Array(32),LD=new Float32Array(32),LN={n:0};

@@ -1,6 +1,6 @@
 /* =====================================================================================
-   THE COUNTRY AROUND THE RANCH. The world is a mile square now, four times the ranch, with the
-   ranch in the middle as it was. Round it: gravel county roads with a crossroads and a feed and
+   THE COUNTRY AROUND THE RANCH. A mile square, four times the ranch, with the ranch in the middle
+   as it was (the world round it is two miles square now: 50_far). Round it: gravel county roads with a crossroads and a feed and
    fuel store, a home place at the end of a long rutted mud lane, woods with a trail and a pond
    to the north, and a paved road course in the south-east. The ranch build calls in here at each
    stage: the shape of the land, carving, the surface map, the ground in the lane's ruts, and the
@@ -11,7 +11,7 @@ const CTRY=(()=>{
 const sst=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
 const DEF={
   /* the county road, east to west below the ranch, edge to edge */
-  cr:[[-796,392],[-640,394],[-480,401],[-330,404],[-180,397],[-36,402],[120,407],[300,401],[480,400],[640,395],[796,398]],
+  cr:[[-1596,388],[-1440,394],[-1280,386],[-1120,393],[-960,389],[-796,392],[-640,394],[-480,401],[-330,404],[-180,397],[-36,402],[120,407],[300,401],[480,400],[640,395],[796,398],[960,402],[1120,397],[1280,401],[1440,398],[1596,400]],
   /* Range Road north from the track gate through the crossroads, the forest road west through the
      woods, then West Road south to the county road: one long gravel road */
   range:[[480,452],[480,400],[484,300],[476,160],[468,0],[480,-160],[498,-300],[488,-440],[470,-560],[430,-640],[340,-680],[220,-690],[80,-664],
@@ -40,13 +40,10 @@ function onPath(p,x,z,r=1){const n=p.nearest(x,z,r);if(!n)return null;const c=p.
 
 /* ---------- the land: softer hills in the far north, gentle rolls in the south, the rim moved out ---------- */
 const northEase=z=>1-.45*sst(-430,-600,z);
-function extra(x,z,NZ){const s=sst(330,470,z);return s>0?s*9*(NZ.fbm(x/210+4,z/210)-.5):0;}
-function rim(x,z,e,NZ){const w=sst(745,795,e);if(w<=0)return 0;
-  /* gaps where the county road runs off the edge of the map */
-  const gap=Math.exp(-Math.pow((z-396)/38,2))*sst(640,740,Math.abs(x));
-  return w*70*(.6+.4*NZ.fbm(x/80,z/80))*(1-gap);}
+function extra(x,z,NZ){const s=sst(330,470,z);return (s>0?s*9*(NZ.fbm(x/210+4,z/210)-.5):0)+FAR.lift(x,z,NZ);}
+const rim=(x,z,e,NZ)=>FAR.rim(x,z,e,NZ);
 function init(X){
-  const mp=X.makePath;S={X};
+  const mp=X.makePath;S={X};FAR.init(X);
   for(const k of ['cr','range','drive','lane','conn'])S[k]=mp(DEF[k],false);
   /* the lane's box, 3 m wider than its ruts: the ground query asks the lane only inside it */
   {const L=S.lane;let a=1e9,b=1e9,c=-1e9,d=-1e9;for(let i=0;i<L.N;i++){a=Math.min(a,L.X[i]);b=Math.min(b,L.Z[i]);c=Math.max(c,L.X[i]);d=Math.max(d,L.Z[i]);}S.laneBox=[a-3,b-3,c+3,d+3];}
@@ -63,7 +60,8 @@ function init(X){
     for(let j=-6;j<=6;j++)kb=Math.max(kb,sst(1/190,1/110,Math.abs(at(i+j))));
     for(let j=-34;j<=6;j++){const v=sst(1/120,1/70,Math.abs(at(i+j)));if(v>tr){tr=v;sd=at(i+j)>0?-1:1;}}
     S.kerb[i]=kb;S.trap[i]=tr;S.trapSide[i]=sd;}
-  S.keep=[[DEF.home.x-40,DEF.home.z-30,DEF.home.x+40,DEF.home.z+40],[400,312,560,392],[pd.x0-6,pd.z0-6,pd.x1+6,pd.z1+4],[372,512,478,536]];
+  S.keep=[[DEF.home.x-40,DEF.home.z-30,DEF.home.x+40,DEF.home.z+40],[400,312,560,392],[pd.x0-6,pd.z0-6,pd.x1+6,pd.z1+4],[372,512,478,536],
+    [FAR.DEF.lot.x0-4,FAR.DEF.lot.z0-4,FAR.DEF.lot.x1+4,FAR.DEF.lot.z1+30]];
 }
 const kerbAt=s=>S.kerb[Math.max(0,Math.min(S.kerb.length-1,Math.round(((s%S.track.len)+S.track.len)%S.track.len)))];
 const trapAt=s=>{const i=Math.max(0,Math.min(S.trap.length-1,Math.round(((s%S.track.len)+S.track.len)%S.track.len)));return [S.trap[i],S.trapSide[i]];};
@@ -75,7 +73,7 @@ function shape(x,z,h){
   const hx=x-DEF.home.x,hz=z-DEF.home.z;if(hx>-75&&hx<75&&hz>-75&&hz<75){w=1-sst(40,75,Math.hypot(hx,hz));if(w>0)h=h*(1-w)+S.Lh*w;}
   if(x>366&&x<596&&z>286&&z<450){w=1-sst(0,30,rdist(x,z,396,316,566,420));if(w>0)h=h*(1-w)+S.Ls*w;}
   const pd=DEF.paddock;if(x>pd.x0-50&&x<pd.x1+50&&z>pd.z0-48&&z<580){w=1-sst(0,40,rdist(x,z,pd.x0-10,pd.z0-8,pd.x1+10,540));if(w>0)h=h*(1-w)+S.Lp*w;}
-  return h;
+  return FAR.shape(x,z,h);
 }
 /* ---------- carving the roads, the track, the lane and the woods trails ---------- */
 function carve(X){
@@ -86,7 +84,9 @@ function carve(X){
   X.carve(S.drive,DEF.DRIVE_HALF+.3,6,6,0,.12,[S.cr]);
   X.carve(S.lane,2.6,5,6,0,.14,[S.cr]);
   X.carve(S.woods,3.2,6,5,0,.3,[S.range]);X.carve(S.conn,3.2,6,5,0,.3,[S.woods,X.loop]);
-  S.joins=DEF.joins.concat(...[S.range,S.drive,S.lane,S.woods,S.conn].map(p=>p.cross||[]));
+  /* the far country's roads, the stage, the oval and the short course (50_far) */
+  FAR.carve(X,{cr:S.cr,range:S.range});
+  S.joins=DEF.joins.concat(FAR.joins(),...[S.range,S.drive,S.lane,S.woods,S.conn].map(p=>p.cross||[]));
   /* ditches along the county road and Range Road, filled in at the junctions */
   const {H,N2,cell,x0,z0}=X;
   for(const [p,half] of [[S.cr,DEF.ROAD_HALF],[S.range,DEF.ROAD_HALF]]){const done=new Uint8Array(N2*N2),r=Math.ceil((half+5)/cell)+1;
@@ -94,8 +94,9 @@ function carve(X){
       for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const ii=ci+di,jj=cj+dj;if(ii<0||jj<0||ii>=N2||jj>=N2)continue;const k=jj*N2+ii;if(done[k])continue;done[k]=1;
         const x=x0+ii*cell,z=z0+jj*cell,n=p.nearest(x,z,1);if(!n)continue;let jd=1e9;for(const J of S.joins)jd=Math.min(jd,Math.hypot(x-J[0],z-J[1]));
         const u=(n.d-half-.6)/3.6;if(u<=0||u>=1)continue;let kd=1e9;for(const R of S.keep)kd=Math.min(kd,rdist(x,z,R[0],R[1],R[2],R[3]));H[k]-=.5*Math.sin(u*Math.PI)*sst(14,24,jd)*sst(0,6,kd);}}}
-  /* the lane: keep the ground it was carved to, then tuck the coarse ground under the ruts */
-  S.H0=H.slice();
+  /* the lane: keep the ground it was carved to (round the lane only), then tuck the coarse ground under the ruts */
+  {const B=S.laneBox,i0=Math.floor((B[0]-x0)/cell)-2,j0=Math.floor((B[1]-z0)/cell)-2,w=Math.ceil((B[2]-B[0])/cell)+5,h=Math.ceil((B[3]-B[1])/cell)+5,D=new Float32Array(w*h);
+    for(let j=0;j<h;j++)for(let i=0;i<w;i++)D[j*w+i]=H[(j0+j)*N2+i0+i];S.H0={i0,j0,w,D};}
   {const done=new Uint8Array(N2*N2),r=Math.ceil(4/cell)+1,p=S.lane;
     for(let i=0;i<p.N;i+=2){const ci=Math.round((p.X[i]-x0)/cell),cj=Math.round((p.Z[i]-z0)/cell);
       for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const ii=ci+di,jj=cj+dj;if(ii<0||jj<0||ii>=N2||jj>=N2)continue;const k=jj*N2+ii;if(done[k])continue;done[k]=1;
@@ -112,7 +113,7 @@ function needMask(){NEED=new Uint8Array(65536);const B=16,P=DEF.pond,mark=(x,z,r
 function surface(X,k,x,z){
   const W=X.W,SC=X.SC,SF=X.SF,H=X.H;
   if(!NEED)needMask();
-  if(!NEED[(Math.floor(x/16)+128)*256+Math.floor(z/16)+128]){const wd=sst(-390,-470,z);if(wd>0){W[k*4]*=1-.35*wd;W[k*4+3]*=1-.16*wd;}return;}
+  if(!NEED[(Math.floor(x/16)+128)*256+Math.floor(z/16)+128]){const wd=sst(-390,-470,z);if(wd>0){W[k*4]*=1-.35*wd;W[k*4+3]*=1-.16*wd;}FAR.surface(X,k,x,z);return;}
   let g=W[k*4],r=W[k*4+1],m=W[k*4+2],ao=W[k*4+3],code=SC[k];
   if(!ROADS)ROADS=[[S.cr,DEF.ROAD_HALF],[S.range,DEF.ROAD_HALF],[S.drive,DEF.DRIVE_HALF]];
   /* the woods: a shaded, leafy floor */
@@ -142,18 +143,19 @@ function surface(X,k,x,z){
   if(x>=490&&x<=556&&z>=334&&z<=392||x>=410&&x<=452&&z>=336&&z<=368||x>=pd.x0&&x<=pd.x1&&z>=pd.z0&&z<=pd.z1)code=SF.concrete,g=0,r=0,m=0;
   if(x>=-482&&x<=-452&&z>=620&&z<=648)code=SF.gravel,g=0,r=0,m=0;
   W[k*4]=g;W[k*4+1]=r;W[k*4+2]=m;W[k*4+3]=ao;SC[k]=code;
+  FAR.surface(X,k,x,z);
 }
 /* is (x, z) where something new now runs? (the ranch's own trees and rocks keep off it) */
 function blocked(x,z,r){
   for(const [p,w] of [[S.drive,DEF.DRIVE_HALF+4],[S.conn,6],[S.cr,9],[S.range,9]]){const n=p.nearest(x,z,2);if(n&&n.d<w+r)return true;}
-  return false;
+  return FAR.blocked(x,z,r);
 }
 /* ---------- the lane's ruts: the ground under the wheels, finer than the 2 m grid ---------- */
 function rutDepth(s,side){const N=S.X.NZ;return .07+.15*sst(.3,.72,N.fbm(s/26+3.1,1.7))+.05*(N.fbm(s/8,side*4.3)-.5);}
 function rutP(off,s){const a=Math.abs(off);if(a>=2.5)return 0;const dep=rutDepth(s,off<0?-1:1);
   let y=-dep*Math.exp(-Math.pow((a-.82)/.27,2))+.07*Math.exp(-Math.pow((a-1.42)/.3,2))+.03*(1-sst(.2,.5,a));return y*(1-sst(1.9,2.5,a))*sst(0,8,s)*sst(S.lane.len,S.lane.len-6,s);}
-function h0At(x,z){const {N2,cell,x0,z0}=S,H=S.H0;let fx=(x-x0)/cell,fz=(z-z0)/cell,i=Math.floor(fx),j=Math.floor(fz);fx-=i;fz-=j;
-  const h00=H[j*N2+i],h10=H[j*N2+i+1],h01=H[(j+1)*N2+i],h11=H[(j+1)*N2+i+1];
+function h0At(x,z){const {cell,x0,z0}=S,{i0,j0,w,D}=S.H0;let fx=(x-x0)/cell,fz=(z-z0)/cell,i=Math.floor(fx),j=Math.floor(fz);fx-=i;fz-=j;i-=i0;j-=j0;
+  const h00=D[j*w+i],h10=D[j*w+i+1],h01=D[(j+1)*w+i],h11=D[(j+1)*w+i+1];
   return fx>fz?[h00+(h10-h00)*fx+(h11-h10)*fz,(h10-h00)/cell,(h11-h10)/cell]:[h00+(h11-h01)*fx+(h01-h00)*fz,(h11-h01)/cell,(h01-h00)/cell];}
 function laneGround(x,z){
   const B=S.laneBox;if(x<B[0]||z<B[1]||x>B[2]||z>B[3])return null;
@@ -318,7 +320,7 @@ function geometry(X){
   /* ---------- trees: the woods, groves, windbreaks, shade round the house ---------- */
   const CL=[[S.cr,10],[S.range,10],[S.drive,8],[S.lane,7],[S.woods,6.5],[S.conn,6.5]];
   const clear=(x,z,r)=>{
-    if(Math.abs(x)>772||Math.abs(z)>772)return false;
+    if(Math.abs(x)>772||Math.abs(z)>772||FAR.blocked(x,z,r))return false;
     /* the road course and its infield stay open */
     if(x>84&&x<774&&z>470&&z<780)return false;
     if(Math.hypot((x-DEF.pond.x)/DEF.pond.rx,(z-DEF.pond.z)/DEF.pond.rz)<1.3)return false;
@@ -344,9 +346,12 @@ function geometry(X){
   const bale=(x,z,a)=>{const y=hAt(x,z),dx=Math.cos(a)*.75,dz=Math.sin(a)*.75;C2.mat(22).col(255,255,255,255);C2.at(x,z).tube([x-dx,y+.62,z-dz],[x+dx,y+.62,z+dz],.62,12,!0);cc(x,z,.9,y+1.25);};
   for(const [x0b,z0b,nx,nz] of [[-720,470,6,4],[-260,660,5,3],[600,-300,4,5],[-700,-100,3,6]])for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){
     const x=x0b+i*24+(Rg()-.5)*6,z=z0b+j*26+(Rg()-.5)*6;if(Rg()<.7&&clear(x,z,3))bale(x,z,Rg()*3);}
+  /* ---------- the far country (50_far), with the same tools ---------- */
+  Object.assign(X,{band,across,pad,glow,gable,post,bale});
+  FAR.geometry(X);
 }
 /* things the game needs to know about the new places */
-function info(){return {cr:S.cr,range:S.range,drive:S.drive,lane:S.lane,woods:S.woods,conn:S.conn,track:S.track,pond:Object.assign({level:S.Lw},DEF.pond),home:DEF.home,store:DEF.store,paddock:DEF.paddock,DEF};}
+function info(){return {cr:S.cr,range:S.range,drive:S.drive,lane:S.lane,woods:S.woods,conn:S.conn,track:S.track,pond:Object.assign({level:S.Lw},DEF.pond),home:DEF.home,store:DEF.store,paddock:DEF.paddock,DEF,far:FAR.info()};}
 return {DEF,init,northEase,extra,rim,shape,carve,surface,blocked,laneGround,geometry,info,onPath,dirW};
 })();
 

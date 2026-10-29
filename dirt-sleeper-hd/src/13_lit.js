@@ -427,8 +427,30 @@ void main(){
       pud=rut*smoothstep(.15,.19,dep+(n3-.5)*.05);
       em=0.;
     }
+    else if(m==56){
+      /* the dirt oval's clay (blue 0) or the short course's loose dirt (blue 1): a dark polished groove where the
+         cars run, loose stuff thrown up to the outside, the line across at the start; alpha = half width */
+      float sx=vC.r,d=vC.g,ad=abs(d),hw=em,kind=vC.b,n2=vn(wp*.8),n3=vn(wp*3.7);
+      vec3 c=kind<.5?mix(vec3(.25,.11,.055),vec3(.34,.16,.08),n2)*(.84+.26*n3):dirtCol(wp)*(.92+.12*n3);
+      float groove=exp(-pow((d-(kind<.5?-.25*hw:0.))/(hw*.42),2.)),rut=kind>.5?max(exp(-pow((d-1.)/.45,2.)),exp(-pow((d+1.)/.45,2.)))*.6:0.;
+      float cushion=smoothstep(hw*.55,hw*.95,kind<.5?d:ad)*(.6+.4*n3);
+      c*=1.-.28*groove-.15*rut;c=mix(c,c*1.22+vec3(.025,.018,.01),cushion*.7);
+      dirtDetail(wp,c,(1.-groove*.7)*(.45+.55*cushion));
+      if(kind<.5&&d<-hw)c=mix(c*.8,vec3(.5,.49,.46),(1.-step(.12,abs(d+hw+.15))));
+      if(kind>.5&&ad>hw){vec3 gc=grassCol(wp);grassDetail(wp,gc);c=mix(c,gc,smoothstep(hw,hw+.8,ad+(n2-.5)*.6));}
+      c=mix(c,vec3(.72,.7,.66),(1.-step(.35,abs(sx-.35)))*step(ad,hw)*(1.-.5*smoothstep(.45,.8,vn(vec2(sx,d)*vec2(3.,1.5)))));
+      alb=c;spec=.05+.16*groove;shin=10.+36.*groove;em=0.;
+    }
+    else if(m==57){
+      /* the dry lake: pale clay baked into plates, the cracks between them, darker where the cars have run */
+      float n1=vn(wp*.04),n2=vn(wp*.6),n3=vn(wp*4.1);
+      vec3 c=mix(vec3(.29,.25,.2),vec3(.36,.32,.26),n1)*(.9+.1*n2+.06*n3);
+      float tr=smoothstep(.55,.8,fbm(wp*.02+3.))*.25;c*=1.-tr;
+      mudCracks(wp*.55,c,.9,spec);vec3 b=vnd(wp*1.3);gG+=b.yz*1.3*.01*near(.15);
+      alb=c;spec=.03;shin=8.;
+    }
     /* rain soaks the porous ground dark and puts a sheen with the world in it on the hard ground; low spots fill */
-    float por=m==40||m==42||m==43||m==44||m==53||m==55?1.:0.,hard=m==54||m==45?1.:0.;
+    float por=m==40||m==42||m==43||m==44||m==53||m==55||m==56||m==57?1.:0.,hard=m==54||m==45?1.:0.;
     if(uWet>0.){alb*=1.-uWet*(.36*por+.22*hard);spec=mix(spec,.6,uWet*(.75*hard+.2*por));shin=mix(shin,160.,uWet*(hard+.4*por));
       if(por>0.)pud=max(pud,smoothstep(.66,.72,fbm(wp*.09+11.3)*.8+vn(wp*.55)*.2+uWet*.12-.1)*uWet*.9);}
     if(pud>0.){alb=mix(alb,alb*.35+vec3(.02,.015,.01),pud*.85);gG*=1.-pud;

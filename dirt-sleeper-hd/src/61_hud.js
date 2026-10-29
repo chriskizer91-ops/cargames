@@ -1,6 +1,6 @@
 /* =====================================================================================
    THE DOT-MATRIX HUD: the car, where it is and your money (top left), a map round the car (top right; M for
-   the whole mile), Shiftlight 2's shift lights, tach, gear and speed (bottom right, or top middle on a phone),
+   the whole two miles), Shiftlight 2's shift lights, tach, gear and speed (bottom right, or top middle on a phone),
    what the car is doing (chips), the feat going on now and the combo (top middle), a clock run's target,
    and messages in the middle.
    ===================================================================================== */
@@ -10,7 +10,7 @@ let MAPBMP=null;
    and the big map both read from it */
 function mapBitmap(){
   if(MAPBMP)return MAPBMP;
-  const W=RANCH.W,span=W.D.size,n=512,px=new Uint32Array(n*n),T=W.trees;
+  const W=RANCH.W,span=W.D.size,n=1024,px=new Uint32Array(n*n),T=W.trees;
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){
     const x=-span/2+(i+.5)/n*span,z=-span/2+(j+.5)/n*span,g=W.groundAt(x,z),c=MAPC[g.surf]||MAPC.dirt,sh=.62+.5*clamp(g.n[0]*.6-g.n[2]*.5+g.n[1]*.5,0,1),hh=clamp(.8+g.y/120,.75,1.25);
     px[j*n+i]=pack(c[0]*sh*hh,c[1]*sh*hh,c[2]*sh*hh,235);}
@@ -27,14 +27,17 @@ function drawMap(x0,y0,size){
   hRect(x0-1,y0-1,size+2,size+2,pack(0,0,0,200));
   for(let j=0;j<n;j++){const Y=Y0+j;if(Y<0||Y>=BH)continue;const o=Y*BW+X0,bz=Math.floor((t.p[2]+(j+.5-n/2)*mpp+h)*sc);
     for(let i=0;i<n;i++){const bx=Math.floor((t.p[0]+(i+.5-n/2)*mpp+h)*sc);HB[o+i]=bx<0||bz<0||bx>=B.n||bz>=B.n?off:B.px[bz*B.n+bx];}}
+  /* the others in a race */
+  if(RACE.on)for(const o of RACE.cars){if(o.me||o.gone)continue;const mx=x0+size/2+(o.car.p[0]-t.p[0])/MINI_SPAN*size,my=y0+size/2+(o.car.p[2]-t.p[2])/MINI_SPAN*size;
+    if(mx>x0+1&&mx<x0+size-1&&my>y0+1&&my<y0+size-1)hDisc(mx,my,1.3,o.out?PAL.dim:PAL.red);}
   if(RUN.on){const r=RUN.on,mx=x0+size/2+(r.to[0]-t.p[0])/MINI_SPAN*size,my=y0+size/2+(r.to[1]-t.p[2])/MINI_SPAN*size;
     const cx=clamp(mx,x0+2,x0+size-2),cy=clamp(my,y0+2,y0+size-2);hDisc(cx,cy,2.2,(APP.t*3|0)%2?PAL.gold:PAL.white);}
   mapArrow(x0+size/2,y0+size/2);
   hFrame(x0-1,y0-1,size+2,size+2,pack(255,255,255,60));
   txt3('N',x0+size/2-1,y0+1,pack(255,255,255,150));
 }
-/* the big map (M, or tap the corner map): the whole mile, the places, where the car is */
-const MAPLBL={shop:'RANCH',climb:'RED HILL',mudtrack:'MUD TRACK',home:'HOME',store:'FEED+FUEL',track:'TRACK',pond:'POND',woods:'WOODS'};
+/* the big map (M, or tap the corner map): the whole two miles, the places, where the car is */
+const MAPLBL={shop:'RANCH',climb:'RED HILL',home:'HOME',store:'FEED+FUEL',track:'TRACK',pond:'POND',speedway:'SPEEDWAY',short:'SHORT COURSE',top:'SUMMIT',rally:'RALLY',lake:'DRY LAKE'};
 function drawBigMap(){
   const B=mapBitmap(),size=Math.min(H-14,W-14)|0,x0=Math.round((W-size)/2),y0=Math.round((H-size)/2),n=size*HS,X0=x0*HS,Y0=y0*HS,f=B.n/n;
   hRect(0,0,W,H,pack(0,0,0,110));hRect(x0-2,y0-2,size+4,size+4,pack(0,0,0,225));
@@ -45,7 +48,7 @@ function drawBigMap(){
   if(RUN.on){const [rx,ry]=toM(RUN.on.to[0],RUN.on.to[1]);hDisc(rx,ry,2.4,PAL.gold);otxt3('FINISH',rx+4,ry-2,PAL.gold);}
   const t=GAME.car,[tx,ty]=toM(t.p[0],t.p[2]);mapArrow(tx,ty,1.3);
   hFrame(x0-2,y0-2,size+4,size+4,pack(255,255,255,70));
-  otxt3(GAME.touch?'TAP TO CLOSE':'M TO CLOSE',x0+3,y0+size-8,PAL.dim);otxt3('1 MILE',x0+size-3,y0+size-8,PAL.dim,1,'r');
+  otxt3(GAME.touch?'TAP TO CLOSE':'M TO CLOSE',x0+3,y0+size-8,PAL.dim);otxt3('2 MILES',x0+size-3,y0+size-8,PAL.dim,1,'r');
 }
 /* where the corner map sits, for taps */
 const miniRect=()=>{const ms=Math.round(H*.27),[,ir]=hudInset();return [W-ms-5-ir,13,ms,ms];};
@@ -92,7 +95,7 @@ function drawHud(c){
   if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
-  drawFeatsHud();
+  drawFeatsHud();drawRaceHud(lx,sc);
   if(!on){const msg=GAME.touch?'TAP GAS TO START':'PRESS W OR I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-26,GR.steel,1,'c');}
   else if(pt.st==='crank')otxt3('CRANKING',W/2,H-22,PAL.amber,1,'c');
   /* a lap under way on the road course */
@@ -109,6 +112,34 @@ function drawHud(c){
   for(let i=GAME.msgs.length-1;i>=0;i--){const m=GAME.msgs[i];m.a=APP.t-m.t0;if(m.a>m.k){GAME.msgs.splice(i,1);continue;}
     const al=Math.round(255*clamp(Math.min(m.a*6,(m.k-m.a)*3),0,1)),big=i===GAME.msgs.length-1&&tw5(m.t,1)<W*.8;
     otxt5(m.t,W/2,y,big?GR.steel:GR.steel.map(c=>((c&0xffffff)|(al<<24))>>>0),1,'c');y+=10;}
+}
+/* a race (60_race): the lights, your place, the lap and the time, the gaps; a stage's clock and splits; the drag tree */
+function drawRaceHud(lx,sc){
+  if(!RACE.on||!RACE.me)return;
+  const ev=RACE.ev,me=RACE.me,tch=GAME.touch,clk=RACE.state==='grid'?0:RACE.clock;let y=7+7*sc+(tch?40:30);
+  /* the lights: three red (the drag tree's ambers), then green */
+  if(RACE.state==='grid'||RACE.clock<1.2){const drag=ev.kind==='drag',cx=Math.round(W/2),cy=Math.round(H*(tch?.32:.24)),n=3,on=RACE.lights,go=RACE.green;
+    hRect(cx-(drag?8:21),cy-8,drag?16:42,drag?44:16,pack(4,3,8,190));
+    for(let k=0;k<n;k++){const px=drag?cx:cx-12+k*12,py=drag?cy-2+k*9:cy,lit=go||k<on;hDisc(px,py,3.6,lit?(go?PAL.green:drag?PAL.amber:PAL.red):pack(40,30,30,255));}
+    if(drag){hDisc(cx,cy+25,3.6,go?PAL.green:pack(30,40,30,255));if(RACE.foul)hDisc(cx,cy+33,3.6,PAL.red);}
+    if(drag&&RACE.state==='grid'&&inputThr()>.5&&!RACE.foul)otxt3('OFF THE GAS UNTIL GREEN',cx,cy+40,PAL.amber,1,'c');}
+  if(ev.kind==='stage'){const len=RACE.s1-RACE.s0,togo=Math.max(0,RACE.s1-(me.trk.s||RACE.s0));
+    otxt3('STAGE',lx,y,PAL.dim);otxt5(fmtLap(me.done?me.time:clk),lx,y+7,GR.volt,1);
+    otxt3((togo/1000).toFixed(2)+' KM TO GO',lx,y+17,PAL.ink);
+    const best=Math.min(...RACE.rivals.map(r=>r.time));otxt3('TO BEAT '+fmtLap(best),lx,y+25,PAL.dim);void len;return;}
+  if(ev.kind==='drag'){otxt5(fmtLap(me.done?me.time:clk),lx,y,GR.volt,1);if(RACE.rt!==null)otxt3('RT '+RACE.rt.toFixed(3),lx,y+10,PAL.ink);return;}
+  const order=raceOrder(),pos=order.indexOf(me)+1,live=RACE.cars.filter(c=>!c.out).length,laps=Math.max(0,Math.min(ev.laps,(me.laps||0)+1));
+  otxt5('P'+pos,lx,y,GR.gold,sc);txt3('/'+(ev.kind==='elim'?live:RACE.cars.length),lx+tw5('P'+pos,sc)+2,y+(sc>1?7:3),PAL.dim);y+=7*sc+3;
+  otxt3((me.done?'FINISHED':'LAP '+laps+'/'+ev.laps),lx,y,me.done?PAL.gold:PAL.ink);otxt3(fmtLap(me.done?me.time:clk),lx+44,y,PAL.ink);y+=8;
+  /* the gaps to the cars either side, in seconds at your speed */
+  const L=me.trk.line,v=Math.max(8,GAME.car.speed),gap=c=>{let d=(c.prog||0)-(me.prog||0);return d/v;};
+  const a=order[pos-2],b=order[pos];
+  if(a&&!a.done&&!me.done)otxt3('AHEAD '+Math.abs(gap(a)).toFixed(1),lx,y,PAL.dim),y+=7;
+  if(b&&!b.out&&!me.done)otxt3('BEHIND '+Math.abs(gap(b)).toFixed(1),lx,y,PAL.dim),y+=7;
+  /* the running order, on a big screen */
+  if(!tch&&H>=170){y+=3;for(let k=0;k<order.length;k++){const c=order[k],nm=(c.me?'YOU':c.name.split(' ').pop().toUpperCase()).slice(0,9);
+    txt3((k+1)+' '+nm,lx,y,c.me?PAL.gold:c.out?pack(80,70,90):PAL.ink);y+=6;}}
+  void L;
 }
 /* the feat going on now (drifting, in the air, on two wheels, a speed run, a burnout) and the combo with
    its money, its multiplier and how long until it banks */

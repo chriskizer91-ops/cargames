@@ -76,6 +76,8 @@ function casters(K,t,u){
   for(let v=0;v<5;v++){const n=TR.cnt[v][l];if(!n)continue;const m=TR.shapes[v][l];setInst(m,TR.buf[v][l].subarray(0,n*12));drawMeshI(m);tris+=m.tris*n;}
   gl.uniform1f(u.uInst,0);
   if(t&&Math.hypot(t.p[0]-ctr[0],t.p[2]-ctr[2])<R+4)tris+=carShadow(t,u);
+  /* the other cars in a race (60_race) */
+  if(t)for(const o of raceCars())if(Math.hypot(o.p[0]-ctr[0],o.p[2]-ctr[2])<R+4)tris+=carShadow(o,u,true);
   return tris;
 }
 /* the cascades for this frame: the near one every frame, the others every second (or third) and fourth */
@@ -93,10 +95,11 @@ function csmPass(c,t){
   CSM.fresh=false;gl.disable(gl.POLYGON_OFFSET_FILL);CSM.tris=tris;
 }
 /* the car into the map: the same pieces and matrices drawWorldCar uses */
-function carShadow(t,u){
+function carShadow(t,u,far){
   const i=t.bi,b=t.build,T=truck(i),D=T.D,M0=carMatrix(t);let Mb=M0;
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
-  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);
+  gl.uniformMatrix4fv(u.uM,false,Mb);
+  if(far){const F=truckFar(i);drawMesh(F.body);drawMesh(F.hood);}else{drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
   for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;

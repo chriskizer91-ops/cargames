@@ -59,6 +59,11 @@ function computePlaces(){
   const C=W.country,T=C.track,wn=C.woods.nearest(-250,-520,2).s;
   PLACES.push(['home','Home',-468,630,Math.atan2(16,10)],['lane','The lane',...at(C.lane,8),dirYaw(C.lane,8)],['store','Feed & Fuel',506,387,PI],
     ['track','Race track',...at(T,T.len-40),dirYaw(T,T.len-40)],['county','County road',300,401,0],['pond','The pond',-60,-474,PI/2],['woods','Woods trail',...at(C.woods,wn),dirYaw(C.woods,wn)]);
+  /* the far country (50_far) */
+  const F=C.far,pad=F.pad;
+  PLACES.push(['speedway','Speedway',...at(F.oval,F.oval.len-60),dirYaw(F.oval,F.oval.len-60)],['short','Short course',...at(F.short,F.short.len-30),dirYaw(F.short,F.short.len-30)],
+    ['summit','Summit Road',...at(F.summit,12),dirYaw(F.summit,12)],['top','Mountain top',(pad[0]+pad[2])/2,(pad[1]+pad[3])/2,PI],
+    ['rally','Rally stage',...at(F.rally,12),dirYaw(F.rally,12)],['lake','Dry lake',...at(F.lakeLoop,F.lakeLoop.len-40),dirYaw(F.lakeLoop,F.lakeLoop.len-40)]);
 }
 /* the name of the place the car is in */
 function placeName(x,z){
@@ -85,10 +90,27 @@ function placeName(x,z){
   if(Math.hypot((x-P.x)/P.rx,(z-P.z)/P.rz)<1.5)return 'The pond';
   if(near(C.woods,8)||near(C.conn,8))return 'Woods trail';
   if(near(C.drive,7))return 'Ranch drive';
+  /* the far country */
+  const F=C.far,L=F.DEF.lake,sp=F.DEF.speedway,pad=F.pad;
+  {const n=F.oval.nearest(x,z,2);if(n&&n.d<26)return n.s<110||n.s>F.oval.len-110?'Speedway: the front straight':'Speedway';}
+  if(near(F.short,14))return 'Short course';
+  if(x>sp.x0-10&&x<sp.x1+10&&z>sp.z0-10&&z<sp.z1+10)return z>F.DEF.lot.z0-6?'Speedway car park':'Speedway Park';
+  if(x>pad[0]-6&&x<pad[2]+6&&z>pad[1]-6&&z<pad[3]+6)return 'The summit';
+  if(near(F.summit,10))return 'Summit Road';
+  if(near(F.rally,9))return 'Rally stage';
+  if(near(F.mill,9))return 'Mill Road';
+  if(near(F.brook,8))return 'The brook';
+  if(Math.hypot((x-L.x)/L.rx,(z-L.z)/L.rz)<1.05)return 'Dry lake';
+  if(near(F.lakeRd,9))return 'Lake road';
+  if(near(F.spRd,9))return 'Speedway road';
   if(near(C.cr,9))return 'County road';
   if(near(C.range,9))return z<-560?'Forest road':x<0?'West road':'Range road';
-  if(z<-430)return 'The woods';
-  if(Math.abs(x)>740||Math.abs(z)>740)return 'Edge of the map';
+  if(Math.abs(x)>1540||Math.abs(z)>1540)return 'Edge of the map';
+  if(z<-760&&x>-700&&x<900)return 'Bald Mountain';
+  if(x<-820)return 'Cedar Hills';
+  if(z<-430&&Math.abs(x)<800)return 'The woods';
+  if(x>800)return 'East country';
+  if(z>800)return 'The flats';
   if(z>410)return 'The fields';
   return Math.abs(x)<400&&Math.abs(z)<400?'Open range':'Open country';
 }
@@ -96,7 +118,7 @@ function say(t,k=2.4,col){GAME.msgs.push({t,k,a:0,t0:APP.t,col});if(GAME.msgs.le
 /* the phone buzzes (Android; iPhones ignore it) */
 let BUZZ_T=0;
 function buzz(p){if(!APP.haptics||!navigator.vibrate||GAME.state!=='drive')return;const now=performance.now();if(now-BUZZ_T<60)return;BUZZ_T=now;try{navigator.vibrate(p);}catch(e){}}
-Feats.pop=(t,col,big)=>say(t,big?2.6:2,col);Feats.buzz=buzz;Feats.carName=carLabel;Feats.place=()=>GAME.place;Feats.load('dshd-free');
+Feats.pop=(t,col,big)=>say(t,big?2.6:2,col);Feats.buzz=buzz;Feats.carName=carLabel;Feats.place=()=>GAME.place;Feats.racing=()=>RACE.on;Feats.load('dshd-free');
 
 /* ---------- the car on the ground ---------- */
 const SETTLE={steer:0,thr:0,brk:1,hb:0,nos:false};
@@ -111,11 +133,12 @@ function placeCar(x,z,yaw){
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;PRB.fresh=true;CSM.fresh=true;
 }
 /* the meshes of builds no longer driven are let go (the wheels are shared and stay) */
-function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
+function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine,T.far&&T.far.body,T.far&&T.far.hood])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
 const RECENT=[];
 /* what the Sim level builds the car with: roof loads move its centre of gravity, plus any cargo */
 const simOpts=()=>APP.level==='sim'?{cg:!!SIMDEV.cg,cargo:simVal(SIM_CARGO,SIMSET.cargo)}:null;
 function spawnCar(i,x,z,yaw){
+  if(RACE.on)raceEnd('Race abandoned');
   const prev=GAME.car,t=makeCar(i,RANCH.world,simOpts());t.setAssists(APP.level);devFit(t);
   const b=BUILDS[i];RECENT.unshift(b.id);RECENT.length=Math.min(RECENT.length,3);truckEvict(RECENT);truck(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
@@ -130,7 +153,7 @@ function spawnCar(i,x,z,yaw){
 /* drive the current car's rig (after a garage change or a new car) */
 function spawnRig(keepPlace=true){const t=GAME.car;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));}
 function resetCar(){const t=GAME.car;placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));}
-function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
+function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;if(RACE.on)raceEnd('Race abandoned');placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
 /* overdrive off: the automatic holds out of its top gear (the button on the shifter) */
 function setOD(on){const pt=GAME.car.pt;if(!pt.e.conv)return false;APP.od=on;pt.maxG=on?pt.e.nG-1:0;if(on&&pt.gear>pt.maxG&&pt.shiftT<=0)pt.shift(-1);return true;}
 
@@ -193,11 +216,11 @@ function pollInput(dt){
 const IDLE_IN={steer:0,thr:0,brk:1,hb:1,nos:false};
 function step(dt){
   const t=GAME.car,inp=pollInput(dt),pt=t.pt;
-  if(inp.menu){GAME.state==='drive'?openMenu(false):closeMenu();}
+  if(inp.menu){if(GAME.state==='results')hideResults();else GAME.state==='drive'?openMenu(false):closeMenu();}
   let drive=IDLE_IN;
   if(GAME.state==='drive'){
     if(inp.cam){APP.cam=(APP.cam+1)%CAMS.length;CAM.cut=true;saveGame();say(CAMS[APP.cam]+' camera',1.2);}
-    if(inp.reset){resetCar();say('Reset',1);}
+    if(inp.reset){if(RACE.on&&RACE.state!=='grid')raceResetMe();else if(!RACE.on)resetCar();say('Reset',1);}
     if(inp.up)pt.shift(1);if(inp.down)pt.shift(-1);
     if(inp.low)say(setLow(t,!t.low)?(t.low?'Low range':'High range'):'No low range on this car',1.4);
     if(inp.lockers)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this car',1.4);
@@ -213,8 +236,12 @@ function step(dt){
     if(!pt.e.launch&&inp.brk>.5&&inp.thr>.3&&t.speed<3&&!t.rev&&pt.running)drive=Object.assign({},inp,{brk:0,lock:true});
     if((inp.thr>.1||inp.brk>.1)&&pt.st==='off'&&!GAME.busy&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
   }
+  /* a race: held on the grid until the lights go green; paused with the menu up (60_race) */
+  if(RACE.on&&RACE.hold)drive={steer:0,thr:drive.thr||0,brk:1,hb:1,nos:false};
+  if(RACE.on&&GAME.state!=='drive'){GAME.acc=0;return;}
   GAME.acc+=dt;let n=0;
-  while(GAME.acc>=DT&&n<24){t.step(DT,drive);GAME.acc-=DT;n++;GAME.time+=DT;}
+  if(RACE.on)raceFrame(dt);
+  while(GAME.acc>=DT&&n<24){t.step(DT,drive);if(RACE.on)raceSub(DT);GAME.acc-=DT;n++;GAME.time+=DT;}
   if(GAME.acc>DT)GAME.acc=0;
   /* rolled over: say how to get back up; Kids flips it back by itself */
   if(t.M[4]<.3&&t.speed<1.5){GAME.flipT+=dt;
@@ -233,7 +260,7 @@ function step(dt){
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);lapStep(dt,t);runStep(dt,t);}
+  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(dt);else{lapStep(dt,t);runStep(dt,t);}}
 }
 /* ---------- Sim: say so when the brakes or the shocks start to fade ---------- */
 const SIMW={brake:false,shock:false};
@@ -353,12 +380,14 @@ function carUniformsW(t,v,dirt){
 /* one car where the physics has it: the body (tail-up over big rear tyres, as on the turntable), the hood
    shut, a blower through it, the spares, flames from the pipes, and each wheel at its own hub, steered and
    turning. Mud is measured up the car itself, not up the world */
-function drawWorldCar(t,v,dirt){
+function drawWorldCar(t,v,dirt,far){
   const i=t.bi,b=t.build,T=truck(i),D=T.D,u=CUR.u,M0=carMatrix(t);let Mb=M0;
   carUniformsW(t,v,dirt);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
-  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);
-  if(T.engineOut)drawMesh(T.bay.engine);
+  gl.uniformMatrix4fv(u.uM,false,Mb);
+  /* a car far off (another car in a race) is drawn from its coarse copy */
+  if(far){const F=truckFar(i);drawMesh(F.body);drawMesh(F.hood);}
+  else{drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
   if(v&&v.flame>.04&&D.tips)for(const tp of D.tips){
@@ -368,7 +397,7 @@ function drawWorldCar(t,v,dirt){
     const M=M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0],w.hp[1]-w.len+t.cg[1],w.hp[2]),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang)))));
     gl.uniformMatrix4fv(u.uM,false,M);drawMesh(w.front?T.wheel:T.wheelR);}
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);
-  return T.tris;
+  return far?truckFar(i).tris+T.tris-(T.body.n+T.hood.n+T.hide.n)/3:T.tris;
 }
 function render(dt){
   hClear();
@@ -377,11 +406,11 @@ function render(dt){
   csmPass(c,t);probePass(t);
   gl.bindFramebuffer(gl.FRAMEBUFFER,T.f);gl.viewport(0,0,T.w,T.h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);useLit(P_LIT);
-  worldUniforms(c);gfxUniforms();skyLights(t);worldShadows([t]);
+  worldUniforms(c);gfxUniforms();skyLights(t);worldShadows([t,...raceCars()]);
   /* at night the fog closes in and the world past it isn't drawn; by day the graphics level sets how far */
   let tris=drawRanch(c,SKY.night?SKY.draw:GFX.far);
   tris+=grassDraw(c,t);
-  tris+=drawWorldCar(t,GAME.voice,GAME.dirt);
+  tris+=drawWorldCar(t,GAME.voice,GAME.dirt);tris+=raceDraw(c);
   tris+=fxDraw();tris+=rainDraw(c,dt);
   /* the dust and spray last, blended over the rest (into the colour only, not the normals the passes read) */
   if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.NONE]);tris+=fxDrawSoft(c);if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);
@@ -410,7 +439,7 @@ let LAST=0;
 function frame(ts){
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
-  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);if(CAM.last)soundUpdate(CAM.last);autoDetail(dt);drsStep(dt);}catch(e){console.error(e);}
+  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);if(CAM.last){soundUpdate(CAM.last);raceSound(CAM.last);}autoDetail(dt);drsStep(dt);}catch(e){console.error(e);}
   APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps';}
   requestAnimationFrame(frame);

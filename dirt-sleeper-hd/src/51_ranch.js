@@ -6,11 +6,11 @@
    (see RMAT and 61_ranchmesh.js). The coarse ground is meshed separately, with levels of detail.
    Speed-ups that change nothing: the noise hash uses Math.imul, the spatial hashes use number keys,
    paths skip buckets with nothing near, and noise terms with no weight aren't worked out.
-   The world is a mile square now: the hills that closed the ranch in have moved out to the new edge,
-   and the country round it (59_country.js) hooks into the build at each stage through X. The
+   The world is two miles square now: the hills that closed the ranch in have moved out to the new edge,
+   and the country round it (50_country, 50_far) hooks into the build at each stage through X. The
    trees are drawn instanced in a few shapes; their positions and every random draw are unchanged.
    ===================================================================================== */
-const RMAT={TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,SKY:51,LINE:52,GRAVEL:53,ASPHALT:54,RUTS:55};
+const RMAT={TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,SKY:51,LINE:52,GRAVEL:53,ASPHALT:54,RUTS:55,CLAY:56,PLAYA:57};
 const Ranch=(()=>{
 'use strict';
 function rng(seed=1){let s=seed>>>0||1;return ()=>(s^=s<<13,s>>>=0,s^=s>>>17,s^=s<<5,s>>>=0,s/4294967296);}
@@ -21,7 +21,7 @@ const s2l=v=>Math.pow(v/255,2.2);
 function mapVertex(m,c,u,w,ao,out){
   const id=m[0],vr=m[1];
   if(id===16){out[4]=RMAT.TERRAIN;out[0]=c[0]/255;out[1]=c[1]/255;out[2]=c[2]/255;out[3]=ao===undefined?c[3]/255:ao;return;}
-  if(id===17){out[4]=vr===0?RMAT.STRIP:vr===2?RMAT.MUDTRACK:vr===3?RMAT.GRAVEL:vr===4?RMAT.ASPHALT:vr===5?RMAT.RUTS:RMAT.TRAIL;out[0]=u;out[1]=w;out[2]=0;out[3]=1;return;}
+  if(id===17){out[4]=vr===0?RMAT.STRIP:vr===2?RMAT.MUDTRACK:vr===3?RMAT.GRAVEL:vr===4?RMAT.ASPHALT:vr===5?RMAT.RUTS:vr===6?RMAT.CLAY:vr===7?RMAT.PLAYA:RMAT.TRAIL;out[0]=u;out[1]=w;out[2]=0;out[3]=1;return;}
   if(id===21){out[4]=RMAT.ROCK;out[0]=out[1]=out[2]=1;out[3]=ao===undefined?1:ao;return;}
   if(id===23){out[4]=MAT.EMIT;out[0]=1;out[1]=.62;out[2]=.12;out[3]=.6;return;}
   if(id===7){out[4]=MAT.EMIT;out[0]=1;out[1]=.95;out[2]=.85;out[3]=1.6;return;}
@@ -79,7 +79,7 @@ class ChunkedI{
   var SURF = ["grass", "dirt", "strip", "trail", "rock", "mud", "concrete", "water", "gravel", "asphalt", "ruts"], SF = {};
   SURF.forEach((n, i) => SF[n] = i);
   var RANCH_DEF = {
-    size: 1600, cell: 2,
+    size: 3200, cell: 2,
     pad: { x: 0, z: 0, w: 32, d: 24 },
     shop: { x0: -15, x1: 15, z0: -31, z1: -15, wall: 5.2, peak: 7.6, door: [-5.5, 5.5, 4.4] },
     strip: { x0: -46, start: 0, x1: 300, z: 40, half: 9, lanes: [36, 44], eighth: 201.168, quarter: 402.336 },
@@ -422,6 +422,8 @@ class ChunkedI{
     };
     X.carve = carveF;
     CTRY.carve(X);
+    /* (the carving's scratch is let go: it is as big as the map, and the closures that live on would keep it) */
+    cStamp = cNI = cND = stamp = null, X.carve = null;
     /* ---------- vertex normals and the surface map ---------- */
     let hAt = (i, j) => H[Math.max(0, Math.min(N2 - 1, j)) * N2 + Math.max(0, Math.min(N2 - 1, i))], NRM = new Float32Array(N2 * N2 * 3);
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
@@ -433,15 +435,27 @@ class ChunkedI{
       let [ix, iz] = hIdx(creek.X[i], creek.Z[i]);
       creekLevel[i] = H[iz * N2 + ix] + 0.55;
     }
+    /* out past the old ranch the two patch noises are worked out every 4 m and filled in between, as the land is */
+    let G1 = new Float32Array(N4 * N4), G2 = new Float32Array(N4 * N4), in4 = (x, z) => Math.abs(x) <= 416 && Math.abs(z) <= 416;
+    for (let j = 0; j < N4; j++) for (let i = 0; i < N4; i++) {
+      let x = x0 + i * 4, z = z0 + j * 4;
+      in4(x, z) || (G1[j * N4 + i] = NZ.fbm(x / 21 + 5, z / 21), G2[j * N4 + i] = NZ.fbm(x / 7, z / 7 + 3));
+    }
+    let g4 = (G, i, j) => {
+      let a = i >> 1, b = j >> 1, fa = (i & 1) * 0.5, fb = (j & 1) * 0.5, a1 = Math.min(N4 - 1, a + 1), b1 = Math.min(N4 - 1, b + 1);
+      return (G[b * N4 + a] * (1 - fa) + G[b * N4 + a1] * fa) * (1 - fb) + (G[b1 * N4 + a] * (1 - fa) + G[b1 * N4 + a1] * fa) * fb;
+    };
     for (let j = 0; j < N2; j++) for (let i = 0; i < N2; i++) {
-      let x = x0 + i * cell, z = z0 + j * cell, k = j * N2 + i, ny = NRM[k * 3 + 1], slope = Math.sqrt(Math.max(0, 1 - ny * ny)) / Math.max(ny, 0.05), n1 = NZ.fbm(x / 21 + 5, z / 21), n2 = NZ.fbm(x / 7, z / 7 + 3);
+      let x = x0 + i * cell, z = z0 + j * cell, k = j * N2 + i, ny = NRM[k * 3 + 1], slope = Math.sqrt(Math.max(0, 1 - ny * ny)) / Math.max(ny, 0.05), inn = inner(x, z), n1 = inn ? NZ.fbm(x / 21 + 5, z / 21) : g4(G1, i, j), n2 = inn ? NZ.fbm(x / 7, z / 7 + 3) : g4(G2, i, j);
+      /* (the creek, the mud track, the loop and the climb are all on the old ranch: past it, no need to look) */
+      let inR = Math.abs(x) < 440 && Math.abs(z) < 440;
       let grass = sst(0.32, 0.6, n1 + 0.18), rock = sst(0.6, 1.05, slope + (n2 - 0.5) * 0.35), mud = 0, ao = 1, code = SF.grass;
       /* worn dirt around the pad, the strip and the pit (only near them: elsewhere these change nothing) */
       let core = x > -190 && x < 360 && z > -60 && z < 100, dPad = core ? rectDist(x, z, -D.pad.w / 2, -D.pad.d / 2 - 18, D.pad.w / 2, D.pad.d / 2) : 1e9, dStrip = core ? rectDist(x, z, St.x0 - 6, St.z - St.half, St.x1 + 10, St.z + St.half) : 1e9;
       core && (grass *= sst(4, 16, dPad) * sst(2, 10, dStrip) * sst(2, 10, rectDist(x, z, -30, 6, 10, St.z)));
       let mr = core ? Math.hypot((x - M.x) / M.rx, (z - M.z) / M.rz) : 1e9;
       core && (mud = 1 - sst(0.75, 1.05, mr + (n2 - 0.5) * 0.25), grass *= sst(0.9, 1.4, mr));
-      let cn = creek.nearest(x, z, 1);
+      let cn = inR ? creek.nearest(x, z, 1) : null;
       cn && cn.d < 9 && (grass *= sst(3, 9, cn.d), rock = Math.max(rock * 0.6, (1 - sst(1, 6, cn.d)) * 0.55));
       /* AO: a little darker in the hollows */
       let curv = (hAt(i - 1, j) + hAt(i + 1, j) + hAt(i, j - 1) + hAt(i, j + 1)) / 4 - H[k];
@@ -454,9 +468,9 @@ class ChunkedI{
       let dB = core ? rectDist(x, z, BU.x - BU.w / 2, BU.z - BU.d / 2, BU.x + BU.w / 2, BU.z + BU.d / 2) : 1e9;
       dB < 6 && (grass *= sst(1, 6, dB), rock *= sst(1, 6, dB)), dB <= 0 && (code = SF.dirt, mud = 0);
       /* the mud track */
-      let mt = mudT.nearest(x, z, 1);
+      let mt = inR ? mudT.nearest(x, z, 1) : null;
       mt && mt.d < 9 && (grass *= sst(4.5, 9, mt.d), rock *= sst(4, 8, mt.d), mud = Math.max(mud, 1 - sst(3.8, 5.6, mt.d + (n2 - 0.5) * 1.2)), mt.d < 4.8 && (code = SF.mud));
-      let tn = loop.nearest(x, z, 1), cl = climb.nearest(x, z, 1);
+      let tn = inR ? loop.nearest(x, z, 1) : null, cl = inR ? climb.nearest(x, z, 1) : null;
       (tn && tn.d < 2.6 || cl && cl.d < 2.8) && code !== SF.mud && (code = SF.trail);
       let td = Math.min(tn ? tn.d : 99, cl ? cl.d : 99);
       td < 7 && (W[k * 4] = Math.max(grass, 1 - sst(3, 7, td)), W[k * 4 + 1] = rock * sst(3, 7, td), grass = W[k * 4]);
@@ -864,9 +878,15 @@ class ChunkedI{
     Object.assign(X, { C2, box, collideBox, collideCirc, metal, ribbon, rock, addTree, rng });
     CTRY.geometry(X);
     let geo = C2;
+    /* the weights and normals are kept a byte each (on the two-mile map they would be 70 MB as floats), and the
+       float ones let go */
+    let W8 = new Uint8Array(W.length), N8 = new Int8Array(NRM.length);
+    for (let k = 0; k < W.length; k++) W8[k] = Math.round(Math.max(0, Math.min(1, W[k])) * 255);
+    for (let k = 0; k < NRM.length; k++) N8[k] = Math.round(NRM[k] * 127);
+    W = NRM = X.W = null;
     return {
       geo, lights, steam: [], info: { xw: [] }, gridP: { x0: x0, z0: z0, size: D.size, cell: 8 },
-      N: N2, cell, x0, z0, H, SC, W, NRM, heightAt, groundAt, groundInto: X.groundInto, strip, loop, climb, creek, creekLevel, gates, mud: M, hill: HL, kick, colliders: gridColliders(colliders), loopProf, climbProf, D,
+      N: N2, cell, x0, z0, H, SC, W: W8, NRM: N8, heightAt, groundAt, groundInto: X.groundInto, strip, loop, climb, creek, creekLevel, gates, mud: M, hill: HL, kick, colliders: gridColliders(colliders), loopProf, climbProf, D,
       burn: BU, mudTrack: mudT, rocks: RG, trees: new Float32Array(trees), country: CTRY.info()
     };
   }

@@ -223,16 +223,18 @@ function faceMat(D,u,K,y,gk,yG){
   return MM.GL;
 }
 /* ---------- the builder ---------- */
+/* how coarsely the body's stations are laid (1: as designed; 4: a far-away copy for the other cars in a race) */
+let BODY_LOD=1;
 function buildSUV(look,build){
-  const D=suvDesign(look),G=D.G,L=D.L,X=D.X,dy=D.dy;
+  const D=suvDesign(look),G=D.G,L=D.L,X=D.X,dy=D.dy,Q=BODY_LOD;
   const mb=new MB(),pm=new MB();
   /* stations: 5 cm everywhere, 5 mm across the vertical faces at both ends, dense around the arches
-     and wherever the greenhouse changes */
+     and wherever the greenhouse changes (all Q times coarser for a far copy) */
   const US=[];{const s=new Set(),a=u=>{if(u>=0&&u<=L)s.add(Math.round(u*4000)/4000);};
-    for(let u=0;u<=L+1e-6;u+=.05)a(u);
-    for(let u=0;u<.2;u+=.005)a(u);for(let u=L-.2;u<=L+1e-6;u+=.005)a(u);
-    for(const ua of [D.uFa,D.uRa]){for(let k=0;k<=28;k++)a(archPt(D,ua,k/28*PI)[0]);a(ua-D.arch.a-.012);a(ua+D.arch.a+.012);}
-    for(let u=G.cowl-.06;u<G.cowl+.3;u+=.012)a(u);for(let u=G.rr-.06;u<G.be+.06;u+=.012)a(u);
+    for(let u=0;u<=L+1e-6;u+=.05*Q)a(u);
+    for(let u=0;u<.2;u+=.005*Q)a(u);for(let u=L-.2;u<=L+1e-6;u+=.005*Q)a(u);
+    const na=Math.max(7,Math.round(28/Q));for(const ua of [D.uFa,D.uRa]){for(let k=0;k<=na;k++)a(archPt(D,ua,k/na*PI)[0]);a(ua-D.arch.a-.012);a(ua+D.arch.a+.012);}
+    for(let u=G.cowl-.06;u<G.cowl+.3;u+=.012*Q)a(u);for(let u=G.rr-.06;u<G.be+.06;u+=.012*Q)a(u);
     const B=D.B;for(const k of [G.rf,G.cB,G.cT,B.bumperR,B.bumperF,...B.clad.slice(1,-1).map(c=>c[0]),B.dome[0],B.dome[1]])a(k-.012),a(k),a(k+.012);
     for(const [pu,ln,w] of G.pillars)for(const o of [-w,w])a(pu+o),a(pu+ln+o);
     const srt=[...s].sort((p,q)=>p-q);for(const u of srt)if(!US.length||u-US[US.length-1]>.002)US.push(u);

@@ -1,6 +1,6 @@
 /* =====================================================================================
    THE MENU: Drive (the car, its build, the driving level and the Sim card, day or night, the camera, where to
-   go), the Garage (63_garage), Cool stuff (free play's money, the last ten cool things and the bests), Clock
+   go), Races (60_race: which one, how hard; and the results after one), the Garage (63_garage), Cool stuff (free play's money, the last ten cool things and the bests), Clock
    runs, Settings (with the graphics) and Dev (54_dev's developer panel).
    ===================================================================================== */
 const MENU={tab:'drive'};
@@ -12,7 +12,8 @@ function openMenu(first){
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
   if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
   GAME.state='menu';$('menu').hidden=false;syncTouch();
-  $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?'Free play: every car and part is yours':'Paused';
+  $('mGo').textContent=first?'Start driving':RACE.on?'Back to the race':'Back to driving';$('mEyebrow').textContent=first?'Free play: every car and part is yours':RACE.on?'Paused: '+RACE.ev.name:'Paused';
+  $('mLeave').hidden=!RACE.on;
   showTab(MENU.tab);syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
 }
 function closeMenu(){
@@ -25,7 +26,7 @@ function showTab(id){
   /* in the garage the car turns in front of you */
   APP.orbit=id==='garage'&&GAME.state==='menu';$('menu').classList.toggle('garage',APP.orbit);
   requestAnimationFrame(()=>{const r=document.querySelector('#menu .mwrap').getBoundingClientRect();APP.menuRight=r.right;});
-  if(id==='garage')syncGarage();if(id==='cool')syncCool();if(id==='runs')syncRuns();if(id==='dev')syncDev();
+  if(id==='garage')syncGarage();if(id==='cool')syncCool();if(id==='runs')syncRuns();if(id==='dev')syncDev();if(id==='races')syncRaces();
 }
 function syncMenu(){
   $('mMoney').textContent=Feats.fmtMoney(Feats.S.money);
@@ -84,7 +85,12 @@ function buildMenu(){
     Feats.clear();$('sClear').dataset.sure='';$('sClear').textContent='Clear money, cool stuff and bests';$('sNote').textContent='Cleared.';syncMenu();});
   $('vol').addEventListener('input',e=>setVolume(e.target.value));
   $('mGo').addEventListener('click',closeMenu);
-  $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
+  /* races: how hard, leave one, the results' buttons */
+  segButtons($('raDiff'),Object.entries(RACE_DIFF).map(([k,v])=>[k,v.name]),v=>{RACE.diff=v;raceSave();syncRaces();});
+  $('mLeave').addEventListener('click',()=>{raceEnd('Race abandoned');$('mLeave').hidden=true;closeMenu();});
+  $('rrAgain').addEventListener('click',()=>{const id=RACE.ev.id;hideResults();startRace(id);});
+  $('rrDone').addEventListener('click',()=>{hideResults();});
+  $('menuBtn').addEventListener('click',()=>GAME.state==='results'?hideResults():GAME.state==='drive'?openMenu(false):closeMenu());
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
   buildGarage();
 }
@@ -108,6 +114,29 @@ function syncSimCard(){
   if(SIM_HINT==='cargo'&&!canCargo)hint='This car has no roof rails, bars or rack to strap cargo to.';
   $('mSimHint').textContent=hint;
 }
+/* ---------- races ---------- */
+const RACE_KIND={circuit:'Race',elim:'Elimination',drag:'Drag race',stage:'Time trial'};
+function syncRaces(){
+  for(const el of $('raDiff').children)el.setAttribute('aria-pressed',String(el.dataset.v===RACE.diff));$('raDiffHint').textContent=RACE_DIFF[RACE.diff].blurb;
+  const L=$('raList');L.textContent='';const D=RACE_DIFF[RACE.diff];
+  for(const ev of RACE_EVENTS){const el=document.createElement('button');el.type='button';el.className='race';el.innerHTML='<b></b><small></small><i></i>';
+    el.querySelector('b').textContent=ev.name;el.querySelector('small').textContent=ev.blurb;
+    const meta=[RACE_KIND[ev.kind],ev.laps?ev.laps+' laps':'',ev.kind==='stage'?'5 rivals\' times':ev.field>2?ev.field+' cars':'1 on 1','wins '+Feats.fmtMoney(Math.round(ev.purse*D.pay/10)*10)].filter(Boolean).join(' · ');
+    const b=RACE.best[ev.id+':'+RACE.diff],i=el.querySelector('i');i.textContent=meta;
+    if(b){const em=document.createElement('em');em.textContent='  ·  best: '+ord(b.place).toLowerCase()+(b.time&&ev.kind==='stage'?' in '+fmtLap(b.time):'');i.appendChild(em);}
+    el.addEventListener('click',()=>{closeMenu();startRace(ev.id);});L.appendChild(el);}
+}
+/* the results, over the game; the race stays paused under them */
+function showResults(){
+  const R=RACE.res;if(!R)return;GAME.state='results';syncTouch();
+  $('rrEyebrow').textContent=R.ev.name+' · '+R.diff;$('rrTitle').textContent=R.place?(R.place===1?'You won':ord(R.place).toLowerCase()+' place'):'Did not finish';
+  $('rrPrize').textContent=Feats.fmtMoney(R.prize);
+  const T=$('rrList');T.textContent='';R.rows.forEach((r,k)=>{const tr=document.createElement('tr');if(r.me)tr.className='me';tr.innerHTML='<td></td><td><b></b><small></small></td><td></td>';
+    tr.children[0].textContent=String(k+1);tr.querySelector('b').textContent=r.name;tr.querySelector('small').textContent=r.car+(r.sub?'  ·  '+r.sub:'');tr.children[2].textContent=r.time;T.appendChild(tr);});
+  $('rrNote').textContent=R.prize?'The prize is in your free play money.':R.place?'No prize for that place this time.':'';
+  $('rres').hidden=false;setTimeout(()=>$('rrAgain').focus({preventScroll:true}),0);
+}
+function hideResults(){$('rres').hidden=true;raceEnd(null);GAME.state='drive';CAM.cut=true;syncTouch();INPUT.down.clear();}
 /* ---------- cool stuff: the money, the last ten, the bests ---------- */
 const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
   ['burn','Longest burnout'],['mudpit','Fastest mud pit'],['summit','Fastest up Red Hill'],['rocks','Fastest clean rock garden'],['lap','Fastest lap']];
