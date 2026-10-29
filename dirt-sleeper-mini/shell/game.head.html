@@ -1,0 +1,123 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Dirt Sleeper Mini</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Saira:wght@400;500&display=swap">
+<style>
+/* Dirt Sleeper Mini: the game. The ranch and the country round it on an LED dot matrix, dark-only by
+   design, the menu a lit sign over it. Layout: the matrix fills the window; a slim bar on top; touch
+   pedals at the bottom corners on phones and tablets; one menu card for the car and its build, the
+   driving level and where to go. */
+:root{
+  --bg:#07070b;--panel:#111119;--raised:#1a1a25;--ink:#efeaf6;--ink-2:#a8a2b8;--ink-3:#6c6880;
+  --edge:rgba(255,255,255,.12);--edge-2:rgba(255,255,255,.22);--accent:#ff3d5a;--amber:#ffb43c;--cyan:#4fe3ff;--go:#5dff7a;
+  --f:"Chakra Petch","Arial Narrow",system-ui,sans-serif;--fb:"Saira",system-ui,-apple-system,sans-serif;color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none}
+body{font:400 13px/1.45 var(--fb);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#sa{position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+.bar{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;pointer-events:none;z-index:5;
+  padding:max(8px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.bar{justify-content:flex-end}
+.rot{display:none;font:600 10px/1.3 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--amber);max-width:46vw}
+@media (orientation:portrait) and (pointer:coarse){.rot{display:block;margin-right:auto}}
+.opts{display:flex;gap:8px;align-items:center}
+.chip{pointer-events:auto;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--edge);background:rgba(17,17,25,.82);color:var(--ink);cursor:pointer;
+  font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip:hover{border-color:var(--edge-2)}
+.stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:640px){.stat{display:none}}
+body.touch #res,body.touch .stat{display:none}
+/* touch pedals */
+#touch{position:fixed;inset:auto 0 0 0;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;z-index:4;
+  padding:0 max(14px,env(safe-area-inset-right,0px)) max(14px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+.tpad{display:flex;gap:10px;align-items:flex-end;pointer-events:auto}
+.tcol{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.tb{width:76px;height:76px;border-radius:18px;border:1px solid var(--edge-2);background:rgba(17,17,25,.55);color:var(--ink);font:700 22px/1 var(--f);letter-spacing:.06em;
+  touch-action:none;cursor:pointer;backdrop-filter:blur(2px)}
+.tb.sm{height:40px;font-size:11px;letter-spacing:.12em;border-radius:12px}
+.tb.gas{height:118px;font-size:15px;border-color:rgba(93,255,122,.55);color:var(--go)}
+.tb.brk{height:118px;font-size:15px;border-color:rgba(255,61,90,.55);color:var(--accent)}
+.tb.on{background:rgba(255,255,255,.18)}
+@media (max-height:430px){.tb{width:62px;height:62px}.tb.gas,.tb.brk{height:96px}.tb.sm{height:34px}}
+/* the menu */
+#menu{position:fixed;inset:0;z-index:8;display:grid;place-items:center;overflow-y:auto;background:rgba(7,7,11,.62);
+  padding:max(52px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.mwrap{width:min(860px,100%);display:flex;flex-direction:column;gap:16px;background:rgba(14,14,21,.94);border:1px solid var(--edge);border-radius:16px;padding:20px 20px 18px;
+  box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.mhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.eyebrow{font:600 10.5px/1 var(--f);letter-spacing:.2em;text-transform:uppercase;color:var(--amber)}
+h1{margin:4px 0 0;font:700 clamp(22px,4vw,34px)/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);text-wrap:balance}
+h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.cars{display:flex;flex-direction:column;gap:6px}
+.carrow{display:grid;grid-template-columns:76px minmax(0,1fr);gap:8px;align-items:stretch}
+.carrow>span{font:700 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);align-self:center}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+@media (max-width:640px){.carrow{grid-template-columns:56px minmax(0,1fr)}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.card small{display:none}}
+.card{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 11px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
+.card b{font:700 13px/1 var(--f);letter-spacing:.12em;text-transform:uppercase}
+.card small{font-size:11px;color:var(--ink-3)}
+.card[aria-pressed="true"]{border-color:var(--accent);background:linear-gradient(180deg,rgba(255,61,90,.16),var(--panel))}
+.card[aria-pressed="true"] small{color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:999px;padding:2px;background:var(--panel);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{border:0;background:none;height:30px;padding:0 13px;border-radius:999px;cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--edge-2) inset}
+.hint{margin:8px 0 0;color:var(--ink-2);font-size:12.5px;max-width:70ch}
+.places{display:flex;flex-wrap:wrap;gap:6px}
+.place{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--edge);background:var(--panel);cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.place:hover,.place:focus-visible{color:var(--ink);border-color:var(--edge-2)}
+.row2{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-start}
+.vol{display:inline-flex;align-items:center;gap:8px;height:34px;font:600 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.vol input{width:130px;accent-color:var(--amber)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;bottom:-18px;margin:0 -20px -18px;padding:12px 20px 18px;background:linear-gradient(to top,rgba(14,14,21,1) 75%,rgba(14,14,21,0));border-radius:0 0 16px 16px}
+.btn{height:44px;padding:0 22px;border-radius:12px;border:1px solid var(--edge-2);background:var(--raised);cursor:pointer;font:700 13px/1 var(--f);letter-spacing:.14em;text-transform:uppercase}
+.btn.go{background:linear-gradient(180deg,#ff5470,#d92a47);border-color:#ff7088;color:#fff;box-shadow:0 0 22px rgba(255,61,90,.35)}
+.keys{margin:0;color:var(--ink-3);font-size:11.5px;line-height:1.9}
+.keys kbd{font:600 9.5px/1 var(--f);color:var(--ink-2);border:1px solid var(--edge);border-radius:4px;padding:2px 5px}
+@media (hover:none){.keys{display:none}}
+.status{color:var(--ink-3);font-size:11.5px}
+.btn.sm{height:32px;padding:0 14px;font-size:11px;border-radius:9px}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#loading{position:fixed;inset:0;display:grid;place-items:center;z-index:9;font:600 13px/1 var(--f);letter-spacing:.24em;text-transform:uppercase;color:var(--amber);background:var(--bg)}
+#err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:500 14px/1.6 var(--f);color:var(--ink-2);z-index:10}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<canvas id="gl" aria-label="The ranch and the country round it, drawn on an LED dot matrix"></canvas>
+<div id="sa"></div>
+<div class="bar">
+  <span class="rot" id="rot">Turn your phone sideways for a bigger view</span>
+  <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="res" type="button">Dots 640×360</button><button class="chip" id="menuBtn" type="button">Menu</button></div>
+</div>
+<div id="touch" hidden>
+  <div class="tpad"><div class="tcol"><button class="tb sm" data-k="horn" type="button">Horn</button><button class="tb" data-k="left" type="button" aria-label="Steer left">◀</button></div><button class="tb" data-k="right" type="button" aria-label="Steer right">▶</button></div>
+  <div class="tpad">
+    <div class="tcol"><button class="tb sm" data-k="reset" type="button">Reset</button><button class="tb sm" data-k="cam" type="button">Cam</button><button class="tb brk" data-k="brk" type="button">Brake</button></div>
+    <div class="tcol"><button class="tb sm" data-k="nos" id="tNos" type="button">N2O</button><button class="tb sm" data-k="low" id="tLow" type="button">Low</button><button class="tb gas" data-k="thr" type="button">Gas</button></div>
+  </div>
+</div>
+<div id="menu">
+  <div class="mwrap">
+    <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free roam: the ranch and the country round it</span><h1>Dirt Sleeper Mini</h1></div><span class="status" id="mStatus"></span></div>
+    <section><h2>Car</h2><div class="cars" id="mCars"></div></section>
+    <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
+    <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
+    <section class="row2">
+      <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div>
+      <div><h2>Sound</h2><label class="vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label></div>
+    </section>
+    <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button></div>
+    <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> handbrake · <kbd>Q</kbd> <kbd>E</kbd> shift ·
+      <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
+  </div>
+</div>
+<div id="loading">Building the ranch and the country round it</div>
+<div id="err">This needs WebGL2, which this browser has turned off.</div>
+<script>
+(()=>{
+'use strict';

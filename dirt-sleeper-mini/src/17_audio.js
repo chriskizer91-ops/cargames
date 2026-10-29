@@ -1,11 +1,9 @@
 /* =====================================================================================
-   THE ENGINES. The audio graph, the room, and the loop that feeds the synth are the Digital
-   Engine lab's own (roomIR, ROOM_SEND, setRoom and initAudio are copied from it, with its page
-   state renamed to ENG). Every car has a voice of its own: its own sim and its own synth, all
-   playing into the one room, so in the garage any number of them can run at once. Each frame
-   every running sim takes four steps, its events go to its synth, then one set of params, exactly
-   as the lab does it. Only the car on the turntable hears the throttle; the rest idle where they
-   are parked.
+   THE ENGINE SOUND. The audio graph and the room are the Digital Engine lab's own (roomIR, ROOM_SEND,
+   setRoom and initAudio are copied from it, with its page state renamed to ENG). Every car gets a synth
+   of its own (voiceNode), all playing into the one room, so any number of engines can run at once: the
+   model bay's garage, or a grid of cars in a race. A voice is any object with the car's engine spec;
+   voiceNode gives it a node and a port to post the synth's params to.
    ===================================================================================== */
 const ENG={audio:null,init:null,listener:0,room:'open',vol:.8,tab:'look',
   keys:new Set(),digits:new Set(),pad:0,padOn:false,brkBtn:false,nos:false,blipT:0,status:''};
@@ -13,17 +11,6 @@ try{const s=JSON.parse(store.get('dsmini-engine','{}'));if(['open','garage','tun
   if(s.listener>=0&&s.listener<=2)ENG.listener=s.listener|0;if(s.vol>=0&&s.vol<=1)ENG.vol=+s.vol;if(s.tab==='engine')ENG.tab='engine';}catch(e){}
 const saveEng=()=>store.set('dsmini-engine',JSON.stringify({room:ENG.room,listener:ENG.listener,vol:ENG.vol,tab:ENG.tab}));
 const LISTEN=['Behind','Cabin','Trackside'];
-/* a car's voice: its sim, its synth, and the way its body answers the engine */
-const VOICES={};
-/* the camera the last frame was drawn from: where the parked cars are heard from, and what a tap picks */
-let CAMNOW=null;
-const voiceOf=car=>VOICES[car]||(VOICES[car]={car,sim:null,spec:null,node:null,port:null,busy:false,asleep:false,offT:0,inp:null,popT:-1e9,
-  flame:0,flameL:0,roll:0,rollV:0,pitch:0,pitchV:0,wheelA:0,shake:[0,0],dist:-1});
-/* the voice of the car on the turntable, which the dock, the keys and the instruments talk to */
-const cur=()=>voiceOf(BUILDS[APP.build].car);
-Object.defineProperties(ENG,{sim:{get:()=>cur().sim},spec:{get:()=>cur().spec},inp:{get:()=>cur().inp}});
-const runs=v=>!!v.sim&&v.sim.st!=='off'&&v.sim.st!=='stopping';
-
 /* ---------- from the lab: the room ---------- */
 function roomIR(ctx,kind){
   const sr=ctx.sampleRate,n=Math.round(sr*{open:.5,garage:1.2,tunnel:2.4}[kind]),b=ctx.createBuffer(2,n,sr);let seed=1234567;
@@ -100,28 +87,8 @@ function voiceNode(v){
 }
 /* a bang in the pipes lights the bang chip and throws a flame out of the tips */
 function onStats(v,s){if(s.pops){v.popT=performance.now();v.flame=Math.min(1.4,v.flame+.45+.25*s.pops);v.flameL=.55+Math.random()*.6;}}
-async function startEngine(v=cur()){
-  if(v.busy||!v.sim)return;v.busy=true;
-  try{await initAudio();if(ENG.audio.ctx.state!=='running')await ENG.audio.ctx.resume();voiceNode(v);
-    if(v.asleep){v.asleep=false;v.port.post({t:'sleep',v:0});}v.offT=0;v.sim.start();}
-  catch(e){ENG.status='Sound could not start: '+e.message;}
-  v.busy=false;engineLive(true);
-}
-function toggleEngine(){const v=cur();if(!v.port||!runs(v))startEngine(v);else{v.sim.stop();engineLive(true);}}
-const engineOn=()=>runs(cur());
-
-/* ---------- a car's engine: the lab's applySpec, for whichever build that car is on ---------- */
-function engineFor(i){
-  const v=voiceOf(BUILDS[i].car),spec=specOf(i);if(v.spec===spec)return v;v.spec=spec;
-  if(!v.sim){v.sim=SIM.makeSim(spec);v.sim.mode='free';}else v.sim.setSpec(spec);
-  if(v.port)v.port.post({t:'cfg',cfg:SIM.dspCfg(spec)});
-  return v;
-}
-function setMode(m,v=cur()){
-  const sim=v.sim;sim.mode=m;
-  sim.gear=0;sim.clutch='open';sim.shiftT=0;sim.held=false;if(m==='free'){sim.v=0;sim.ww=0;sim.pos=0;}else sim.pos=-120;
-}
 function setListener(v){ENG.listener=+v;setRoom();saveEng();}
 function setRoomKind(v){ENG.room=v;setRoom();saveEng();}
 function setVolume(v){ENG.vol=+v;if(ENG.audio)ENG.audio.master.gain.setTargetAtTime(ENG.vol,ENG.audio.ctx.currentTime,.03);saveEng();}
-
+/* is the player typing into a field (so a key is not a pedal) */
+const typing=t=>t&&(t.tagName==='SELECT'||t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.type!=='range'));

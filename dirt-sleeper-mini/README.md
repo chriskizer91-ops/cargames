@@ -1,7 +1,10 @@
 # Dirt Sleeper Mini
 
-The model bay: seven cars and their builds on a turntable, or all of them parked together in a
-garage, drawn on an LED dot matrix. Every car has its own Digital Engine running live.
+Seven cars and sixteen builds, drawn on an LED dot matrix, each with its own Digital Engine running
+live. There are two pages:
+
+- `game.html`, the game: drive any build around the ranch and the country round it.
+- `model-bay.html`, the model bay: the cars on a turntable, or all of them parked together in a garage.
 
 | Car | Builds | What it is |
 | --- | --- | --- |
@@ -12,6 +15,43 @@ garage, drawn on an LED dot matrix. Every car has its own Digital Engine running
 | Pickup | Stock, Prerunner | A full-size crew cab in factory off-road trim, then a long-travel desert prerunner with two spares in a bed cage. |
 | Muscle | Stock, Drag | A 1970-style big-block fastback, then a blown, tubbed pro-street drag car on slicks with wheelie bars. |
 | Hatch | Stock, Group B | A mid-1980s turbo four-wheel-drive homologation hatch, then a full Group B gravel rally car with anti-lag. |
+
+## The game
+
+Open `game.html` in a browser with WebGL2, on a laptop or a phone. The menu picks the car and its
+build, the driving level, where to go and the camera. It is Dirt Sleeper Mini 4's ranch and country:
+the drag strip, the burnout pad, the mud pit, the rock garden, the hill climb, the trail loop, the
+mud track, the lane, the county road, the woods and the race track.
+
+Keys: <kbd>W</kbd>/<kbd>↑</kbd> gas, <kbd>S</kbd>/<kbd>↓</kbd> brake and reverse, <kbd>A</kbd> <kbd>D</kbd> steer,
+<kbd>Space</kbd> handbrake, <kbd>Q</kbd> <kbd>E</kbd> shift, <kbd>N</kbd> nitrous, <kbd>L</kbd> low range,
+<kbd>K</kbd> lockers, <kbd>C</kbd> camera, <kbd>M</kbd> map, <kbd>R</kbd> reset, <kbd>Esc</kbd> menu. A game
+controller works too. On a phone the pedals, steering and buttons are on the screen; turn it sideways
+for the bigger view.
+
+### The physics
+
+Every build drives on the same physics: Mini 4's car model (a rigid body stepped 240 times a second,
+raycast wheels with a footprint of seven rays, a combined-slip tyre, a clutch or a torque converter,
+diffs, lockers and low range), rewritten so a step allocates nothing. That keeps phones from
+stuttering on garbage collection. `tools/physcheck.js` steps it beside Mini 4's own code and the two
+stay bit-identical.
+
+Each build's chassis comes from its model and its parts (`src/42_chassis.js`): weight and where it
+sits, the centre of gravity from the body and the ride height, springs, shocks and travel from the
+suspension, sway bars, tyres per tread and per surface, each axle's own tyre size, brakes, downforce,
+diffs, lockers and low range. The coupes and the SUV race build have factory traction control. The
+automatic shifts early at part throttle, kicks down, and holds its gear while the tyres are spinning
+rather than shifting up and down through the wheelspin.
+
+The three driving levels: **Realistic** is the car as it is; **Middle** adds a steering helper,
+stability control and traction control; **Kids** adds grip and keeps the car on its wheels.
+
+`tools/proving.js` runs every build through a drag run, ramp-steer grip tests on tarmac and gravel
+and a 60-0 stop, and prints the figures beside the rankings in `design/ratings.json`. They agree to
+within about ten per cent.
+
+## The model bay
 
 Open `model-bay.html` in a browser with WebGL2. Pick a car, then a build; **Compare** shows all of a
 car's builds at once. **Hood** (or H) opens the hood, and the **Bay** view looks into the engine bay.
@@ -40,7 +80,13 @@ so their engine bays are never built.
 
 | Path | What's in it |
 | --- | --- |
-| `model-bay.html` | The whole bay in one file |
+| `game.html` | The whole game in one file (built) |
+| `model-bay.html` | The whole bay in one file (built) |
+| `build.sh` | Builds both pages: each is its shell's head, the source modules it uses, and its shell's tail. Run `./build.sh` after changing anything in `src/` or `shell/` |
+| `src/` | The source modules. 10-33: the display, the meshes, the engines and their sound, the bodies, parts, wheels and builds. 40-42: the physics, the ground contact and each build's chassis. 50-53: the country, the ranch, its drawing and the dust and mud. 60-62: the game, its HUD and its menu. 18, 19, 80, 81: the model bay |
+| `shell/` | Each page's head (title, styles, markup) and tail |
+| `tools/physcheck.js` | Steps the physics beside Mini 4's original (`tools/ref/dsm4-physics.js`) and reports the worst difference: `node tools/physcheck.js` |
+| `tools/proving.js` | The proving ground for every build on the game's physics: `node tools/proving.js [build ids...]` |
 | `reference/image-prompts.md` | The prompts for the reference sheets the 4x4, coupe, wagon, pickup, muscle car and hatch were modelled from |
 | `tools/shot.js` | Screenshots for checking the cars by eye: `node tools/shot.js <out-dir> <build>:<view>[:<stage>]` |
 | `tools/rank.js` | Ranks every build for circuit, street and off-road racing from its own engine and chassis: `node tools/rank.js [out-dir]` |

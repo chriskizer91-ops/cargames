@@ -13,7 +13,7 @@ function mkTarget(w,h,hdr=HDR,depth=false){
 function freeTarget(T){if(!T)return;gl.deleteTexture(T.t);gl.deleteFramebuffer(T.f);if(T.rb)gl.deleteRenderbuffer(T.rb);}
 function glInit(){
   P_LED=compile(VS_FS,FS_LED);P_BR=compile(VS_FS,FS_BRIGHT);P_BL=compile(VS_FS,FS_BLUR);P_CO=compile(VS_FS,FS_COMP);
-  P_LIT=compile(VS_LIT,FS_LIT);
+  P_LIT=compile(VS_LIT,FS_LIT,LIT_DEFS);
   VAO0=gl.createVertexArray();
   HTEX=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,HTEX);
   for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);

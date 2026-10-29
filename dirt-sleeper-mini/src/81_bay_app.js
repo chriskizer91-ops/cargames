@@ -19,28 +19,10 @@ const saveApp=()=>store.set('dsmini-bay',JSON.stringify({build:APP.build,view:AP
   paint:APP.paint,dirt:APP.dirt,last:CAR_LAST}));
 /* the build a car is on: the one on the turntable, or the one each of the others was last on */
 const carBuild=car=>car===BUILDS[APP.build].car?APP.build:CAR_LAST[car]!==undefined?CAR_LAST[car]:carBuilds(car)[0];
-/* ---------- meshes, built on demand ---------- */
-const TRUCK={};
-function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
-  const t0=performance.now(),s=buildSUV(b.look,b),w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
-  return TRUCK[b.id]={body:s.body,hood:s.hood,hide:s.hide,D:s.D,wheel:w,wheelR:wr,bay:s.bay,engineOut:!!s.bay,
-    tris:s.tris+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}
-/* the engine bay: built the first time this build's hood opens, never with it shut */
-const bayOf=i=>{const T=truck(i);return T.bay||(T.bay=buildBay(BUILDS[i],T.D));};
 let STG={};
 const stageMesh=(k,g)=>{const id=k+(g?'G':'');return STG[id]||(STG[id]=buildStage(k,g));};
 /* ---------- GL state ---------- */
 function setRes(i){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;store.set('dsmini-res',i);$('res').textContent='Dots '+BW+'×'+BH;}
-/* ---------- matrices ---------- */
-const M4T=(x,y,z)=>{const m=M4.id();m[12]=x;m[13]=y;m[14]=z;return m;};
-const M4RY=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s;m[10]=c;return m;};
-const M4S=(x,y,z)=>{const m=M4.id();m[0]=x;m[5]=y;m[10]=z;return m;};
-const M4RX=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m;};
-const M4RZ=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m;};
-/* a flame for the exhaust tips: unit length along +X, hot at the root, red at the tip */
-let FLAME=null;
-function flameMesh(){if(FLAME)return FLAME;const mb=new MB(),seg=[[0,.18,1,.92,[1,.92,.62],9],[.18,.48,.92,.7,[1,.7,.22],7],[.48,.78,.7,.38,[1,.42,.08],5],[.78,1,.38,.04,[.9,.18,.04],3.5]];
-  for(const [a,b,r0,r1,c,em] of seg)tubeAB(mb,[a,0,0],[b,0,0],r0,10,V(c,MAT.EMIT,em),a===0,r1);return FLAME=mb.build();}
 const CAMS={};
 function camFor(c,asp){
   const th=c.th*PI/180,ph=c.ph*PI/180,tx=c.tx||0,tz=c.tz||0,t=[tx,c.ty,tz],e=[tx+c.d*Math.cos(ph)*Math.cos(th),c.ty+c.d*Math.sin(ph),tz-c.d*Math.cos(ph)*Math.sin(th)];

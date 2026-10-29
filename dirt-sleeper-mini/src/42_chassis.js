@@ -41,18 +41,20 @@ const BRAKES={stock:1,big:1.15,race:1.35,drag:.9};
 const HCG={suv:.74,trail:.70,coupe:.46,wagon:.55,pickup:.76,muscle:.50,hatch:.52};
 /* the running gear per build. tyre: tread and curve (peak slip, peak angle, grip once sliding, how fast it
    falls away, the wheel's inertia against the factory truck's); a rear tyre where the axles differ. wf: the
-   share of weight on the front wheels. diff: preload and lock under power and coast, brake traction control
+   share of weight on the front wheels. tc: traction control the car has of its own, on at every driving
+   level (the modern coupe from the factory, the GT car and the race build from their teams; the 1970 muscle
+   car, the drag car, the 1980s hatches and the prerunner have none). diff: preload and lock under power and coast, brake traction control
    (etc), lockers (1 rear, 2 both) and low range. aero: downforce on each axle (lift coefficient times area) */
 const T_=(tread,kPk,aPk,slide,slideW,If,mu=1.08)=>({tread,kPk,aPk,slide,slideW,If,mu});
 const RUNNING={
   stock:  {tyre:T_('allseason',.12,.15,.82,.65,1),susp:'stock',shocks:'stock',wm:1,wf:.55,diff:{etc:1}},
   sleeper:{tyre:T_('perf',.11,.13,.8,.6,1.05),susp:'lowered',shocks:'stock',wm:1.05,wf:.55,diff:{etc:1}},
   crawler:{tyre:T_('mud',.15,.18,.85,.8,1.1),susp:'lift6',shocks:'bypass',wm:1.15,wf:.55,diff:{lockers:2,low:true}},
-  race:   {tyre:T_('slick',.1,.12,.75,.5,.9),susp:'lowered',shocks:'bypass',wm:.95,wf:.55,aero:[.4,.6],brake:'race'},
+  race:   {tyre:T_('slick',.1,.12,.75,.5,.9),susp:'lowered',shocks:'bypass',wm:.95,wf:.55,aero:[.4,.6],brake:'race',tc:1},
   trail:  {tyre:T_('at',.13,.16,.84,.72,1),susp:'trail',shocks:'stock',wm:1.05,wf:.54,diff:{etc:1,low:true}},
   trailRig:{tyre:T_('mud',.15,.18,.85,.8,1.1),susp:'longtravel',shocks:'bypass',wm:1.15,wf:.55,diff:{lockers:2,low:true}},
-  coupe:  {tyre:T_('perf',.11,.13,.8,.6,1,1.12),susp:'coupe',shocks:'sport',wm:1,wf:.52,aero:[.06,.08],lock:.58,diff:{pre:60,acc:.35,dec:.2}},
-  coupeGT:{tyre:T_('slick',.1,.12,.75,.5,.9,1.12),susp:'gt',shocks:'race',wm:.9,wf:.48,aero:[.45,.65],lock:.58,diff:{pre:80,acc:.5,dec:.3}},
+  coupe:  {tyre:T_('perf',.11,.13,.8,.6,1,1.12),susp:'coupe',shocks:'sport',wm:1,wf:.52,aero:[.06,.08],lock:.58,diff:{pre:60,acc:.35,dec:.2},tc:1},
+  coupeGT:{tyre:T_('slick',.1,.12,.75,.5,.9,1.12),susp:'gt',shocks:'race',wm:.9,wf:.48,aero:[.45,.65],lock:.58,diff:{pre:80,acc:.5,dec:.3},tc:1},
   wagon:  {tyre:T_('allseason',.12,.15,.82,.65,.9,1.04),susp:'wagon',shocks:'stock',wm:.9,wf:.58,diff:{etc:1}},
   wagonSleeper:{tyre:T_('drag',.13,.15,.82,.7,1),susp:'wagonLow',shocks:'stock',wm:1,wf:.58},
   pickup: {tyre:T_('at',.13,.16,.84,.72,1.05,1.1),susp:'pickup',shocks:'stock',wm:1.05,wf:.56,lock:.55,diff:{etc:1,lockers:1,low:true}},
@@ -87,7 +89,7 @@ function buildChassis(i){
     body,tyre:tyre(ty),tyreR:rn.tyreR?tyre(tyR):null,
     brake:7200*Rr/.375*m/2150*bk,bias:.62,hbTorque:3200*Rr/.375,lock:rn.lock||.6,cdA:eg.cdA,clF:aero[0],clR:aero[1],
     diff:{pre:d.pre??40,acc:d.acc??.3,dec:d.dec??.15,rLock:!!d.spool,fLock:false,cLock:false,etc:d.etc||0,can:{r:(d.lockers||0)>=1,f:(d.lockers||0)>=2,low:!!d.low}},
-    surfMu:TF.surfMu,surfRR:TF.surfRR,surfDrag:TF.surfDrag,tread:ty.tread};
+    surfMu:TF.surfMu,surfRR:TF.surfRR,surfDrag:TF.surfDrag,tread:ty.tread,factoryTC:!!rn.tc};
   if(rn.tyreR){c.surfMuR=TR.surfMu;c.surfRRR=TR.surfRR;c.surfDragR=TR.surfDrag;c.treadR=tyR.tread;}
   c.hull=hullOf(b,D,cgOf(b));
   return c;

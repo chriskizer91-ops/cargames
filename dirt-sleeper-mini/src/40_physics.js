@@ -67,7 +67,7 @@ class Powertrain{
     this.st='off';this.t=0;this.we=0;this.rpm=0;this.gear=1;this.shiftT=0;this.shiftTo=1;this.engage=0;this.locked=false;this.boost=0;
     this.nos=e.nosKw?1:0;this.nosOn=false;this.cutT=0;this.cutFrac=0;this.thr=0;this.thrSnd=0;this.load=0;this.thrPrev=0;
     this.launching=false;this.launchW=0;this.launchT=0;this.hold=false;this.rev=false;this.revT=0;this.twostep=false;this.tcMul=1;this.tcOn=false;this.etcOn=false;
-    this.sinceShift=1;this.shiftGrade=null;this.events=[];this.lopeT=0;this.rpmOut=0;this.Te=0;this.Tdrv=0;this.tcCap=1e9;this.lo=1;this.auto=true;this.partShift=false;
+    this.sinceShift=1;this.shiftGrade=null;this.events=[];this.lopeT=0;this.rpmOut=0;this.Te=0;this.Tdrv=0;this.tcCap=1e9;this.lo=1;this.auto=true;this.partShift=false;this.dslip=0;
     this.snd={};
   }
   get running(){return this.st==='run'||this.st==='catch';}
@@ -98,8 +98,11 @@ class Powertrain{
   shiftAt(g,thr){const e=this.e,lo=Math.max(e.idle*2.2,e.redline*.42);return lo+(this.upRpm[g-1]-lo)*clamp((thr-.2)/.7,0,1);}
   _autoShift2(brk,holdGear){
     const e=this.e,g=this.gear,rpm=this.rpm,thr=this.thr;
-    if(this.locked&&g<e.nG&&(rpm>e.limiterRpm-80||!holdGear&&thr>.05&&rpm>this.shiftAt(g,thr))){this.shift(1);return;}
-    if(g>1&&this.sinceShift>.45&&(!holdGear||rpm<e.idle*1.6)){
+    /* hold the gear while the wheels are really spinning (the limiter catches the revs) and shift once they hook up */
+    if(this.locked&&g<e.nG&&!(this.dslip>.5)&&(rpm>e.limiterRpm-80||!holdGear&&thr>.05&&rpm>this.shiftAt(g,thr))){this.shift(1);return;}
+    /* never down a gear while the driven wheels spin (it only spins them harder), nor within a second of going
+       up one unless the engine is lugging: a box that hunts up and down through wheelspin gets nowhere */
+    if(g>1&&!(this.dslip>.2)&&(this.sinceShift>1||rpm<e.idle*1.3)&&(!holdGear||rpm<e.idle*1.6)){
       const after=rpm*e.gears[g-2]/e.gears[g-1],back=this.shiftAt(g-1,thr);
       if(after<back*.9&&after<e.limiterRpm-300&&(rpm<Math.max(e.idle*1.6,back*.55)||thr>.85&&rpm<e.redline*.55||brk>.3&&after<e.redline*.86))this.shift(-1);
     }
@@ -124,7 +127,7 @@ class Powertrain{
     this.thr+=(thrIn-this.thr)*Math.min(1,dt*(thrIn>this.thr?9:14)*e.resp);
     let thrE=this.thr,thrSnd=this.thr;const rpm=this.we*60/TAU;
     this.rpm=rpm;
-    let dslip=0;for(let k=0;k<drv.length;k++)dslip=Math.max(dslip,W[drv[k]].kap);
+    let dslip=0;for(let k=0;k<drv.length;k++)dslip=Math.max(dslip,W[drv[k]].kap);this.dslip=dslip;
     const vAbs=Math.abs(vW);
     /* traction control: a torque cap from the grip the driven tyres have, and a multiplier that backs off while they spin */
     this.tcCap=1e9;
@@ -375,7 +378,8 @@ class Vehicle{
     /* line lock: the fronts are held on the brakes and the drive goes to the rear axle alone */
     pt.drv=inp.lock&&pt.drvAll.length===4?DRV_RWD:pt.drvAll;
     const pin=this._ptIn,pa=this._aid;pin.thr=thr;pin.brk=brk;pin.nos=!!inp.nos;
-    pa.tc=aid.tc&&!this.drift.on&&!inp.lock;pa.escThr=inp.lock?1:escThr;pa.fmax=fmax;pa.mass=m;
+    /* traction control: the driving level's, or the car's own from the factory (or the race team) */
+    pa.tc=(aid.tc||!!c.factoryTC)&&!this.drift.on&&!inp.lock;pa.escThr=inp.lock?1:escThr;pa.fmax=fmax;pa.mass=m;
     pt.step(dt,pin,W,pa);if(pt.auto)pt.autoShift(brk,this.air,this.drift.on);this.absOn=false;
     /* the brakes */
     const hold=this.speed<.4&&thr<.05&&!this.rev&&pt.running;
