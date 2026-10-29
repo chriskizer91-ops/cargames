@@ -47,6 +47,7 @@ const Feats=(()=>{
     if(c.n>1)best('combo',tot,`${fmtMoney(tot)} combo (${c.n} feats, x${m.toFixed(1)})`);
     S.pendingLog=[];API.save();
   }
+  API.bankNow=()=>{S.live={};S.pending=null;bank();};
   /* rolled it, hit something hard, or reset with money on the table */
   API.wreck=why=>{
     S.live={};S.pending=null;S.climb=null;S.rocks=null;S.pit=null;
@@ -55,7 +56,6 @@ const Feats=(()=>{
   };
   API.resetCar=()=>{if(S.combo)API.wreck('RESET');S.live={};S.pending=null;S.climb=null;S.rocks=null;S.pit=null;S.lastGround=null;};
   /* ---------- reading the car ---------- */
-  const v3=()=>[0,0,0];
   function frame(t){
     const M=t.M,U=[M[1],M[4],M[7]],Rt=[M[2],M[5],M[8]];
     let nC=0,left=0,right=0,surf={},driven=0,spin=0;

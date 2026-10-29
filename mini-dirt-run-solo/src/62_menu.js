@@ -9,6 +9,8 @@ const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic
   pickup:'A full-size crew cab in off-road trim: 5.7 V8, a rear locker and a low range.',muscle:'A 1970-style big-block fastback with a four-speed. Rear-drive and proud of it.',
   hatch:'A mid-1980s turbo four-wheel-drive homologation hatch: light and eager.'};
 function openMenu(first){
+  /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
+  if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
   GAME.state='menu';$('menu').hidden=false;syncTouch();
   $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?'Free play: every car and part is yours':'Paused';
   showTab(MENU.tab);syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
@@ -18,7 +20,7 @@ function closeMenu(){
   if(GAME.car.pt.st==='off'&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
 }
 function showTab(id){
-  MENU.tab=id;for(const b of $('mTabs').children)b.setAttribute('aria-selected',String(b.dataset.t===id));
+  if(MENU.tab!==id)$('menu').scrollTop=0;MENU.tab=id;for(const b of $('mTabs').children)b.setAttribute('aria-selected',String(b.dataset.t===id));
   for(const el of document.querySelectorAll('#menu .tab'))el.hidden=el.dataset.tab!==id;
   /* in the garage the car turns in front of you */
   APP.orbit=id==='garage'&&GAME.state==='menu';$('menu').classList.toggle('garage',APP.orbit);

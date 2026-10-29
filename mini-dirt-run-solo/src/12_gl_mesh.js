@@ -49,7 +49,8 @@ function present(){
   gl.uniform1f(P_CO.u.uBloom,HDR?1:.55);gl.uniform3f(P_CO.u.uGrade,POST.sat,POST.con,0);gl.bindVertexArray(VAO0);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);
 }
 function resize(){
-  DPR=Math.min(window.devicePixelRatio||1,2.5);VW=Math.max(2,Math.round(innerWidth*DPR));VH=Math.max(2,Math.round(innerHeight*DPR));cv.width=VW;cv.height=VH;
+  /* a phone draws at no more than twice its CSS pixels: past that the dots are smaller than the eye can split anyway */
+  DPR=Math.min(window.devicePixelRatio||1,touchy?2:2.5);VW=Math.max(2,Math.round(innerWidth*DPR));VH=Math.max(2,Math.round(innerHeight*DPR));cv.width=VW;cv.height=VH;
   if(gl){for(const k in FB)freeTarget(FB[k]);
     FB.scene=mkTarget(VW,VH);FB.a=mkTarget(Math.max(1,VW>>2),Math.max(1,VH>>2));FB.b=mkTarget(Math.max(1,VW>>2),Math.max(1,VH>>2));
     FB.c=mkTarget(Math.max(1,VW>>3),Math.max(1,VH>>3));FB.d=mkTarget(Math.max(1,VW>>3),Math.max(1,VH>>3));}

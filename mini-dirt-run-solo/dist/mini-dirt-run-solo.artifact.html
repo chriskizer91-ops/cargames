@@ -1,6 +1,7 @@
 
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mini Dirt Run Solo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#07070b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,7 +67,7 @@ body.touch #res,body.touch .stat{display:none}
 
 /* ---------- the menu ---------- */
 #menu{position:fixed;inset:0;z-index:8;display:grid;place-items:start center;overflow-y:auto;background:rgba(7,7,11,.55);
-  padding:max(48px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+  padding:max(48px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 #menu.garage{background:linear-gradient(to right,rgba(7,7,11,.9) 0,rgba(7,7,11,.9) min(560px,100%),rgba(7,7,11,.15) min(640px,100%));place-items:start start}
 .mwrap{width:min(880px,100%);display:flex;flex-direction:column;gap:14px;background:rgba(14,14,21,.95);border:1px solid var(--edge);border-radius:16px;padding:16px 18px 0;
   box-shadow:0 30px 80px rgba(0,0,0,.6)}
@@ -528,7 +529,8 @@ function present(){
   gl.uniform1f(P_CO.u.uBloom,HDR?1:.55);gl.uniform3f(P_CO.u.uGrade,POST.sat,POST.con,0);gl.bindVertexArray(VAO0);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);
 }
 function resize(){
-  DPR=Math.min(window.devicePixelRatio||1,2.5);VW=Math.max(2,Math.round(innerWidth*DPR));VH=Math.max(2,Math.round(innerHeight*DPR));cv.width=VW;cv.height=VH;
+  /* a phone draws at no more than twice its CSS pixels: past that the dots are smaller than the eye can split anyway */
+  DPR=Math.min(window.devicePixelRatio||1,touchy?2:2.5);VW=Math.max(2,Math.round(innerWidth*DPR));VH=Math.max(2,Math.round(innerHeight*DPR));cv.width=VW;cv.height=VH;
   if(gl){for(const k in FB)freeTarget(FB[k]);
     FB.scene=mkTarget(VW,VH);FB.a=mkTarget(Math.max(1,VW>>2),Math.max(1,VH>>2));FB.b=mkTarget(Math.max(1,VW>>2),Math.max(1,VH>>2));
     FB.c=mkTarget(Math.max(1,VW>>3),Math.max(1,VH>>3));FB.d=mkTarget(Math.max(1,VW>>3),Math.max(1,VH>>3));}
@@ -6478,6 +6480,7 @@ const Feats=(()=>{
     if(c.n>1)best('combo',tot,`${fmtMoney(tot)} combo (${c.n} feats, x${m.toFixed(1)})`);
     S.pendingLog=[];API.save();
   }
+  API.bankNow=()=>{S.live={};S.pending=null;bank();};
   /* rolled it, hit something hard, or reset with money on the table */
   API.wreck=why=>{
     S.live={};S.pending=null;S.climb=null;S.rocks=null;S.pit=null;
@@ -6486,7 +6489,6 @@ const Feats=(()=>{
   };
   API.resetCar=()=>{if(S.combo)API.wreck('RESET');S.live={};S.pending=null;S.climb=null;S.rocks=null;S.pit=null;S.lastGround=null;};
   /* ---------- reading the car ---------- */
-  const v3=()=>[0,0,0];
   function frame(t){
     const M=t.M,U=[M[1],M[4],M[7]],Rt=[M[2],M[5],M[8]];
     let nC=0,left=0,right=0,surf={},driven=0,spin=0;
@@ -6609,7 +6611,7 @@ let FIXTURES=null;
 function fixtures(){
   if(FIXTURES)return FIXTURES;const W=RANCH.W,out=[];
   /* the ranch's own: the shop's yard lights and the strip's poles (their colours are in Shiftlight 3's units) */
-  for(const L of W.lights||[]){const k=L.col[0]>1000?.0045:.012;out.push({p:L.pos.slice(),r:L.r*1.1,c:L.col.map(v=>v*k),d:L.dir,cs:Math.max(L.cosO-.1,-.5)});}
+  for(const L of W.lights||[]){const k=L.col[0]>1000?.0045:.008;out.push({p:L.pos.slice(),r:L.r*1.1,c:L.col.map(v=>v*k),d:L.dir,cs:Math.max(L.cosO-.1,-.5)});}
   const at=(x,dy,z)=>[x,W.heightAt(x,z)+dy,z],down=[0,-1,0];
   /* Feed & Fuel: four downlights in the canopy, the sign */
   for(const [x,z] of [[503,366],[513,366],[503,376],[513,376]])out.push({p:at(x,4.9,z),r:20,c:[4.2,4,3.6],d:down,cs:Math.cos(1.2)});
@@ -7146,6 +7148,8 @@ const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic
   pickup:'A full-size crew cab in off-road trim: 5.7 V8, a rear locker and a low range.',muscle:'A 1970-style big-block fastback with a four-speed. Rear-drive and proud of it.',
   hatch:'A mid-1980s turbo four-wheel-drive homologation hatch: light and eager.'};
 function openMenu(first){
+  /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
+  if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
   GAME.state='menu';$('menu').hidden=false;syncTouch();
   $('mGo').textContent=first?'Start driving':'Back to driving';$('mEyebrow').textContent=first?'Free play: every car and part is yours':'Paused';
   showTab(MENU.tab);syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
@@ -7155,7 +7159,7 @@ function closeMenu(){
   if(GAME.car.pt.st==='off'&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
 }
 function showTab(id){
-  MENU.tab=id;for(const b of $('mTabs').children)b.setAttribute('aria-selected',String(b.dataset.t===id));
+  if(MENU.tab!==id)$('menu').scrollTop=0;MENU.tab=id;for(const b of $('mTabs').children)b.setAttribute('aria-selected',String(b.dataset.t===id));
   for(const el of document.querySelectorAll('#menu .tab'))el.hidden=el.dataset.tab!==id;
   /* in the garage the car turns in front of you */
   APP.orbit=id==='garage'&&GAME.state==='menu';$('menu').classList.toggle('garage',APP.orbit);
@@ -7317,7 +7321,7 @@ function optionList(car,rig,s,opts){
   const next=()=>{if(job!==GAR.job||!list.isConnected)return;const t0=performance.now();
     while(i<rows.length&&performance.now()-t0<14){const q=rows[i++];if(q.why)continue;
       const r=rateRig(car,fixRig(car,Object.assign({},rig,{[s]:q.v}))),dl=q.el.querySelector('.dl');q.sc=score(r,GAR.target);
-      for(const [k,n] of TERRAINS){const dv=r[k]-base[k];if(Math.abs(dv)<1)continue;const sp=document.createElement('span');sp.className=dv>0?'up':'dn';sp.textContent=n.split(' ')[0].toUpperCase()+' '+(dv>0?'+':'')+dv;dl.appendChild(sp);}
+      for(const [k,n] of TERRAINS){const dv=r[k]-base[k];if(Math.abs(dv)<1)continue;const sp=document.createElement('span');sp.className=dv>0?'up':'dn';sp.textContent=TERRAIN_SHORT[k].toUpperCase()+' '+(dv>0?'+':'')+dv;dl.appendChild(sp);}
       if(!dl.children.length&&q.v!==rig[s]){const sp=document.createElement('span');sp.style.color='var(--ink-3)';sp.textContent=s==='paint'||s==='wheels'?'LOOKS ONLY':'NO CHANGE TO THE RATINGS';dl.appendChild(sp);}
       if(!best||q.sc>best.sc+.01)best=q;}
     if(i<rows.length)setTimeout(next,0);
@@ -7396,7 +7400,10 @@ function bindTouch(){
     if(TOUCH.tilt0===null)TOUCH.tilt0=raw;let d=raw-TOUCH.tilt0;if(Math.abs(d)<1.5)d=0;TOUCH.steer=clamp(d/24,-1,1);if(APP.steer==='tilt')show(TOUCH.steer);});
 }
 /* tilt needs a tap of permission on some phones (not Android) */
-async function enableTilt(){TOUCH.tilt0=null;try{if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')await DeviceOrientationEvent.requestPermission();}catch(e){}}
+async function enableTilt(){TOUCH.tilt0=null;TOUCH.tiltOK=false;try{if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')await DeviceOrientationEvent.requestPermission();}catch(e){}
+  /* where the page isn't given the phone's motion (inside some apps and embedded views), tilt can't work: say so and slide instead */
+  setTimeout(()=>{if(APP.steer==='tilt'&&!TOUCH.tiltOK){APP.steer='slide';saveGame();syncTouch();if(typeof syncMenu==='function')syncMenu();
+    const h=$('sSteerHint');if(h)h.textContent='This view doesn\'t pass on the phone\'s tilt, so steering is back on Slide. Opening the game file straight in Chrome lets tilt work.';}},2000);}
 /* =====================================================================================
    THE BOOT: the dots, the GL, the ranch, the car and the menu, once every module above is in place.
    ===================================================================================== */

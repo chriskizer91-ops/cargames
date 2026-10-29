@@ -1,143 +1,82 @@
-# Dirt Sleeper Mini
+# Mini Dirt Run Solo (MDRS)
 
-Seven cars and sixteen builds, drawn on an LED dot matrix, each with its own Digital Engine running
-live. There are two pages:
+A free-roam driving game for a phone held sideways (made on a Pixel 7a), drawn on an LED dot matrix:
+the ranch and the mile of country round it from Dirt Sleeper Mini, seven cars you can build any way
+the garage allows, and money for every cool thing you do. No racing: just you, the clock, and the dirt.
 
-- `game.html`, the game: drive any build around the ranch and the country round it.
-- `model-bay.html`, the model bay: the cars on a turntable, or all of them parked together in a garage.
+It started as a copy of the newest Dirt Sleeper Mini (the seven-car version) and goes its own way from
+there; nothing here touches `dirt-sleeper-mini/`.
 
-| Car | Builds | What it is |
-| --- | --- | --- |
-| SUV | Stock, Sleeper, Rock & Mud, Race | A mid-2000s luxury SUV, built every way the game allows. |
-| 4x4 | Stock, Crawler | A short two-door off-roader that is good in the dirt from the factory, then lifted onto 37s with an exo-cage. |
-| Coupe | Stock, GT | A front-engine flat-plane V8 fastback that is a track car with plates, then a widebody GT race car. |
-| Wagon | Stock, Sleeper | A plain family wagon with a turbo five and all-wheel drive, then a big-turbo sleeper that still looks like a grocery getter. |
-| Pickup | Stock, Prerunner | A full-size crew cab in factory off-road trim, then a long-travel desert prerunner with two spares in a bed cage. |
-| Muscle | Stock, Drag | A 1970-style big-block fastback, then a blown, tubbed pro-street drag car on slicks with wheelie bars. |
-| Hatch | Stock, Group B | A mid-1980s turbo four-wheel-drive homologation hatch, then a full Group B gravel rally car with anti-lag. |
+## Play
 
-## The game
+Open `mini-dirt-run-solo.html` in a browser with WebGL2. `./build.sh` rebuilds it from `src/` and also
+writes `dist/mini-dirt-run-solo.artifact.html` (the same page without its outer tags) for publishing.
 
-Open `game.html` in a browser with WebGL2, on a laptop or a phone. The menu picks the car and its
-build, the driving level, where to go and the camera. It is Dirt Sleeper Mini 4's ranch and country:
-the drag strip, the burnout pad, the mud pit, the rock garden, the hill climb, the trail loop, the
-mud track, the lane, the county road, the woods and the race track.
+**On a phone** (sideways): put your left thumb down anywhere on the left side and slide to steer (or
+pick Tilt in Settings). The gas pedal is analog: how high your thumb sits is how much throttle, so the
+automatic shifts early when you go easy and holds on when you push. The brake works the same way; the
+e-brake sits above it. Brake and gas together at a standstill is a line lock for a burnout (or the
+trans-brake, on a race gearbox). Small buttons down the sides: camera, reset, horn, lights, nitrous, low
+range, lockers and overdrive off, whichever the car has. The phone buzzes on shifts, the limiter,
+landings and when a combo banks (Android).
 
-Keys: <kbd>W</kbd>/<kbd>↑</kbd> gas, <kbd>S</kbd>/<kbd>↓</kbd> brake and reverse, <kbd>A</kbd> <kbd>D</kbd> steer,
-<kbd>Space</kbd> handbrake, <kbd>Q</kbd> <kbd>E</kbd> shift, <kbd>N</kbd> nitrous, <kbd>L</kbd> low range,
-<kbd>K</kbd> lockers, <kbd>C</kbd> camera, <kbd>M</kbd> map, <kbd>T</kbd> traction (developer), <kbd>R</kbd> reset, <kbd>Esc</kbd> menu. A game
-controller works too. On a phone the pedals, steering and buttons are on the screen; turn it sideways
-for the bigger view.
+**Keys**: W/S gas and brake (hold S to reverse), A/D steer, Space e-brake, Q/E shift, O overdrive off,
+N nitrous, L low range, K lockers, J headlights, H horn, C camera, M map, R reset, I engine, Esc menu.
+A game controller works too.
 
-### The physics
+## What's in it
 
-Every build drives on the same physics: Mini 4's car model (a rigid body stepped 240 times a second,
-raycast wheels with a footprint of seven rays, a combined-slip tyre, a clutch or a torque converter,
-diffs, lockers and low range), rewritten so a step allocates nothing. That keeps phones from
-stuttering on garbage collection. `tools/physcheck.js` steps it beside Mini 4's own code and the two
-stay bit-identical.
+- **Feats that pay** (`src/57_feats.js`): drifts, jumps (distance, air time, a clean or sketchy
+  landing), two wheels, saving it from a roll, speed runs on dirt and gravel, burnouts, close calls past
+  the trees, splashes, the mud pit, Red Hill, the rock garden, laps of the race track and clock runs.
+  Back to back they stack into a combo; the multiplier grows with each feat and more with each new kind.
+  The combo banks after a few quiet seconds (or when you open the menu). Roll it, wreck it or reset first
+  and the unbanked money is lost. Free play keeps your money as a score, your last ten cool things and
+  your bests on the device.
+- **The garage** (`src/55_rigs.js`, `src/63_garage.js`): every car has its own list of parts that
+  plausibly fit it, in 19 slots (engine swaps, turbos and blowers, intake, exhaust, cam, tune, nitrous,
+  gearbox, axle gears, transfer case, diffs and lockers, tyres, suspension, shocks, brakes, weight, body
+  kit, wheels, paint). Tyres too big for the ride height, slicks on a lifted truck and the drag slicks
+  without the tubbed body say why they don't fit. The factory builds are presets you start from.
+  In free play every car and part is yours. "Build it for me" tries every part twice round and keeps the
+  best for what you're building for.
+- **Ratings, 0 to 50, on six kinds of ground** (`src/56_ratings.js`): dirt road, gravel road,
+  mountainside, rock crawl, mud and asphalt, each a course built like the place on the map where you can
+  feel it. A quick simulator drives each rig through each course with the physics' own numbers (the
+  engine's torque curve through its gears, the tyre grip and mud drag tables per tread and surface,
+  weight, drag, downforce, travel, clearance from the body's lines, centre of gravity against the track,
+  brakes, lockers, low range). 50 is a little better than the best factory build on that course. Pick one
+  as what you're building for and every part shows what it does to all six. 0-60 is measured on the
+  game's physics. `tools/terrain_check.js` drives the factory builds through the real mud pit, Red Hill
+  and rock garden to check the ratings put them in the right order (they do, broadly).
+- **Phone controls** (`src/64_touch.js`) and **detail** that steps itself down if the frame rate drops.
+  Phones start on the fine 960 x 540 dot grid.
+- **Night** (`src/58_sky.js`): a moon, stars, fog that closes in (so less is drawn), headlights, and the
+  ranch's lights: the shop's yard lights, the strip's poles, the canopy at Feed & Fuel, the porch at home
+  and the paddock's floodlights. Pick High noon or Night in the menu.
+- **Clock runs**: Home to Feed & Fuel, Feed & Fuel to the top of Red Hill, the shop to the pond, the race
+  track to home, the mud pit to the race track. Any route, against a par time.
+- **The stock SUV drives like the real 2006 truck it's modelled on**: the 4.6 V8's torque curve reshaped
+  to the real one (300 lb-ft at about 3,950 rpm, 294 hp, a 5,900 rpm redline), a two-speed transfer case
+  with low range, an overdrive-off button, and a progressive gas pedal so the six-speed automatic shifts
+  around 3,800 rpm at a light pedal and near 6,000 floored. 0-60 in 7.6 s, the quarter in 15.8 s at 90
+  (`tools/drag_check.js`). The engine's sound is the Digital Engine's, unchanged.
+- The e-brake on an all-wheel-drive car lets the centre diff go while it's held, like a rally car's
+  hydraulic handbrake, so the car turns about its nose.
 
-Each build's chassis comes from its model and its parts (`src/42_chassis.js`): weight and where it
-sits, the centre of gravity from the body and the ride height, springs, shocks and travel from the
-suspension, sway bars, tyres per tread and per surface, each axle's own tyre size, brakes, downforce,
-diffs, lockers and low range. The coupes and the SUV race build have factory traction control. The
-automatic shifts early at part throttle, kicks down, and holds its gear while the tyres are spinning
-rather than shifting up and down through the wheelspin.
+## Tools
 
-The three driving levels: **Realistic** is the car as it is; **Middle** adds a steering helper,
-stability control and traction control; **Kids** adds grip and keeps the car on its wheels.
-
-### The developer panel
-
-While the game is being made, the menu has a **Developer: traction** panel (`src/54_dev.js`; set
-`DEV` to false to ship without it).
-
-- **Traction is the ground, not the cars.** It sets how much grip each surface gives, overall and
-  surface by surface (tarmac, concrete, drag strip, dirt, gravel, trail, grass, rock, mud, ruts,
-  water). Every car feels it through its own tyres: the physics multiplies a tread's grip on a
-  surface by the ground's. So the cars keep their order at any setting. On dirt the drag car's slicks
-  always have less grip than the crawler's mud tyres, and on the drag strip they always have more.
-  The ground's grip lives on the world (`GroundWorld.grip`), so anything driving there feels it.
-- **The grip ladder** shows every build's driven tyres on one surface with the ground as it is set,
-  best first, starting on the surface the car is on.
-- **Every car's handling**: back-end grip, grip once sliding and steering at speed. Each works on
-  every car from that car's own setup (`Vehicle.tune`).
-- <kbd>T</kbd> while driving steps Traction through 75, 100, 125 and 150%. The HUD shows
-  `TRACTION 125%` while it is off the default, with `+` (or `DEV`) when other knobs have changed.
-  The settings are saved on the device.
-
-At the defaults the physics is untouched: `tools/physcheck.js` still finds no difference from Mini 4.
-
-`tools/proving.js` runs every build through a drag run, ramp-steer grip tests on tarmac and gravel
-and a 60-0 stop, and prints the figures beside the rankings in `design/ratings.json`. They agree to
-within about ten per cent.
-
-## The model bay
-
-Open `model-bay.html` in a browser with WebGL2. Pick a car, then a build; **Compare** shows all of a
-car's builds at once. **Hood** (or H) opens the hood, and the **Bay** view looks into the engine bay.
-**Garage** (or G) parks every car in one shed, each on the build it was last on. The car you
-picked sits on the turntable in the middle, where the views, the hood and the Bay view work as usual.
-Tap a parked car to swap it onto the turntable. The **All** view stands back to show the whole row.
-
-## The garage's engines
-
-Every car has a voice of its own: its own sim and its own synth (an audio worklet), all playing into
-one room, so any number can run at once. In the Engine tab, the power button starts the car on the
-turntable and **Start all** starts every car in the shed. Only the car on the turntable takes the
-throttle, brake, shift and nitrous; the rest idle in their bays. The car on the turntable is heard
-from where the listener buttons say (behind, cabin or trackside). Each parked car is heard from the
-camera, panned to its side, as far off as it is, and from its front or its tail depending on which
-end faces you. The garage switches the room to Garage; you can change it in the Engine tab. Leaving
-the garage stops the parked engines, and an engine that is off sleeps in its worklet, so it costs
-nothing until it is started again. Outside the garage a running engine moves with you when you
-switch cars.
-
-The parked cars are built one per frame the first time the garage opens, so the shed fills up car
-by car instead of the page freezing while all of them are made. Parked cars keep their hoods shut,
-so their engine bays are never built.
-
-## Files
-
-| Path | What's in it |
+| Tool | What it does |
 | --- | --- |
-| `game.html` | The whole game in one file (built) |
-| `model-bay.html` | The whole bay in one file (built) |
-| `build.sh` | Builds both pages: each is its shell's head, the source modules it uses, and its shell's tail. Run `./build.sh` after changing anything in `src/` or `shell/` |
-| `src/` | The source modules. 10-33: the display, the meshes, the engines and their sound, the bodies, parts, wheels and builds. 40-42: the physics, the ground contact and each build's chassis. 50-53: the country, the ranch, its drawing and the dust and mud. 54: the developer panel. 60-62: the game, its HUD and its menu. 18, 19, 80, 81: the model bay |
-| `shell/` | Each page's head (title, styles, markup) and tail |
-| `tools/physcheck.js` | Steps the physics beside Mini 4's original (`tools/ref/dsm4-physics.js`) and reports the worst difference: `node tools/physcheck.js` |
-| `tools/proving.js` | The proving ground for every build on the game's physics: `node tools/proving.js [build ids...]` |
-| `reference/image-prompts.md` | The prompts for the reference sheets the 4x4, coupe, wagon, pickup, muscle car and hatch were modelled from |
-| `tools/shot.js` | Screenshots for checking the cars by eye: `node tools/shot.js <out-dir> <build>:<view>[:<stage>]` |
-| `tools/rank.js` | Ranks every build for circuit, street and off-road racing from its own engine and chassis: `node tools/rank.js [out-dir]` |
-| `design/car-rankings.md` | The rankings, how they were measured, and what they mean for the tracks |
-| `design/ratings.json`, `design/rank-tables.md` | The ratings as data for the game, and the full ranked tables |
+| `tools/load.js` | Loads the modules in Node without a page, for the other tools. |
+| `tools/smoke.js` | Opens the built page in headless Chromium at phone size and saves screenshots. |
+| `tools/feats_check.js` | A robot drives the real ranch and checks the feats fire and pay. |
+| `tools/drag_check.js` | 0-60, the quarter mile and the shift points at several pedal positions. |
+| `tools/terrain_check.js` | The factory builds through the mud pit, up Red Hill and over the rocks, beside their ratings. |
+| `tools/proving.js` | Dirt Sleeper Mini's proving ground: drag, grip and brakes on flat ground. |
 
-## How a car is made
+## Next
 
-- **A body** in `BODIES`: designed lines (side silhouette, shoulder, sill, plan-view width, cladding)
-  that are lofted into the skin, plus the numbers its parts fit to (doors, rails, fuel door, how high
-  the chassis and the front and rear parts sit). A body can have an open bed behind the cab (`bed`).
-- **A face and a tail** in `FACES` and `TAILS`: lamps, grilles and badges drawn in front or rear view
-  and wrapped onto the body.
-- **Builds** in `BUILDS`: which body, ride height, tyres and wheels, and the bolt-ons (`FRONTS`,
-  `REARS`, `HOODS`, `EXTRAS`). A build can run bigger rear tyres on their own arches and track
-  (`tyreR`, `archRr`, `trackR`), and the body then pitches over them, nose down.
-- **An engine** in `ENGINE_OF`: a Digital Engine base engine plus bolt-ons, a gearbox and a weight.
-- **An engine bay**, built from that same recipe by `buildBay` the first time the hood opens: the
-  inner fenders, firewall, radiator and furniture, and an engine (`bayEngine`) that shows what the build
-  has: an airbox or a cone filter, cast manifolds or headers, turbos with their piping and intercooler,
-  a blower and its hat, individual throttle bodies, nitrous solenoids, electric fans, a strut brace.
-  The bay is garage-only: it is never built or drawn with the hood shut, so driving costs nothing for it.
-
-## Garage-only detail
-
-The body is built in three pieces: the body, the hood, and the floor and wheel wells under the hood.
-With the hood shut all three are drawn and the car looks exactly as it would on the road. With it open,
-the hood swings up on its hinge, the bits under it are skipped and the bay is drawn in their place. On
-the road the game can draw the body and the hood and never build a bay at all.
-
-The one exception is an engine that sticks out through the hood, like the drag car's blower
-(`engineOut`): that engine is part of the car on the road, so it is built with the car, a hole is
-cut in the hood for it, and it is drawn whether the hood is open or not.
+Quads (a kids' 90 cc, a 450 sport quad, a utility ranch quad), the odd vehicles (golf cart, go-kart,
+tractor, semi), then the career: the slow grind, where the money buys the parts and the odd vehicles
+are joke rewards.

@@ -82,7 +82,7 @@ function optionList(car,rig,s,opts){
   const next=()=>{if(job!==GAR.job||!list.isConnected)return;const t0=performance.now();
     while(i<rows.length&&performance.now()-t0<14){const q=rows[i++];if(q.why)continue;
       const r=rateRig(car,fixRig(car,Object.assign({},rig,{[s]:q.v}))),dl=q.el.querySelector('.dl');q.sc=score(r,GAR.target);
-      for(const [k,n] of TERRAINS){const dv=r[k]-base[k];if(Math.abs(dv)<1)continue;const sp=document.createElement('span');sp.className=dv>0?'up':'dn';sp.textContent=n.split(' ')[0].toUpperCase()+' '+(dv>0?'+':'')+dv;dl.appendChild(sp);}
+      for(const [k,n] of TERRAINS){const dv=r[k]-base[k];if(Math.abs(dv)<1)continue;const sp=document.createElement('span');sp.className=dv>0?'up':'dn';sp.textContent=TERRAIN_SHORT[k].toUpperCase()+' '+(dv>0?'+':'')+dv;dl.appendChild(sp);}
       if(!dl.children.length&&q.v!==rig[s]){const sp=document.createElement('span');sp.style.color='var(--ink-3)';sp.textContent=s==='paint'||s==='wheels'?'LOOKS ONLY':'NO CHANGE TO THE RATINGS';dl.appendChild(sp);}
       if(!best||q.sc>best.sc+.01)best=q;}
     if(i<rows.length)setTimeout(next,0);

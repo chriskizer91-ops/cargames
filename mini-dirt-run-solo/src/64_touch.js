@@ -56,4 +56,7 @@ function bindTouch(){
     if(TOUCH.tilt0===null)TOUCH.tilt0=raw;let d=raw-TOUCH.tilt0;if(Math.abs(d)<1.5)d=0;TOUCH.steer=clamp(d/24,-1,1);if(APP.steer==='tilt')show(TOUCH.steer);});
 }
 /* tilt needs a tap of permission on some phones (not Android) */
-async function enableTilt(){TOUCH.tilt0=null;try{if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')await DeviceOrientationEvent.requestPermission();}catch(e){}}
+async function enableTilt(){TOUCH.tilt0=null;TOUCH.tiltOK=false;try{if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')await DeviceOrientationEvent.requestPermission();}catch(e){}
+  /* where the page isn't given the phone's motion (inside some apps and embedded views), tilt can't work: say so and slide instead */
+  setTimeout(()=>{if(APP.steer==='tilt'&&!TOUCH.tiltOK){APP.steer='slide';saveGame();syncTouch();if(typeof syncMenu==='function')syncMenu();
+    const h=$('sSteerHint');if(h)h.textContent='This view doesn\'t pass on the phone\'s tilt, so steering is back on Slide. Opening the game file straight in Chrome lets tilt work.';}},2000);}

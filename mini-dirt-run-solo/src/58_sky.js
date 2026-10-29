@@ -16,7 +16,7 @@ let FIXTURES=null;
 function fixtures(){
   if(FIXTURES)return FIXTURES;const W=RANCH.W,out=[];
   /* the ranch's own: the shop's yard lights and the strip's poles (their colours are in Shiftlight 3's units) */
-  for(const L of W.lights||[]){const k=L.col[0]>1000?.0045:.012;out.push({p:L.pos.slice(),r:L.r*1.1,c:L.col.map(v=>v*k),d:L.dir,cs:Math.max(L.cosO-.1,-.5)});}
+  for(const L of W.lights||[]){const k=L.col[0]>1000?.0045:.008;out.push({p:L.pos.slice(),r:L.r*1.1,c:L.col.map(v=>v*k),d:L.dir,cs:Math.max(L.cosO-.1,-.5)});}
   const at=(x,dy,z)=>[x,W.heightAt(x,z)+dy,z],down=[0,-1,0];
   /* Feed & Fuel: four downlights in the canopy, the sign */
   for(const [x,z] of [[503,366],[513,366],[503,376],[513,376]])out.push({p:at(x,4.9,z),r:20,c:[4.2,4,3.6],d:down,cs:Math.cos(1.2)});
