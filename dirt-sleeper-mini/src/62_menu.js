@@ -16,6 +16,7 @@ function syncMenu(){
   $('mLevelHint').textContent=LEVELS.find(l=>l[0]===APP.level)[2];
   for(const el of $('mCam').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.cam));
   $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
+  syncDev();
 }
 function buildMenu(){
   /* a row for each car, a card for each of its builds */
@@ -32,6 +33,7 @@ function buildMenu(){
     el.addEventListener('click',()=>{goTo(id);closeMenu();});px.appendChild(el);}
   const cm=$('mCam');CAMS.forEach((n,i)=>{const el=document.createElement('button');el.type='button';el.dataset.v=String(i);el.textContent=n;
     el.addEventListener('click',()=>{APP.cam=i;CAM.cut=true;saveGame();syncMenu();});cm.appendChild(el);});
+  buildDev();
   $('vol').addEventListener('input',e=>setVolume(e.target.value));
   $('mGo').addEventListener('click',closeMenu);
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
@@ -50,5 +52,6 @@ else{
     }catch(e){console.error(e);$('loading').textContent='Something went wrong building the ranch: '+e.message;}
   },30));
   window.__game={APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,spawnCar,placeCar,goTo,openMenu,closeMenu,startEngine,setRes,render,step,soundUpdate,makeCar,truck,
+    dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }

@@ -83,6 +83,32 @@ h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform
 @media (hover:none){.keys{display:none}}
 .status{color:var(--ink-3);font-size:11.5px}
 .btn.sm{height:32px;padding:0 14px;font-size:11px;border-radius:9px}
+/* the developer panel (only while the game is being made) */
+.dev{border:1px dashed rgba(255,176,64,.45);border-radius:12px;padding:12px 14px}
+.dev h2{color:var(--amber)}
+.dev h3{margin:14px 0 8px;font:600 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.devrows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+@media (max-width:640px){.devrows{grid-template-columns:minmax(0,1fr)}}
+.devrow{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:2px 10px;align-items:center}
+.devrow label{font:600 11px/1.2 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.devrow output{font:600 12px/1 var(--f);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.devrow input{grid-column:1/-1;width:100%;accent-color:var(--amber)}
+.devrow small{grid-column:1/-1;color:var(--ink-3);font-size:11px;line-height:1.35}
+.dev details{margin-top:12px}
+.dev summary{cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding:4px 0}
+.dev details .devrows{margin-top:10px}
+.dev .places{margin-bottom:10px}
+.place[aria-pressed="true"]{color:var(--ink);border-color:var(--amber)}
+/* the ladder reads down the first column, then the second */
+.ladder{columns:2;column-gap:24px}
+@media (max-width:640px){.ladder{columns:1}}
+.lrow{display:grid;grid-template-columns:150px minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:11.5px;color:var(--ink-2);break-inside:avoid;padding:1.5px 0}
+.lrow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow i{height:6px;border-radius:3px;background:var(--panel);overflow:hidden}
+.lrow em{display:block;height:100%;background:var(--amber);opacity:.55}
+.lrow b{font:600 11px/1 var(--f);text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.lrow.me{color:var(--ink)}.lrow.me em{opacity:1}.lrow.me b{color:var(--ink)}
+.devacts{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 #loading{position:fixed;inset:0;display:grid;place-items:center;z-index:9;font:600 13px/1 var(--f);letter-spacing:.24em;text-transform:uppercase;color:var(--amber);background:var(--bg)}
 #err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:500 14px/1.6 var(--f);color:var(--ink-2);z-index:10}
@@ -107,13 +133,23 @@ h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform
     <section><h2>Car</h2><div class="cars" id="mCars"></div></section>
     <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
     <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
+    <section class="dev" id="mDev" hidden><h2>Developer: traction</h2>
+      <p class="hint" style="margin:0 0 10px">For tuning while the game is made; the finished game won't have this. <b>Traction is the ground, not the cars.</b> It sets how much grip each surface gives, and every car feels that through its own tyres, so the cars keep their order: on dirt the drag car's slicks have less grip than the crawler's mud tyres at any setting, and on the drag strip they have more. The handling knobs work on every car, each from its own setup. Changes take hold as you drive and are remembered. <b>T</b> while driving steps Traction through 75, 100, 125 and 150%.</p>
+      <div class="devrows" id="mDevAll"></div>
+      <details><summary>Each surface</summary><div class="devrows" id="mDevSurf"></div></details>
+      <h3 id="mDevLadderHead">Grip</h3>
+      <div class="places" id="mDevPick" role="group" aria-label="Surface"></div>
+      <div class="ladder" id="mDevLadder"></div>
+      <h3>Every car's handling</h3>
+      <div class="devrows" id="mDevCar"></div>
+      <div class="devacts"><button class="btn sm" id="mDevReset" type="button">Reset to the defaults</button><span class="status" id="mDevNote"></span></div></section>
     <section class="row2">
       <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div>
       <div><h2>Sound</h2><label class="vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label></div>
     </section>
     <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button></div>
     <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> handbrake · <kbd>Q</kbd> <kbd>E</kbd> shift ·
-      <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
+      <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>R</kbd> reset · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
   </div>
 </div>
 <div id="loading">Building the ranch and the country round it</div>
@@ -4073,6 +4109,9 @@ class Vehicle{
     this.steer=0;this.air=true;this.airT=0;this.speed=0;this.vf=0;this.beta=0;this.aid=ASSISTS.real;this.wet=0;
     this.drift={on:false,dir:0,t:0,low:0,bPrev:undefined,bd:0};this.ev={wall:0,land:0,scrape:0,ground:0,gscr:0,gsurf:null};
     this.rev=false;this.revT=0;this.escOn=false;this.absOn=false;this.assistTorque=0;this.plus=null;
+    /* tune: the developer's handling knobs, shared by every car and each applied to the car's own setup
+       ({rear, slide, steer}, 1 is as built); null leaves the car exactly as built */
+    this.tune=null;this._slide0=[this.tyre.slide,this.tyreR.slide];
     this.TY={fx:0,fy:0,dk:0,sg:0};this.acc=F3();this.accB=F3();this.thrIn=0;this.brkIn=0;
     /* scratch, so a step makes nothing */
     this._U=F3();this._dn=F3();this._fw=F3();this._t1=F3();this._t2=F3();this._t3=F3();this._F=F3();this._T=F3();this._vb=F3();this._wb=F3();
@@ -4084,7 +4123,11 @@ class Vehicle{
     qFromAxis(this.q,[0,1,0],yaw);qToM(this.M,this.q);this.p[0]=p[0];this.p[1]=p[1]+this.c.hcg;this.p[2]=p[2];this.v.fill(0);this.w.fill(0);
     for(const wh of this.wheels)wh.w=0;
   }
-  _smu(wh,s){return wh.surfMu?wh.surfMu[s]??.8:SURF_MU[s]||1;}
+  /* a tyre's grip on a surface: its tread's grip there, times how much grip the ground is giving (the
+     world's grip, surface by surface; none is as tuned) */
+  _smu(wh,s){const b=wh.surfMu?wh.surfMu[s]??.8:SURF_MU[s]||1,g=this.world.grip;return g?b*(g[s]??1):b;}
+  /* the handling knobs that are set once rather than read every step */
+  applyTune(){const T=this.tune,k=T?T.slide:1;this.tyre.slide=Math.min(1,this._slide0[0]*k);if(this.tyreR!==this.tyre)this.tyreR.slide=Math.min(1,this._slide0[1]*k);}
   setAssists(id){this.aid=ASSISTS[id]||ASSISTS.real;this.pt.auto=!!this.aid.auto;this.plus=this.aid.plus||null;}
   /* the world-space inverse inertia times x, into o */
   invI(o,M,x){m3tv(o,M,x[0],x[1],x[2]);const I=this.I;return m3v(o,M,o[0]/I[0],o[1]/I[1],o[2]/I[2]);}
@@ -4144,7 +4187,7 @@ class Vehicle{
       const cp=wh.cp,rx=cp[0]-p[0],ry=cp[1]-p[1],rz=cp[2]-p[2],vx=v[0]+(w[1]*rz-w[2]*ry),vy=v[1]+(w[2]*rx-w[0]*rz),vz=v[2]+(w[0]*ry-w[1]*rx);
       const vl=vx*f[0]+vy*f[1]+vz*f[2],vt=vx*r[0]+vy*r[1]+vz*r[2],vn=Math.max(Math.abs(vl),2.5),kap=(wh.w*R-vl)/vn,tanA=vt/vn,
         tg=wh.temp<.62?.92+.08*sstep(.15,.62,wh.temp):wh.temp<.85?1.02:1.02-.15*sstep(.85,1.15,wh.temp);
-      tyreForce(wh.tyre,wh.Fz,kap,tanA,this._smu(wh,wh.surf)*wetMu*tg,TY);
+      tyreForce(wh.tyre,wh.Fz,kap,tanA,this._smu(wh,wh.surf)*wetMu*tg*(wh.front||!this.tune?1:this.tune.rear),TY);
       wh.Fx=TY.fx;wh.rr=(wh.surfRR?wh.surfRR[wh.surf]??.015:.012)*wh.Fz;wh.vd=(wh.surfDrag?wh.surfDrag[wh.surf]||0:0)*wh.Fz*vl;wh.Fy=TY.fy;wh.Kd=TY.dk*R/vn;
       wh.kap=kap;wh.tanA=tanA;wh.sg=TY.sg;wh.vl=vl;wh.slipV=Math.hypot(wh.w*R-vl,vt);
       wh.temp+=dt*(wh.slipV*wh.Fz/(m*G)*.02-(wh.temp-.42)*(.015+this.speed*8e-4));wh.temp=clamp(wh.temp,.2,1.25);
@@ -4213,7 +4256,7 @@ class Vehicle{
      would, with full lock at parking speeds; the helper aims the fronts at their peak slip angle */
   _steer(dt,sIn,vb,wb){
     const c=this.c,aid=this.aid,lock=c.lock,vx=vb[0],v=Math.abs(vx),
-      lim=Math.min(lock,this.tyre.aPk*1.6+c.wb*9/Math.max(v*v,1)+(sIn*this.beta>0?Math.abs(this.beta):0));
+      lim=Math.min(lock,this.tyre.aPk*1.6*(this.tune?this.tune.steer:1)+c.wb*9/Math.max(v*v,1)+(sIn*this.beta>0?Math.abs(this.beta):0));
     let tgt=sIn*lim;
     if(aid.steer>0&&vx>1.5){const vzF=vb[2]-wb[1]*this.a,thF=Math.atan2(vzF,Math.max(vx,.5)),aPk=this.tyre.aPk*.92,assist=thF+sIn*aPk*(this.drift.on?1.35:1);
       tgt=lerp(tgt,assist,aid.steer*sstep(1.5,8,vx));}
@@ -4291,6 +4334,8 @@ const FOOT=[-.75,-.5,-.25,.25,.5,.75];
 class GroundWorld{
   constructor(groundAt,colliders,bound){
     this.groundAt=groundAt;this.colliders=colliders||null;this.bound=bound||1e9;
+    /* how much grip the ground is giving, surface by surface ({dirt: 1.2, ...}); null is as tuned */
+    this.grip=null;
     this._g={y:0,n:F3(),surf:''};this._h=mkHit();this._o=F3();this._f=F3();
   }
   /* the ground where a ray first meets it: a few steps along the ray, each onto the plane under it */
@@ -5861,6 +5906,104 @@ function fxDraw(){
 }
 
 /* =====================================================================================
+   THE DEVELOPER PANEL: traction and handling, for tuning while the game is made.
+   Traction is the ground, not the cars. It sets how much grip each surface gives, and every car feels that
+   through its own tyres (the physics multiplies a tread's grip on a surface by the ground's), so the cars
+   keep their order on every surface whatever the setting: on dirt the drag car's slicks always have less
+   grip than the crawler's mud tyres, and on the prepped strip always more. The handling knobs work on every
+   car the same way, each from its own setup.
+   ===================================================================================== */
+/* DEV: set to false to ship; the panel, the T key and the HUD tag go away and everything drives on the defaults */
+const DEV=true;
+/* the ground, surface by surface: id, label, where it is */
+const DEV_GROUND=[['asphalt','Tarmac','The race track and its kerbs.'],['concrete','Concrete','The shop pad, the store apron and the paddock.'],
+  ['strip','Drag strip','The prepped dirt of the eighth mile.'],['dirt','Dirt','The yard, the ranch roads and the burnout pad.'],
+  ['gravel','Gravel','The county roads, the track\'s gravel traps and the yard at home.'],['trail','Trail','The trail loop, the hill climb and the woods trails.'],
+  ['grass','Grass','The open fields and the verges.'],['rock','Rock','The rock garden and the rocky ground.'],
+  ['mud','Mud','The mud pit, the mud track and the edge of the pond.'],['ruts','Ruts','The lane\'s muddy ruts.'],['water','Water','The creek crossings and the pond.']];
+/* the handling knobs: id, label, min, max, note */
+const DEV_CAR=[['rear','Back-end grip',.7,1.4,'Every car\'s rear tyres, from their own grip. Up: the tail holds and the car pushes wide. Down: the tail steps out sooner.'],
+  ['slide','Grip once sliding',.8,1.25,'How much grip a tyre keeps once it breaks loose, from its own. Up makes slides gentler and easier to catch.'],
+  ['steer','Steering at speed',.7,2,'How far full steering turns the wheels at speed, from each car\'s own. Up turns harder and slides sooner.']];
+const DEV_ALL=[.5,2],DEV_SURF=[.3,1.8],DEV_STEPS=[.75,1,1.25,1.5];
+/* the settings; car is the tune every car reads, grip is the ground's grip the world reads (all times each surface) */
+const DEV_T={all:1,ground:{},car:{rear:1,slide:1,steer:1}},DEV_GRIP={};
+for(const [k] of DEV_GROUND)DEV_T.ground[k]=1;
+const devClamp=(v,[lo,hi])=>Math.max(lo,Math.min(hi,+v||1));
+function devCalc(){for(const [k] of DEV_GROUND)DEV_GRIP[k]=DEV_T.all*DEV_T.ground[k];}
+function devLoad(){
+  if(DEV)try{const d=JSON.parse(store.get('dsmini-tune','{}'))||{};
+    if(d.all!==undefined)DEV_T.all=devClamp(d.all,DEV_ALL);
+    for(const [k] of DEV_GROUND)if(d.ground&&d.ground[k]!==undefined)DEV_T.ground[k]=devClamp(d.ground[k],DEV_SURF);
+    for(const [k,,lo,hi] of DEV_CAR)if(d.car&&d.car[k]!==undefined)DEV_T.car[k]=devClamp(d.car[k],[lo,hi]);}catch(e){}
+  devCalc();
+}
+devLoad();
+const devSave=()=>store.set('dsmini-tune',JSON.stringify(DEV_T));
+/* a new car drives on the panel's ground and handling */
+function devFit(t){if(!DEV)return;t.tune=DEV_T.car;t.applyTune();t.world.grip=DEV_GRIP;}
+function devApply(){devCalc();if(GAME.car)GAME.car.applyTune();devSave();syncDev();}
+const off1=v=>Math.abs(v-1)>1e-6;
+/* the HUD's tag while anything is off the defaults: TRACTION 125%, with + when more than that has changed */
+function devTag(){
+  if(!DEV)return '';
+  const more=DEV_GROUND.some(([k])=>off1(DEV_T.ground[k]))||DEV_CAR.some(([k])=>off1(DEV_T.car[k]));
+  return off1(DEV_T.all)?'TRACTION '+Math.round(DEV_T.all*100)+'%'+(more?' +':''):more?'DEV':'';
+}
+/* T while driving: Traction through 75, 100, 125 and 150% */
+function devStep(){const i=DEV_STEPS.findIndex(v=>Math.abs(v-DEV_T.all)<.01);DEV_T.all=DEV_STEPS[(i+1)%DEV_STEPS.length];devApply();return DEV_T.all;}
+
+/* ---------- the panel ---------- */
+const pct=v=>Math.round(v*100)+'%';
+let DEV_SEE=null,DEV_LADDER=null;
+/* each build's driven tyres on each surface as built: peak grip times its tread's grip there */
+function devLadderBase(){
+  if(DEV_LADDER)return DEV_LADDER;
+  DEV_LADDER=BUILDS.map((b,i)=>{const c=buildChassis(i),d=specOf(i).drv,f=c.tyre,r=c.tyreR||c.tyre,mf=c.surfMu,mr=c.surfMuR||c.surfMu,g={};
+    for(const [k] of DEV_GROUND){const a=f.mu*mf[k],z=r.mu*mr[k];g[k]=d==='FWD'?a:d==='RWD'?z:(a+z)/2;}
+    return {i,name:carName(b)+' '+b.name,g};});
+  return DEV_LADDER;
+}
+/* the surface under the car's tyres */
+function devUnder(){const t=GAME.car;if(!t)return 'dirt';const n={};let best='dirt',m=0;
+  for(const w of t.wheels)if(w.contact&&DEV_T.ground[w.surf]!==undefined&&(n[w.surf]=(n[w.surf]||0)+1)>m){m=n[w.surf];best=w.surf;}
+  return best;}
+function slider(host,id,label,note,min,max,get,set){
+  const el=document.createElement('div');el.className='devrow';
+  el.innerHTML='<label></label><output></output><input type="range"><small></small>';
+  const inp=el.querySelector('input'),lb=el.querySelector('label');
+  lb.textContent=label;lb.htmlFor=inp.id='dev_'+id;inp.min=min;inp.max=max;inp.step=.01;el.querySelector('small').textContent=note;
+  inp.addEventListener('input',()=>{set(+inp.value);devApply();});
+  el.sync=()=>{inp.value=get();el.querySelector('output').textContent=pct(get());};
+  host.appendChild(el);return el;
+}
+const DEV_ROWS=[];
+function buildDev(){
+  if(!DEV)return;
+  $('mDev').hidden=false;
+  DEV_ROWS.push(slider($('mDevAll'),'all','Traction','The ground on every surface, for every car. 100% is the game as tuned.',...DEV_ALL,()=>DEV_T.all,v=>DEV_T.all=v));
+  for(const [k,n,note] of DEV_GROUND)DEV_ROWS.push(slider($('mDevSurf'),k,n,note,...DEV_SURF,()=>DEV_T.ground[k],v=>DEV_T.ground[k]=v));
+  for(const [k,n,lo,hi,note] of DEV_CAR)DEV_ROWS.push(slider($('mDevCar'),k,n,note,lo,hi,()=>DEV_T.car[k],v=>DEV_T.car[k]=v));
+  const pk=$('mDevPick');
+  for(const [k,n] of DEV_GROUND){const el=document.createElement('button');el.type='button';el.className='place';el.dataset.k=k;el.textContent=n;
+    el.addEventListener('click',()=>{DEV_SEE=k;syncDev();});pk.appendChild(el);}
+  $('mDevReset').addEventListener('click',()=>{DEV_T.all=1;for(const [k] of DEV_GROUND)DEV_T.ground[k]=1;for(const [k] of DEV_CAR)DEV_T.car[k]=1;devApply();});
+}
+function syncDev(){
+  if(!DEV||!DEV_ROWS.length)return;
+  for(const r of DEV_ROWS)r.sync();
+  /* the ladder: every car's driven tyres on one surface, on the ground as it is set now */
+  const s=DEV_SEE||devUnder(),gr=DEV_GRIP[s],rows=devLadderBase().map(r=>({i:r.i,name:r.name,v:r.g[s]*gr})).sort((a,b)=>b.v-a.v),top=Math.max(1,rows[0].v);
+  for(const el of $('mDevPick').children)el.setAttribute('aria-pressed',String(el.dataset.k===s));
+  const name=DEV_GROUND.find(g=>g[0]===s)[1];
+  $('mDevLadderHead').textContent=`Grip of each car's driven tyres on ${name.toLowerCase()}, with the ground at ${pct(gr)}`;
+  const L=$('mDevLadder');L.textContent='';
+  for(const r of rows){const el=document.createElement('div');el.className='lrow'+(r.i===APP.build?' me':'');
+    el.innerHTML='<span></span><i><em></em></i><b></b>';el.querySelector('span').textContent=r.name;
+    el.querySelector('em').style.width=(r.v/top*100).toFixed(1)+'%';el.querySelector('b').textContent=r.v.toFixed(2);L.appendChild(el);}
+  $('mDevNote').textContent=devTag()?'Saved on this device.':'';
+}
+/* =====================================================================================
    THE GAME: free roam on the ranch and the country round it, in any of the seven cars and their sixteen
    builds. Dirt Sleeper Mini 4's game, with the game's physics (40_physics, 42_chassis) at 240 steps a
    second, the car drawn from its own model (33_car_mesh) where the physics puts it, a chase camera,
@@ -5949,7 +6092,7 @@ function placeCar(x,z,yaw){
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;
 }
 function spawnCar(i,x,z,yaw){
-  const prev=GAME.car,t=makeCar(i,RANCH.world);t.setAssists(APP.level);truck(i);
+  const prev=GAME.car,t=makeCar(i,RANCH.world);t.setAssists(APP.level);devFit(t);truck(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
   GAME.car=t;GAME.dirt=BUILDS[i].dirt;
   if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];yaw=Math.atan2(-prev.M[6],prev.M[0]);}else{x=6;z=4;yaw=0;}}
@@ -5985,7 +6128,7 @@ function soundUpdate(c){
 
 /* ---------- keyboard, game controller and the touch pedals (Dirt Sleeper's input) ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],trac:['KeyT']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -5999,7 +6142,7 @@ function pollInput(dt){
   INPUT.steer+=clamp(tgt-INPUT.steer,-rate*dt,rate*dt);
   INPUT.thr+=clamp((keyOn('thr')?1:0)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
   out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
-  for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map'])out[k]=keyHit(k);
+  for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map','trac'])out[k]=keyHit(k);
   const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const p of pads)if(p&&p.connected){gp=p;break;}
   if(gp){const dz=(v,d=.08)=>Math.abs(v)<d?0:(v-Math.sign(v)*d)/(1-d),sx=dz(gp.axes[0]||0),rt=gp.buttons[7]?gp.buttons[7].value:0,lt=gp.buttons[6]?gp.buttons[6].value:0;
     if(Math.abs(sx)>0||rt>.02||lt>.02||gp.buttons.some(b=>b.pressed))INPUT.usingPad=true;
@@ -6037,6 +6180,7 @@ function step(dt){
     if(inp.lockers)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this car',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
+    if(inp.trac&&DEV)say('Traction '+pct(devStep()),1.4);
     if(inp.ign)toggleEngine();
     if(inp.purge&&GAME.voice.port&&pt.e.nosKw)GAME.voice.port.post({t:'ev',ev:{type:'purge'}});
     drive=inp;
@@ -6237,6 +6381,8 @@ function drawHud(c){
   otxt5((carName(b)+' '+b.name).toUpperCase(),5,5,GR.volt,sc,'l',.12);
   otxt3(GAME.place.toUpperCase(),5,7+7*sc+2,PAL.ink);
   otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':''),5,7+7*sc+10,APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:PAL.dim);
+  /* the developer panel's settings, when they're off the defaults */
+  const dt=devTag();if(dt)otxt3(dt,5,7+7*sc+(GAME.touch?28:18),PAL.amber);
   /* top right: the map */
   const [mx0,my0,ms]=miniRect();drawMap(mx0,my0,ms);
   if(GAME.state!=='drive')return;
@@ -6286,6 +6432,7 @@ function syncMenu(){
   $('mLevelHint').textContent=LEVELS.find(l=>l[0]===APP.level)[2];
   for(const el of $('mCam').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.cam));
   $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
+  syncDev();
 }
 function buildMenu(){
   /* a row for each car, a card for each of its builds */
@@ -6302,6 +6449,7 @@ function buildMenu(){
     el.addEventListener('click',()=>{goTo(id);closeMenu();});px.appendChild(el);}
   const cm=$('mCam');CAMS.forEach((n,i)=>{const el=document.createElement('button');el.type='button';el.dataset.v=String(i);el.textContent=n;
     el.addEventListener('click',()=>{APP.cam=i;CAM.cut=true;saveGame();syncMenu();});cm.appendChild(el);});
+  buildDev();
   $('vol').addEventListener('input',e=>setVolume(e.target.value));
   $('mGo').addEventListener('click',closeMenu);
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
@@ -6320,6 +6468,7 @@ else{
     }catch(e){console.error(e);$('loading').textContent='Something went wrong building the ranch: '+e.message;}
   },30));
   window.__game={APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,spawnCar,placeCar,goTo,openMenu,closeMenu,startEngine,setRes,render,step,soundUpdate,makeCar,truck,
+    dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }
 

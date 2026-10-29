@@ -9,6 +9,8 @@ const FOOT=[-.75,-.5,-.25,.25,.5,.75];
 class GroundWorld{
   constructor(groundAt,colliders,bound){
     this.groundAt=groundAt;this.colliders=colliders||null;this.bound=bound||1e9;
+    /* how much grip the ground is giving, surface by surface ({dirt: 1.2, ...}); null is as tuned */
+    this.grip=null;
     this._g={y:0,n:F3(),surf:''};this._h=mkHit();this._o=F3();this._f=F3();
   }
   /* the ground where a ray first meets it: a few steps along the ray, each onto the plane under it */

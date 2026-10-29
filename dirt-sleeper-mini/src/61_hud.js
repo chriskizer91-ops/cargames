@@ -52,6 +52,8 @@ function drawHud(c){
   otxt5((carName(b)+' '+b.name).toUpperCase(),5,5,GR.volt,sc,'l',.12);
   otxt3(GAME.place.toUpperCase(),5,7+7*sc+2,PAL.ink);
   otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':''),5,7+7*sc+10,APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:PAL.dim);
+  /* the developer panel's settings, when they're off the defaults */
+  const dt=devTag();if(dt)otxt3(dt,5,7+7*sc+(GAME.touch?28:18),PAL.amber);
   /* top right: the map */
   const [mx0,my0,ms]=miniRect();drawMap(mx0,my0,ms);
   if(GAME.state!=='drive')return;

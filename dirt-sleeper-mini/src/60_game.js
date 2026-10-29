@@ -87,7 +87,7 @@ function placeCar(x,z,yaw){
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;
 }
 function spawnCar(i,x,z,yaw){
-  const prev=GAME.car,t=makeCar(i,RANCH.world);t.setAssists(APP.level);truck(i);
+  const prev=GAME.car,t=makeCar(i,RANCH.world);t.setAssists(APP.level);devFit(t);truck(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
   GAME.car=t;GAME.dirt=BUILDS[i].dirt;
   if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];yaw=Math.atan2(-prev.M[6],prev.M[0]);}else{x=6;z=4;yaw=0;}}
@@ -123,7 +123,7 @@ function soundUpdate(c){
 
 /* ---------- keyboard, game controller and the touch pedals (Dirt Sleeper's input) ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],trac:['KeyT']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -137,7 +137,7 @@ function pollInput(dt){
   INPUT.steer+=clamp(tgt-INPUT.steer,-rate*dt,rate*dt);
   INPUT.thr+=clamp((keyOn('thr')?1:0)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
   out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
-  for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map'])out[k]=keyHit(k);
+  for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map','trac'])out[k]=keyHit(k);
   const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const p of pads)if(p&&p.connected){gp=p;break;}
   if(gp){const dz=(v,d=.08)=>Math.abs(v)<d?0:(v-Math.sign(v)*d)/(1-d),sx=dz(gp.axes[0]||0),rt=gp.buttons[7]?gp.buttons[7].value:0,lt=gp.buttons[6]?gp.buttons[6].value:0;
     if(Math.abs(sx)>0||rt>.02||lt>.02||gp.buttons.some(b=>b.pressed))INPUT.usingPad=true;
@@ -175,6 +175,7 @@ function step(dt){
     if(inp.lockers)say(setLockers(t,!t.locked)?(t.locked?'Lockers on':'Lockers off'):'No lockers on this car',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
+    if(inp.trac&&DEV)say('Traction '+pct(devStep()),1.4);
     if(inp.ign)toggleEngine();
     if(inp.purge&&GAME.voice.port&&pt.e.nosKw)GAME.voice.port.post({t:'ev',ev:{type:'purge'}});
     drive=inp;

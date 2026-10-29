@@ -13,5 +13,5 @@ CARS="10_core 11_display 12_gl_mesh 13_lit 14_loft 15_digital_engine 16_engines 
 
 page model-bay.html bay $CARS 18_bay_voices 19_engine_loop 80_bay_stage 81_bay_app
 
-# the game: the cars, the physics, the ranch and the country round it, the game, its HUD and its menu
-page game.html game $CARS 40_physics 41_ground 42_chassis 50_country 51_ranch 52_world_gl 53_fx 60_game 61_hud 62_menu
+# the game: the cars, the physics, the ranch and the country round it, the developer panel, the game, its HUD and its menu
+page game.html game $CARS 40_physics 41_ground 42_chassis 50_country 51_ranch 52_world_gl 53_fx 54_dev 60_game 61_hud 62_menu

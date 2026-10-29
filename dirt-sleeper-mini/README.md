@@ -25,7 +25,7 @@ mud track, the lane, the county road, the woods and the race track.
 
 Keys: <kbd>W</kbd>/<kbd>↑</kbd> gas, <kbd>S</kbd>/<kbd>↓</kbd> brake and reverse, <kbd>A</kbd> <kbd>D</kbd> steer,
 <kbd>Space</kbd> handbrake, <kbd>Q</kbd> <kbd>E</kbd> shift, <kbd>N</kbd> nitrous, <kbd>L</kbd> low range,
-<kbd>K</kbd> lockers, <kbd>C</kbd> camera, <kbd>M</kbd> map, <kbd>R</kbd> reset, <kbd>Esc</kbd> menu. A game
+<kbd>K</kbd> lockers, <kbd>C</kbd> camera, <kbd>M</kbd> map, <kbd>T</kbd> traction (developer), <kbd>R</kbd> reset, <kbd>Esc</kbd> menu. A game
 controller works too. On a phone the pedals, steering and buttons are on the screen; turn it sideways
 for the bigger view.
 
@@ -46,6 +46,27 @@ rather than shifting up and down through the wheelspin.
 
 The three driving levels: **Realistic** is the car as it is; **Middle** adds a steering helper,
 stability control and traction control; **Kids** adds grip and keeps the car on its wheels.
+
+### The developer panel
+
+While the game is being made, the menu has a **Developer: traction** panel (`src/54_dev.js`; set
+`DEV` to false to ship without it).
+
+- **Traction is the ground, not the cars.** It sets how much grip each surface gives, overall and
+  surface by surface (tarmac, concrete, drag strip, dirt, gravel, trail, grass, rock, mud, ruts,
+  water). Every car feels it through its own tyres: the physics multiplies a tread's grip on a
+  surface by the ground's. So the cars keep their order at any setting. On dirt the drag car's slicks
+  always have less grip than the crawler's mud tyres, and on the drag strip they always have more.
+  The ground's grip lives on the world (`GroundWorld.grip`), so anything driving there feels it.
+- **The grip ladder** shows every build's driven tyres on one surface with the ground as it is set,
+  best first, starting on the surface the car is on.
+- **Every car's handling**: back-end grip, grip once sliding and steering at speed. Each works on
+  every car from that car's own setup (`Vehicle.tune`).
+- <kbd>T</kbd> while driving steps Traction through 75, 100, 125 and 150%. The HUD shows
+  `TRACTION 125%` while it is off the default, with `+` (or `DEV`) when other knobs have changed.
+  The settings are saved on the device.
+
+At the defaults the physics is untouched: `tools/physcheck.js` still finds no difference from Mini 4.
 
 `tools/proving.js` runs every build through a drag run, ramp-steer grip tests on tarmac and gravel
 and a 60-0 stop, and prints the figures beside the rankings in `design/ratings.json`. They agree to
@@ -83,7 +104,7 @@ so their engine bays are never built.
 | `game.html` | The whole game in one file (built) |
 | `model-bay.html` | The whole bay in one file (built) |
 | `build.sh` | Builds both pages: each is its shell's head, the source modules it uses, and its shell's tail. Run `./build.sh` after changing anything in `src/` or `shell/` |
-| `src/` | The source modules. 10-33: the display, the meshes, the engines and their sound, the bodies, parts, wheels and builds. 40-42: the physics, the ground contact and each build's chassis. 50-53: the country, the ranch, its drawing and the dust and mud. 60-62: the game, its HUD and its menu. 18, 19, 80, 81: the model bay |
+| `src/` | The source modules. 10-33: the display, the meshes, the engines and their sound, the bodies, parts, wheels and builds. 40-42: the physics, the ground contact and each build's chassis. 50-53: the country, the ranch, its drawing and the dust and mud. 54: the developer panel. 60-62: the game, its HUD and its menu. 18, 19, 80, 81: the model bay |
 | `shell/` | Each page's head (title, styles, markup) and tail |
 | `tools/physcheck.js` | Steps the physics beside Mini 4's original (`tools/ref/dsm4-physics.js`) and reports the worst difference: `node tools/physcheck.js` |
 | `tools/proving.js` | The proving ground for every build on the game's physics: `node tools/proving.js [build ids...]` |

@@ -296,6 +296,9 @@ class Vehicle{
     this.steer=0;this.air=true;this.airT=0;this.speed=0;this.vf=0;this.beta=0;this.aid=ASSISTS.real;this.wet=0;
     this.drift={on:false,dir:0,t:0,low:0,bPrev:undefined,bd:0};this.ev={wall:0,land:0,scrape:0,ground:0,gscr:0,gsurf:null};
     this.rev=false;this.revT=0;this.escOn=false;this.absOn=false;this.assistTorque=0;this.plus=null;
+    /* tune: the developer's handling knobs, shared by every car and each applied to the car's own setup
+       ({rear, slide, steer}, 1 is as built); null leaves the car exactly as built */
+    this.tune=null;this._slide0=[this.tyre.slide,this.tyreR.slide];
     this.TY={fx:0,fy:0,dk:0,sg:0};this.acc=F3();this.accB=F3();this.thrIn=0;this.brkIn=0;
     /* scratch, so a step makes nothing */
     this._U=F3();this._dn=F3();this._fw=F3();this._t1=F3();this._t2=F3();this._t3=F3();this._F=F3();this._T=F3();this._vb=F3();this._wb=F3();
@@ -307,7 +310,11 @@ class Vehicle{
     qFromAxis(this.q,[0,1,0],yaw);qToM(this.M,this.q);this.p[0]=p[0];this.p[1]=p[1]+this.c.hcg;this.p[2]=p[2];this.v.fill(0);this.w.fill(0);
     for(const wh of this.wheels)wh.w=0;
   }
-  _smu(wh,s){return wh.surfMu?wh.surfMu[s]??.8:SURF_MU[s]||1;}
+  /* a tyre's grip on a surface: its tread's grip there, times how much grip the ground is giving (the
+     world's grip, surface by surface; none is as tuned) */
+  _smu(wh,s){const b=wh.surfMu?wh.surfMu[s]??.8:SURF_MU[s]||1,g=this.world.grip;return g?b*(g[s]??1):b;}
+  /* the handling knobs that are set once rather than read every step */
+  applyTune(){const T=this.tune,k=T?T.slide:1;this.tyre.slide=Math.min(1,this._slide0[0]*k);if(this.tyreR!==this.tyre)this.tyreR.slide=Math.min(1,this._slide0[1]*k);}
   setAssists(id){this.aid=ASSISTS[id]||ASSISTS.real;this.pt.auto=!!this.aid.auto;this.plus=this.aid.plus||null;}
   /* the world-space inverse inertia times x, into o */
   invI(o,M,x){m3tv(o,M,x[0],x[1],x[2]);const I=this.I;return m3v(o,M,o[0]/I[0],o[1]/I[1],o[2]/I[2]);}
@@ -367,7 +374,7 @@ class Vehicle{
       const cp=wh.cp,rx=cp[0]-p[0],ry=cp[1]-p[1],rz=cp[2]-p[2],vx=v[0]+(w[1]*rz-w[2]*ry),vy=v[1]+(w[2]*rx-w[0]*rz),vz=v[2]+(w[0]*ry-w[1]*rx);
       const vl=vx*f[0]+vy*f[1]+vz*f[2],vt=vx*r[0]+vy*r[1]+vz*r[2],vn=Math.max(Math.abs(vl),2.5),kap=(wh.w*R-vl)/vn,tanA=vt/vn,
         tg=wh.temp<.62?.92+.08*sstep(.15,.62,wh.temp):wh.temp<.85?1.02:1.02-.15*sstep(.85,1.15,wh.temp);
-      tyreForce(wh.tyre,wh.Fz,kap,tanA,this._smu(wh,wh.surf)*wetMu*tg,TY);
+      tyreForce(wh.tyre,wh.Fz,kap,tanA,this._smu(wh,wh.surf)*wetMu*tg*(wh.front||!this.tune?1:this.tune.rear),TY);
       wh.Fx=TY.fx;wh.rr=(wh.surfRR?wh.surfRR[wh.surf]??.015:.012)*wh.Fz;wh.vd=(wh.surfDrag?wh.surfDrag[wh.surf]||0:0)*wh.Fz*vl;wh.Fy=TY.fy;wh.Kd=TY.dk*R/vn;
       wh.kap=kap;wh.tanA=tanA;wh.sg=TY.sg;wh.vl=vl;wh.slipV=Math.hypot(wh.w*R-vl,vt);
       wh.temp+=dt*(wh.slipV*wh.Fz/(m*G)*.02-(wh.temp-.42)*(.015+this.speed*8e-4));wh.temp=clamp(wh.temp,.2,1.25);
@@ -436,7 +443,7 @@ class Vehicle{
      would, with full lock at parking speeds; the helper aims the fronts at their peak slip angle */
   _steer(dt,sIn,vb,wb){
     const c=this.c,aid=this.aid,lock=c.lock,vx=vb[0],v=Math.abs(vx),
-      lim=Math.min(lock,this.tyre.aPk*1.6+c.wb*9/Math.max(v*v,1)+(sIn*this.beta>0?Math.abs(this.beta):0));
+      lim=Math.min(lock,this.tyre.aPk*1.6*(this.tune?this.tune.steer:1)+c.wb*9/Math.max(v*v,1)+(sIn*this.beta>0?Math.abs(this.beta):0));
     let tgt=sIn*lim;
     if(aid.steer>0&&vx>1.5){const vzF=vb[2]-wb[1]*this.a,thF=Math.atan2(vzF,Math.max(vx,.5)),aPk=this.tyre.aPk*.92,assist=thF+sIn*aPk*(this.drift.on?1.35:1);
       tgt=lerp(tgt,assist,aid.steer*sstep(1.5,8,vx));}
