@@ -414,7 +414,7 @@ function render(dt){
   /* at night the fog closes in and the world past it isn't drawn; by day the graphics level sets how far */
   let tris=drawRanch(c,SKY.night?SKY.draw:GFX.far);
   tris+=grassDraw(c,t);
-  tris+=drawWorldCar(t,GAME.voice,GAME.dirt);tris+=raceDraw(c);
+  tris+=drawWorldCar(t,GAME.voice,GAME.dirt);tris+=raceDraw(c);tris+=calloutDraw(c);
   tris+=fxDraw();tris+=rainDraw(c,dt);
   /* the dust and spray last, blended over the rest (into the colour only, not the normals the passes read) */
   if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.NONE]);tris+=fxDrawSoft(c);if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);

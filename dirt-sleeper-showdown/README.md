@@ -76,9 +76,10 @@ than yours, 3% of the purse for each point between you, on top of the prize (mor
 ## Strip callouts
 
 Stop in either staging lane at the drag strip, facing down it (Go to: Drag strip puts you there). After
-a moment the next one on the ladder pulls up in the other lane and says something about your car (one
-line if it looks slower than theirs, another if it doesn't). Stay put and the race is on a few seconds
-later; drive off and it isn't. Win and the next one is up. The Races tab shows the ladder.
+a moment the next one on the ladder rolls up the other lane, stops on the line beside you and says
+something about your car (one line if it looks slower than theirs, another if it doesn't). Stay put and
+the race is on a few seconds later; drive off and it isn't. Win and the next one is up; once all eight
+are beaten, a random one of them pulls up for a rematch. The Races tab shows the ladder.
 
 | | Who | Car | Looks |
 | --- | --- | --- | --- |
