@@ -76,6 +76,7 @@ body.touch #res,body.touch .stat{display:none}
 .eyebrow{font:600 10.5px/1 var(--f);letter-spacing:.2em;text-transform:uppercase;color:var(--amber)}
 h1{margin:4px 0 0;font:700 clamp(20px,3.6vw,32px)/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);text-wrap:balance}
 h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+h2.sub{font-size:9.5px;letter-spacing:.14em;margin-bottom:6px}
 h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
 .wallet{text-align:right}
 .wallet b{display:block;font:700 22px/1 var(--f);letter-spacing:.06em;color:var(--go);font-variant-numeric:tabular-nums}
@@ -98,7 +99,8 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .card.lock{opacity:.62}.card .price{color:var(--amber,#ffb040)}
 .cgrp{grid-column:1/-1;font:600 10.5px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 -2px}
 .card{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
-.card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase}
+.card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#gCars{flex-wrap:wrap;border-radius:16px}
 .card small{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card[aria-pressed="true"]{border-color:var(--accent);background:linear-gradient(180deg,rgba(255,61,90,.16),var(--panel))}
 .card[aria-pressed="true"] small{color:var(--ink-2)}
@@ -211,8 +213,12 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <section><h2>Car</h2><div class="cars" id="mCars"></div><p class="hint" id="mCarHint"></p></section>
       <section><h2>Build</h2><div class="places" id="mPresets"></div></section>
       <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
+      <section id="mSim" hidden><h2>Sim: tyres and roof</h2><div class="row2"><div><h2 class="sub">Tyre pressure</h2><div class="seg" id="mSimAir" role="group" aria-label="Tyre pressure"></div></div>
+        <div><h2 class="sub">Roof cargo</h2><div class="seg" id="mSimCargo" role="group" aria-label="Roof cargo"></div></div></div><p class="hint" id="mSimHint"></p></section>
       <section class="row2"><div><h2>Time of day</h2><div class="seg" id="mTod" role="group" aria-label="Time of day"></div></div>
-        <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div></section>
+        <div><h2>Weather</h2><div class="seg" id="mWx" role="group" aria-label="Weather"></div></div></section>
+      <p class="hint" id="mWxHint" style="margin-top:-6px"></p>
+      <section><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></section>
       <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
     </div>
     <div class="tab" data-tab="garage" hidden>
@@ -238,6 +244,7 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <section><h2>Steering on a phone</h2><div class="seg" id="sSteer" role="group" aria-label="Steering"></div><p class="hint" id="sSteerHint"></p></section>
       <section class="row2"><div><h2>Phone buzz</h2><div class="seg" id="sHaptics" role="group" aria-label="Phone buzz"></div></div>
         <div><h2>Sound</h2><label class="vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label></div></section>
+      <section><h2>Graphics</h2><div class="seg" id="sGfx" role="group" aria-label="Graphics"></div><p class="hint" id="sGfxHint"></p></section>
       <section class="row2"><div><h2>Detail</h2><div class="seg" id="sDetail" role="group" aria-label="Detail"></div></div>
         <div><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></div></section>
       <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>

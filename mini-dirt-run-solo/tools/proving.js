@@ -11,7 +11,7 @@
 const fs=require('fs'),path=require('path');
 const SRC=path.resolve(__dirname,'..','src')+'/';
 const MODS=['10_core','12_gl_mesh','13_lit','14_loft','15_digital_engine','16_engines','21_suv','22_faces','23_parts','24_4x4','25_coupe','26_wagon',
-  '27_pickup','28_muscle','29_hatch','30_wheels','31_engine_bay','32_builds','40_physics','41_ground','42_chassis'];
+  '27_pickup','28_muscle','29_hatch','30_wheels','31_engine_bay','32_builds','34_machines','40_physics','41_ground','42_chassis','43_sim'];
 /* the car modules need a page only to draw; these stand in for it */
 const STUB=`const document={getElementById:()=>null,createElement:()=>({getContext:()=>null,style:{}})},matchMedia=()=>({matches:false}),localStorage={getItem:()=>null,setItem:()=>{}},window={};\n`;
 const X=new Function(STUB+MODS.map(m=>fs.readFileSync(SRC+m+'.js','utf8')).join('\n')+

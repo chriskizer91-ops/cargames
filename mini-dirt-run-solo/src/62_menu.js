@@ -41,6 +41,8 @@ const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic
 for(const id of MACH_IDS)CAR_HINT[id]=MACH[id].hint;
 const CAR_GROUPS={Cars:'Cars and trucks',Quads:'Quads and side-by-sides',Odd:'The odd ones'};
 const carGroup=car=>MACH[car]?MACH[car].grp:'Cars';
+/* the short names the car cards have room for */
+const CARD_NAME={quad90:"Kids' quad",quad450:'Sport quad',quadUtil:'Ranch quad',sxs:'SxS',golf:'Golf cart',kart:'Go-kart',tractor:'Tractor',semi:'Semi'};
 function openMenu(first){
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
   if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
@@ -74,6 +76,11 @@ function syncMenu(){
   if(cur==='Custom'){const el=document.createElement('button');el.type='button';el.className='place';el.textContent='Your custom build';el.setAttribute('aria-pressed','true');el.addEventListener('click',()=>showTab('garage'));pr.appendChild(el);}
   for(const el of $('mLevel').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.level));
   $('mLevelHint').textContent=LEVELS.find(l=>l[0]===APP.level)[2];
+  syncSimCard();
+  for(const el of $('mWx').children)el.setAttribute('aria-pressed',String(el.dataset.v===SIMSET.wx));
+  $('mWxHint').textContent=SIM_WX.find(a=>a[0]===SIMSET.wx)[3]+(SIMSET.wx==='dry'?'':APP.level==='sim'?' The Sim tyres feel it surface by surface.':' On this level it is simply less grip everywhere; Sim feels it surface by surface.');
+  for(const el of $('sGfx').children)el.setAttribute('aria-pressed',String(el.dataset.v===GFX.level));
+  $('sGfxHint').textContent=GFX_LEVELS.find(l=>l[0]===GFX.level)[2];syncWeather();
   for(const el of $('mCam').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.cam));
   for(const el of $('mTod').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.tod));
   for(const el of $('sSteer').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.steer));
@@ -93,11 +100,15 @@ function buildMenu(){
   for(const [car,name] of CARS){
     if(carGroup(car)!==grp){grp=carGroup(car);const h=document.createElement('div');h.className='cgrp';h.textContent=CAR_GROUPS[grp];cx.appendChild(h);}
     const el=document.createElement('button');el.type='button';el.className='card';el.dataset.car=car;el.innerHTML='<b></b><small></small>';
-    el.querySelector('b').textContent=name;el.querySelector('small').textContent=rigName(car,rigOf(car));
+    el.querySelector('b').textContent=CARD_NAME[car]||name;el.title=name;el.querySelector('small').textContent=rigName(car,rigOf(car));
     el.addEventListener('click',()=>{if(car===APP.car)return;if(Career.on()&&!careerCarTap(car)){syncMenu();if(JOKES[car])$('mCarHint').textContent=CAR_HINT[car]+' To earn it: '+JOKES[car].goal;return;}
       APP.car=car;saveGame();spawnRig();syncMenu();});cx.appendChild(el);}
   segButtons($('mMode'),[['free','Free play'],['career','Career']],v=>setMode(v));
-  segButtons($('mLevel'),LEVELS.map(l=>[l[0],l[1]]),id=>{APP.level=id;saveGame();GAME.car.setAssists(id);});
+  /* into or out of Sim the car is rebuilt where it stands (its roof load moves its centre of gravity) */
+  segButtons($('mLevel'),LEVELS.map(l=>[l[0],l[1]]),id=>{const was=APP.level==='sim';APP.level=id;saveGame();if(was!==(id==='sim'))spawnRig();else{GAME.car.setAssists(id);applyWet(GAME.car);}});
+  buildSimCard();
+  segButtons($('mWx'),SIM_WX.map(a=>[a[0],a[1]]),id=>{SIMSET.wx=id;saveSim();if(GAME.car){GAME.car.applySim();applyWet(GAME.car);}syncWeather();});
+  segButtons($('sGfx'),GFX_LEVELS.map(l=>[l[0],l[1]]),id=>{setGfx(id);GFXW.said=false;GFXW.t=0;});
   segButtons($('mTod'),Object.entries(TOD).map(([k,v])=>[k,v.name]),id=>{APP.tod=id;applyTod(id);APP.lights=id==='night';saveGame();syncTouch();});
   segButtons($('mCam'),CAMS.map((n,i)=>[i,n]),i=>{APP.cam=+i;CAM.cut=true;saveGame();});
   const px=$('mPlaces');for(const [id,n] of PLACES){const el=document.createElement('button');el.type='button';el.className='place';el.textContent=n;
@@ -121,6 +132,24 @@ function buildMenu(){
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
   buildGarage();
+}
+/* ---------- the Sim card: tyre pressure and roof cargo (the weather is for every level) ---------- */
+let SIM_HINT='air';
+function buildSimCard(){
+  for(const [host,T,k] of [['mSimAir',SIM_AIR,'air'],['mSimCargo',SIM_CARGO,'cargo']]){const el=$(host);
+    for(const [id,n] of T){const b=document.createElement('button');b.type='button';b.dataset.v=id;b.textContent=n;
+      b.addEventListener('click',()=>{if(b.disabled)return;const old=SIMSET[k];SIMSET[k]=id;SIM_HINT=k;saveSim();
+        if(k==='cargo'){if(old!==id)spawnRig();}else if(GAME.car)GAME.car.applySim();syncMenu();});el.appendChild(b);}}
+}
+function syncSimCard(){
+  const on=APP.level==='sim';$('mSim').hidden=!on;if(!on)return;
+  const t=GAME.car,C=t?t.c.sim:null,canCargo=!!(C&&C.canCargo);
+  for(const [host,k] of [['mSimAir','air'],['mSimCargo','cargo']])
+    for(const b of $(host).children){b.setAttribute('aria-pressed',String(b.dataset.v===SIMSET[k]));if(k==='cargo')b.disabled=!canCargo&&b.dataset.v!=='none';}
+  const T={air:SIM_AIR,cargo:SIM_CARGO}[SIM_HINT],row=T.find(a=>a[0]===SIMSET[SIM_HINT]);let hint=row?row[3]:'';
+  if(SIM_HINT==='air'&&C){const pr=simVal(SIM_AIR,SIMSET.air),f=Math.round(C.psiF*pr),r=Math.round(C.psiR*pr);hint+=' This one: '+(f===r?f+' psi all round.':f+' psi front, '+r+' rear.');}
+  if(SIM_HINT==='cargo'&&!canCargo)hint='This one has no roof rails, bars or rack to strap cargo to.';
+  $('mSimHint').textContent=hint;
 }
 /* ---------- cool stuff: the money, the last ten, the bests ---------- */
 const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['wheelie','Longest wheelie'],['speed','Longest speed run'],

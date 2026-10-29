@@ -47,6 +47,14 @@ function drawBigMap(){
   hFrame(x0-2,y0-2,size+4,size+4,pack(255,255,255,70));
   otxt3(GAME.touch?'TAP TO CLOSE':'M TO CLOSE',x0+3,y0+size-8,PAL.dim);otxt3('1 MILE',x0+size-3,y0+size-8,PAL.dim,1,'r');
 }
+/* the Sim level's settings in a few letters: tyre pressure (when not at road pressure), cargo; and the weather on any level */
+function simTag(t){
+  const C=t.c.sim,pr=simVal(SIM_AIR,SIMSET.air);let s='';
+  if(APP.level==='sim'&&SIMSET.air!=='road')s+='  '+Math.round(C.psiR*pr)+' PSI';
+  if(SIMSET.wx!=='dry')s+='  '+(SIM_WX.find(a=>a[0]===SIMSET.wx)[1]).toUpperCase();
+  if(APP.level==='sim'&&SIMSET.cargo!=='none'&&C.canCargo)s+='  +'+simVal(SIM_CARGO,SIMSET.cargo)+' KG';
+  return s;
+}
 /* where the corner map sits, for taps */
 const miniRect=()=>{const ms=Math.round(H*.27),[,ir]=hudInset();return [W-ms-5-ir,13,ms,ms];};
 /* on a phone the small buttons stand down both sides; where the screen has no black bars beside the picture
@@ -61,7 +69,7 @@ function drawHud(c){
   /* top left: the car and its build, the place, the driving level, the money */
   otxt5(carLabel().toUpperCase(),lx,5,GR.volt,sc,'l',.12);
   otxt3(GAME.place.toUpperCase(),lx,7+7*sc+2,PAL.ink);
-  otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':''),lx,7+7*sc+10,APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:PAL.dim);
+  otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':'')+simTag(t),lx,7+7*sc+10,APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:APP.level==='sim'?PAL.red:PAL.dim);
   otxt5(Feats.fmtMoney(Feats.S.money),lx,7+7*sc+18,GR.green,1);
   if(APP.bigMap){drawBigMap();return;}
   /* shift lights, tach, gear, speed */
@@ -77,6 +85,8 @@ function drawHud(c){
   if(e.nosKw){const k=clamp(pt.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*k),4,Math.round(28*k),pt.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
   /* bottom left: what the car is doing */
   const can=t.c.diff.can,C=[['TC',pt.tcOn||pt.etcOn,PAL.green],['ABS',t.absOn,PAL.amber],['ESC',t.escOn,PAL.amber]];
+  if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
+    C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}
   if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
   drawFeatsHud();

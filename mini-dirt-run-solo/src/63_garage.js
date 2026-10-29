@@ -15,7 +15,7 @@ const GUIDE={all:'An all-rounder gives a little everywhere: all-terrain tyres, a
   asphalt:'Tarmac wants sticky tyres, a low stance, big brakes and power. Lift and mud tyres cost you here.'};
 const score=(r,k)=>k==='all'?TERRAINS.reduce((s,[t])=>s+r[t],0)/TERRAINS.length:r[k];
 function buildGarage(){
-  segButtons($('gCars'),CARS,car=>{if(car!==APP.car){APP.car=car;GAR.open=null;saveGame();spawnRig();}syncGarage();});
+  segButtons($('gCars'),CARS.map(([c,n])=>[c,CARD_NAME[c]||n]),car=>{if(car!==APP.car){APP.car=car;GAR.open=null;saveGame();spawnRig();}syncGarage();});
   $('gSuggest').addEventListener('click',suggestBuild);
 }
 /* a change: on the car at once, the car rebuilt where it stands */

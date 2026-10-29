@@ -73,6 +73,8 @@ function engineSpec(b){
   /* the automatics and the race four-speed pull away through a torque converter; the manuals, sequentials
      and the rally dog box through a clutch (the game's physics reads this) */
   e.conv=/^auto|^race4|^cvt/.test(r.trans);
+  /* a box with crawler gears pulls away in a working gear: the semi bobtailing in third, the tractor in second */
+  e.startG={truck10:3,trac6:2}[r.trans]||1;
   /* a belt CVT: its low and high ratios against the final drive, the revs it engages at and the revs it holds floored */
   if(/^cvt/.test(r.trans)){const pk=e.peak&&e.peak.rpm||e.redline*.85;e.cvt={lo:3,hi:1,eng:Math.max(e.idle*1.7,e.redline*.38),top:Math.min(pk*1.02,e.redline*.97)};}
   return e;

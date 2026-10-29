@@ -18,7 +18,9 @@ function glInit(){
   HTEX=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,HTEX);
   for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
 }
-function sceneTarget(){const w=BW*SS,h=BH*SS;if(SCN&&SCN.w===w&&SCN.h===h)return SCN;freeTarget(SCN);SCN=mkTarget(w,h,HDR,true);return SCN;}
+/* the scene draws at twice the dots (each dot is the average of four), but never at much more than the screen
+   has pixels (a small phone at the finest dots), nor less than one per dot */
+function sceneTarget(){const w=Math.min(BW*SS,Math.max(BW,Math.round(VW*1.15/2)*2)),h=Math.round(w*BH/BW);if(SCN&&SCN.w===w&&SCN.h===h)return SCN;freeTarget(SCN);SCN=mkTarget(w,h,HDR,true);return SCN;}
 function pass(p,src,dst,setup){
   gl.bindFramebuffer(gl.FRAMEBUFFER,dst?dst.f:null);gl.viewport(0,0,dst?dst.w:VW,dst?dst.h:VH);
   gl.useProgram(p.p);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,src.t);gl.uniform1i(p.u.uTex,0);

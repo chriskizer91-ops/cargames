@@ -76,6 +76,7 @@ body.touch #res,body.touch .stat{display:none}
 .eyebrow{font:600 10.5px/1 var(--f);letter-spacing:.2em;text-transform:uppercase;color:var(--amber)}
 h1{margin:4px 0 0;font:700 clamp(20px,3.6vw,32px)/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);text-wrap:balance}
 h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+h2.sub{font-size:9.5px;letter-spacing:.14em;margin-bottom:6px}
 h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
 .wallet{text-align:right}
 .wallet b{display:block;font:700 22px/1 var(--f);letter-spacing:.06em;color:var(--go);font-variant-numeric:tabular-nums}
@@ -98,7 +99,8 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .card.lock{opacity:.62}.card .price{color:var(--amber,#ffb040)}
 .cgrp{grid-column:1/-1;font:600 10.5px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 -2px}
 .card{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
-.card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase}
+.card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#gCars{flex-wrap:wrap;border-radius:16px}
 .card small{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card[aria-pressed="true"]{border-color:var(--accent);background:linear-gradient(180deg,rgba(255,61,90,.16),var(--panel))}
 .card[aria-pressed="true"] small{color:var(--ink-2)}
@@ -211,8 +213,12 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <section><h2>Car</h2><div class="cars" id="mCars"></div><p class="hint" id="mCarHint"></p></section>
       <section><h2>Build</h2><div class="places" id="mPresets"></div></section>
       <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
+      <section id="mSim" hidden><h2>Sim: tyres and roof</h2><div class="row2"><div><h2 class="sub">Tyre pressure</h2><div class="seg" id="mSimAir" role="group" aria-label="Tyre pressure"></div></div>
+        <div><h2 class="sub">Roof cargo</h2><div class="seg" id="mSimCargo" role="group" aria-label="Roof cargo"></div></div></div><p class="hint" id="mSimHint"></p></section>
       <section class="row2"><div><h2>Time of day</h2><div class="seg" id="mTod" role="group" aria-label="Time of day"></div></div>
-        <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div></section>
+        <div><h2>Weather</h2><div class="seg" id="mWx" role="group" aria-label="Weather"></div></div></section>
+      <p class="hint" id="mWxHint" style="margin-top:-6px"></p>
+      <section><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></section>
       <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
     </div>
     <div class="tab" data-tab="garage" hidden>
@@ -238,6 +244,7 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <section><h2>Steering on a phone</h2><div class="seg" id="sSteer" role="group" aria-label="Steering"></div><p class="hint" id="sSteerHint"></p></section>
       <section class="row2"><div><h2>Phone buzz</h2><div class="seg" id="sHaptics" role="group" aria-label="Phone buzz"></div></div>
         <div><h2>Sound</h2><label class="vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label></div></section>
+      <section><h2>Graphics</h2><div class="seg" id="sGfx" role="group" aria-label="Graphics"></div><p class="hint" id="sGfxHint"></p></section>
       <section class="row2"><div><h2>Detail</h2><div class="seg" id="sDetail" role="group" aria-label="Detail"></div></div>
         <div><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></div></section>
       <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>
@@ -512,7 +519,9 @@ function glInit(){
   HTEX=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,HTEX);
   for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
 }
-function sceneTarget(){const w=BW*SS,h=BH*SS;if(SCN&&SCN.w===w&&SCN.h===h)return SCN;freeTarget(SCN);SCN=mkTarget(w,h,HDR,true);return SCN;}
+/* the scene draws at twice the dots (each dot is the average of four), but never at much more than the screen
+   has pixels (a small phone at the finest dots), nor less than one per dot */
+function sceneTarget(){const w=Math.min(BW*SS,Math.max(BW,Math.round(VW*1.15/2)*2)),h=Math.round(w*BH/BW);if(SCN&&SCN.w===w&&SCN.h===h)return SCN;freeTarget(SCN);SCN=mkTarget(w,h,HDR,true);return SCN;}
 function pass(p,src,dst,setup){
   gl.bindFramebuffer(gl.FRAMEBUFFER,dst?dst.f:null);gl.viewport(0,0,dst?dst.w:VW,dst?dst.h:VH);
   gl.useProgram(p.p);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,src.t);gl.uniform1i(p.u.uTex,0);
@@ -680,10 +689,12 @@ vec3 env(vec3 d){
   c+=vec3(.7)*exp(-abs(t-.02)*30.)*.25;
   return c;
 }
+/* how much of the sun reaches this point (the world's shadow map sets it; 1 everywhere else) */
+float gSun=1.;
 vec3 shade(vec3 P,vec3 N,vec3 V,vec3 alb,float spec,float shin){
   vec3 c=alb*(uSkyAmb*(.55+.45*N.y)+uGndAmb*(.45-.45*N.y));
   float nl=max(dot(N,uSunDir),0.);vec3 Hs=normalize(uSunDir+V);
-  c+=uSunCol*nl*(alb+spec*pow(max(dot(N,Hs),0.),shin));
+  c+=uSunCol*gSun*nl*(alb+spec*pow(max(dot(N,Hs),0.),shin));
   for(int i=0;i<8;i++){if(i>=uNL)break;vec3 L=uLP[i].xyz-P;float d2=dot(L,L),r=uLP[i].w;if(d2>r*r)continue;
     float d=sqrt(d2);L/=d;float a=1.-d/r;a*=a;
     /* a spot (headlights, yard lights): w is the cosine of its outer edge; below -1 it lights every way */
@@ -717,6 +728,18 @@ uniform float uLiv;uniform float uLights;uniform float uBrake;uniform float uDir
 uniform vec4 uSh[8];uniform float uShA[8];uniform int uNSh;uniform float uSpin;
 #ifdef WORLD
 uniform float uShK[8];uniform float uMudOff;uniform float uMudLocal;
+/* the sun's shadow map round the car (55_gfx): its matrix, on/texel size/normal offset, and the weather:
+   uCloud = cloud cover, cloud brightness, haze toward the sun, rain; uWet = how wet the ground is */
+uniform highp sampler2DShadow uShTex;uniform mat4 uShM;uniform vec4 uShP;uniform vec4 uCloud;uniform float uWet;
+float sunShadow(vec3 P,vec3 N){
+  if(uShP.x<.5)return 1.;
+  vec4 q=uShM*vec4(P+N*uShP.z,1.);vec3 p=q.xyz*.5+.5;
+  if(p.x<.002||p.y<.002||p.x>.998||p.y>.998||p.z>1.)return 1.;
+  float t=uShP.y,b=uShP.w,s=texture(uShTex,vec3(p.xy+vec2(-.6,-.25)*t,p.z-b))+texture(uShTex,vec3(p.xy+vec2(.25,-.6)*t,p.z-b))
+    +texture(uShTex,vec3(p.xy+vec2(.6,.25)*t,p.z-b))+texture(uShTex,vec3(p.xy+vec2(-.25,.6)*t,p.z-b));
+  float e=max(abs(p.x-.5),abs(p.y-.5))*2.;
+  return mix(s*.25,1.,smoothstep(.78,.98,e));
+}
 #endif
 /* mud: caked and wet low down, dry and splattered higher up; returns 0..1 coverage */
 float mud(vec3 L,float h){
@@ -755,6 +778,7 @@ void main(){
   int m=int(vMat+.5);float h=uMudLocal>.5?vL.y+uMudOff:vP.y-uGround;bool dirty=false;
   if(em<0.){if(h12(gl_FragCoord.xy+fract(uTime*7.3)*91.)>-em)discard;em=0.;}
   if(m==48){float dc=length(vP-uCam);if(dc<8.&&h12(gl_FragCoord.xy)>smoothstep(3.,8.,dc))discard;}
+  if(m!=51)gSun=sunShadow(vP,N);
 #else
   int m=int(vMat+.5);float h=vP.y-uGround;bool dirty=false;
 #endif
@@ -828,7 +852,13 @@ void main(){
 #ifdef WORLD
   else if(m>=40){
     vec2 wp=vP.xz;float sh=wshadow(vP);
-    if(m==51){o=vec4(env(normalize(vP-uCam)),1.);return;}
+    if(m==51){
+      /* the sky, with clouds drifting over it (lit toward the sun, grey and heavy in the rain) */
+      vec3 d=normalize(vP-uCam),sc=env(d);
+      if(uCloud.x>0.&&d.y>0.){vec2 uv=d.xz/(d.y+.12)*1.5+uTime*vec2(.006,.0025);float n=fbm(uv*1.2)*.62+fbm(uv*3.4+3.1)*.38;
+        float cov=smoothstep(1.-uCloud.x,1.25-uCloud.x,n)*smoothstep(.0,.08,d.y),sd=max(dot(d,uSunDir),0.);
+        vec3 cc=mix(vec3(.5,.55,.64),vec3(1.12,1.08,1.02),(.35+.65*sd)*(.6+.4*n))*uCloud.y;sc=mix(sc,cc,cov*.92);}
+      o=vec4(sc,1.);return;}
     if(m==40){
       /* the ground: weights for grass, rock and mud in the colour, ambient occlusion in its alpha */
       float n2=vn(wp*.7),n3=vn(wp*3.1),n4=vn(wp*11.);
@@ -906,13 +936,21 @@ void main(){
       if(pud>0.){alb=mix(alb,vec3(.06,.045,.03),pud*.85);spec=mix(spec,1.,pud);shin=140.;add+=env(R)*F*pud*.75;}
       em=0.;
     }
+    /* rain: porous ground goes dark, tarmac and concrete get a sheen with the sky in it */
+    if(uWet>0.){float por=m==40||m==42||m==43||m==44||m==53||m==55?1.:0.,hard=m==54||m==45?1.:0.;
+      alb*=1.-uWet*(.36*por+.22*hard);spec=mix(spec,.7,uWet*(.75*hard+.2*por));shin=mix(shin,110.,uWet*hard);add+=env(R)*F*uWet*(.6*hard+.1*por);}
     alb*=sh;add*=sh;
   }
 #endif
   if(dirty){float k=mud(vL,h);if(k>0.){alb=mix(alb,mudCol(vL,h),k);spec*=1.-.8*k;add*=1.-.85*k;}}
   vec3 col=shade(vP,N,V,alb,spec,shin)+add+emc;
   if(em>0.&&m==0)col+=vC.rgb*em;
-  float fog=1.-exp(-length(vP-uCam)*uFogD);col=mix(col,uFogCol,fog);
+  float fog=1.-exp(-length(vP-uCam)*uFogD);vec3 fc=uFogCol;
+#ifdef WORLD
+  /* the haze is brighter looking toward the sun */
+  if(uCloud.z>0.)fc+=uSunCol*pow(max(dot(normalize(vP-uCam),uSunDir),0.),6.)*.2*uCloud.z;
+#endif
+  col=mix(col,fc,fog);
   o=vec4(col,1.);
 }`;
 /* the defines the scene shader is compiled with: the game adds WORLD (the ground, the sky, instancing, mud
@@ -2201,6 +2239,8 @@ function engineSpec(b){
   /* the automatics and the race four-speed pull away through a torque converter; the manuals, sequentials
      and the rally dog box through a clutch (the game's physics reads this) */
   e.conv=/^auto|^race4|^cvt/.test(r.trans);
+  /* a box with crawler gears pulls away in a working gear: the semi bobtailing in third, the tractor in second */
+  e.startG={truck10:3,trac6:2}[r.trans]||1;
   /* a belt CVT: its low and high ratios against the final drive, the revs it engages at and the revs it holds floored */
   if(/^cvt/.test(r.trans)){const pk=e.peak&&e.peak.rpm||e.redline*.85;e.cvt={lo:3,hi:1,eng:Math.max(e.idle*1.7,e.redline*.38),top:Math.min(pk*1.02,e.redline*.97)};}
   return e;
@@ -4262,6 +4302,8 @@ class Powertrain{
     this.launching=false;this.launchW=0;this.launchT=0;this.hold=false;this.rev=false;this.revT=0;this.twostep=false;this.tcMul=1;this.tcOn=false;this.etcOn=false;
     this.sinceShift=1;this.shiftGrade=null;this.events=[];this.lopeT=0;this.rpmOut=0;this.Te=0;this.Tdrv=0;this.tcCap=1e9;this.lo=1;this.auto=true;this.partShift=false;this.dslip=0;
     this.snd={};
+    /* the gear the automatic pulls away in: first, or a working gear on a box with crawler gears (the semi, the tractor) */
+    this.g0=e.startG||1;
   }
   get running(){return this.st==='run'||this.st==='catch';}
   start(){if(this.st==='off'||this.st==='stopping'){this.st='crank';this.t=0;}}
@@ -4278,11 +4320,15 @@ class Powertrain{
   }
   /* the automatic gearbox, driven from the same optimal shift points */
   autoShift(brk,air,holdGear=false){
-    const e=this.e;if(this.shiftT>0||this.rev||air||this.sinceShift<.3||this.engage<.95||!this.running)return;
+    const e=this.e;
+    /* the race game's box (partShift), stopped or crawling with the clutch out in a high gear: into first, as a
+       driver would at the lights (without this a car that came to rest in third had to pull away in third) */
+    if(this.partShift&&this.gear!==this.g0&&!this.locked&&this.engage<.95&&Math.abs(this.vW||0)<Math.min(2,1.2*e.idle*TAU/60/(e.gears[this.g0-1]*e.fd*(this.lo||1))*this.o.R)&&this.shiftT<=0&&!this.rev&&this.running&&!this.hold){this.gear=this.g0;this.sinceShift=0;return;}
+    if(this.shiftT>0||this.rev||air||this.sinceShift<.3||this.engage<.95||!this.running)return;
     if(this.partShift)return this._autoShift2(brk,holdGear);
     const g=this.gear,rpm=this.rpm;
     if(this.locked&&g<e.nG&&(!holdGear&&rpm>this.upRpm[g-1]||rpm>e.limiterRpm-80)&&this.thr>.3){this.shift(1);return;}
-    if(g>1&&(!holdGear||rpm<e.idle*1.6)){const after=rpm*e.gears[g-2]/e.gears[g-1];
+    if(g>this.g0&&(!holdGear||rpm<e.idle*1.6)){const after=rpm*e.gears[g-2]/e.gears[g-1];
       if(after<this.upRpm[g-2]*.88&&(rpm<e.redline*.5||brk>.3&&after<e.redline*.86)&&this.sinceShift>.45)this.shift(-1);}
   }
   /* the race game's automatic (partShift): it upshifts early at light throttle and at the optimal point when
@@ -4296,7 +4342,7 @@ class Powertrain{
     if(this.locked&&g<top&&!(this.dslip>.5)&&(rpm>e.limiterRpm-80||!holdGear&&thr>.05&&rpm>this.shiftAt(g,thr))){this.shift(1);return;}
     /* never down a gear while the driven wheels spin (it only spins them harder), nor within a second of going
        up one unless the engine is lugging: a box that hunts up and down through wheelspin gets nowhere */
-    if(g>1&&!(this.dslip>.2)&&(this.sinceShift>1||rpm<e.idle*1.3)&&(!holdGear||rpm<e.idle*1.6)){
+    if(g>this.g0&&!(this.dslip>.2)&&(this.sinceShift>1||rpm<e.idle*1.3)&&(!holdGear||rpm<e.idle*1.6)){
       const after=rpm*e.gears[g-2]/e.gears[g-1],back=this.shiftAt(g-1,thr);
       if(after<back*.9&&after<e.limiterRpm-300&&(rpm<Math.max(e.idle*1.6,back*.55)||thr>.85&&rpm<e.redline*.55||brk>.3&&after<e.redline*.86))this.shift(-1);
     }
@@ -4327,7 +4373,7 @@ class Powertrain{
       this.we=idleW*(1+.95*Math.sin(Math.min(1,t/.22)*Math.PI/2)*Math.exp(-Math.max(0,t-.22)*2.6));this.load=t<.22?.6:0;
       if(t>1.1)this.st='run';this.rpm=this.we*60/TAU;this._free(W,dt);this._out();return;}
     if(this.st==='stopping')thrIn=0;
-    const vW=this.meanW(W)*R;
+    const vW=this.meanW(W)*R;this.vW=vW;
     this.thr+=(thrIn-this.thr)*Math.min(1,dt*(thrIn>this.thr?9:14)*e.resp);
     if(e.cvt)this._cvt(dt,W);
     let thrE=this.thr,thrSnd=this.thr;const rpm=this.we*60/TAU;
@@ -4403,7 +4449,10 @@ class Powertrain{
       else if(slowForGear&&!shifting)Tc=clamp(Te*TR+30*e.Ie*(this.we-wTgt),0,Math.min(cap*TR,tracCap));
       else{Tc=cap*clamp(slipW/10,-1,1);const fl=idleW*1.15;if(Tc>0&&this.we<fl*1.4)Tc=Math.min(Tc,Math.max(0,Te+30*e.Ie*(this.we-fl)));}
       this.we+=dt*(Te-Tc/TR)/e.Ie;Tdrv=Tc*gr*.88;
-      const dwm=dt*(Tdrv-R*Fsum)/(n*Iw+dt*R*Ksum);
+      let dwm=dt*(Tdrv-R*Fsum)/(n*Iw+dt*R*Ksum);
+      /* never past the point where the clutch grabs: a big reduction on light wheels (the semi in first, the tractor)
+         would otherwise fling them past it in one step, and the engine with them */
+      if(gr!==0&&Tc!==0){const sync=this.we/gr-wm;if(sync*dwm>0&&Math.abs(dwm)>Math.abs(sync))dwm=sync;}
       for(let k=0;k<n;k++)W[drv[k]].w+=dwm;
       const s2=this.we-gr*(wm+dwm);
       if(gr!==0&&this.engage>.98&&!shifting&&(Math.abs(s2)<5||Math.sign(s2)!==Math.sign(slipW)&&!slowForGear)){this.locked=true;this.we=gr*(wm+dwm);this.launchW=0;this.launching=false;}
@@ -4471,11 +4520,14 @@ class Powertrain{
 const ASSISTS={
   real:{id:'real',name:'Realistic',steer:0,esc:0,tc:0,abs:1,drift:0,auto:1,catchSpin:0},
   middle:{id:'middle',name:'Middle',steer:.75,esc:.85,tc:1,abs:1,drift:0,auto:1,catchSpin:0},
-  kids:{id:'kids',name:'Kids',steer:1,esc:1,tc:1,abs:1,drift:0,auto:1,catchSpin:1,plus:{grip:1.15,upright:true}}
+  kids:{id:'kids',name:'Kids',steer:1,esc:1,tc:1,abs:1,drift:0,auto:1,catchSpin:1,plus:{grip:1.15,upright:true}},
+  /* Sim: Realistic's helpers (ABS where the car has it, the automatic, the car's own traction control) on the
+     world as it is: see 43_sim */
+  sim:{id:'sim',name:'Sim',steer:0,esc:0,tc:0,abs:1,drift:0,auto:1,catchSpin:0,sim:true}
 };
 const SURF_MU={road:1,curb:.95,shoulder:.9,ground:.7};
 /* what a world tells a wheel or a hull point: where the ground is, which way it faces, what it is */
-const mkHit=()=>({t:0,p:F3(),n:F3(),surf:'',off:0,i:0});
+const mkHit=()=>({t:0,p:F3(),n:F3(),surf:'',off:0,i:0,lp:0,lh:0,ls:F3(),lsurf:''});
 class Vehicle{
   /* c: the chassis (see 42_chassis). spec: its Digital Engine. world: contact(o,down,fwd,R,maxT,hit),
      ground(x,z,out) and wall(P,out). A chassis may give the rear axle its own tyre, radius, inertia and
@@ -4483,7 +4535,8 @@ class Vehicle{
   constructor(c,spec,world){
     this.c=c;this.spec=spec;this.world=world;const m=this.m=c.mass||spec.mass;
     const L=c.body.L,Wd=c.body.W,H=c.body.H;
-    this.I=Float64Array.of(m*(Wd*Wd+H*H)/12,m*(L*L+Wd*Wd)/12*1.05,m*(L*L+H*H)/12);
+    /* (a Sim roof load adds roll and pitch inertia; nothing on the other levels) */
+    this.I=Float64Array.of(m*(Wd*Wd+H*H)/12+(c.simRollI||0),m*(L*L+Wd*Wd)/12*1.05,m*(L*L+H*H)/12+(c.simRollI||0));
     const a=this.a=c.wb*(1-c.wf),b=this.b=c.wb*c.wf,RF=c.R,RR=c.Rr||c.R;
     const s=c.susp,c0F=m*G*c.wf/2/s.kF,c0R=m*G*(1-c.wf)/2/s.kR,hpF=-c.hcg+RF+s.rest-c0F,hpR=-c.hcg+RR+s.rest-c0R;
     this.tyre=Object.assign({},TYRE_DEFAULT,c.tyre,{fz0:m*G/4});
@@ -4493,7 +4546,10 @@ class Vehicle{
       i,hp:Float64Array.of(x,y,z),front:!!f,left:z<0,k:f?s.kF:s.kR,cb:f?s.cbF:s.cbR,cr:f?s.crF:s.crR,
       R:f?RF:RR,Iw:f?c.Iw:c.IwR||c.Iw,tyre:f?this.tyre:this.tyreR,surfMu:tab(f,'surfMu'),surfRR:tab(f,'surfRR'),surfDrag:tab(f,'surfDrag'),
       w:0,ang:0,steer:0,comp:f?c0F:c0R,len:s.rest,Fz:0,contact:false,cp:F3(),n:Float64Array.of(0,1,0),hpW:F3(),f:Float64Array.of(1,0,0),r:Float64Array.of(0,0,1),
-      kap:0,tanA:0,Fx:0,Fy:0,Kd:0,sg:0,slipV:0,vl:0,rr:0,vd:0,surf:'road',off:0,hint:-1,Tb:0,disc:0,temp:.45,escBrake:0,cv:0,bot:0,hit:mkHit()}));
+      kap:0,tanA:0,Fx:0,Fy:0,Kd:0,sg:0,slipV:0,vl:0,rr:0,vd:0,surf:'road',off:0,hint:-1,Tb:0,disc:0,temp:.45,escBrake:0,cv:0,bot:0,hit:mkHit(),
+      /* Sim: link jacking, side force along the body, sideways speed, the berm being ploughed, brake rotor and
+         damper temperatures (C) and what they leave, a tyre off its bead, the grip it is getting, its tyre at pressure */
+      jk:0,FyB:0,vt:0,dig:0,bT:30,bF:1,shT:30,shF:1,flat:0,bead:0,muE:1,muG:1,styre:null,psi:34,tread:'',lp:0,lh:0}));
     const drive=spec.drv||'RWD',dw=this.wheels[drive==='FWD'?0:2];
     this.pt=new Powertrain(spec,{drive,clutch:spec.tq*(2.2+spec.fiBoost*.9),engage:.22,diff:c.diff,Iw:dw.Iw,R:dw.R,mu:dw.tyre.mu});
     /* the hull: points that collide with the ground and the walls */
@@ -4506,12 +4562,12 @@ class Vehicle{
     }
     this.p=F3();this.q=Float64Array.of(0,0,0,1);this.v=F3();this.w=F3();this.M=new Float64Array(9);qToM(this.M,this.q);
     this.steer=0;this.air=true;this.airT=0;this.speed=0;this.vf=0;this.beta=0;this.aid=ASSISTS.real;this.wet=0;
-    this.drift={on:false,dir:0,t:0,low:0,bPrev:undefined,bd:0};this.ev={wall:0,land:0,scrape:0,ground:0,gscr:0,gsurf:null};
+    this.drift={on:false,dir:0,t:0,low:0,bPrev:undefined,bd:0};this.ev={wall:0,land:0,scrape:0,ground:0,gscr:0,gsurf:null,debead:0};
     this.rev=false;this.revT=0;this.escOn=false;this.absOn=false;this.assistTorque=0;this.plus=null;
     /* tune: the developer's handling knobs, shared by every car and each applied to the car's own setup
        ({rear, slide, steer}, 1 is as built); null leaves the car exactly as built */
     this.tune=null;this._slide0=[this.tyre.slide,this.tyreR.slide];
-    this.TY={fx:0,fy:0,dk:0,sg:0};this.acc=F3();this.accB=F3();this.thrIn=0;this.brkIn=0;
+    this.TY={fx:0,fy:0,dk:0,sg:0};this.acc=F3();this.accB=F3();this.thrIn=0;this.brkIn=0;this.sim=null;this._sd=F3();
     /* scratch, so a step makes nothing */
     this._U=F3();this._dn=F3();this._fw=F3();this._t1=F3();this._t2=F3();this._t3=F3();this._F=F3();this._T=F3();this._vb=F3();this._wb=F3();
     this._ptIn={thr:0,brk:0,nos:false};this._aid={tc:false,escThr:1,fmax:0,mass:m};this._g={y:0,n:F3(),surf:''};this._wl={pen:0,n:F3()};
@@ -4520,14 +4576,21 @@ class Vehicle{
   }
   place(p,yaw){
     qFromAxis(this.q,[0,1,0],yaw);qToM(this.M,this.q);this.p[0]=p[0];this.p[1]=p[1]+this.c.hcg;this.p[2]=p[2];this.v.fill(0);this.w.fill(0);
-    for(const wh of this.wheels)wh.w=0;
+    for(const wh of this.wheels){wh.w=0;wh.dig=0;wh.bT=30;wh.bF=1;wh.shT=30;wh.shF=1;wh.flat=0;wh.bead=0;wh.jk=0;wh.FyB=0;wh.vt=0;}
   }
   /* a tyre's grip on a surface: its tread's grip there, times how much grip the ground is giving (the
      world's grip, surface by surface; none is as tuned) */
   _smu(wh,s){const b=wh.surfMu?wh.surfMu[s]??.8:SURF_MU[s]||1,g=this.world.grip;return g?b*(g[s]??1):b;}
   /* the handling knobs that are set once rather than read every step */
-  applyTune(){const T=this.tune,k=T?T.slide:1;this.tyre.slide=Math.min(1,this._slide0[0]*k);if(this.tyreR!==this.tyre)this.tyreR.slide=Math.min(1,this._slide0[1]*k);}
-  setAssists(id){this.aid=ASSISTS[id]||ASSISTS.real;this.pt.auto=!!this.aid.auto;this.plus=this.aid.plus||null;}
+  applyTune(){const T=this.tune,k=T?T.slide:1;this.tyre.slide=Math.min(1,this._slide0[0]*k);if(this.tyreR!==this.tyre)this.tyreR.slide=Math.min(1,this._slide0[1]*k);this.applySim();}
+  setAssists(id){this.aid=ASSISTS[id]||ASSISTS.real;this.pt.auto=!!this.aid.auto;this.plus=this.aid.plus||null;
+    this.sim=this.aid.sim?this.sim||{}:null;this.applySim();}
+  /* the Sim level's settings for this car: tyre pressure, weather, which pieces are on (43_sim) */
+  applySim(){
+    const S=this.sim;if(!S)return;const C=this.c.sim,D=SIMDEV;
+    S.f=D;S.C=C;S.pr=D.press?simVal(SIM_AIR,SIMSET.air):1;S.wet=D.wet?simVal(SIM_WX,SIMSET.wx):0;S.abs=D.abs?C.abs:true;
+    for(const wh of this.wheels){wh.styre=simTyre(wh.tyre,S.pr,D.ls);wh.psi=wh.front?C.psiF:C.psiR;wh.tread=wh.front?C.treadF:C.treadR;}
+  }
   /* the world-space inverse inertia times x, into o */
   invI(o,M,x){m3tv(o,M,x[0],x[1],x[2]);const I=this.I;return m3v(o,M,o[0]/I[0],o[1]/I[1],o[2]/I[2]);}
   /* apply F at the point at (world) to the force and torque sums */
@@ -4552,13 +4615,18 @@ class Vehicle{
     this.thrIn=thr;this.brkIn=brk;this.steer=this._steer(dt,inp.steer||0,vb,wb);
     /* the springs: each wheel finds the ground under it */
     const dn=this._dn;dn[0]=-U[0];dn[1]=-U[1];dn[2]=-U[2];let nContact=0;
-    const fw=this._fw,cs=Math.cos(this.steer),sn=Math.sin(this.steer);
+    const fw=this._fw,cs=Math.cos(this.steer),sn=Math.sin(this.steer),S=this.sim;
     for(const wh of W){
-      const R=wh.R,maxT=s.rest+R+.3,hpW=m3v(wh.hpW,M,wh.hp[0],wh.hp[1],wh.hp[2]);hpW[0]+=p[0];hpW[1]+=p[1];hpW[2]+=p[2];
+      /* (Sim: a tyre off its bead rides on its rim, lower) */
+      const R=S?wh.R-wh.flat*.06:wh.R,maxT=s.rest+R+.3,hpW=m3v(wh.hpW,M,wh.hp[0],wh.hp[1],wh.hp[2]);hpW[0]+=p[0];hpW[1]+=p[1];hpW[2]+=p[2];
       if(wh.front&&this.steer)m3v(fw,M,cs,0,sn);else{fw[0]=M[0];fw[1]=M[3];fw[2]=M[6];}
-      const hit=wh.hit,got=this.world.contact(hpW,dn,fw,R,maxT,hit);let comp=-1;
+      const hit=wh.hit;let got,comp=-1;
+      /* Sim's edge catch: a tyre sliding sideways also feels the ground at its leading shoulder */
+      if(S&&S.f.edge&&Math.abs(wh.vt)>.6){const sd=this._sd,k=wh.vt>0?1:-1;sd[0]=M[2]*k;sd[1]=M[5]*k;sd[2]=M[8]*k;
+        got=this.world.contact(hpW,dn,fw,R,maxT,hit,sd,(wh.front?c.tyreW:c.tyreWR)*.5);}
+      else got=this.world.contact(hpW,dn,fw,R,maxT,hit);
       if(got){wh.hint=hit.i;comp=s.rest-(hit.t-R);}
-      if(comp<=0){wh.contact=false;wh.Fz=0;wh.comp=0;wh.len=got?Math.min(s.rest,hit.t-R):s.rest;continue;}
+      if(comp<=0){wh.contact=false;wh.Fz=0;wh.comp=0;wh.len=got?Math.min(s.rest,hit.t-R):s.rest;wh.lp=0;continue;}
       const rate=clamp((comp-wh.comp)/dt,-4,4);
       let sr;
       if(wh.contact)sr=rate;
@@ -4567,33 +4635,64 @@ class Vehicle{
       /* for the sound: the sharpest compression since the last frame, and whether it hit the bump stops */
       wh.cv=Math.max(wh.cv||0,sr);if(comp>s.travel)wh.bot=Math.max(wh.bot||0,sr);
       wh.comp=comp;wh.len=s.rest-comp;wh.contact=true;nContact++;
-      let Fs=wh.k*comp+(rate>0?wh.cb:wh.cr)*rate;
+      let Fs;
+      if(S&&S.f.shocks){
+        /* Sim's dampers: firmer at low shaft speed, softer past 0.25 m/s, and fading as they heat */
+        const cc=(rate>0?wh.cb:wh.cr)*SIMDEV.damp,a=Math.abs(rate),Fd=(rate<0?-1:1)*cc*(a<.25?1.2*a:.3+.7*(a-.25))*wh.shF;Fs=wh.k*comp+Fd;
+        wh.shT+=dt*(Math.abs(Fd*rate)/S.C.shC-(wh.shT-30)*(.006+.0004*this.speed));wh.shF=1-.45*sstep(110,190,wh.shT);
+      }else Fs=wh.k*comp+(rate>0?wh.cb:wh.cr)*rate;
       if(comp>s.travel)Fs+=(comp-s.travel)*wh.k*14+Math.max(0,rate)*wh.cb*2;
-      wh.Fz=Math.max(0,Fs);wh.cp.set(hit.p);wh.n.set(hit.n);wh.surf=hit.surf;wh.off=hit.off||0;
+      wh.Fz=Math.max(0,Fs);wh.cp.set(hit.p);wh.n.set(hit.n);wh.surf=hit.surf;wh.off=hit.off||0;if(S){wh.lp=hit.lp;wh.lh=hit.lh;}
     }
     /* sway bars */
-    for(let ax=0;ax<2;ax++){const l=W[ax*2],r=W[ax*2+1],k=ax?s.arbR:s.arbF,d=(l.contact?l.comp:0)-(r.contact?r.comp:0),f=k*d;
+    for(let ax=0;ax<2;ax++){const l=W[ax*2],r=W[ax*2+1],k=(ax?s.arbR:s.arbF)*(S?SIMDEV.arb:1),d=(l.contact?l.comp:0)-(r.contact?r.comp:0),f=k*d;
       if(l.contact)l.Fz=Math.max(0,l.Fz+f);if(r.contact)r.Fz=Math.max(0,r.Fz-f);}
+    /* Sim: the links' share of the weight transfer. Each tyre's side force pulls along the line from its contact
+       patch to the roll centre, so the outside tyre is pushed down onto the road and the inside one lifted, by
+       the side force times the roll centre's height over half the track (last step's side force) */
+    if(S&&S.f.jack)for(let ax=0;ax<2;ax++){const k=c.rcH/((ax?c.trackR||c.trackF:c.trackF)/2);
+      for(let q=0;q<2;q++){const wh=W[ax*2+q];if(!wh.contact){wh.jk=0;continue;}
+        const fz=Math.max(0,wh.Fz+(wh.left?wh.FyB:-wh.FyB)*k);wh.jk=fz-wh.Fz;wh.Fz=fz;}}
     const wasAir=this.air;this.air=nContact===0;
     if(this.air)this.airT+=dt;else{if(wasAir&&this.airT>.15)this.ev.land=Math.max(this.ev.land,-vb[1]);this.airT=0;}
     /* the tyres */
     const P=this.plus,TY=this.TY,wetMu=lerp(1,P?.93:.84,this.wet)*(P?P.grip:1),t1=this._t1,t2=this._t2;
     for(const wh of W){
-      if(!wh.contact){wh.Fx=wh.Fy=wh.Kd=wh.kap=wh.sg=wh.slipV=wh.rr=wh.vd=0;wh.tanA=0;continue;}
+      if(!wh.contact){wh.Fx=wh.Fy=wh.Kd=wh.kap=wh.sg=wh.slipV=wh.rr=wh.vd=0;wh.tanA=0;if(S){wh.FyB=0;wh.vt=0;}continue;}
       const R=wh.R,st=wh.front?this.steer:0;m3v(t1,M,Math.cos(st),0,Math.sin(st));
       const n=wh.n,fn=v3dot(t1,n);t1[0]-=n[0]*fn;t1[1]-=n[1]*fn;t1[2]-=n[2]*fn;
       const f=v3norm(wh.f,t1),r=v3norm(wh.r,v3cross(t2,f,n));
       const cp=wh.cp,rx=cp[0]-p[0],ry=cp[1]-p[1],rz=cp[2]-p[2],vx=v[0]+(w[1]*rz-w[2]*ry),vy=v[1]+(w[2]*rx-w[0]*rz),vz=v[2]+(w[0]*ry-w[1]*rx);
       const vl=vx*f[0]+vy*f[1]+vz*f[2],vt=vx*r[0]+vy*r[1]+vz*r[2],vn=Math.max(Math.abs(vl),2.5),kap=(wh.w*R-vl)/vn,tanA=vt/vn,
         tg=wh.temp<.62?.92+.08*sstep(.15,.62,wh.temp):wh.temp<.85?1.02:1.02-.15*sstep(.85,1.15,wh.temp);
+      if(S){
+        /* Sim: grip from the tyre's pressure and the rain, the tyre's own curve at that pressure, rolling and bog
+           drag from the pressure, the sidewall rolling under, and a tyre coming off its bead */
+        const sf=wh.surf,pr=S.pr;
+        wh.muG=this._smu(wh,sf)*simGrip(sf,wh.tread,pr,S.wet,this.speed,wh.psi);
+        let mm=wh.muG*tg*(wh.front||!this.tune?1:this.tune.rear)*(wh.flat?.45:1);
+        if(pr<.75&&SIM_HARD[sf]){const ru=sstep(.55,.9,Math.abs(wh.Fy)/Math.max(wh.Fz,1))*sstep(.75,.4,pr);mm*=1-.2*ru;
+          if(!wh.flat&&pr<.56&&ru>.5&&this.speed>11){wh.bead+=dt*ru*(.6-pr)*5;if(wh.bead>1){wh.flat=1;this.ev.debead=1;}}}
+        wh.muE=mm;tyreForce(wh.styre,wh.Fz,kap,tanA,mm,TY);
+        wh.Fx=TY.fx;wh.rr=(wh.surfRR?wh.surfRR[sf]??.015:.012)*wh.Fz*simRR(sf,pr)*(wh.flat?4:1);
+        wh.vd=(wh.surfDrag?wh.surfDrag[sf]||0:0)*wh.Fz*vl*Math.pow(pr,.6)*(sf==='mud'||sf==='ruts'?1+.5*S.wet:1);wh.Fy=TY.fy;wh.Kd=TY.dk*R/vn;
+        /* the soil trip: sliding sideways over loose ground, the tyre ploughs a berm (built over about half a metre
+           of sideways travel) that pushes back at the ground, past what its friction could give, and harder the
+           faster it comes */
+        if(S.f.trip){const P=SIM_PLOW[sf]||0,avt=Math.abs(vt);
+          if(P>0||wh.dig>0){const e=P>0?sstep(SIMDEV.pv0,SIMDEV.pv0+4,avt)*sstep(SIMDEV.pa0,SIMDEV.pa0+.45,Math.abs(tanA)):0;wh.dig+=(e-wh.dig)*Math.min(1,dt*Math.max(avt,.3)/.45);
+            wh.Fy-=(vt<0?-1:1)*P*SIMDEV.plow*wh.dig*wh.Fz*sstep(.3,1.5,avt)*(1+.025*avt)*(wh.flat?1.5:1);}}
+        wh.FyB=wh.Fy*(r[0]*M[2]+r[1]*M[5]+r[2]*M[8]);wh.vt=vt;
+      }else{
       tyreForce(wh.tyre,wh.Fz,kap,tanA,this._smu(wh,wh.surf)*wetMu*tg*(wh.front||!this.tune?1:this.tune.rear),TY);
       wh.Fx=TY.fx;wh.rr=(wh.surfRR?wh.surfRR[wh.surf]??.015:.012)*wh.Fz;wh.vd=(wh.surfDrag?wh.surfDrag[wh.surf]||0:0)*wh.Fz*vl;wh.Fy=TY.fy;wh.Kd=TY.dk*R/vn;
+      }
       wh.kap=kap;wh.tanA=tanA;wh.sg=TY.sg;wh.vl=vl;wh.slipV=Math.hypot(wh.w*R-vl,vt);
       wh.temp+=dt*(wh.slipV*wh.Fz/(m*G)*.02-(wh.temp-.42)*(.015+this.speed*8e-4));wh.temp=clamp(wh.temp,.2,1.25);
     }
     const escThr=this._stability(dt,inp,vb,wb,thr);let fmax=0;
     for(let k=0;k<pt.drv.length;k++){const wh=W[pt.drv[k]];
-      if(wh.contact){const ty=wh.tyre,lf=Math.max(.6,1-ty.loadSens*(wh.Fz/ty.fz0-1));fmax+=wh.Fz*ty.mu*lf*wetMu*this._smu(wh,wh.surf);}}
+      if(wh.contact){const ty=S?wh.styre:wh.tyre,lf=Math.max(.6,1-ty.loadSens*(wh.Fz/ty.fz0-1));fmax+=S?wh.Fz*ty.mu*lf*wh.muG:wh.Fz*ty.mu*lf*wetMu*this._smu(wh,wh.surf);}}
     /* line lock: the fronts are held on the brakes and the drive goes to the rear axle alone */
     pt.drv=inp.lock&&pt.drvAll.length===4?DRV_RWD:pt.drvAll;
     const pin=this._ptIn,pa=this._aid;pin.thr=thr;pin.brk=brk;pin.nos=!!inp.nos;
@@ -4606,9 +4705,15 @@ class Vehicle{
       let Tb=brk*c.brake*(wh.front?c.bias:1-c.bias)/2;
       if(inp.lock&&wh.front)Tb=Math.max(Tb,c.brake*.75);
       /* ABS; on the rears it lets them slip far less, so they keep their side grip under braking */
-      const abT=wh.front?.1:.03;
-      if(aid.abs&&brk>.1&&this.speed>2.5&&wh.kap<-abT){const k=clamp(1-(-wh.kap-abT)*7,.2,1);Tb*=k;if(k<.95)this.absOn=true;}
+      /* (Sim: a car with ABS also has electronic brake-force distribution, which lets the rears work closer to their
+         grip without locking) */
+      const abT=wh.front?.1:S&&S.abs?.07:.03;
+      /* (Sim: a car without ABS still has a proportioning valve that keeps its rears from locking first; its fronts lock) */
+      if(aid.abs&&(!S||S.abs||!wh.front)&&brk>.1&&this.speed>2.5&&wh.kap<-abT){const k=clamp(1-(-wh.kap-abT)*7,.2,1);Tb*=k;if(k<.95&&(!S||S.abs))this.absOn=true;}
       if(!wh.front&&hb>0)Tb+=c.hbTorque*hb;
+      /* Sim's brake fade: the rotor heats with the power its brake takes in and cools in the air; past the pads'
+         working range the brake gives less */
+      if(S&&S.f.fade){Tb*=wh.bF;wh.bT+=dt*(Tb*Math.abs(wh.w)/S.C.Cb[wh.front?0:1]-(wh.bT-25)*(.004+.0003*this.speed));wh.bF=1-.55*sstep(S.C.Tf,S.C.Tf+200,wh.bT);}
       Tb+=wh.escBrake+(wh.rr||0)*wh.R;if(hold||pt.hold)Tb+=1500;
       /* the brake (and rolling drag) goes through the same implicit tyre term as the drive */
       const dw=dt*Tb/(pt.effInertia(wh.i,wh.Iw)+dt*wh.R*(wh.Kd||0));
@@ -4622,8 +4727,27 @@ class Vehicle{
     const Fs=this._F,T=this._T;Fs[0]=0;Fs[1]=-m*G;Fs[2]=0;T[0]=T[1]=T[2]=0;
     for(const wh of W)if(wh.contact){
       const hp=wh.hpW,cp=wh.cp,n=wh.n,f=wh.f,r=wh.r,fz=wh.Fz,fx=wh.Fx-(wh.vd||0),fy=wh.Fy,rc=c.rcH;
+      if(S&&S.f.jack){
+        /* Sim: the spring at the hub, the links' pull at the axle's middle (it lifts or lowers, it doesn't roll),
+           drive and brake at the ground (the full weight transfer front to back), the side force at the roll centre */
+        const fs=fz-wh.jk;this._apply(U[0]*fs,U[1]*fs,U[2]*fs,hp[0],hp[1],hp[2]);
+        if(wh.jk){const a=m3v(this._t2,M,wh.hp[0],wh.hp[1],0),j=wh.jk;this._apply(U[0]*j,U[1]*j,U[2]*j,a[0]+p[0],a[1]+p[1],a[2]+p[2]);}
+        this._apply(f[0]*fx,f[1]*fx,f[2]*fx,cp[0],cp[1],cp[2]);
+        this._apply(r[0]*fy,r[1]*fy,r[2]*fy,cp[0]+n[0]*rc,cp[1]+n[1]*rc,cp[2]+n[2]*rc);
+      }else{
       this._apply(U[0]*fz,U[1]*fz,U[2]*fz,hp[0],hp[1],hp[2]);
       this._apply(f[0]*fx+r[0]*fy,f[1]*fx+r[1]*fy,f[2]*fx+r[2]*fy,cp[0]+n[0]*rc,cp[1]+n[1]*rc,cp[2]+n[2]*rc);
+      }
+      /* Sim: a tyre run sideways into a kerb, a rut wall or a ledge: the face stops it (a stiff sidewall and a
+         damper), pushing at half the face's height. Enough of a shove trips the car over it. A face of rock or
+         concrete doesn't give; a wall of dirt or mud is softer and crumbles past what the soil can bear, so a
+         tyre climbs out of a rut instead of tripping on it */
+      if(S&&wh.lp>0){const ls=wh.hit.ls,hl=Math.min(wh.lh,.3)*.5,d=(wh.front?c.tyreW:c.tyreWR)*.5-wh.lp,q=this._t2;
+        q[0]=cp[0]+ls[0]*d+U[0]*hl;q[1]=cp[1]+ls[1]*d+U[1]*hl;q[2]=cp[2]+ls[2]*d+U[2]*hl;
+        const rx=q[0]-p[0],ry=q[1]-p[1],rz=q[2]-p[2],vin=(v[0]+w[1]*rz-w[2]*ry)*ls[0]+(v[1]+w[2]*rx-w[0]*rz)*ls[1]+(v[2]+w[0]*ry-w[1]*rx)*ls[2],
+          km=m/2150,pn=wh.lp/((wh.front?c.tyreW:c.tyreWR)*.5),hard=SIM_RIGID[wh.hit.lsurf],
+          F=hard?5e5*km*wh.lp*(1+6*pn*pn)+2e4*km*Math.max(0,vin):Math.min(1.4*wh.Fz+3e3*km,1.2e5*km*wh.lp*(1+3*pn*pn)+6e3*km*Math.max(0,vin));
+        this._apply(-ls[0]*F,-ls[1]*F,-ls[2]*F,q[0],q[1],q[2]);}
       /* a tyre against a ledge face: the face pushes back as well as up */
       if(wh.off){const nu=v3dot(n,U),k=fz/Math.max(.5,nu)*.6;this._apply((n[0]-U[0]*nu)*k,(n[1]-U[1]*nu)*k,(n[2]-U[2]*nu)*k,cp[0],cp[1],cp[2]);}
     }
@@ -4707,7 +4831,8 @@ class Vehicle{
       if(world.wall(P,wl)&&wl.pen>0){this._impulse(M,P,wl.n,this.plus?.04:.18,this.plus?.05:.28,'wall');
         push[0]+=wl.n[0]*wl.pen;push[1]+=wl.n[1]*wl.pen;push[2]+=wl.n[2]*wl.pen;pushN++;}
       world.ground(P[0],P[2],g);const pen=(g.y-P[1])*g.n[1];
-      if(pen>0){this._impulse(M,P,g.n,.05,.55,'ground');this.ev.gsurf=g.surf;push[0]+=g.n[0]*pen;push[1]+=g.n[1]*pen;push[2]+=g.n[2]*pen;pushN++;}
+      /* (Sim: a roof skids on tarmac and digs into dirt and mud) */
+      if(pen>0){this._impulse(M,P,g.n,.05,this.sim&&this.sim.f.body?SIM_BODYMU[g.surf]??.55:.55,'ground');this.ev.gsurf=g.surf;push[0]+=g.n[0]*pen;push[1]+=g.n[1]*pen;push[2]+=g.n[2]*pen;pushN++;}
     }
     if(pushN)for(let k=0;k<3;k++)p[k]+=push[k]/pushN;
   }
@@ -4728,7 +4853,7 @@ class Vehicle{
     if(kind==='wall'){this.ev.wall=Math.max(this.ev.wall,-vn);if(vtl>2)this.ev.scrape=Math.max(this.ev.scrape,vtl);}
     else{this.ev.ground=Math.max(this.ev.ground,-vn);if(vtl>.5)this.ev.gscr=Math.max(this.ev.gscr||0,vtl);}
   }
-  takeEvents(){const e=this.ev;this.ev={wall:0,land:0,scrape:0,ground:0,gscr:0,gsurf:null};return e;}
+  takeEvents(){const e=this.ev;this.ev={wall:0,land:0,scrape:0,ground:0,gscr:0,gsurf:null,debead:0};return e;}
 }
 /* =====================================================================================
    GROUND CONTACT for any world that can say how high the ground is at (x, z), what it is made of and
@@ -4760,8 +4885,9 @@ class GroundWorld{
   /* where a tyre (a circle of radius R rolling along fwd) first touches the ground: rays down at seven points
      across its footprint, each lifted by the circle's curve there. A ledge ahead is found before the hub
      reaches it, and the contact normal leans back off its face */
-  contact(o,down,fwd,R,maxT,best){
-    let got=this.raycast(o,down,maxT,best);
+  contact(o,down,fwd,R,maxT,best,side,hw){
+    let got=this.raycast(o,down,maxT,best);best.lp=0;
+    if(side)got=this._lip(o,down,maxT,best,side,hw,got);
     const fd=fwd[0]*down[0]+fwd[1]*down[1]+fwd[2]*down[2],f=this._f;
     f[0]=fwd[0]-down[0]*fd;f[1]=fwd[1]-down[1]*fd;f[2]=fwd[2]-down[2]*fd;
     const fl=Math.hypot(f[0],f[1],f[2])||1;f[0]=f[0]/fl;f[1]=f[1]/fl;f[2]=f[2]/fl;
@@ -4776,6 +4902,43 @@ class GroundWorld{
       }
     }
     return got&&best.t<=maxT;
+  }
+  /* Sim's edge catch: the ground under the leading shoulder of a tyre sliding sideways (side: the way it
+     slides, hw: half its width). A low lip (under 9 cm) the sidewall rides up onto, its face leaning the contact
+     back against the slide. A taller one (a kerb, a rut wall, a ledge) is a face the tyre runs into: how far the
+     tyre is into it (best.lp, up to its whole width), how tall it is (best.lh) and which way it faces (best.ls)
+     go back to the car, which pushes the tyre off it. Until the tyre is all the way across, it stays on the
+     ground it came from rather than jumping onto the top */
+  _lip(o,down,maxT,best,side,hw,got){
+    if(!got)return false;
+    const sd=side[0]*down[0]+side[1]*down[1]+side[2]*down[2],sl0=Math.hypot(side[0]-down[0]*sd,side[1]-down[1]*sd,side[2]-down[2]*sd)||1,
+      sx=(side[0]-down[0]*sd)/sl0,sy=(side[1]-down[1]*sd)/sl0,sz=(side[2]-down[2]*sd)/sl0,po=this._o,h=this._h,
+      at=d=>{po[0]=o[0]+sx*d;po[1]=o[1]+sy*d;po[2]=o[2]+sz*d;return this.raycast(po,down,maxT,h)?h.t:best.t;};
+    const face=(lp,lh,sf)=>{best.lp=lp;best.lh=lh;best.ls[0]=sx;best.ls[1]=sy;best.ls[2]=sz;best.lsurf=sf;};
+    /* how tall the step ahead is: the ground a hand past the shoulder as well as under it */
+    const dF=best.t-at(hw+.12),dS=best.t-at(hw),dh=Math.max(dS,dF),sS=h.surf;
+    if(dh>.05&&dh>hw*.45){
+      if(dh<.09){
+        if(dS<=.05)return got;
+        const k=Math.min(1.6,dS/hw),n0=-down[0]-sx*k,n1=-down[1]-sy*k,n2=-down[2]-sz*k,nl=Math.hypot(n0,n1,n2)||1;
+        best.t=h.t;best.p.set(h.p);best.n[0]=n0/nl;best.n[1]=n1/nl;best.n[2]=n2/nl;best.surf=h.surf;best.off=hw;
+        return got;
+      }
+      /* a face ahead: not touching until it is past halfway up at the shoulder; then find it by halving */
+      if(dS<dh*.5)return got;
+      let a=0,b=hw;for(let k=0;k<3;k++){const m=(a+b)/2;if(best.t-at(m)>dh*.5)b=m;else a=m;}
+      face(hw-(a+b)/2,dh,sS);return got;
+    }
+    /* the hub already over the face, the trailing shoulder still down below it: the tyre is in the face up to
+       past its middle. Keep it on the low ground, under the hub */
+    const top=best.surf,tb=at(-hw),dB=tb-best.t;
+    if(dB>=.09){
+      const n0=h.n[0],n1=h.n[1],n2=h.n[2],surf=h.surf;
+      let a=-hw,b=0;for(let k=0;k<3;k++){const m=(a+b)/2;if(tb-at(m)>dB*.5)b=m;else a=m;}
+      best.t=tb;best.p[0]=o[0]+down[0]*tb;best.p[1]=o[1]+down[1]*tb;best.p[2]=o[2]+down[2]*tb;best.n[0]=n0;best.n[1]=n1;best.n[2]=n2;best.surf=surf;best.off=0;
+      face(hw-(a+b)/2,dB,top);
+    }
+    return got;
   }
   ground(x,z,out){this.groundAt(x,z,out);return out;}
   /* the edge of the world, trees, posts, walls and bales: how far P is inside one and which way is out */
@@ -4906,7 +5069,9 @@ function treadTables(tread){
   const rr=Object.assign({},SURF_RR),k=TREAD_RR_MUD[tread];rr.mud*=k;rr.water*=k;rr.ruts*=k;
   return {surfMu:TREAD_MU[tread],surfRR:rr,surfDrag:{mud:.06*k**1.5,water:.018*k,ruts:.012*k}};
 }
-function buildChassis(i){
+/* sim: null for the first three levels; on the Sim level {cargo: kg on the roof, cg: whether roof loads move
+   the centre of gravity} (43_sim) */
+function buildChassis(i,sim=null){
   const b=BUILDS[i],l=b.look,MC=b.machine?MACH[l.body]:null,rn=RUNNING[b.id]||(MC&&RUNNING[l.body])||RUNNING.stock,eg=ENGINE_OF[b.id]||(MC&&ENGINE_OF[l.body])||ENGINE_OF.stock,sp=SUSP[rn.susp];
   /* a machine has no lofted body: its size and hull come from its own numbers */
   const B=MC?{wb:MC.wb}:BODIES[l.body||'suv'],D=MC?null:suvDesign(l);
@@ -4925,7 +5090,10 @@ function buildChassis(i){
     diff:{pre:d.pre??40,acc:d.acc??.3,dec:d.dec??.15,rLock:!!d.spool,fLock:false,cLock:false,etc:d.etc||0,lowK:d.lowK||2.64,can:{r:(d.lockers||0)>=1,f:(d.lockers||0)>=2,low:!!d.low}},
     surfMu:TF.surfMu,surfRR:TF.surfRR,surfDrag:TF.surfDrag,tread:ty.tread,factoryTC:!!rn.tc};
   if(rn.tyreR){c.surfMuR=TR.surfMu;c.surfRRR=TR.surfRR;c.surfDragR=TR.surfDrag;c.treadR=tyR.tread;}
-  c.hull=MC?machHull(MC,b,cgOf(b)):hullOf(b,D,cgOf(b));
+  c.tyreW=l.tyre.W||.25;c.tyreWR=(l.tyreR||l.tyre).W||c.tyreW;c.sim=simChassis(b,rn,c,D);
+  /* on the Sim level the roof load (and any cargo) moves the centre of gravity, and the hull with it */
+  const cg=cgOf(b);if(sim&&sim.cg){simLoad(c,sim.cargo||0);cg[1]=c.hcg;}
+  c.cg=cg;c.hull=MC?machHull(MC,b,cg):hullOf(b,D,cg);
   if(MC){c.machine=l.body;c.riderKg=MC.riderKg;c.leanZ=MC.leanZ||0;c.leanX=MC.leanX||0;}
   return c;
 }
@@ -4944,13 +5112,151 @@ function hullOf(b,D,cg){
   return P;
 }
 /* a build on four wheels */
-function makeCar(i,world){
-  const b=BUILDS[i],v=new Vehicle(buildChassis(i),specOf(i),world);
-  v.build=b;v.bi=i;v.cg=cgOf(b);v.low=false;v.locked=false;v.pt.lo=1;v.pt.partShift=true;
+function makeCar(i,world,sim=null){
+  const b=BUILDS[i],c=buildChassis(i,sim),v=new Vehicle(c,specOf(i),world);
+  v.build=b;v.bi=i;v.cg=c.cg;v.low=false;v.locked=false;v.pt.lo=1;v.pt.partShift=true;
   return v;
 }
 function setLow(v,on){const c=v.c.diff.can;if(!c.low)return false;v.low=on;v.pt.lo=on?v.c.diff.lowK:1;v.c.diff.cLock=on;return true;}
 function setLockers(v,on){const c=v.c.diff.can;if(!c.r)return false;v.locked=on;v.c.diff.rLock=on&&c.r||!!(RUNNING[v.build.id].diff||{}).spool;v.c.diff.fLock=on&&c.f;return true;}
+/* =====================================================================================
+   SIM: the fourth driving level. Realistic is the car as it is; Sim is the car as it is AND the world
+   as it is. Everything here only acts when a car is on the Sim level (Vehicle.sim); on the other three
+   levels the physics is exactly as before (tools/physcheck.js).
+
+   What Sim adds, and why:
+   - True load transfer. The tyres' side forces reach the body through the suspension links, whose
+     lines meet at the roll centre (20 cm up). Realistic applies the side force there, which rolls the
+     body the right amount but leaves out the share of the weight transfer that goes straight through
+     the links. Sim puts it back (the links' vertical pull, "jacking"), so the outside tyres carry the
+     whole m*a*h/track and the truck tips at its real static stability factor (track / 2h: about 1.1 g
+     for the SUV, 1.7 for the coupe). Drive and brake forces act at the ground, so the full m*a*h/L
+     goes front to back too.
+   - Soil trip. A tyre sliding sideways across dirt, gravel, grass or mud ploughs a berm in front of it.
+     The berm builds over about half a metre of sideways travel and pushes back at ground level, past
+     what the tyre's friction alone could give. That is how most real rollovers start (NHTSA: about 95%
+     of single-vehicle rollovers are "tripped").
+   - Edge catch. A sliding tyre feels the ground at its leading shoulder: a rut wall, a ditch lip or a
+     ledge beside it catches the sidewall and shoves back.
+   - Shocks that behave like shocks: firmer at low shaft speed (body control in a swerve), softer at
+     high speed (sharp hits), and they heat up and fade when worked hard (whoops at speed). Bypass and
+     rally dampers hold out far longer than stock ones.
+   - Centre of gravity from what's on the roof: the expedition rack, a cage, spares in the bed and any
+     cargo you load raise it, and add roll inertia.
+   - Tyre load sensitivity closer to measured road tyres (grip per kilo falls less with load).
+   - Tyre pressure: air down for mud, sand, grass and rock (a longer, softer footprint floats and
+     wraps), air up for the road. Aired down on tarmac the steering goes vague, the rolling drag rises,
+     the sidewalls roll under in hard turns, and pushed too hard a tyre can come off the bead.
+   - Weather: wet tarmac keeps about 60-70% of its grip, wet grass and clay far less, and at speed in
+     standing water the tyres aquaplane (NASA's 10.35*sqrt(psi) mph, sooner on slicks and worn treads).
+   - Brake fade. Each rotor heats with the power its brake takes in and cools with airflow; past its
+     pads' working range the brakes fade. A 60-0 stop warms the front rotors about 50 C.
+   - The body against the ground: a roof skids on tarmac and digs into dirt and mud.
+   - The car's own era: ABS only on cars that had it.
+   Ported from Dirt Sleeper Sim into Mini Dirt Run Solo, with the machines' tyres added (a quad's knobbies run at
+   about 5 psi, a semi's at 105) and no ABS on the quads, the side-by-side, the golf cart, the kart or the tractor.
+   ===================================================================================== */
+/* how hard each surface ploughs back at a tyre sliding sideways across it (share of the tyre's load) */
+const SIM_PLOW={dirt:.5,trail:.45,grass:.36,gravel:.55,mud:.5,ruts:.5,strip:.2,water:.12,rock:0,asphalt:0,concrete:0};
+/* faces that don't give when a tyre hits them sideways (kerbs, ledges); dirt and mud walls crumble */
+const SIM_RIGID={rock:1,concrete:1,asphalt:1};
+/* the body sliding on the ground: friction per surface */
+const SIM_BODYMU={asphalt:.42,concrete:.42,strip:.55,dirt:.7,trail:.66,grass:.55,gravel:.62,rock:.5,mud:.75,ruts:.7,water:.35};
+/* grip in the wet, per surface (at full rain), and how each tread copes on hard wet ground and in water */
+const SIM_WET={asphalt:.64,concrete:.66,strip:.56,dirt:.52,trail:.56,grass:.45,rock:.66,mud:.92,water:1,gravel:.86,ruts:.84};
+const SIM_HARD={asphalt:1,concrete:1,strip:1};
+const TREAD_WET={allseason:1,perf:.97,mud:.9,slick:.7,at:.96,gravel:.95,drag:.75,runner:.9,knobby:.88,paddle:.75,flat:.85,kart:.7,kartDirt:.85,ag:.8,rib:.95,turf:.85,truck:.98};
+const TREAD_AQUA={allseason:1,perf:.95,mud:1.08,slick:.82,at:1.04,gravel:1,drag:.8,runner:.92,knobby:1.1,paddle:1.1,flat:.95,kart:.82,kartDirt:1,ag:1.1,rib:1,turf:.95,truck:1};
+/* each tread's road pressure (psi) */
+const TREAD_PSI={allseason:35,perf:36,mud:32,slick:26,at:34,gravel:30,drag:16,runner:32,knobby:5,paddle:4,flat:7,kart:12,kartDirt:10,ag:16,rib:28,turf:18,truck:105};
+/* how much a softer footprint helps on each surface (per unit of pressure let out) */
+const SIM_SOFT={mud:.42,ruts:.36,water:.22,grass:.24,dirt:.16,trail:.2,gravel:.12,strip:.05,rock:.32,asphalt:0,concrete:0};
+/* damper heat: how much heat a shock soaks up per degree (J/K); bigger bodies and reservoirs fade later */
+const SHOCK_HEAT={stock:1500,sport:1800,bypass:5200,rally:4200,race:2600,drag:1500};
+/* where the pads start to fade (C) */
+const BRAKE_FADE={stock:330,big:420,race:560,drag:300};
+/* ABS by era: the 1970 car, its drag build and the 1980s hatches never had it */
+const SIM_NOABS={muscle:1,muscleDrag:1,hatch:1,hatchB:1,quad90:1,quad450:1,quadUtil:1,sxs:1,golf:1,kart:1,tractor:1};
+/* the player's Sim settings. air: the tyres' pressure as a share of their road pressure; wx: the weather;
+   cargo: what's strapped to the roof (cars with rails, bars or a rack) */
+const SIM_AIR=[['down','Aired down',.45,'About 15 psi: floats on mud, grass and sand and wraps over rock. Vague and draggy on tarmac, and hard turns can roll the tyre off its rim.'],
+  ['road','Road',1,'Each tyre at its road pressure.'],
+  ['up','Aired up',1.2,'A few psi over: sharper steering and less drag on the road, a smaller, harder footprint everywhere else.']];
+const SIM_WX=[['dry','Dry',0,'Dry ground.'],['damp','Damp',.35,'After a shower: the tarmac is a little slick, the grass and clay more so.'],
+  ['wet','Rain',.7,'Raining: wet tarmac keeps about two thirds of its grip, wet grass and clay much less, and standing water can float the tyres at highway speed.'],
+  ['storm','Downpour',1,'Pouring: everything is slick, and at speed the tyres aquaplane.']];
+const SIM_CARGO=[['none','Empty',0,'Nothing on the roof.'],['light','Light',40,'A cargo box with some gear, 40 kg.'],['heavy','Heavy',120,'A roof-top tent and gear, 120 kg: well past most roofs\' rated load, and it raises the centre of gravity.']];
+const SIMSET={air:'road',wx:'dry',cargo:'none'};
+try{const s=JSON.parse(store.get('mdrs-sim','{}'))||{};
+  if(SIM_AIR.some(a=>a[0]===s.air))SIMSET.air=s.air;if(SIM_WX.some(a=>a[0]===s.wx))SIMSET.wx=s.wx;if(SIM_CARGO.some(a=>a[0]===s.cargo))SIMSET.cargo=s.cargo;}catch(e){}
+const saveSim=()=>store.set('mdrs-sim',JSON.stringify(SIMSET));
+const simVal=(T,k)=>(T.find(a=>a[0]===k)||T[1]||T[0])[2];
+/* the developer's Sim switches: each piece on or off */
+const SIMDEV={jack:1,trip:1,edge:1,shocks:1,cg:1,fade:1,body:1,abs:1,press:1,wet:1,
+  /* and the strengths: tyre load sensitivity, how hard soil ploughs back, sway bars and shocks (1 = as built) */
+  ls:.3,plow:1,arb:1,damp:1,
+  /* when a tyre counts as sliding sideways enough to plough: sideways speed (m/s) and slip angle (tan) where it starts */
+  pv0:2.5,pa0:.6};
+const SIMDEV0=Object.assign({},SIMDEV);
+/* the roof load a build carries: kilograms and how high (metres above the ground at factory height) */
+function roofLoadOf(b,D){
+  if(!D)return {items:[],top:0,canCargo:false};
+  const l=b.look,ex=l.extras||[];let top=0;for(let u=0;u<=D.L;u+=.05)top=Math.max(top,D.top(u));
+  const items=[];
+  /* (factory rails and crossbars are in the body's own centre of gravity already) */
+  if(l.roof==='rack')items.push([85,top+.22]);
+  if(ex.includes('flatRack'))items.push([32,top+.1]);
+  if(ex.includes('cage'))items.push([55,top*.8]);
+  if(ex.includes('roofBar'))items.push([9,top+.05]);
+  if(ex.includes('bedCage'))items.push([115,1.25]);
+  /* only cars with something to strap it to carry cargo */
+  const canCargo=l.roof==='rack'||l.roof==='rails'||l.roof==='bars'||ex.includes('flatRack');
+  return {items,top,canCargo};
+}
+/* the Sim numbers a chassis carries (always built; only read on the Sim level) */
+function simChassis(b,rn,c,D){
+  const ty=rn.tyre,tyR=rn.tyreR||ty,bk=rn.brake||b.look.tyre.brake||'stock',rl=roofLoadOf(b,D);
+  return {psiF:TREAD_PSI[ty.tread]||34,psiR:TREAD_PSI[tyR.tread]||34,treadF:ty.tread,treadR:tyR.tread,
+    abs:!SIM_NOABS[b.car]&&!SIM_NOABS[b.id],shC:SHOCK_HEAT[rn.shocks]||1500,Tf:BRAKE_FADE[bk]||380,
+    /* rotor heat capacity (J/K): a ten-kilo iron front rotor on the factory truck, scaled with the car and its brakes */
+    Cb:[4600*c.mass/2150*({stock:1,big:1.25,race:1.5,drag:.8}[bk]||1),2800*c.mass/2150*({stock:1,big:1.2,race:1.45,drag:.9}[bk]||1)],
+    roof:rl.items,canCargo:rl.canCargo,roofTop:rl.top};
+}
+/* move a chassis's centre of gravity for its roof load and cargo: hcg up, mass and roll inertia added */
+function simLoad(c,cargoKg){
+  const S=c.sim,h0=c.hcg;let h=h0,I=0;
+  /* the build's own roof parts are already in its weight, but not in its body's factory centre of gravity:
+     move the centre up by each part's share of the mass times how far above it the part sits */
+  for(const [kg,y] of S.roof){h+=kg*(y-h0)/c.mass;I+=kg*(y-h0)*(y-h0);}
+  /* cargo adds weight as well */
+  if(cargoKg&&S.canCargo){const y=S.roofTop+.25,M=c.mass+cargoKg;h=(h*c.mass+cargoKg*y)/M;I+=cargoKg*(y-h0)*(y-h0);c.mass=M;}
+  c.hcg=h;c.simRollI=I;
+  return c;
+}
+/* a tyre at a pressure (pr: share of its road pressure): softer has more slip before it peaks (vaguer), firmer less */
+function simTyre(t,pr,ls){
+  const o=Object.assign({},t),d=1-pr;
+  o.aPk=t.aPk*(d>0?1+.55*d:1+.6*d);o.kPk=t.kPk*(d>0?1+.35*d:1+.3*d);
+  o.loadSens=ls;
+  return o;
+}
+/* grip on a surface from the pressure (pr) and the rain (wet 0..1), for a tread, at speed v */
+function simGrip(surf,tread,pr,wet,v,psi){
+  let g=1;const d=1-pr,hard=SIM_HARD[surf];
+  /* the footprint: a softer tyre floats and wraps on loose ground, and gives a little away on tarmac */
+  if(hard)g*=d>0?1-.12*d*d:1-.05*(-d);
+  else g*=clamp(1+(SIM_SOFT[surf]||0)*d,.82,1.3);
+  if(wet>0){
+    g*=1-(1-(SIM_WET[surf]??.8))*wet;
+    if(hard){g*=1-(1-(TREAD_WET[tread]||1))*wet;
+      /* aquaplaning in standing water: NASA's 10.35*sqrt(psi) mph, sooner on slicks and bald treads */
+      const vhp=10.35*Math.sqrt(psi*pr)*.447*(TREAD_AQUA[tread]||1),k=clamp((wet-.4)/.6,0,1);
+      if(k>0)g*=1-.5*k*sstep(.8*vhp,1.15*vhp,v);}
+  }
+  return g;
+}
+/* rolling drag from the pressure: more on hard ground when soft, less on soft ground */
+const simRR=(surf,pr)=>SIM_HARD[surf]||surf==='rock'?Math.pow(pr,-.7):Math.pow(pr,.5);
 /* =====================================================================================
    THE COUNTRY AROUND THE RANCH. The world is a mile square now, four times the ranch, with the
    ranch in the middle as it was. Round it: gravel county roads with a crossroads and a feed and
@@ -6346,6 +6652,139 @@ function fxDraw(){
 }
 
 /* =====================================================================================
+   GRAPHICS, a step up from Mini. Three levels:
+   - Mini: Dirt Sleeper Mini's look (the soft shadow under the car, nothing else).
+   - Plus: the sun casts real shadows round the car: the car on itself and on the ground, and the trees, sheds,
+     fences, rocks and stands near it. Clouds drift over the sky and the haze brightens toward the sun. One
+     extra pass a frame, of what's within about 30 m, into a 1024-square depth map.
+   - High: the same map at 2048, reaching about 55 m, and the land drawn further out.
+   The map follows the car, snapped to its own texels so its edges don't crawl as the car moves. And the
+   weather the Sim level sets is drawn: an overcast sky, dark wet ground with a sheen on the tarmac, rain.
+   From Dirt Sleeper Sim. In Mini Dirt Run Solo the weather is a menu choice on every driving level (the Sim
+   level feels it through its own tyre model, the others as plain wet grip), the machines cast their shadows
+   too, and at night the moon casts none: the headlights and the yard lights do the lighting.
+   ===================================================================================== */
+const GFX_LEVELS=[['mini','Mini','Dirt Sleeper Mini\'s look: the soft shadow under the car and nothing else. The lightest for a phone.'],
+  ['plus','Plus','Real sun shadows round the car (the car on itself and on the ground, trees, sheds, fences and rocks), clouds, and the haze lit toward the sun. One extra pass a frame of what\'s near the car.'],
+  ['high','High','Plus with sharper shadows reaching about twice as far, and the land drawn further out. For laptops and fast phones.']];
+/* a phone starts on Mini; a computer on Plus */
+const GFX={level:touchy?'mini':'plus',size:0,R:0,far:420,clouds:0,lod:[150,290]};
+{const g=store.get('mdrs-gfx','');if(GFX_LEVELS.some(l=>l[0]===g))GFX.level=g;}
+function gfxApply(){
+  const L=GFX.level;
+  GFX.size=L==='mini'?0:L==='plus'?1024:2048;GFX.R=L==='high'?55:30;GFX.far=L==='high'?560:420;GFX.clouds=L==='mini'?0:1;
+  GFX.lod=L==='high'?[190,360]:[150,290];LOD_DIST[0]=GFX.lod[0];LOD_DIST[1]=GFX.lod[1];
+}
+gfxApply();
+function setGfx(id){GFX.level=id;store.set('mdrs-gfx',id);gfxApply();const b=$('gfx');if(b)b.textContent='Gfx '+GFX_LEVELS.find(l=>l[0]===id)[1];}
+
+/* ---------- the shadow map ---------- */
+const SH={tex:null,fb:null,size:0,dummy:null,P:null,M:null,on:false};
+function depthTex(n){
+  const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texStorage2D(gl.TEXTURE_2D,1,gl.DEPTH_COMPONENT24,n,n);
+  for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE],
+    [gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE],[gl.TEXTURE_COMPARE_FUNC,gl.LEQUAL]])gl.texParameteri(gl.TEXTURE_2D,k,v);
+  return t;
+}
+const FS_SH=`out vec4 o;void main(){o=vec4(1.);}`;
+function shadowTarget(){
+  const n=GFX.size;if(!SH.P)SH.P=compile(VS_LIT,FS_SH,LIT_DEFS);
+  if(!SH.dummy)SH.dummy=depthTex(1);
+  if(SH.size===n)return;
+  if(SH.tex){gl.deleteTexture(SH.tex);gl.deleteFramebuffer(SH.fb);SH.tex=null;SH.fb=null;}
+  SH.size=n;if(!n)return;
+  SH.tex=depthTex(n);SH.fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,SH.fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,SH.tex,0);gl.drawBuffers([gl.NONE]);gl.readBuffer(gl.NONE);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+}
+/* the sun's view of a square round the centre, snapped to whole texels */
+function shadowMatrix(ctr){
+  const R=GFX.R,n=GFX.size,L=SKY.sun,eye=[ctr[0]+L[0]*150,ctr[1]+L[1]*150,ctr[2]+L[2]*150],V=M4.look(eye,ctr,Math.abs(L[1])>.98?[1,0,0]:[0,1,0]);
+  const cx=V[0]*ctr[0]+V[4]*ctr[1]+V[8]*ctr[2]+V[12],cy=V[1]*ctr[0]+V[5]*ctr[1]+V[9]*ctr[2]+V[13],ts=2*R/n,x0=Math.round(cx/ts)*ts,y0=Math.round(cy/ts)*ts;
+  const P=new Float32Array(16),l=x0-R,r=x0+R,b=y0-R,t=y0+R,nn=20,ff=300;
+  P[0]=2/(r-l);P[5]=2/(t-b);P[10]=-2/(ff-nn);P[12]=-(r+l)/(r-l);P[13]=-(t+b)/(t-b);P[14]=-(ff+nn)/(ff-nn);P[15]=1;
+  return M4.mul(P,V);
+}
+/* draw what is near the car into the map: the sheds, fences, rocks and stands, the trees, and the car */
+function shadowPass(cam,t){
+  shadowTarget();SH.on=!!GFX.size&&!SKY.night;if(!SH.on)return;
+  /* centred a little ahead of the car, where the camera is looking */
+  const f=norm2([cam.fwd[0],0,cam.fwd[2]]),k=GFX.R*.35,ctr=[t.p[0]+f[0]*k,t.p[1]-1,t.p[2]+f[2]*k];
+  SH.M=shadowMatrix(ctr);
+  const P=SH.P,u=P.u;gl.bindFramebuffer(gl.FRAMEBUFFER,SH.fb);gl.viewport(0,0,SH.size,SH.size);gl.clear(gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1.6,4);gl.useProgram(P.p);
+  gl.uniformMatrix4fv(u.uVP,false,SH.M);gl.uniform1f(u.uInst,0);gl.uniformMatrix4fv(u.uM,false,M4.id());
+  const R=GFX.R+14,near=(mn,mx)=>mn[0]<ctr[0]+R&&mx[0]>ctr[0]-R&&mn[2]<ctr[2]+R&&mx[2]>ctr[2]-R;let tris=0;
+  for(const p of RANCH.props)if(near(p.mn,p.mx)){drawMesh(p.mesh);tris+=p.mesh.tris;}
+  /* the trees round it, full shape, one instanced draw per kind */
+  const TR=RANCH.trees,T=TR.T,rr=(GFX.R+8)*(GFX.R+8);for(const c of TR.cnt){c[0]=0;c[1]=0;}
+  for(const tl of TR.tiles){if(!near(tl.mn,tl.mx))continue;
+    for(const i of tl.list){const o=i*12,dx=T[o]-ctr[0],dz=T[o+2]-ctr[2];if(dx*dx+dz*dz>rr)continue;const v=T[o+7]|0,b=TR.buf[v][0],q=TR.cnt[v][0]++*12;for(let j=0;j<12;j++)b[q+j]=T[o+j];}}
+  gl.uniform1f(u.uInst,1);
+  for(let v=0;v<5;v++){const n=TR.cnt[v][0];if(!n)continue;const m=TR.shapes[v][0];setInst(m,TR.buf[v][0].subarray(0,n*12));drawMeshI(m);tris+=m.tris*n;}
+  gl.uniform1f(u.uInst,0);
+  tris+=carShadow(t,u);
+  gl.disable(gl.POLYGON_OFFSET_FILL);
+  SH.tris=tris;
+}
+/* the car into the map: the same pieces and matrices drawWorldCar uses */
+function carShadow(t,u){
+  const i=t.bi,b=t.build,T=truck(i),D=T.D,M0=carMatrix(t);let Mb=M0;
+  const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
+  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);
+  /* a machine's rider, sitting up (leaning makes no difference to a shadow this soft) */
+  if(T.rider&&!(t.lean&&t.lean.bail)){drawMesh(T.rider.lo);const P=T.rider.pivot;gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4T(P[0],P[1],P[2])));drawMesh(T.rider.up);}
+  for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
+    gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
+  for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0,xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0];
+    for(const dx of xs)for(const dz of zs){
+      gl.uniformMatrix4fv(u.uM,false,M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang))))));drawMesh(w.front?T.wheel:T.wheelR);}}
+  return T.tris;
+}
+/* the scene shader's side of it, and the weather's */
+function gfxUniforms(){
+  const u=P_LIT.u;gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,SH.on?SH.tex:SH.dummy||null);gl.uniform1i(u.uShTex,3);gl.activeTexture(gl.TEXTURE0);
+  if(SH.on){gl.uniformMatrix4fv(u.uShM,false,SH.M);const tx=1/SH.size,ws=2*GFX.R*tx;gl.uniform4f(u.uShP,1,tx,ws,.0002);}
+  else gl.uniform4f(u.uShP,0,0,0,0);
+  const w=WX.w;gl.uniform4f(u.uCloud,GFX.clouds?lerp(.5,.97,w):0,lerp(1,.5,w)*(SKY.night?.05:1),GFX.clouds&&!SKY.night?1-w:0,w);gl.uniform1f(u.uWet,WX.wet);
+}
+
+/* ---------- the weather on the screen (the Sim level's; dry on the others) ---------- */
+const WX={w:0,wet:0,rainT:0};
+/* how wet it is: the weather the menu sets, on every level */
+const wxTarget=()=>simVal(SIM_WX,SIMSET.wx);
+function syncWeather(){WX.w=wxTarget();WX.wet=Math.min(1,WX.w*1.25);}
+/* the sky for this weather: clear to overcast */
+function skyNow(){
+  /* (at night the overcast is dark too: the clouds hide the stars and the moon) */
+  const w=WX.w,S=SKY,o=SKY_NOW,n=S.night?.1:1;
+  for(let k=0;k<3;k++){o.sunCol[k]=S.sunCol[k]*(1-.72*w);o.sky[k]=lerp(S.sky[k],[.5,.53,.58][k]*n,w);o.zen[k]=lerp(S.zen[k],[.36,.39,.44][k]*n,w);o.hor[k]=lerp(S.hor[k],[.62,.64,.67][k]*n,w);o.gnd[k]=S.gnd[k]*(1-.3*w);}
+  o.fogD=S.fogD*(1+4*w);o.fogK=S.fogK||[.68,.72,.78];return o;
+}
+const SKY_NOW={sunCol:[0,0,0],sky:[0,0,0],zen:[0,0,0],hor:[0,0,0],gnd:[0,0,0],fogD:0,fogK:null};
+/* rain: thin streaks falling round the camera, see-through (the dot pass averages the dropped pixels) */
+const RAIN={n:0,x:null,y:null,z:null,buf:null,mesh:null};
+function rainDraw(cam,dt){
+  const w=WX.w;if(w<.5)return 0;
+  const N=Math.round((GFX.level==='high'?900:GFX.level==='plus'?600:400)*(w-.3)/.7);
+  if(!RAIN.mesh){const mb=new MB();mb.box(-.5,-.5,-.5,.5,.5,.5,[1,1,1],0,MAT.COL);RAIN.mesh=mb.build();RAIN.x=new Float32Array(1000);RAIN.y=new Float32Array(1000);RAIN.z=new Float32Array(1000);RAIN.buf=new Float32Array(1000*12);
+    for(let i=0;i<1000;i++){RAIN.x[i]=Math.random()*36-18;RAIN.y[i]=Math.random()*18-4;RAIN.z[i]=Math.random()*36-18;}}
+  const e=cam.eye,B=RAIN.buf,fall=9.5*dt,lum=SKY.night?.22:1;
+  for(let i=0;i<N;i++){let y=RAIN.y[i]-fall;if(y<-4){y+=18;RAIN.x[i]=Math.random()*36-18;RAIN.z[i]=Math.random()*36-18;}RAIN.y[i]=y;
+    /* the streaks stay put in the world as the camera moves (wrapped into a 36 m box round it) */
+    const o=i*12,wx=e[0]+((RAIN.x[i]-e[0])%36+54)%36-18,wz=e[2]+((RAIN.z[i]-e[2])%36+54)%36-18;
+    B[o]=wx;B[o+1]=e[1]+y;B[o+2]=wz;B[o+3]=0;B[o+4]=.016;B[o+5]=.75;B[o+6]=.016;B[o+7]=0;B[o+8]=.7*lum;B[o+9]=.75*lum;B[o+10]=.82*lum;B[o+11]=-.42;}
+  setInst(RAIN.mesh,B.subarray(0,N*12));gl.uniform1f(P_LIT.u.uInst,1);drawMeshI(RAIN.mesh);gl.uniform1f(P_LIT.u.uInst,0);
+  return N*12;
+}
+/* ---------- a slow frame rate on Plus or High: say so once ---------- */
+const GFXW={t:0,said:false};
+function gfxWatch(dt){
+  if(GAME.state!=='drive'||GFX.level==='mini'||GFXW.said)return;
+  if(APP.fps<34)GFXW.t+=dt;else GFXW.t=Math.max(0,GFXW.t-dt*2);
+  if(GFXW.t>6){GFXW.said=true;say(GFX.level==='high'?'Slow: try Graphics Plus in the menu':'Slow: try Graphics Mini in the menu',4);}
+}
+/* =====================================================================================
    THE GARAGE'S PARTS. A rig is one of the seven cars with a choice in every slot: the engine and what
    is bolted to it, the gearbox and axles, the tyres, the suspension, the body kit, the wheels and the
    paint. Each car has its own list of what plausibly fits it (no big-block in the rally hatch, no
@@ -7076,14 +7515,14 @@ function skyLights(t){
    where the physics puts it, a chase camera, keyboard, game controller and touch (64_touch), and the engine
    through the Digital Engine synth (17_audio), heard from behind the car.
    ===================================================================================== */
-const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
+const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3],[1280,720,4]];
 const APP={t:0,bi:0,mode:'free',car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:false,tod:'day',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
 const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'pickup',muscle:'muscle',hatch:'hatch'};
 for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('mdrs-game','{}'))||{};
-  if(CAR_PARTS[s.car])APP.car=s.car;if(s.mode==='career')APP.wantCareer=true;if(['real','middle','kids'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
+  if(CAR_PARTS[s.car])APP.car=s.car;if(s.mode==='career')APP.wantCareer=true;if(['real','middle','kids','sim'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
   if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;
   if(s.rigs)for(const car in s.rigs)if(CAR_PARTS[car])RIGS[car]=cleanRig(car,s.rigs[car]);}catch(e){}
 /* a saved rig against today's parts: anything that no longer exists goes back to stock */
@@ -7098,7 +7537,8 @@ const saveGame=()=>{const F=APP.mode==='career'?Career.freeState():{car:APP.car,
   if(APP.mode==='career')Career.save();};
 const LEVELS=[['real','Realistic','The car as it is: ABS, the automatic gearbox and, on the cars that have it, the factory traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
-  ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.']];
+  ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.'],
+  ['sim','Sim','Realistic, and the world as it is (from Dirt Sleeper Sim): the full weight transfer through the suspension, tyres that dig into dirt and gravel when they slide sideways and trip the car over, kerbs and rut walls that catch a sliding tyre, shocks and brakes that fade when they get hot, roof loads that raise the centre of gravity, ABS only on the cars that had it, and your choice of tyre pressure and roof cargo below. Slide a tall truck sideways off the road and it will roll.']];
 const CAMS=['Chase','Far','Hood'];
 const DT=1/240;
 /* car: the player's Vehicle. voice: its synth (any object with the engine's spec; voiceNode gives it a port) */
@@ -7179,7 +7619,7 @@ function placeCar(x,z,yaw){
   t.place([x,y+.05,z],yaw);
   for(const w of t.wheels){w.comp=0;w.ang=0;w.w=0;}
   if(t.lean){t.lean.x=t.lean.z=0;t.lean.bail=null;}
-  const pt=t.pt;pt.gear=1;pt.shiftT=0;pt.engage=0;pt.locked=false;t.rev=false;pt.rev=false;t.drift.on=false;
+  const pt=t.pt;pt.gear=pt.g0||1;pt.shiftT=0;pt.engage=0;pt.locked=false;t.rev=false;pt.rev=false;t.drift.on=false;
   if(pt.st!=='off')pt.st='run';
   for(let i=0;i<120;i++)t.step(DT,SETTLE);
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;
@@ -7187,8 +7627,12 @@ function placeCar(x,z,yaw){
 /* the meshes of builds no longer driven are let go (the wheels are shared and stay) */
 function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
 const RECENT=[];
+/* what the Sim level builds the car with: roof loads move its centre of gravity, plus any cargo */
+const simOpts=()=>APP.level==='sim'?{cg:!!SIMDEV.cg,cargo:simVal(SIM_CARGO,SIMSET.cargo)}:null;
+/* the weather on the levels without the Sim tyre model: plain wet grip */
+const applyWet=t=>{t.wet=APP.level==='sim'?0:simVal(SIM_WX,SIMSET.wx);};
 function spawnCar(i,x,z,yaw){
-  const prev=GAME.car,t=makeCar(i,RANCH.world);t.setAssists(APP.level);
+  const prev=GAME.car,t=makeCar(i,RANCH.world,simOpts());t.setAssists(APP.level);applyWet(t);
   const b=BUILDS[i];RECENT.unshift(b.id);RECENT.length=Math.min(RECENT.length,3);truckEvict(RECENT);truck(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
   t.pt.maxG=APP.od&&hasOD(t.pt.e)?t.pt.e.nG-1:0;
@@ -7303,7 +7747,9 @@ function step(dt){
   let mud=0,water=0;for(const w of t.wheels)if(w.contact){if(w.surf==='mud')mud++;else if(w.surf==='ruts')mud+=.6;else if(w.surf==='water')water++;}
   GAME.dirt=clamp(GAME.dirt+dt*(mud*.025*Math.min(1,t.speed/3+.3)-water*.02*Math.min(1,t.speed/4)),0,1);
   fxEmit(dt,t);fxStep(dt);
-  const ev=t.takeEvents();riderBail(t,ev);if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
+  const ev=t.takeEvents();riderBail(t,ev);
+  if(ev.debead)say(GAME.touch?'A tyre rolled off its rim. Tap Reset':'A tyre rolled off its rim. R to reset',3.5,PAL.amber);
+  simWarn(dt,t);if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
   if(ev.wall>4||ev.ground>6)buzz(Math.min(90,20+Math.max(ev.wall,ev.ground)*6));
   /* the phone feels the gearbox and the limiter */
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
@@ -7328,6 +7774,13 @@ function riderBail(t,ev){
     const gy=RANCH.W.heightAt(t.p[0],t.p[2]),F=[M[0],M[3],M[6]],side=M[5]>0?-1:1;
     L.bail={p:[t.p[0]-M[2]*side*.9,gy,t.p[2]-M[8]*side*.9],yaw:Math.atan2(-F[2],F[0])+.6};
     say(GAME.touch?'BAILED! Tap Reset to get back on':'BAILED! Press R to get back on',3,'#ff3d5a');buzz([80,40,80]);}
+}
+/* ---------- Sim: say so when the brakes or the shocks start to fade ---------- */
+const SIMW={brake:false,shock:false};
+function simWarn(dt,t){
+  if(!t.sim)return;let bf=1,sf=1;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);}
+  if(bf<.92&&!SIMW.brake){SIMW.brake=true;say('Brakes fading: let them cool',3,PAL.amber);}else if(bf>.98)SIMW.brake=false;
+  if(sf<.92&&!SIMW.shock){SIMW.shock=true;say('Shocks fading: they are too hot',3,PAL.amber);}else if(sf>.98)SIMW.shock=false;
 }
 /* ---------- lap times on the road course: over the line, past two checkpoints, over the line again ---------- */
 const LAP={on:false,t0:0,cp:0,s:-1,best:{},offT:0};
@@ -7413,10 +7866,11 @@ const mode0Near=()=>CAMS[APP.cam]==='Hood'&&!APP.orbit?.12:.3;
 /* ---------- drawing ---------- */
 const SKY={sun:V3.norm([-.52,.5,.4]),sunCol:[1.28,1.18,1.02],sky:[.44,.5,.62],gnd:[.24,.18,.13],zen:[.16,.32,.85],hor:[.78,.86,1.02],fogD:.0016,fogK:[.68,.72,.78],draw:420,night:0};
 function worldUniforms(c){
-  const u=P_LIT.u,k=SKY.fogK;
+  /* the sky as the weather has it (54_gfx) */
+  const u=P_LIT.u,S=skyNow(),k=S.fogK;
   gl.uniformMatrix4fv(u.uVP,false,c.VP);gl.uniform3fv(u.uCam,c.eye);gl.uniform1f(u.uTime,APP.t);
-  gl.uniform3fv(u.uSunDir,SKY.sun);gl.uniform3fv(u.uSunCol,SKY.sunCol);gl.uniform3fv(u.uSkyAmb,SKY.sky);gl.uniform3fv(u.uGndAmb,SKY.gnd);
-  gl.uniform3fv(u.uSkyZen,SKY.zen);gl.uniform3fv(u.uSkyHor,SKY.hor);gl.uniform3fv(u.uFogCol,[SKY.hor[0]*k[0],SKY.hor[1]*k[1],SKY.hor[2]*k[2]]);gl.uniform1f(u.uFogD,SKY.fogD);gl.uniform1f(u.uStage,3);
+  gl.uniform3fv(u.uSunDir,SKY.sun);gl.uniform3fv(u.uSunCol,S.sunCol);gl.uniform3fv(u.uSkyAmb,S.sky);gl.uniform3fv(u.uGndAmb,S.gnd);
+  gl.uniform3fv(u.uSkyZen,S.zen);gl.uniform3fv(u.uSkyHor,S.hor);gl.uniform3fv(u.uFogCol,[S.hor[0]*k[0],S.hor[1]*k[1],S.hor[2]*k[2]]);gl.uniform1f(u.uFogD,S.fogD);gl.uniform1f(u.uStage,3);
   gl.uniform1i(u.uNL,0);gl.uniform1f(u.uInst,0);gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uDirt,0);gl.uniform1i(u.uNSh,0);
 }
 /* the soft shadows under the cars on the ground: centre, half size, yaw and how dark (fading as a car leaves the ground) */
@@ -7424,7 +7878,7 @@ const WSH=new Float32Array(32),WSA=new Float32Array(8),WSK=new Float32Array(8);
 function worldShadows(cars){
   const u=P_LIT.u;let n=0;
   for(const t of cars){if(n>=8)break;const D=carD(t),M=t.M,o=mvec(M,[-t.cg[0],-t.cg[1],0]),x=t.p[0]+o[0],z=t.p[2]+o[2],gy=RANCH.W.heightAt(x,z),hgt=t.p[1]+o[1]-gy;
-    WSH[n*4]=x;WSH[n*4+1]=z;WSH[n*4+2]=D.L/2-.02;WSH[n*4+3]=t.build.look.track/2+.12;WSA[n]=Math.atan2(-M[6],M[0]);WSK[n]=clamp(1-hgt/3.5,0,1)*(SKY.night?.5:.9);n++;}
+    WSH[n*4]=x;WSH[n*4+1]=z;WSH[n*4+2]=D.L/2-.02;WSH[n*4+3]=t.build.look.track/2+.12;WSA[n]=Math.atan2(-M[6],M[0]);WSK[n]=clamp(1-hgt/3.5,0,1)*(SKY.night?.5:SH.on?.55:.9);n++;}
   gl.uniform4fv(u.uSh,WSH);gl.uniform1fv(u.uShA,WSA);gl.uniform1fv(u.uShK,WSK);gl.uniform1i(u.uNSh,n);
 }
 /* the car's model matrix: physics frame (centre of gravity) to the model's frame (ground under the middle) */
@@ -7475,13 +7929,15 @@ function drawRider(t,T,Mb){
 }
 function render(dt){
   hClear();
-  const T=sceneTarget();gl.bindFramebuffer(gl.FRAMEBUFFER,T.f);gl.viewport(0,0,T.w,T.h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  const T=sceneTarget(),c=CAM.last=camMats(camUpdate(dt),T.w/T.h),t=GAME.car;
+  /* Plus and High: the sun's shadow map round the car first (54_gfx) */
+  shadowPass(c,t);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,T.f);gl.viewport(0,0,T.w,T.h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);gl.useProgram(P_LIT.p);
-  const c=CAM.last=camMats(camUpdate(dt),T.w/T.h),t=GAME.car;
-  worldUniforms(c);skyLights(t);worldShadows([t]);
-  let tris=drawRanch(c,SKY.draw);
+  worldUniforms(c);gfxUniforms();skyLights(t);worldShadows([t]);
+  let tris=drawRanch(c,SKY.night?SKY.draw:GFX.far)+(SH.on?SH.tris||0:0);
   tris+=drawWorldCar(t,GAME.voice,GAME.dirt);
-  tris+=fxDraw();
+  tris+=fxDraw();tris+=rainDraw(c,dt);
   gl.bindVertexArray(null);APP.tris=tris;
   drawHud(c);
   present();
@@ -7506,7 +7962,7 @@ function frame(ts){
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
   if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);if(CAM.last)soundUpdate(CAM.last);autoDetail(dt);}catch(e){console.error(e);}
-  APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);
+  APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps';}
   requestAnimationFrame(frame);
 }
@@ -7559,6 +8015,14 @@ function drawBigMap(){
   hFrame(x0-2,y0-2,size+4,size+4,pack(255,255,255,70));
   otxt3(GAME.touch?'TAP TO CLOSE':'M TO CLOSE',x0+3,y0+size-8,PAL.dim);otxt3('1 MILE',x0+size-3,y0+size-8,PAL.dim,1,'r');
 }
+/* the Sim level's settings in a few letters: tyre pressure (when not at road pressure), cargo; and the weather on any level */
+function simTag(t){
+  const C=t.c.sim,pr=simVal(SIM_AIR,SIMSET.air);let s='';
+  if(APP.level==='sim'&&SIMSET.air!=='road')s+='  '+Math.round(C.psiR*pr)+' PSI';
+  if(SIMSET.wx!=='dry')s+='  '+(SIM_WX.find(a=>a[0]===SIMSET.wx)[1]).toUpperCase();
+  if(APP.level==='sim'&&SIMSET.cargo!=='none'&&C.canCargo)s+='  +'+simVal(SIM_CARGO,SIMSET.cargo)+' KG';
+  return s;
+}
 /* where the corner map sits, for taps */
 const miniRect=()=>{const ms=Math.round(H*.27),[,ir]=hudInset();return [W-ms-5-ir,13,ms,ms];};
 /* on a phone the small buttons stand down both sides; where the screen has no black bars beside the picture
@@ -7573,7 +8037,7 @@ function drawHud(c){
   /* top left: the car and its build, the place, the driving level, the money */
   otxt5(carLabel().toUpperCase(),lx,5,GR.volt,sc,'l',.12);
   otxt3(GAME.place.toUpperCase(),lx,7+7*sc+2,PAL.ink);
-  otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':''),lx,7+7*sc+10,APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:PAL.dim);
+  otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':'')+simTag(t),lx,7+7*sc+10,APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:APP.level==='sim'?PAL.red:PAL.dim);
   otxt5(Feats.fmtMoney(Feats.S.money),lx,7+7*sc+18,GR.green,1);
   if(APP.bigMap){drawBigMap();return;}
   /* shift lights, tach, gear, speed */
@@ -7589,6 +8053,8 @@ function drawHud(c){
   if(e.nosKw){const k=clamp(pt.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*k),4,Math.round(28*k),pt.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
   /* bottom left: what the car is doing */
   const can=t.c.diff.can,C=[['TC',pt.tcOn||pt.etcOn,PAL.green],['ABS',t.absOn,PAL.amber],['ESC',t.escOn,PAL.amber]];
+  if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
+    C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}
   if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
   drawFeatsHud();
@@ -7661,6 +8127,8 @@ const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic
 for(const id of MACH_IDS)CAR_HINT[id]=MACH[id].hint;
 const CAR_GROUPS={Cars:'Cars and trucks',Quads:'Quads and side-by-sides',Odd:'The odd ones'};
 const carGroup=car=>MACH[car]?MACH[car].grp:'Cars';
+/* the short names the car cards have room for */
+const CARD_NAME={quad90:"Kids' quad",quad450:'Sport quad',quadUtil:'Ranch quad',sxs:'SxS',golf:'Golf cart',kart:'Go-kart',tractor:'Tractor',semi:'Semi'};
 function openMenu(first){
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
   if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
@@ -7694,6 +8162,11 @@ function syncMenu(){
   if(cur==='Custom'){const el=document.createElement('button');el.type='button';el.className='place';el.textContent='Your custom build';el.setAttribute('aria-pressed','true');el.addEventListener('click',()=>showTab('garage'));pr.appendChild(el);}
   for(const el of $('mLevel').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.level));
   $('mLevelHint').textContent=LEVELS.find(l=>l[0]===APP.level)[2];
+  syncSimCard();
+  for(const el of $('mWx').children)el.setAttribute('aria-pressed',String(el.dataset.v===SIMSET.wx));
+  $('mWxHint').textContent=SIM_WX.find(a=>a[0]===SIMSET.wx)[3]+(SIMSET.wx==='dry'?'':APP.level==='sim'?' The Sim tyres feel it surface by surface.':' On this level it is simply less grip everywhere; Sim feels it surface by surface.');
+  for(const el of $('sGfx').children)el.setAttribute('aria-pressed',String(el.dataset.v===GFX.level));
+  $('sGfxHint').textContent=GFX_LEVELS.find(l=>l[0]===GFX.level)[2];syncWeather();
   for(const el of $('mCam').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.cam));
   for(const el of $('mTod').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.tod));
   for(const el of $('sSteer').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.steer));
@@ -7713,11 +8186,15 @@ function buildMenu(){
   for(const [car,name] of CARS){
     if(carGroup(car)!==grp){grp=carGroup(car);const h=document.createElement('div');h.className='cgrp';h.textContent=CAR_GROUPS[grp];cx.appendChild(h);}
     const el=document.createElement('button');el.type='button';el.className='card';el.dataset.car=car;el.innerHTML='<b></b><small></small>';
-    el.querySelector('b').textContent=name;el.querySelector('small').textContent=rigName(car,rigOf(car));
+    el.querySelector('b').textContent=CARD_NAME[car]||name;el.title=name;el.querySelector('small').textContent=rigName(car,rigOf(car));
     el.addEventListener('click',()=>{if(car===APP.car)return;if(Career.on()&&!careerCarTap(car)){syncMenu();if(JOKES[car])$('mCarHint').textContent=CAR_HINT[car]+' To earn it: '+JOKES[car].goal;return;}
       APP.car=car;saveGame();spawnRig();syncMenu();});cx.appendChild(el);}
   segButtons($('mMode'),[['free','Free play'],['career','Career']],v=>setMode(v));
-  segButtons($('mLevel'),LEVELS.map(l=>[l[0],l[1]]),id=>{APP.level=id;saveGame();GAME.car.setAssists(id);});
+  /* into or out of Sim the car is rebuilt where it stands (its roof load moves its centre of gravity) */
+  segButtons($('mLevel'),LEVELS.map(l=>[l[0],l[1]]),id=>{const was=APP.level==='sim';APP.level=id;saveGame();if(was!==(id==='sim'))spawnRig();else{GAME.car.setAssists(id);applyWet(GAME.car);}});
+  buildSimCard();
+  segButtons($('mWx'),SIM_WX.map(a=>[a[0],a[1]]),id=>{SIMSET.wx=id;saveSim();if(GAME.car){GAME.car.applySim();applyWet(GAME.car);}syncWeather();});
+  segButtons($('sGfx'),GFX_LEVELS.map(l=>[l[0],l[1]]),id=>{setGfx(id);GFXW.said=false;GFXW.t=0;});
   segButtons($('mTod'),Object.entries(TOD).map(([k,v])=>[k,v.name]),id=>{APP.tod=id;applyTod(id);APP.lights=id==='night';saveGame();syncTouch();});
   segButtons($('mCam'),CAMS.map((n,i)=>[i,n]),i=>{APP.cam=+i;CAM.cut=true;saveGame();});
   const px=$('mPlaces');for(const [id,n] of PLACES){const el=document.createElement('button');el.type='button';el.className='place';el.textContent=n;
@@ -7741,6 +8218,24 @@ function buildMenu(){
   $('menuBtn').addEventListener('click',()=>GAME.state==='drive'?openMenu(false):closeMenu());
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
   buildGarage();
+}
+/* ---------- the Sim card: tyre pressure and roof cargo (the weather is for every level) ---------- */
+let SIM_HINT='air';
+function buildSimCard(){
+  for(const [host,T,k] of [['mSimAir',SIM_AIR,'air'],['mSimCargo',SIM_CARGO,'cargo']]){const el=$(host);
+    for(const [id,n] of T){const b=document.createElement('button');b.type='button';b.dataset.v=id;b.textContent=n;
+      b.addEventListener('click',()=>{if(b.disabled)return;const old=SIMSET[k];SIMSET[k]=id;SIM_HINT=k;saveSim();
+        if(k==='cargo'){if(old!==id)spawnRig();}else if(GAME.car)GAME.car.applySim();syncMenu();});el.appendChild(b);}}
+}
+function syncSimCard(){
+  const on=APP.level==='sim';$('mSim').hidden=!on;if(!on)return;
+  const t=GAME.car,C=t?t.c.sim:null,canCargo=!!(C&&C.canCargo);
+  for(const [host,k] of [['mSimAir','air'],['mSimCargo','cargo']])
+    for(const b of $(host).children){b.setAttribute('aria-pressed',String(b.dataset.v===SIMSET[k]));if(k==='cargo')b.disabled=!canCargo&&b.dataset.v!=='none';}
+  const T={air:SIM_AIR,cargo:SIM_CARGO}[SIM_HINT],row=T.find(a=>a[0]===SIMSET[SIM_HINT]);let hint=row?row[3]:'';
+  if(SIM_HINT==='air'&&C){const pr=simVal(SIM_AIR,SIMSET.air),f=Math.round(C.psiF*pr),r=Math.round(C.psiR*pr);hint+=' This one: '+(f===r?f+' psi all round.':f+' psi front, '+r+' rear.');}
+  if(SIM_HINT==='cargo'&&!canCargo)hint='This one has no roof rails, bars or rack to strap cargo to.';
+  $('mSimHint').textContent=hint;
 }
 /* ---------- cool stuff: the money, the last ten, the bests ---------- */
 const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['wheelie','Longest wheelie'],['speed','Longest speed run'],
@@ -7793,7 +8288,7 @@ const GUIDE={all:'An all-rounder gives a little everywhere: all-terrain tyres, a
   asphalt:'Tarmac wants sticky tyres, a low stance, big brakes and power. Lift and mud tyres cost you here.'};
 const score=(r,k)=>k==='all'?TERRAINS.reduce((s,[t])=>s+r[t],0)/TERRAINS.length:r[k];
 function buildGarage(){
-  segButtons($('gCars'),CARS,car=>{if(car!==APP.car){APP.car=car;GAR.open=null;saveGame();spawnRig();}syncGarage();});
+  segButtons($('gCars'),CARS.map(([c,n])=>[c,CARD_NAME[c]||n]),car=>{if(car!==APP.car){APP.car=car;GAR.open=null;saveGame();spawnRig();}syncGarage();});
   $('gSuggest').addEventListener('click',suggestBuild);
 }
 /* a change: on the car at once, the car rebuilt where it stands */
@@ -7903,7 +8398,7 @@ function enableTouch(){if(GAME.touch)return;GAME.touch=TOUCH.on=true;document.bo
 function syncTouch(){
   const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='drive');if(!GAME.car)return;
   const e=GAME.car.pt.e,c=GAME.car.c.diff.can;
-  $('tNos').hidden=!e.nosKw;$('tLow').hidden=!c.low;$('tLock').hidden=!c.r;$('tOD').hidden=!e.conv;$('tLights').hidden=!SKY.night;
+  $('tNos').hidden=!e.nosKw;$('tLow').hidden=!c.low;$('tLock').hidden=!c.r;$('tOD').hidden=!hasOD(e);$('tLights').hidden=!SKY.night;
   $('tOD').classList.toggle('lit',!!APP.od);$('tLow').classList.toggle('lit',!!GAME.car.low);$('tLock').classList.toggle('lit',!!GAME.car.locked);$('tLights').classList.toggle('lit',!!APP.lights);
   $('steerZone').dataset.mode=APP.steer;$('steerBtns').hidden=APP.steer!=='buttons';$('steerHint').textContent=APP.steer==='tilt'?'TILT TO STEER':'SLIDE TO STEER';
 }
@@ -7963,7 +8458,7 @@ const CAR_PRICE={trail:9500,wagon:14000,pickup:16000,hatch:38000,muscle:45000,co
 const JOKES={
   golf:{goal:'Get the stock Mountaineer through the mud pit, no parts changed.',need:1,line:'Fine on the cart path. It will not go through the mud pit.'},
   quad90:{goal:'Roll something over five times.',need:5,line:'Something a little closer to the ground. Mind the limiter screw.'},
-  kart:{goal:'Lap the race track in under 1:30.',need:1,line:'Fast on the track. Useless anywhere else on the ranch.'},
+  kart:{goal:'Lap the race track in under 0:50.',need:1,line:'Fast on the track. Useless anywhere else on the ranch.'},
   tractor:{goal:'Get stuck in the mud and dig yourself out, three times.',need:3,line:'You clearly need a tow. Top speed: about 12 mph.'},
   semi:{goal:'Drive 30 miles of county road.',need:30,unit:'mi',line:'No trailer, no load, and it tips over on Red Hill.'}};
 const CAREER_START=1500;
@@ -8029,7 +8524,7 @@ const Career=(()=>{
   Feats.onFeat=(kind,detail)=>{
     if(!on())return;
     if(kind==='mudpit'&&APP.car==='suv'&&rigName('suv',rigOf('suv'))==='Stock')progress('golf',1);
-    if(kind==='lap'&&detail&&detail.s<90)progress('kart',1);
+    if(kind==='lap'&&detail&&detail.s<50)progress('kart',1);
   };
   function step(dt,t){
     if(!on()||GAME.state!=='drive')return;
@@ -8062,7 +8557,7 @@ else{
       $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
     }catch(e){console.error(e);$('loading').textContent='Something went wrong building the ranch: '+e.message;}
   },30));
-  window.__game={APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,MACH,RIDER:riderStep,Career,syncMenu,
+  window.__game={APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,MACH,RIDER:riderStep,Career,syncMenu,GFX,setGfx,SIMSET,syncWeather,
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }
 

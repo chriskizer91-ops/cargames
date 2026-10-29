@@ -1,8 +1,10 @@
 # Mini Dirt Run Solo (MDRS)
 
 A free-roam driving game for a phone held sideways (made on a Pixel 7a), drawn on an LED dot matrix:
-the ranch and the mile of country round it from Dirt Sleeper Mini, seven cars you can build any way
-the garage allows, and money for every cool thing you do. No racing: just you, the clock, and the dirt.
+the ranch and the mile of country round it from Dirt Sleeper Mini, seven cars, three quads, a
+side-by-side and four odd ones, all built any way the garage allows, and money for every cool thing you
+do. No racing: just you, the clock, and the dirt. Free play gives you everything; the career makes you
+earn it.
 
 It started as a copy of the newest Dirt Sleeper Mini (the seven-car version) and goes its own way from
 there; nothing here touches `dirt-sleeper-mini/`.
@@ -25,6 +27,34 @@ N nitrous, L low range, K lockers, J headlights, H horn, C camera, M map, R rese
 A game controller works too.
 
 ## What's in it
+
+- **Two modes**: **Free play**, where every car and part is yours from the start and the money is a
+  score, and the **Career** (`src/65_career.js`): your own truck (the stock Mountaineer) and $1,500.
+  Feats pay the same; parts cost their garage prices, presets show what their missing parts would cost,
+  and cars and quads are for sale. The odd ones can't be bought: each is a joke reward that doesn't help
+  (a golf cart for getting the stock truck through the mud pit, a kids' quad for rolling something five
+  times, a go-kart for a lap under 0:50, a tractor for digging out of the mud three times, a semi for
+  30 miles of county road). Each mode keeps its own money, rigs and bests on the device; the career
+  can also be copied out as a save code and pasted back in (Settings).
+- **The machines** (`src/34_machines.js`): a kids' 90 cc quad (a limiter screw sets its top speed),
+  a 450 sport quad (five speeds, a solid rear axle), a ranch quad (four-wheel drive, high and low,
+  a front diff lock), a turbo-able side-by-side, a golf cart, a go-kart, a 1940s two-cylinder tractor
+  and a semi with no trailer (ten speeds, a jake brake, an air horn, governed to 70). Each is built from
+  boxes, tubes and rounded shells, has a Digital Engine voice the lab already had, belt CVTs where real
+  ones have them, its own parts in the garage, and ratings on the same scale as the cars. A quad's rider
+  leans into turns, uphill on a slope and forward up a climb, which moves real weight in the physics;
+  in the air the gas pulls the bars and the brake pushes them. Roll a quad or land it far too hard and
+  the rider bails. The helmet camera rides with the rider. A wheelie is a feat.
+- **The Sim level and weather** (`src/43_sim.js`, `src/54_gfx.js`, from Dirt Sleeper Sim): a fourth
+  driving level with the full weight transfer, tyres that dig in and trip a sliding truck over, kerbs
+  and rut walls that catch a tyre, shocks and brakes that fade when hot, roof loads that raise the
+  centre of gravity, ABS only where the vehicle had it, tyre pressure (air down for mud and rocks) and
+  roof cargo. Weather (damp, rain, a downpour) is a menu choice on every level: the Sim tyres feel it
+  surface by surface, the other levels as plain wet grip; it's drawn with an overcast sky, wet ground and
+  rain. `tools/simcheck.js` is the Sim's proving ground.
+- **Graphics**: Mini (the default on a phone), Plus (sun shadows round the car, clouds, haze toward the
+  sun) and High (sharper, further shadows, land drawn further out), and dots up to 1280 x 720. At night
+  the shadows are off and the lights do the work.
 
 - **Feats that pay** (`src/57_feats.js`): drifts, jumps (distance, air time, a clean or sketchy
   landing), two wheels, saving it from a roll, speed runs on dirt and gravel, burnouts, close calls past
@@ -74,9 +104,18 @@ A game controller works too.
 | `tools/drag_check.js` | 0-60, the quarter mile and the shift points at several pedal positions. |
 | `tools/terrain_check.js` | The factory builds through the mud pit, up Red Hill and over the rocks, beside their ratings. |
 | `tools/proving.js` | Dirt Sleeper Mini's proving ground: drag, grip and brakes on flat ground. |
+| `tools/machine_check.js` | Each machine on flat dirt: 0-30, 0-60, top speed with its governor, a hard turn, NaN. |
+| `tools/machines_shot.js` | Each machine in the browser: chase and helmet camera screenshots. |
+| `tools/career_check.js` | The career in the browser: buying, unlocks, the save code, back to free play. |
+| `tools/lap_check.js` | A robot lap of the race track (how the career's lap goal was set). |
+| `tools/simcheck.js` | The Sim level against Realistic: stability, tripping, kerbs, fade, pressure, wet. |
+| `tools/gfx_shot.js` | The graphics levels and the weather in the browser. |
 
-## Next
+## Fixes along the way
 
-Quads (a kids' 90 cc, a 450 sport quad, a utility ranch quad), the odd vehicles (golf cart, go-kart,
-tractor, semi), then the career: the slow grind, where the money buys the parts and the odd vehicles
-are joke rewards.
+- A clutch on a big reduction (the semi in a low gear, the tractor) could fling the light driven wheels
+  past the point where it grabs in one physics step, and the engine with them to 25,000 rpm. The wheels
+  now stop at that point and the clutch locks there.
+- The semi pulls away in third and the tractor in second, as a driver would, and the race-game
+  automatic drops back to that gear (first, on everything else) when the car comes to rest in a higher
+  one (from Dirt Sleeper Sim).

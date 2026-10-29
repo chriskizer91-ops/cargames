@@ -13,7 +13,7 @@ function enableTouch(){if(GAME.touch)return;GAME.touch=TOUCH.on=true;document.bo
 function syncTouch(){
   const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='drive');if(!GAME.car)return;
   const e=GAME.car.pt.e,c=GAME.car.c.diff.can;
-  $('tNos').hidden=!e.nosKw;$('tLow').hidden=!c.low;$('tLock').hidden=!c.r;$('tOD').hidden=!e.conv;$('tLights').hidden=!SKY.night;
+  $('tNos').hidden=!e.nosKw;$('tLow').hidden=!c.low;$('tLock').hidden=!c.r;$('tOD').hidden=!hasOD(e);$('tLights').hidden=!SKY.night;
   $('tOD').classList.toggle('lit',!!APP.od);$('tLow').classList.toggle('lit',!!GAME.car.low);$('tLock').classList.toggle('lit',!!GAME.car.locked);$('tLights').classList.toggle('lit',!!APP.lights);
   $('steerZone').dataset.mode=APP.steer;$('steerBtns').hidden=APP.steer!=='buttons';$('steerHint').textContent=APP.steer==='tilt'?'TILT TO STEER':'SLIDE TO STEER';
 }

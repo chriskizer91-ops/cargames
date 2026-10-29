@@ -104,7 +104,9 @@ function treadTables(tread){
   const rr=Object.assign({},SURF_RR),k=TREAD_RR_MUD[tread];rr.mud*=k;rr.water*=k;rr.ruts*=k;
   return {surfMu:TREAD_MU[tread],surfRR:rr,surfDrag:{mud:.06*k**1.5,water:.018*k,ruts:.012*k}};
 }
-function buildChassis(i){
+/* sim: null for the first three levels; on the Sim level {cargo: kg on the roof, cg: whether roof loads move
+   the centre of gravity} (43_sim) */
+function buildChassis(i,sim=null){
   const b=BUILDS[i],l=b.look,MC=b.machine?MACH[l.body]:null,rn=RUNNING[b.id]||(MC&&RUNNING[l.body])||RUNNING.stock,eg=ENGINE_OF[b.id]||(MC&&ENGINE_OF[l.body])||ENGINE_OF.stock,sp=SUSP[rn.susp];
   /* a machine has no lofted body: its size and hull come from its own numbers */
   const B=MC?{wb:MC.wb}:BODIES[l.body||'suv'],D=MC?null:suvDesign(l);
@@ -123,7 +125,10 @@ function buildChassis(i){
     diff:{pre:d.pre??40,acc:d.acc??.3,dec:d.dec??.15,rLock:!!d.spool,fLock:false,cLock:false,etc:d.etc||0,lowK:d.lowK||2.64,can:{r:(d.lockers||0)>=1,f:(d.lockers||0)>=2,low:!!d.low}},
     surfMu:TF.surfMu,surfRR:TF.surfRR,surfDrag:TF.surfDrag,tread:ty.tread,factoryTC:!!rn.tc};
   if(rn.tyreR){c.surfMuR=TR.surfMu;c.surfRRR=TR.surfRR;c.surfDragR=TR.surfDrag;c.treadR=tyR.tread;}
-  c.hull=MC?machHull(MC,b,cgOf(b)):hullOf(b,D,cgOf(b));
+  c.tyreW=l.tyre.W||.25;c.tyreWR=(l.tyreR||l.tyre).W||c.tyreW;c.sim=simChassis(b,rn,c,D);
+  /* on the Sim level the roof load (and any cargo) moves the centre of gravity, and the hull with it */
+  const cg=cgOf(b);if(sim&&sim.cg){simLoad(c,sim.cargo||0);cg[1]=c.hcg;}
+  c.cg=cg;c.hull=MC?machHull(MC,b,cg):hullOf(b,D,cg);
   if(MC){c.machine=l.body;c.riderKg=MC.riderKg;c.leanZ=MC.leanZ||0;c.leanX=MC.leanX||0;}
   return c;
 }
@@ -142,9 +147,9 @@ function hullOf(b,D,cg){
   return P;
 }
 /* a build on four wheels */
-function makeCar(i,world){
-  const b=BUILDS[i],v=new Vehicle(buildChassis(i),specOf(i),world);
-  v.build=b;v.bi=i;v.cg=cgOf(b);v.low=false;v.locked=false;v.pt.lo=1;v.pt.partShift=true;
+function makeCar(i,world,sim=null){
+  const b=BUILDS[i],c=buildChassis(i,sim),v=new Vehicle(c,specOf(i),world);
+  v.build=b;v.bi=i;v.cg=c.cg;v.low=false;v.locked=false;v.pt.lo=1;v.pt.partShift=true;
   return v;
 }
 function setLow(v,on){const c=v.c.diff.can;if(!c.low)return false;v.low=on;v.pt.lo=on?v.c.diff.lowK:1;v.c.diff.cLock=on;return true;}

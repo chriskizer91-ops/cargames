@@ -11,7 +11,7 @@ const CAR_PRICE={trail:9500,wagon:14000,pickup:16000,hatch:38000,muscle:45000,co
 const JOKES={
   golf:{goal:'Get the stock Mountaineer through the mud pit, no parts changed.',need:1,line:'Fine on the cart path. It will not go through the mud pit.'},
   quad90:{goal:'Roll something over five times.',need:5,line:'Something a little closer to the ground. Mind the limiter screw.'},
-  kart:{goal:'Lap the race track in under 1:30.',need:1,line:'Fast on the track. Useless anywhere else on the ranch.'},
+  kart:{goal:'Lap the race track in under 0:50.',need:1,line:'Fast on the track. Useless anywhere else on the ranch.'},
   tractor:{goal:'Get stuck in the mud and dig yourself out, three times.',need:3,line:'You clearly need a tow. Top speed: about 12 mph.'},
   semi:{goal:'Drive 30 miles of county road.',need:30,unit:'mi',line:'No trailer, no load, and it tips over on Red Hill.'}};
 const CAREER_START=1500;
@@ -77,7 +77,7 @@ const Career=(()=>{
   Feats.onFeat=(kind,detail)=>{
     if(!on())return;
     if(kind==='mudpit'&&APP.car==='suv'&&rigName('suv',rigOf('suv'))==='Stock')progress('golf',1);
-    if(kind==='lap'&&detail&&detail.s<90)progress('kart',1);
+    if(kind==='lap'&&detail&&detail.s<50)progress('kart',1);
   };
   function step(dt,t){
     if(!on()||GAME.state!=='drive')return;

@@ -47,10 +47,12 @@ vec3 env(vec3 d){
   c+=vec3(.7)*exp(-abs(t-.02)*30.)*.25;
   return c;
 }
+/* how much of the sun reaches this point (the world's shadow map sets it; 1 everywhere else) */
+float gSun=1.;
 vec3 shade(vec3 P,vec3 N,vec3 V,vec3 alb,float spec,float shin){
   vec3 c=alb*(uSkyAmb*(.55+.45*N.y)+uGndAmb*(.45-.45*N.y));
   float nl=max(dot(N,uSunDir),0.);vec3 Hs=normalize(uSunDir+V);
-  c+=uSunCol*nl*(alb+spec*pow(max(dot(N,Hs),0.),shin));
+  c+=uSunCol*gSun*nl*(alb+spec*pow(max(dot(N,Hs),0.),shin));
   for(int i=0;i<8;i++){if(i>=uNL)break;vec3 L=uLP[i].xyz-P;float d2=dot(L,L),r=uLP[i].w;if(d2>r*r)continue;
     float d=sqrt(d2);L/=d;float a=1.-d/r;a*=a;
     /* a spot (headlights, yard lights): w is the cosine of its outer edge; below -1 it lights every way */
@@ -84,6 +86,18 @@ uniform float uLiv;uniform float uLights;uniform float uBrake;uniform float uDir
 uniform vec4 uSh[8];uniform float uShA[8];uniform int uNSh;uniform float uSpin;
 #ifdef WORLD
 uniform float uShK[8];uniform float uMudOff;uniform float uMudLocal;
+/* the sun's shadow map round the car (55_gfx): its matrix, on/texel size/normal offset, and the weather:
+   uCloud = cloud cover, cloud brightness, haze toward the sun, rain; uWet = how wet the ground is */
+uniform highp sampler2DShadow uShTex;uniform mat4 uShM;uniform vec4 uShP;uniform vec4 uCloud;uniform float uWet;
+float sunShadow(vec3 P,vec3 N){
+  if(uShP.x<.5)return 1.;
+  vec4 q=uShM*vec4(P+N*uShP.z,1.);vec3 p=q.xyz*.5+.5;
+  if(p.x<.002||p.y<.002||p.x>.998||p.y>.998||p.z>1.)return 1.;
+  float t=uShP.y,b=uShP.w,s=texture(uShTex,vec3(p.xy+vec2(-.6,-.25)*t,p.z-b))+texture(uShTex,vec3(p.xy+vec2(.25,-.6)*t,p.z-b))
+    +texture(uShTex,vec3(p.xy+vec2(.6,.25)*t,p.z-b))+texture(uShTex,vec3(p.xy+vec2(-.25,.6)*t,p.z-b));
+  float e=max(abs(p.x-.5),abs(p.y-.5))*2.;
+  return mix(s*.25,1.,smoothstep(.78,.98,e));
+}
 #endif
 /* mud: caked and wet low down, dry and splattered higher up; returns 0..1 coverage */
 float mud(vec3 L,float h){
@@ -122,6 +136,7 @@ void main(){
   int m=int(vMat+.5);float h=uMudLocal>.5?vL.y+uMudOff:vP.y-uGround;bool dirty=false;
   if(em<0.){if(h12(gl_FragCoord.xy+fract(uTime*7.3)*91.)>-em)discard;em=0.;}
   if(m==48){float dc=length(vP-uCam);if(dc<8.&&h12(gl_FragCoord.xy)>smoothstep(3.,8.,dc))discard;}
+  if(m!=51)gSun=sunShadow(vP,N);
 #else
   int m=int(vMat+.5);float h=vP.y-uGround;bool dirty=false;
 #endif
@@ -195,7 +210,13 @@ void main(){
 #ifdef WORLD
   else if(m>=40){
     vec2 wp=vP.xz;float sh=wshadow(vP);
-    if(m==51){o=vec4(env(normalize(vP-uCam)),1.);return;}
+    if(m==51){
+      /* the sky, with clouds drifting over it (lit toward the sun, grey and heavy in the rain) */
+      vec3 d=normalize(vP-uCam),sc=env(d);
+      if(uCloud.x>0.&&d.y>0.){vec2 uv=d.xz/(d.y+.12)*1.5+uTime*vec2(.006,.0025);float n=fbm(uv*1.2)*.62+fbm(uv*3.4+3.1)*.38;
+        float cov=smoothstep(1.-uCloud.x,1.25-uCloud.x,n)*smoothstep(.0,.08,d.y),sd=max(dot(d,uSunDir),0.);
+        vec3 cc=mix(vec3(.5,.55,.64),vec3(1.12,1.08,1.02),(.35+.65*sd)*(.6+.4*n))*uCloud.y;sc=mix(sc,cc,cov*.92);}
+      o=vec4(sc,1.);return;}
     if(m==40){
       /* the ground: weights for grass, rock and mud in the colour, ambient occlusion in its alpha */
       float n2=vn(wp*.7),n3=vn(wp*3.1),n4=vn(wp*11.);
@@ -273,13 +294,21 @@ void main(){
       if(pud>0.){alb=mix(alb,vec3(.06,.045,.03),pud*.85);spec=mix(spec,1.,pud);shin=140.;add+=env(R)*F*pud*.75;}
       em=0.;
     }
+    /* rain: porous ground goes dark, tarmac and concrete get a sheen with the sky in it */
+    if(uWet>0.){float por=m==40||m==42||m==43||m==44||m==53||m==55?1.:0.,hard=m==54||m==45?1.:0.;
+      alb*=1.-uWet*(.36*por+.22*hard);spec=mix(spec,.7,uWet*(.75*hard+.2*por));shin=mix(shin,110.,uWet*hard);add+=env(R)*F*uWet*(.6*hard+.1*por);}
     alb*=sh;add*=sh;
   }
 #endif
   if(dirty){float k=mud(vL,h);if(k>0.){alb=mix(alb,mudCol(vL,h),k);spec*=1.-.8*k;add*=1.-.85*k;}}
   vec3 col=shade(vP,N,V,alb,spec,shin)+add+emc;
   if(em>0.&&m==0)col+=vC.rgb*em;
-  float fog=1.-exp(-length(vP-uCam)*uFogD);col=mix(col,uFogCol,fog);
+  float fog=1.-exp(-length(vP-uCam)*uFogD);vec3 fc=uFogCol;
+#ifdef WORLD
+  /* the haze is brighter looking toward the sun */
+  if(uCloud.z>0.)fc+=uSunCol*pow(max(dot(normalize(vP-uCam),uSunDir),0.),6.)*.2*uCloud.z;
+#endif
+  col=mix(col,fc,fog);
   o=vec4(col,1.);
 }`;
 /* the defines the scene shader is compiled with: the game adds WORLD (the ground, the sky, instancing, mud
