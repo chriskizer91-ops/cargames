@@ -1,0 +1,344 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dirt Sleeper Showdown</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#07070b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Saira:wght@400;500&display=swap">
+<style>
+/* Dirt Sleeper Showdown: Dirt Sleeper HD (Mini Dirt Run Solo and Dirt Sleeper Sim in one game) with cross-country
+   races, rivals who size your car up by its looks, and callouts at the strip. The ranch and the country round it
+   on an LED dot matrix, dark-only by design, the menu a lit sign over it. The matrix fills the window; a slim
+   bar on top; on a phone the steering on the left, the pedals on the right and small buttons down both
+   sides; one menu card with tabs for driving, the garage, the cool things you've done, the clock runs, the
+   settings and (while the game is being made) the developer panel. */
+:root{
+  --bg:#07070b;--panel:#111119;--raised:#1a1a25;--ink:#efeaf6;--ink-2:#a8a2b8;--ink-3:#6c6880;
+  --edge:rgba(255,255,255,.12);--edge-2:rgba(255,255,255,.22);--accent:#ff3d5a;--amber:#ffb43c;--cyan:#4fe3ff;--go:#5dff7a;--bad:#ff6a6a;
+  --f:"Chakra Petch","Arial Narrow",system-ui,sans-serif;--fb:"Saira",system-ui,-apple-system,sans-serif;color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none}
+body{font:400 13px/1.45 var(--fb);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.bar{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;justify-content:flex-end;gap:10px;pointer-events:none;z-index:5;
+  padding:max(8px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.rot{display:none;font:600 10px/1.3 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--amber);max-width:46vw}
+@media (orientation:portrait) and (pointer:coarse){.rot{display:block;margin-right:auto}}
+.opts{display:flex;gap:8px;align-items:center}
+.chip{pointer-events:auto;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--edge);background:rgba(17,17,25,.82);color:var(--ink);cursor:pointer;
+  font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip:hover{border-color:var(--edge-2)}
+.stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:640px){.stat{display:none}}
+body.touch #res,body.touch .stat{display:none}
+
+/* ---------- the touch controls ---------- */
+#touch{position:fixed;inset:0;pointer-events:none;z-index:4}
+#steerZone{position:absolute;left:0;bottom:0;width:46vw;height:72vh;pointer-events:auto;touch-action:none}
+#steerZone[data-mode="tilt"],#steerZone[data-mode="buttons"]{pointer-events:none}
+#steerTrack{position:absolute;left:24vw;bottom:max(34px,calc(env(safe-area-inset-bottom,0px) + 26px));width:0;height:0}
+#steerTrack::before{content:"";position:absolute;left:-120px;width:240px;top:-2px;height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
+#steerKnob{position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;border:2px solid rgba(79,227,255,.7);background:rgba(17,17,25,.55);transition:transform .05s linear}
+#steerZone.on #steerKnob{background:rgba(79,227,255,.25)}
+#steerHint{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));font:600 9.5px/1 var(--f);letter-spacing:.18em;color:var(--ink-3)}
+#steerZone[data-mode="buttons"] #steerTrack,#steerZone[data-mode="buttons"] #steerHint{display:none}
+#steerBtns{position:absolute;left:max(14px,env(safe-area-inset-left,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;pointer-events:auto}
+.tb{border:1px solid var(--edge-2);background:rgba(17,17,25,.55);color:var(--ink);touch-action:none;cursor:pointer;backdrop-filter:blur(2px);
+  font:700 10.5px/1 var(--f);letter-spacing:.12em;border-radius:12px}
+.tb.big{width:84px;height:84px;font-size:22px;border-radius:18px}
+.tb.on{background:rgba(255,255,255,.2)}
+.tb.lit{border-color:var(--amber);color:var(--amber)}
+.tside{position:absolute;top:max(46px,calc(env(safe-area-inset-top,0px) + 40px));display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+.tside.L{left:max(10px,env(safe-area-inset-left,0px))}.tside.R{right:max(10px,env(safe-area-inset-right,0px))}
+.tside .tb{width:62px;height:34px}
+.tpedals{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:flex-end;pointer-events:auto}
+.tcol{display:flex;flex-direction:column;gap:10px}
+.pedal{position:relative;width:80px;border-radius:16px;border:1px solid var(--edge-2);background:rgba(17,17,25,.5);overflow:hidden;touch-action:none;cursor:pointer}
+.pedal.gas{height:min(190px,50vh);border-color:rgba(93,255,122,.55)}.pedal.brk{height:min(132px,34vh);border-color:rgba(255,61,90,.55)}
+.pedal i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(to top,rgba(93,255,122,.42),rgba(93,255,122,.12))}
+.pedal.brk i{background:linear-gradient(to top,rgba(255,61,90,.42),rgba(255,61,90,.12))}
+.pedal span{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:700 13px/1 var(--f);letter-spacing:.14em}
+.pedal.gas span{color:var(--go)}.pedal.brk span{color:var(--accent)}
+.pedal.gas::after{content:"MORE";position:absolute;left:0;right:0;top:10px;text-align:center;font:600 8.5px/1 var(--f);letter-spacing:.2em;color:var(--ink-3)}
+#tHb{width:80px;height:46px;border-color:rgba(255,180,60,.6);color:var(--amber)}
+@media (max-height:380px){.pedal.gas{height:46vh}.pedal.brk{height:30vh}#tHb{height:40px}.tside .tb{height:30px}}
+
+/* ---------- the menu ---------- */
+#menu{position:fixed;inset:0;z-index:8;display:grid;place-items:start center;overflow-y:auto;background:rgba(7,7,11,.55);
+  padding:max(48px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#menu.garage{background:linear-gradient(to right,rgba(7,7,11,.9) 0,rgba(7,7,11,.9) min(560px,100%),rgba(7,7,11,.15) min(640px,100%));place-items:start start}
+.mwrap{width:min(880px,100%);display:flex;flex-direction:column;gap:14px;background:rgba(14,14,21,.95);border:1px solid var(--edge);border-radius:16px;padding:16px 18px 0;
+  box-shadow:0 30px 80px rgba(0,0,0,.6)}
+#menu.garage .mwrap{width:min(560px,100%)}
+.mhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.eyebrow{font:600 10.5px/1 var(--f);letter-spacing:.2em;text-transform:uppercase;color:var(--amber)}
+h1{margin:4px 0 0;font:700 clamp(20px,3.6vw,32px)/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);text-wrap:balance}
+h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.wallet{text-align:right}
+.wallet b{display:block;font:700 22px/1 var(--f);letter-spacing:.06em;color:var(--go);font-variant-numeric:tabular-nums}
+.wallet small{font:600 10px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--edge);margin:0 -18px;padding:0 18px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;background:none;height:36px;padding:0 12px;cursor:pointer;font:600 11.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab{display:flex;flex-direction:column;gap:16px}
+.cars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+@media (max-width:720px){.cars{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.card{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
+.card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase}
+.card small{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card[aria-pressed="true"]{border-color:var(--accent);background:linear-gradient(180deg,rgba(255,61,90,.16),var(--panel))}
+.card[aria-pressed="true"] small{color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:999px;padding:2px;background:var(--panel);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{border:0;background:none;height:30px;padding:0 12px;border-radius:999px;cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--edge-2) inset}
+.hint{margin:8px 0 0;color:var(--ink-2);font-size:12.5px;max-width:70ch}
+.places{display:flex;flex-wrap:wrap;gap:6px}
+.place{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--edge);background:var(--panel);cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.place:hover,.place:focus-visible{color:var(--ink);border-color:var(--edge-2)}
+.place[aria-pressed="true"]{color:var(--ink);border-color:var(--amber)}
+.row2{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-start}
+.vol{display:inline-flex;align-items:center;gap:8px;height:34px;font:600 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.vol input{width:130px;accent-color:var(--amber)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;bottom:0;margin:0 -18px;padding:12px 18px 14px;background:linear-gradient(to top,rgba(14,14,21,1) 75%,rgba(14,14,21,0));border-radius:0 0 16px 16px}
+.btn{height:44px;padding:0 22px;border-radius:12px;border:1px solid var(--edge-2);background:var(--raised);cursor:pointer;font:700 13px/1 var(--f);letter-spacing:.14em;text-transform:uppercase}
+.btn.go{background:linear-gradient(180deg,#ff5470,#d92a47);border-color:#ff7088;color:#fff;box-shadow:0 0 22px rgba(255,61,90,.35)}
+.btn.sm{height:32px;padding:0 14px;font-size:11px;border-radius:9px}
+.keys{margin:0;color:var(--ink-3);font-size:11.5px;line-height:1.9}
+.keys kbd{font:600 9.5px/1 var(--f);color:var(--ink-2);border:1px solid var(--edge);border-radius:4px;padding:2px 5px}
+@media (hover:none){.keys{display:none}}
+.status{color:var(--ink-3);font-size:11.5px}
+/* ---------- the garage ---------- */
+.ratings{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+@media (max-width:520px){.ratings{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.rate{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:7px 7px 6px;display:flex;flex-direction:column;gap:5px;cursor:pointer;text-align:left;min-width:0}
+.rate[aria-pressed="true"]{border-color:var(--amber);background:linear-gradient(180deg,rgba(255,180,60,.14),var(--panel))}
+.rate span{font:600 8.5px/1.1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rate b{font:700 18px/1 var(--f);font-variant-numeric:tabular-nums;color:var(--ink)}
+.rate b em{font-style:normal;font-size:12px;margin-left:4px}
+.bar5{height:5px;border-radius:3px;background:rgba(255,255,255,.08);position:relative;overflow:hidden}
+.bar5 i{position:absolute;left:0;top:0;bottom:0;background:var(--amber);border-radius:3px}
+.bar5 u{position:absolute;top:0;bottom:0;text-decoration:none}
+.up{color:var(--go)}.dn{color:var(--bad)}
+.figs{display:flex;flex-wrap:wrap;gap:4px 14px;font:500 11.5px/1.3 var(--f);letter-spacing:.06em;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.figs b{color:var(--ink);font-weight:600}
+.guide{border-left:2px solid var(--amber);padding:2px 0 2px 10px;color:var(--ink-2);font-size:12.5px;max-width:70ch}
+.slots{display:flex;flex-direction:column;gap:14px}
+.sgroup{display:flex;flex-direction:column;gap:6px}
+.slot{border:1px solid var(--edge);border-radius:10px;background:var(--panel)}
+.slot>button{width:100%;display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:10px;align-items:center;border:0;background:none;padding:10px 12px;cursor:pointer;text-align:left}
+.slot>button span{font:600 10.5px/1.2 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.slot>button b{font:600 12.5px/1.25 var(--f);letter-spacing:.04em;color:var(--ink);min-width:0}
+.slot>button i{font-style:normal;font:600 10px/1 var(--f);letter-spacing:.1em;color:var(--amber)}
+.slot[open]{border-color:var(--edge-2)}
+.opts2{display:flex;flex-direction:column;border-top:1px solid var(--edge)}
+.opt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;border:0;border-bottom:1px solid rgba(255,255,255,.05);background:none;padding:9px 12px;text-align:left;cursor:pointer}
+.opt:last-child{border-bottom:0}
+.opt b{font:600 12.5px/1.3 var(--fb);color:var(--ink)}
+.opt small{grid-column:1/-1;color:var(--ink-3);font-size:11.5px;line-height:1.35}
+.opt .dl{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:3px 10px;font:600 10.5px/1.2 var(--f);letter-spacing:.06em}
+.opt .tag{font:600 9.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;padding:3px 6px;border-radius:5px;border:1px solid var(--edge);color:var(--ink-2);align-self:start}
+.opt .tag.rec{border-color:var(--amber);color:var(--amber)}
+.opt[aria-current="true"]{background:rgba(255,61,90,.1)}
+.opt[aria-current="true"] b::after{content:"  ·  on the car";color:var(--accent);font:600 10px/1 var(--f);letter-spacing:.1em}
+.opt:disabled{cursor:not-allowed;opacity:.5}
+.opt:disabled small{color:var(--bad)}
+/* ---------- cool things and runs ---------- */
+.log{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.log li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;border:1px solid var(--edge);border-radius:10px;padding:9px 12px;background:var(--panel)}
+.log li b{font:600 12.5px/1.3 var(--f);letter-spacing:.04em}
+.log li em{font-style:normal;font:700 13px/1 var(--f);color:var(--go);font-variant-numeric:tabular-nums;align-self:center}
+.log li small{grid-column:1/-1;color:var(--ink-3);font-size:11.5px}
+.bests{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+@media (max-width:640px){.bests{grid-template-columns:minmax(0,1fr)}}
+.bests div{border:1px solid var(--edge);border-radius:10px;padding:8px 12px;background:var(--panel);display:flex;flex-direction:column;gap:3px}
+.bests span{font:600 10px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.bests b{font:600 12.5px/1.3 var(--fb);color:var(--ink)}
+.bests small{color:var(--ink-3);font-size:11px}
+.empty{color:var(--ink-3);font-size:12.5px;margin:0}
+.runs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.run{border:1px solid var(--edge);border-radius:10px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:6px;text-align:left;cursor:pointer}
+.run b{font:700 12.5px/1.2 var(--f);letter-spacing:.08em;text-transform:uppercase}
+.run small{color:var(--ink-3);font-size:11.5px}
+.run i{font-style:normal;font:600 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-2);font-variant-numeric:tabular-nums}
+/* ---------- races ---------- */
+.race{border:1px solid var(--edge);border-radius:10px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:6px;text-align:left;cursor:pointer}
+.race:hover,.race:focus-visible{border-color:var(--edge-2)}
+.race b{font:700 12.5px/1.2 var(--f);letter-spacing:.08em;text-transform:uppercase}
+.race small{color:var(--ink-3);font-size:11.5px;line-height:1.4}
+.race i{font-style:normal;font:600 10.5px/1.3 var(--f);letter-spacing:.08em;color:var(--ink-2);font-variant-numeric:tabular-nums;text-transform:uppercase}
+.race i em{font-style:normal;color:var(--go)}
+.ladder{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}.ladder div{padding:7px 9px;border:1px solid var(--line,#ffffff22);border-radius:8px;font-size:12px;line-height:1.35}
+.ladder div b{display:block}.ladder div small{opacity:.7}.ladder div.won{opacity:.55}.ladder div.won b::after{content:' ✓'}.ladder div.next{border-color:var(--go,#e8ad61)}
+#rres{position:fixed;inset:0;z-index:8;display:grid;place-items:center;overflow-y:auto;background:rgba(7,7,11,.62);padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px}
+#rres .mwrap{width:min(620px,100%);padding-bottom:0}
+.rtab{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rtab td{padding:7px 6px;border-bottom:1px solid var(--edge);font-size:12.5px;vertical-align:top}
+.rtab td:first-child{font:700 13px/1.2 var(--f);color:var(--ink-3);width:28px}
+.rtab td:last-child{text-align:right;font:600 12px/1.2 var(--f);letter-spacing:.06em;white-space:nowrap}
+.rtab small{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
+.rtab tr.me td{color:var(--amber)}.rtab tr.me td:first-child{color:var(--amber)}
+.prize{font:700 22px/1 var(--f);color:var(--go);letter-spacing:.04em}
+/* ---------- the Sim card ---------- */
+.simcard{border:1px solid rgba(79,227,255,.28);border-radius:12px;padding:12px 14px;background:linear-gradient(180deg,rgba(79,227,255,.06),transparent)}
+.simcard h2{color:var(--cyan)}
+.simrows{display:flex;flex-wrap:wrap;gap:12px 24px}
+.simcard h3,h3.sub{margin:0 0 6px;font:600 10px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.seg button:disabled{opacity:.35;cursor:default}
+/* ---------- the developer panel (only while the game is being made) ---------- */
+.dev{border:1px dashed rgba(255,176,64,.45);border-radius:12px;padding:12px 14px}
+.dev h2{color:var(--amber)}
+.dev h3{margin:14px 0 8px;font:600 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.devrows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+@media (max-width:640px){.devrows{grid-template-columns:minmax(0,1fr)}}
+.devrow{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:2px 10px;align-items:center}
+.devrow label{font:600 11px/1.2 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.devrow output{font:600 12px/1 var(--f);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.devrow input{grid-column:1/-1;width:100%;accent-color:var(--amber)}
+.devrow small{grid-column:1/-1;color:var(--ink-3);font-size:11px;line-height:1.35}
+.dev details{margin-top:12px}
+.dev summary{cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding:4px 0}
+.dev details .devrows{margin-top:10px}
+.dev .places{margin-bottom:10px}
+/* the ladder reads down the first column, then the second */
+.ladder{columns:2;column-gap:24px}
+@media (max-width:640px){.ladder{columns:1}}
+.lrow{display:grid;grid-template-columns:150px minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:11.5px;color:var(--ink-2);break-inside:avoid;padding:1.5px 0}
+.lrow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow i{height:6px;border-radius:3px;background:var(--panel);overflow:hidden}
+.lrow em{display:block;height:100%;background:var(--amber);opacity:.55}
+.lrow b{font:600 11px/1 var(--f);text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.lrow.me{color:var(--ink)}.lrow.me em{opacity:1}.lrow.me b{color:var(--ink)}
+.devacts{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.devchks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+@media (max-width:640px){.devchks{grid-template-columns:minmax(0,1fr)}}
+.devchk{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:start;cursor:pointer}
+.devchk input{margin:2px 0 0;width:16px;height:16px;accent-color:var(--amber)}
+.devchk b{display:block;font:600 11px/1.2 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.devchk small{display:block;color:var(--ink-3);font-size:11px;line-height:1.35;margin-top:2px}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+/* a phone held sideways is short: a smaller header and button so there's room for the menu itself */
+@media (max-height:520px){#menu{padding-top:max(8px,env(safe-area-inset-top,0px))}.mwrap{gap:10px;padding-top:12px}h1{font-size:20px}.eyebrow{font-size:9px}
+  .wallet b{font-size:18px}.tabs button{height:32px}.acts{padding:8px 18px 10px}.btn{height:38px}}
+#loading{position:fixed;inset:0;display:grid;place-items:center;z-index:9;font:600 13px/1 var(--f);letter-spacing:.24em;text-transform:uppercase;color:var(--amber);background:var(--bg);text-align:center;padding:24px}
+#err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:500 14px/1.6 var(--f);color:var(--ink-2);z-index:10}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<canvas id="gl" aria-label="The ranch and the country round it, drawn on an LED dot matrix"></canvas>
+<div class="bar">
+  <span class="rot" id="rot">Turn your phone sideways</span>
+  <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="gfx" type="button">Gfx Plus</button><button class="chip" id="res" type="button">Dots 960×540</button><button class="chip" id="menuBtn" type="button">Menu</button></div>
+</div>
+<div id="touch" hidden>
+  <div id="steerZone" data-mode="slide"><div id="steerTrack"><b id="steerKnob"></b></div><span id="steerHint">SLIDE TO STEER</span>
+    <div id="steerBtns" hidden><button class="tb big" id="tLeft" type="button" aria-label="Steer left">◀</button><button class="tb big" id="tRight" type="button" aria-label="Steer right">▶</button></div></div>
+  <div class="tside L"><button class="tb" data-k="cam" type="button">CAM</button><button class="tb" data-k="reset" type="button">RESET</button><button class="tb" data-k="horn" type="button">HORN</button><button class="tb" data-k="lights" id="tLights" type="button">LIGHTS</button></div>
+  <div class="tside R"><button class="tb" data-k="nos" id="tNos" type="button">N2O</button><button class="tb" data-k="low" id="tLow" type="button">LOW</button><button class="tb" data-k="lock" id="tLock" type="button">LOCK</button><button class="tb" data-k="od" id="tOD" type="button">O/D OFF</button></div>
+  <div class="tpedals">
+    <div class="tcol"><button class="tb" id="tHb" type="button">E-BRAKE</button><div class="pedal brk" id="tBrk" role="button" aria-label="Brake"><i></i><span>BRAKE</span></div></div>
+    <div class="pedal gas" id="tGas" role="button" aria-label="Gas"><i></i><span>GAS</span></div>
+  </div>
+</div>
+<div id="menu">
+  <div class="mwrap">
+    <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free play</span><h1>Dirt Sleeper Showdown</h1></div>
+      <div class="wallet"><small>Free play money</small><b id="mMoney">$0</b></div></div>
+    <nav class="tabs" role="tablist" id="mTabs">
+      <button type="button" role="tab" data-t="drive">Drive</button><button type="button" role="tab" data-t="races">Races</button><button type="button" role="tab" data-t="garage">Garage</button>
+      <button type="button" role="tab" data-t="cool">Cool stuff</button><button type="button" role="tab" data-t="runs">Clock runs</button><button type="button" role="tab" data-t="settings">Settings</button><button type="button" role="tab" data-t="dev" id="tabDev" hidden>Dev</button></nav>
+    <div class="tab" data-tab="drive">
+      <section><h2>Car</h2><div class="cars" id="mCars"></div><p class="hint" id="mCarHint"></p></section>
+      <section><h2>Build</h2><div class="places" id="mPresets"></div></section>
+      <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
+      <section class="simcard" id="mSim" hidden><h2>Sim</h2>
+        <div class="simrows">
+          <div><h3>Tyres</h3><div class="seg" id="mSimAir" role="group" aria-label="Tyre pressure"></div></div>
+          <div><h3>Weather</h3><div class="seg" id="mSimWx" role="group" aria-label="Weather"></div></div>
+          <div><h3>Roof cargo</h3><div class="seg" id="mSimCargo" role="group" aria-label="Roof cargo"></div></div>
+        </div><p class="hint" id="mSimHint"></p></section>
+      <section class="row2"><div><h2>Time of day</h2><div class="seg" id="mTod" role="group" aria-label="Time of day"></div></div>
+        <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div></section>
+      <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
+    </div>
+    <div class="tab" data-tab="races" hidden>
+      <section><h2>How hard</h2><div class="seg" id="raDiff" role="group" aria-label="How hard"></div><p class="hint" id="raDiffHint"></p></section>
+      <section><h2>How fast your car looks</h2><p class="hint" style="margin:0" id="raLooks"></p></section>
+      <section><h2>Cross-country</h2><p class="hint" style="margin:0 0 10px">Point to point over more than one kind of ground, against a field of different cars: each one quick somewhere else on the route. Follow the line on the map.</p><div class="runs" id="raCross"></div></section>
+      <section><h2>Races</h2><p class="hint" style="margin:0 0 10px" id="raNote">You race the car you're in, as it's built, against drivers in factory cars rated close to yours for that ground. The better you place, the more it pays.</p><div class="runs" id="raList"></div></section>
+      <section><h2>Strip callouts</h2><p class="hint" style="margin:0 0 10px" id="raLadderNote"></p><div class="ladder" id="raLadder"></div><div class="acts" style="justify-content:flex-start;margin-top:10px"><button class="btn sm" id="raStrip" type="button">Go to the strip</button></div></section>
+    </div>
+    <div class="tab" data-tab="garage" hidden>
+      <section><h2>Car</h2><div class="seg" id="gCars" role="group" aria-label="Car"></div></section>
+      <section><h2>Start from</h2><div class="places" id="gPresets"></div></section>
+      <section><h2>Building for</h2><div class="ratings" id="gRatings"></div><div class="figs" id="gFigs" style="margin-top:10px"></div></section>
+      <p class="guide" id="gGuide"></p>
+      <div><button class="btn sm" id="gSuggest" type="button">Build it for me</button> <span class="status" id="gNote"></span></div>
+      <div class="slots" id="gSlots"></div>
+    </div>
+    <div class="tab" data-tab="cool" hidden>
+      <section class="row2"><div><h2>This session</h2><b id="cSession" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div><div><h2>All free play</h2><b id="cTotal" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div></section>
+      <section><h2>Your last 10 cool things</h2><ul class="log" id="cLog"></ul></section>
+      <section><h2>Bests</h2><div class="bests" id="cBests"></div></section>
+      <section><h2>How the money works</h2><p class="hint" style="margin:0">Every feat pays: drifts, jumps, two wheels, saving it from a roll, speed runs on dirt and gravel, burnouts, close calls past the trees, splashes, the mud pit, Red Hill, the rock garden, laps and clock runs. Do them back to back and they stack into a combo: the multiplier grows with every feat and more with every new kind. The combo banks after a few quiet seconds. Roll it, wreck it or reset before then and the unbanked money is gone.</p></section>
+    </div>
+    <div class="tab" data-tab="runs" hidden>
+      <section><h2>Clock runs</h2><p class="hint" style="margin:0 0 10px">From one place to another, any way you like. The clock starts when you move. Beat the par time for a bonus.</p><div class="runs" id="rList"></div></section>
+      <section><h2>The race track</h2><p class="hint" style="margin:0" id="rLaps">Drive over the start line at the race track to start a lap.</p></section>
+    </div>
+    <div class="tab" data-tab="settings" hidden>
+      <section><h2>Steering on a phone</h2><div class="seg" id="sSteer" role="group" aria-label="Steering"></div><p class="hint" id="sSteerHint"></p></section>
+      <section class="row2"><div><h2>Phone buzz</h2><div class="seg" id="sHaptics" role="group" aria-label="Phone buzz"></div></div>
+        <div><h2>Sound</h2><label class="vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label></div></section>
+      <section><h2>Graphics</h2><div class="seg" id="mGfx" role="group" aria-label="Graphics"></div><p class="hint" id="mGfxHint"></p></section>
+      <section><h2>Display</h2><div class="seg" id="sDisp" role="group" aria-label="Display"></div><p class="hint" id="sDispHint"></p></section>
+      <section class="row2" id="sDotsRow"><div><h2>Detail</h2><div class="seg" id="sDetail" role="group" aria-label="Detail"></div></div>
+        <div><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></div></section>
+      <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>
+      <section><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
+      <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> e-brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>O</kbd> overdrive off ·
+        <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>R</kbd> reset (in a race: back onto the course) · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
+      <p class="status" id="mStatus"></p>
+    </div>
+    <div class="tab" data-tab="dev" hidden>
+    <section class="dev" id="mDev" hidden><h2>Developer: traction</h2>
+      <p class="hint" style="margin:0 0 10px">For tuning while the game is made; the finished game won't have this. <b>Traction is the ground, not the cars.</b> It sets how much grip each surface gives, and every car feels that through its own tyres, so the cars keep their order: on dirt the drag car's slicks have less grip than the crawler's mud tyres at any setting, and on the drag strip they have more. The handling knobs work on every car, each from its own setup. Changes take hold as you drive and are remembered. <b>T</b> while driving steps Traction through 75, 100, 125 and 150%.</p>
+      <div class="devrows" id="mDevAll"></div>
+      <details><summary>Each surface</summary><div class="devrows" id="mDevSurf"></div></details>
+      <h3 id="mDevLadderHead">Grip</h3>
+      <div class="places" id="mDevPick" role="group" aria-label="Surface"></div>
+      <div class="ladder" id="mDevLadder"></div>
+      <h3>Every car's handling</h3>
+      <div class="devrows" id="mDevCar"></div>
+      <div class="devacts"><button class="btn sm" id="mDevReset" type="button">Reset to the defaults</button><span class="status" id="mDevNote"></span></div>
+      <div id="mDevSim" hidden><h3>Sim physics: each piece</h3>
+        <p class="hint" style="margin:0 0 10px">Every piece of the Sim level, so you can switch one off and feel what it does. All on is the Sim level.</p>
+        <div class="devchks" id="mDevSimT"></div>
+        <h3>Sim physics: strengths</h3><div class="devrows" id="mDevSimS"></div>
+        <div class="devacts"><button class="btn sm" id="mDevSimReset" type="button">Reset Sim physics</button></div></div></section>
+    </div>
+    <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button><button class="btn sm" id="mLeave" type="button" hidden>Leave the race</button></div>
+  </div>
+</div>
+<div id="rres" hidden>
+  <div class="mwrap">
+    <div class="mhead"><div><span class="eyebrow" id="rrEyebrow">Results</span><h1 id="rrTitle">Results</h1></div>
+      <div class="wallet"><small>Prize</small><b class="prize" id="rrPrize">$0</b></div></div>
+    <table class="rtab"><tbody id="rrList"></tbody></table>
+    <p class="hint" id="rrNote" style="margin:0"></p>
+    <div class="acts"><button class="btn go" id="rrAgain" type="button">Race again</button><button class="btn sm" id="rrDone" type="button">Back to free roam</button></div>
+  </div>
+</div>
+<div id="loading">Building the ranch and the country round it</div>
+<div id="err">This needs WebGL2, which this browser has turned off.</div>
+<script>
+(()=>{
+'use strict';
