@@ -1,4 +1,4 @@
-<title>Dirt Sleeper Mini</title>
+<title>Dirt Sleeper Mini Model Bay</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -188,7 +188,7 @@ const fwdOf=a=>[Math.cos(a),0,-Math.sin(a)],leftOf=a=>[-Math.sin(a),0,-Math.cos(
    ===================================================================================== */
 const F5SRC=`& 01100 10010 10100 01000 10101 10010 01101|A 01110 10001 10001 11111 10001 10001 10001|B 11110 10001 10001 11110 10001 10001 11110|C 01110 10001 10000 10000 10000 10001 01110|D 11110 10001 10001 10001 10001 10001 11110|E 11111 10000 10000 11110 10000 10000 11111|F 11111 10000 10000 11110 10000 10000 10000|G 01110 10001 10000 10111 10001 10001 01111|H 10001 10001 10001 11111 10001 10001 10001|I 01110 00100 00100 00100 00100 00100 01110|J 00111 00010 00010 00010 00010 10010 01100|K 10001 10010 10100 11000 10100 10010 10001|L 10000 10000 10000 10000 10000 10000 11111|M 10001 11011 10101 10101 10001 10001 10001|N 10001 10001 11001 10101 10011 10001 10001|O 01110 10001 10001 10001 10001 10001 01110|P 11110 10001 10001 11110 10000 10000 10000|Q 01110 10001 10001 10001 10101 10010 01101|R 11110 10001 10001 11110 10100 10010 10001|S 01111 10000 10000 01110 00001 00001 11110|T 11111 00100 00100 00100 00100 00100 00100|U 10001 10001 10001 10001 10001 10001 01110|V 10001 10001 10001 10001 10001 01010 00100|W 10001 10001 10001 10101 10101 10101 01010|X 10001 10001 01010 00100 01010 10001 10001|Y 10001 10001 01010 00100 00100 00100 00100|Z 11111 00001 00010 00100 01000 10000 11111|0 01110 10001 10011 10101 11001 10001 01110|1 00100 01100 00100 00100 00100 00100 01110|2 01110 10001 00001 00010 00100 01000 11111|3 11111 00010 00100 00010 00001 10001 01110|4 00010 00110 01010 10010 11111 00010 00010|5 11111 10000 11110 00001 00001 10001 01110|6 00110 01000 10000 11110 10001 10001 01110|7 11111 00001 00010 00100 01000 01000 01000|8 01110 10001 10001 01110 10001 10001 01110|9 01110 10001 10001 01111 00001 00010 01100|! 00100 00100 00100 00100 00100 00000 00100|. 00000 00000 00000 00000 00000 01100 01100|, 00000 00000 00000 00000 01100 00100 01000|: 00000 01100 01100 00000 01100 01100 00000|- 00000 00000 00000 11111 00000 00000 00000|+ 00000 00100 00100 11111 00100 00100 00000|? 01110 10001 00001 00010 00100 00000 00100|' 00100 00100 01000 00000 00000 00000 00000|/ 00001 00001 00010 00100 01000 10000 10000|> 01000 00100 00010 00001 00010 00100 01000|< 00010 00100 01000 10000 01000 00100 00010|x 00000 00000 10001 01010 00100 01010 10001|$ 00100 01111 10100 01110 00101 11110 00100|% 11001 11010 00010 00100 01000 01011 10011|# 01010 01010 11111 01010 11111 01010 01010|( 00010 00100 01000 01000 01000 00100 00010|) 01000 00100 00010 00010 00010 00100 01000|= 00000 00000 11111 00000 11111 00000 00000|* 00000 00100 10101 01110 10101 00100 00000|^ 00100 01110 10101 00100 00100 00100 00100|~ 00100 00100 00100 00100 10101 01110 00100|[ 00010 00110 01110 11110 01110 00110 00010|] 01000 01100 01110 01111 01110 01100 01000|@ 00100 00100 11111 01110 01110 11011 10001|" 01010 01010 00000 00000 00000 00000 00000|_ 00000 00000 00000 00000 00000 00000 00000`;
 const G5={};for(const ln of F5SRC.split('|')){const p=ln.trim().split(/\s+/);G5[p[0]==='_'?' ':p[0]]=p.slice(1).map(r=>parseInt(r,2));}
-const F3SRC=`A 010 101 111 101 101|B 110 101 110 101 110|C 011 100 100 100 011|D 110 101 101 101 110|E 111 100 110 100 111|F 111 100 110 100 100|G 011 100 101 101 011|H 101 101 111 101 101|I 111 010 010 010 111|J 001 001 001 101 010|K 101 101 110 101 101|L 100 100 100 100 111|M 101 111 111 101 101|N 110 101 101 101 101|O 010 101 101 101 010|P 110 101 110 100 100|Q 010 101 101 110 011|R 110 101 110 101 101|S 011 100 010 001 110|T 111 010 010 010 010|U 101 101 101 101 111|V 101 101 101 101 010|W 101 101 111 111 101|X 101 101 010 101 101|Y 101 101 010 010 010|Z 111 001 010 100 111|0 111 101 101 101 111|1 010 110 010 010 111|2 111 001 111 100 111|3 111 001 011 001 111|4 101 101 111 001 001|5 111 100 111 001 111|6 111 100 111 101 111|7 111 001 001 010 010|8 111 101 111 101 111|9 111 101 111 001 111|x 000 101 010 101 000|+ 000 010 111 010 000|- 000 000 111 000 000|: 0 1 0 1 0|. 0 0 0 0 1|, 0 0 0 1 1|! 1 1 1 0 1|/ 001 001 010 100 100|' 1 1 0 0 0|> 100 010 001 010 100|< 001 010 100 010 001|? 111 001 011 000 010|( 01 10 10 10 01|) 10 01 01 01 10|% 101 001 010 100 101|# 101 111 101 111 101|$ 011 110 010 011 110|^ 010 111 010 010 010|~ 010 010 010 111 010|[ 001 011 111 011 001|] 100 110 111 110 100|= 000 111 000 111 000|* 010 111 010 101 000|@ 010 111 111 010 101|" 101 101 000 000 000`;
+const F3SRC=`A 010 101 111 101 101|B 110 101 110 101 110|C 011 100 100 100 011|D 110 101 101 101 110|E 111 100 110 100 111|F 111 100 110 100 100|G 011 100 101 101 011|H 101 101 111 101 101|I 111 010 010 010 111|J 001 001 001 101 010|K 101 101 110 101 101|L 100 100 100 100 111|M 101 111 111 101 101|N 110 101 101 101 101|O 010 101 101 101 010|P 110 101 110 100 100|Q 010 101 101 110 011|R 110 101 110 101 101|S 011 100 010 001 110|T 111 010 010 010 010|U 101 101 101 101 111|V 101 101 101 101 010|W 101 101 111 111 101|X 101 101 010 101 101|Y 101 101 010 010 010|Z 111 001 010 100 111|0 111 101 101 101 111|1 010 110 010 010 111|2 111 001 111 100 111|3 111 001 011 001 111|4 101 101 111 001 001|5 111 100 111 001 111|6 111 100 111 101 111|7 111 001 001 010 010|8 111 101 111 101 111|9 111 101 111 001 111|x 000 101 010 101 000|+ 000 010 111 010 000|- 000 000 111 000 000|: 0 1 0 1 0|. 0 0 0 0 1|, 0 0 0 1 1|! 1 1 1 0 1|/ 001 001 010 100 100|' 1 1 0 0 0|> 100 010 001 010 100|< 001 010 100 010 001|? 111 001 011 000 010|( 01 10 10 10 01|) 10 01 01 01 10|% 101 001 010 100 101|# 101 111 101 111 101|$ 011 110 010 011 110|^ 010 111 010 010 010|~ 010 010 010 111 010|[ 001 011 111 011 001|] 100 110 111 110 100|= 000 111 000 111 000|* 010 111 010 101 000|@ 010 111 111 010 101|" 101 101 000 000 000|& 010 101 010 101 011`;
 const G3={};for(const ln of F3SRC.split('|')){const p=ln.trim().split(/\s+/);G3[p[0]]=p.slice(1);}
 function tw5(s,sc=1){return s.length*6*sc-sc;}
 function tw3(s,sc=1){let w=0;for(const ch of s){const gg=G3[ch]||G3[ch.toUpperCase()];w+=((gg?gg[0].length:3)+1)*sc;}return Math.max(0,w-sc);}
@@ -495,6 +495,12 @@ function setInst(mesh,data){
 function drawMesh(m){gl.bindVertexArray(m.vao);if(m.ib)gl.drawElements(gl.TRIANGLES,m.n,m.it,0);else gl.drawArrays(gl.TRIANGLES,0,m.n);}
 function drawMeshI(m){if(!m.ni)return;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElementsInstanced(gl.TRIANGLES,m.n,m.it,0,m.ni);else gl.drawArraysInstanced(gl.TRIANGLES,0,m.n,m.ni);}
 function freeMesh(m){if(!m)return;gl.deleteVertexArray(m.vao);for(const b of m.bufs)gl.deleteBuffer(b);if(m.ib)gl.deleteBuffer(m.ib);if(m.inst)gl.deleteBuffer(m.inst);}
+/* small transforms */
+const M4T=(x,y,z)=>{const m=M4.id();m[12]=x;m[13]=y;m[14]=z;return m;};
+const M4RY=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s;m[10]=c;return m;};
+const M4S=(x,y,z)=>{const m=M4.id();m[0]=x;m[5]=y;m[10]=z;return m;};
+const M4RX=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m;};
+const M4RZ=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m;};
 
 /* ===== the scene shader: one lit pass for the truck and the stage =====
    Shiftlight 2's lighting (hemisphere ambient, a sun, point lights, a studio environment for
@@ -511,11 +517,20 @@ float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h12(i
 float vn3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(mix(h13(i),h13(i+vec3(1,0,0)),f.x),mix(h13(i+vec3(0,1,0)),h13(i+vec3(1,1,0)),f.x),f.y),
              mix(mix(h13(i+vec3(0,0,1)),h13(i+vec3(1,0,1)),f.x),mix(h13(i+vec3(0,1,1)),h13(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float fbm(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*vn(p);p=p*2.03+vec2(17.3,-9.1);a*=.5;}return s;}
 float fbm3(vec3 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*vn3(p);p=p*2.07+vec3(1.7,9.2,4.1);a*=.5;}return s;}
 /* the studio as seen in reflections. Dark bay: a black room, an overhead softbox and eight tall strip
    lights round the cove. Light cyc: a pale grey infinity wall with a big soft key overhead. */
+uniform vec3 uSkyZen;uniform vec3 uSkyHor;
 vec3 env(vec3 d){
   float t=d.y;
+  if(uStage>2.5){
+    /* the ranch sky: deep blue overhead to a pale horizon, warm ground below it, the sun and its glow */
+    vec3 c=mix(uSkyHor,uSkyZen,pow(smoothstep(0.,.75,t),.8));
+    c=mix(c,uSkyHor*vec3(.62,.5,.4)*.55,smoothstep(.02,-.12,t));
+    float sd=max(dot(d,uSunDir),0.);c+=uSunCol*(pow(sd,900.)*12.+pow(sd,24.)*.08+pow(sd,4.)*.03)*smoothstep(-.05,.02,t);
+    return c;
+  }
   if(uStage<1.5){
     vec3 c=mix(vec3(.02,.02,.026),vec3(.004,.004,.007),smoothstep(-.1,.6,t));
     if(t>.2){vec2 q=d.xz/t;c+=vec3(1.,.97,.92)*2.6*(1.-smoothstep(.45,.6,abs(q.x)))*(1.-smoothstep(.2,.3,abs(q.y)));}
@@ -541,14 +556,21 @@ vec3 shade(vec3 P,vec3 N,vec3 V,vec3 alb,float spec,float shin){
 `;
 const VS_LIT=`
 layout(location=0) in vec3 aPos;layout(location=1) in vec3 aNrm;layout(location=2) in vec4 aCol;layout(location=3) in float aMat;
-uniform mat4 uM;uniform mat4 uVP;
+layout(location=5) in vec4 iA;layout(location=6) in vec4 iB;layout(location=7) in vec4 iC;
+uniform mat4 uM;uniform mat4 uVP;uniform float uInst;
 out vec3 vP;out vec3 vN;out vec4 vC;out float vMat;out vec3 vL;
-void main(){vec3 w=(uM*vec4(aPos,1.)).xyz;vN=normalize(mat3(uM)*aNrm);vC=aCol;vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);}`;
+void main(){
+  if(uInst>.5){
+    /* instanced bits (dust, mud, spray, trees): position and yaw, size, colour and glow per instance;
+       a vertex whose colour alpha is 2 keeps its own colour (tree trunks) */
+    float c=cos(iA.w),s=sin(iA.w);vec3 q=aPos*iB.xyz;vec3 w=iA.xyz+vec3(c*q.x+s*q.z,q.y,-s*q.x+c*q.z);
+    vN=normalize(vec3(c*aNrm.x+s*aNrm.z,aNrm.y,-s*aNrm.x+c*aNrm.z));vC=aCol.a>1.5?vec4(aCol.rgb,0.):vec4(iC.rgb*aCol.rgb,iC.a);vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);return;}
+  vec3 w=(uM*vec4(aPos,1.)).xyz;vN=normalize(mat3(uM)*aNrm);vC=aCol;vL=aPos;vP=w;vMat=aMat;gl_Position=uVP*vec4(w,1.);}`;
 const FS_LIT=GLSL_COMMON+`
 in vec3 vP;in vec3 vN;in vec4 vC;in float vMat;in vec3 vL;out vec4 o;
 uniform vec3 uPaint;uniform vec3 uPaint2;uniform vec3 uRim;uniform vec3 uCal;uniform vec3 uClad;
 uniform float uLiv;uniform float uLights;uniform float uBrake;uniform float uDirt;uniform float uGround;uniform vec4 uLivP;
-uniform vec4 uShadow;uniform vec4 uShadow2;uniform float uSpin;
+uniform vec4 uShadow;uniform vec4 uShadow2;uniform float uSpin;uniform float uMudOff;
 /* mud: caked and wet low down, dry and splattered higher up; returns 0..1 coverage */
 float mud(vec3 L,float h){
   if(uDirt<=0.)return 0.;
@@ -558,11 +580,26 @@ float mud(vec3 L,float h){
   float spl=smoothstep(.6-.1*uDirt,.66-.1*uDirt,fbm3(L*7.+3.))*(1.-smoothstep(line,line+.45+.35*uDirt,h))*uDirt;
   return clamp(max(cake,spl*.85),0.,1.);
 }
+/* the soft shadow under the truck: a rounded rectangle at (x, z), half size, turned by yaw, faded with height */
+float cshadow(vec3 P){
+  vec2 q=P.xz-uShadow.xy;float c=cos(uShadow2.z),s=sin(uShadow2.z);q=vec2(c*q.x-s*q.y,s*q.x+c*q.y);
+  vec2 e=abs(q)-uShadow.zw;float dd=length(max(e,0.))+min(max(e.x,e.y),0.);
+  return 1.-uShadow2.w*(.78*(1.-smoothstep(-.4,.7,dd))+.1*(1.-smoothstep(-.2,2.6,dd)));
+}
+/* the ranch's red-dirt country (Dirt Sleeper's palette) */
+vec3 dirtCol(vec2 p){float n1=fbm(p*.09),n3=vn(p*3.1);return mix(vec3(.21,.095,.045),vec3(.36,.2,.105),n1)*(.8+.35*n3);}
+vec3 grassCol(vec2 p){float dry=smoothstep(.3,.78,fbm(p*.045+7.));float n2=vn(p*.7),n3=vn(p*3.1),n4=vn(p*11.);
+  return mix(vec3(.06,.105,.022),vec3(.2,.17,.06),dry)*(.62+.5*n4*n3+.25*n2);}
+vec3 rockCol(vec3 P){float n=fbm(P.xz*vec2(.8,2.6)+P.y),n2=vn(P.xz*7.+P.y*3.);
+  vec3 c=mix(vec3(.25,.13,.08),vec3(.3,.25,.2),n2)*(.6+.6*n)*(.85+.3*n2);return mix(c,vec3(.2,.19,.07),smoothstep(.62,.7,fbm(P.xz*1.7+3.))*.5);}
 vec3 mudCol(vec3 L,float h){float w=1.-smoothstep(.0,.6,h),g=vn3(L*14.);return mix(vec3(.30,.22,.14),vec3(.13,.09,.055),w)*(.88+.24*g);}
 void main(){
   vec3 N=normalize(vN);vec3 V=normalize(uCam-vP);if(dot(N,V)<0.)N=-N;
   vec3 alb=vC.rgb;float em=vC.a;float spec=.04,shin=12.;vec3 emc=vec3(0.);vec3 add=vec3(0.);
-  int m=int(vMat+.5);float h=vP.y-uGround;bool dirty=false;
+  int m=int(vMat+.5);float h=vL.y+uMudOff;bool dirty=false;
+  /* see-through by dropping pixels (the dot pass averages them): dust and spray carry their opacity as a negative glow */
+  if(em<0.){if(h12(gl_FragCoord.xy+fract(uTime*7.3)*91.)>-em)discard;em=0.;}
+  if(m==48){float dc=length(vP-uCam);if(dc<8.&&h12(gl_FragCoord.xy)>smoothstep(3.,8.,dc))discard;}
   float NV=max(dot(N,V),0.),F=.04+.96*pow(1.-NV,5.);vec3 R=reflect(-V,N);
   if(m==1||m==4){
     vec3 pc=m==4?uPaint2:uPaint;
@@ -621,6 +658,88 @@ void main(){
   else if(m==26){float g=vn3(vL*60.);alb*=.85+.3*g;spec=.03;dirty=true;}
   else if(m==27){spec=.05;shin=10.;dirty=true;}
   else if(m==29){emc=vec3(.75,.88,1.)*(.15+uLights*2.4);alb=vec3(.2);}
+  else if(m>=40){
+    vec2 wp=vP.xz;float sh=cshadow(vP);
+    if(m==51){o=vec4(env(normalize(vP-uCam)),1.);return;}
+    if(m==40){
+      /* the ground: weights for grass, rock and mud in the colour, ambient occlusion in its alpha */
+      float n2=vn(wp*.7),n3=vn(wp*3.1),n4=vn(wp*11.);
+      float gw=smoothstep(.3,.72,vC.r+(n2-.5)*.45),rw=smoothstep(.35,.65,vC.g+(n3-.5)*.3),mw=smoothstep(.25,.6,vC.b+(n2-.5)*.25);
+      alb=dirtCol(wp);if(gw>.004)alb=mix(alb,grassCol(wp),gw);if(rw>.004)alb=mix(alb,rockCol(vP),rw);spec=.03;shin=8.;
+      if(mw>0.){vec3 md=mix(vec3(.15,.1,.06),vec3(.09,.06,.035),smoothstep(.3,.8,n3))*(.8+.35*n4);float pud=smoothstep(.7,.76,fbm(wp*.28)+mw*.05)*mw;
+        alb=mix(alb,md,mw);spec=mix(spec,.25,mw);shin=30.;if(pud>0.){alb=mix(alb,vec3(.1,.07,.04),pud*.8);spec=mix(spec,.9,pud);shin=120.;add+=env(R)*F*pud*.6;}}
+      alb*=mix(1.,em,.85);em=0.;
+    }
+    else if(m==41){alb=rockCol(vP)*mix(1.,em,.8);spec=.08;shin=16.;em=0.;}
+    else if(m==42){
+      /* the drag strip: packed dirt, darker grooves where the tyres run, chalk lines (colour = metres past the line, metres across) */
+      float sx=vC.r,d=vC.g,ad=abs(d),n2=vn(vec2(sx,d)*2.5);
+      alb=dirtCol(wp)*mix(vec3(1.),vec3(.72,.66,.62),.35+.15*n2);
+      float lane=min(abs(d+4.),abs(d-4.)),groove=exp(-pow(min(abs(lane-.82),abs(lane+.82))/.34,2.))*(.35+.65*smoothstep(90.,-10.,sx));alb*=1.-.4*groove;
+      alb=mix(alb,dirtCol(wp*1.3)*1.08,smoothstep(7.,8.8,ad));
+      float ch=max(max(1.-step(.16,abs(sx)),1.-step(.16,abs(sx-201.168)))*step(ad,8.2),(1.-step(.07,abs(d)))*step(.45,fract(sx/5.))*step(-6.,sx)*step(sx,250.));
+      ch=max(ch,(1.-step(.05,abs(ad-7.9)))*step(-12.,sx)*step(sx,250.));
+      alb=mix(alb,vec3(.7,.68,.63),ch*(1.-.6*smoothstep(.4,.8,fbm(vec2(sx,d)*vec2(.6,2.)))));spec=.04+.1*groove;
+    }
+    else if(m==43){
+      /* a two-track: packed ruts, a grassy crown, grass closing in at the verges */
+      float d=vC.g,ad=abs(d),n2=vn(vec2(vC.r,d)*2.5);alb=dirtCol(wp);
+      float rut=exp(-pow((ad-.86)/.3,2.)),crown=1.-smoothstep(.18,.45,ad),verge=smoothstep(1.9,3.3,ad+(n2-.5)*.8);
+      alb*=1.-.22*rut;alb=mix(alb,grassCol(wp),max(crown*.85*smoothstep(.25,.55,vn(vec2(vC.r*.7,d*3.))),verge));spec=.04;
+    }
+    else if(m==44){
+      /* the mud track: churned and wet, ruts with water lying in them */
+      float sx=vC.r,d=vC.g,ad=abs(d),n3=vn(vec2(sx*.9,d*2.2)),n4=vn(vec2(sx,d)*7.);
+      vec3 md=mix(vec3(.13,.085,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*n4);
+      float rut=0.;for(int i=0;i<4;i++){float c=(float(i)-1.5)*1.55+(vn(vec2(sx*.08,float(i)*3.))-.5)*.7;rut=max(rut,exp(-pow((d-c)/.34,2.)));}
+      float edge=smoothstep(3.8,4.9,ad+(n3-.5)*1.2),clod=smoothstep(.55,.8,vn(vec2(sx*3.,d*5.)))*(1.-rut);
+      alb=mix(md*(1.+clod*.45),dirtCol(wp)*.85,edge*.6);spec=.3;shin=40.;
+      float pud=rut*smoothstep(.45,.6,fbm(vec2(sx*.15,d*.6)))*(1.-edge);
+      if(pud>0.){alb=mix(alb,vec3(.07,.05,.03),pud*.8);spec=mix(spec,1.,pud);shin=140.;add+=env(R)*F*pud*.7;}
+    }
+    else if(m==45){float j=max(step(fract(wp.x/4.),.012),step(fract(wp.y/4.),.012));alb=vec3(.26,.25,.235)*(.82+.25*vn(wp*2.3)+.1*vn(wp*13.))*(1.-.35*j);spec=.06;shin=20.;}
+    else if(m==46){float g=vn(vec2((vP.x+vP.z)*1.5,vP.y*38.))*.6+vn(vec2((vP.x+vP.z)*.4,vP.y*7.))*.4;alb*=.62+.5*g;spec=.03;}
+    else if(m==47){float rib=abs(fract((vP.x+vP.z)*3.6+(em>.5?vP.y*3.6:0.))-.5),st=smoothstep(.55,.85,vn(vec2((vP.x+vP.z)*2.,vP.y*.25)))*.35;
+      alb*=(.86+.22*rib)*(1.-st*.5);alb=mix(alb,vec3(.18,.08,.04),st*.35);spec=em>.5?.15:.5;shin=em>.5?20.:60.;add+=env(R)*F*.25*(1.-st);em=0.;}
+    else if(m==48){alb*=.6+.55*vn3(vP*2.2);spec=.05;shin=10.;}
+    else if(m==49){float st=vn(vec2((vP.x+vP.z)*30.,vP.y*20.))*.6+vn(vec2(atan(vL.z,vL.y)*20.,vP.y*6.))*.4;alb=vec3(.42,.31,.1)*(.6+.6*st);spec=.02;}
+    else if(m==50){
+      /* the creek: dark water, the sky in it, ripples running downstream */
+      vec2 rp=wp*1.3+vec2(uTime*.3,uTime*.5);vec3 Nw=normalize(vec3((vn(rp)-.5)*.25+(vn(wp*3.1-uTime*.4)-.5)*.12,1.,(vn(rp+7.)-.5)*.25));
+      vec3 Rw=reflect(-V,Nw);float Fw=.03+.97*pow(1.-max(dot(Nw,V),0.),5.);alb=vec3(.025,.03,.018);spec=1.;shin=200.;add+=env(Rw)*(.08+.9*Fw);
+    }
+    else if(m==52){alb=vec3(.7,.68,.63);}
+    else if(m==53){
+      /* gravel: a county road (two worn wheel tracks, loose stone down the middle and the edges, the
+         verge closing in) or a loose bed (the traps at the track, the yard at home); alpha = road half width */
+      float d=vC.g,ad=abs(d),hw=em,n1=vn(wp*1.7),n2=vn(wp*9.),n3=vn(wp*31.);
+      vec3 gc=mix(vec3(.16,.145,.12),vec3(.27,.245,.205),n1)*(.7+.42*n2)*(.78+.36*n3);
+      if(vC.b<.5){float tr=exp(-pow((ad-1.5)/.55,2.));gc=mix(gc,gc*vec3(.8,.78,.76),tr*.85);
+        float edge=smoothstep(hw-.6,hw+.3,ad+(n1-.5)*.9);gc=mix(gc,mix(dirtCol(wp),grassCol(wp),smoothstep(.25,.7,vn(wp*.35))),edge);}
+      alb=gc;spec=.05;shin=14.;em=0.;
+    }
+    else if(m==54){
+      /* asphalt: dark and fine grained, rubber down the middle, white edge lines, red and white kerbs where
+         it bends (blue slot), grass beyond, a chequered band at the line; alpha = half width */
+      float sx=vC.r,d=vC.g,ad=abs(d),hw=em,n2=vn(wp*7.),n3=vn(wp*41.);
+      vec3 ac=vec3(.05,.05,.056)*(.82+.28*n2)*(.88+.22*n3);ac*=1.-.2*exp(-pow(d/2.4,2.));
+      ac=mix(ac,vec3(.6,.6,.58),step(hw-.45,ad)*step(ad,hw-.2));
+      if(ad>hw){vec3 kc=mix(vec3(.46,.03,.025),vec3(.64,.63,.6),step(.5,fract(sx/1.6)));ac=mix(grassCol(wp),kc,smoothstep(.35,.45,vC.b)*step(ad,hw+1.5));}
+      else if(sx<1.6){ac=mix(vec3(.015),vec3(.64),mod(floor(sx/.8)+floor((d+hw)/.8),2.));}
+      alb=ac;spec=.2;shin=36.;add+=env(R)*F*.1;em=0.;
+    }
+    else if(m==55){
+      /* the home lane: mud in the ruts with water lying in the deep spots, grass on the crown and the verges (blue = rut depth) */
+      float sx=vC.r,d=vC.g,ad=abs(d),dep=vC.b,n2=vn(vec2(sx,d)*2.3),n3=vn(vec2(sx*.7,d*3.));
+      vec3 md=mix(vec3(.14,.09,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*vn(vec2(sx,d)*8.));
+      float rut=exp(-pow((ad-.82)/.3,2.)),gr=max(1.-smoothstep(.2,.48,ad+(n2-.5)*.22),smoothstep(1.55,2.25,ad+(n2-.5)*.5));
+      alb=mix(md,grassCol(wp)*.92,gr*(.7+.3*n2));spec=.22;shin=36.;
+      float pud=rut*smoothstep(.15,.19,dep+(n3-.5)*.05);
+      if(pud>0.){alb=mix(alb,vec3(.06,.045,.03),pud*.85);spec=mix(spec,1.,pud);shin=140.;add+=env(R)*F*pud*.75;}
+      em=0.;
+    }
+    alb*=sh;add*=sh;
+  }
   if(dirty){float k=mud(vL,h);if(k>0.){alb=mix(alb,mudCol(vL,h),k);spec*=1.-.8*k;add*=1.-.85*k;}}
   vec3 col=shade(vP,N,V,alb,spec,shin)+add+emc;
   if(em>0.&&m==0)col+=vC.rgb*em;
@@ -1870,13 +1989,15 @@ function engineSpec(b){
   const gears=DE_GEARS[r.trans],R=b.look.tyre.R;
   const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:'car'}));
   e.gears=gears.slice();e.nG=gears.length;e.fd=r.axle;e.shiftT=DE_SHIFT[r.trans];e.R=R;
+  /* the six-speed auto and the race four-speed both have a torque converter; the sequential doesn't (the game's physics reads this) */
+  e.conv=r.trans!=='seq6';
   return e;
 }
 const SPECS={};
 const specOf=i=>{const b=BUILDS[i];return SPECS[b.id]||(SPECS[b.id]=engineSpec(b));};
 
 /* =====================================================================================
-   THE ENGINE IN THE BAY. The audio graph, the room, and the loop that feeds the synth are the
+   THE ENGINE SOUND. The audio graph, the room, and the loop that feeds the synth are the
    Digital Engine lab's own (roomIR, ROOM_SEND, setRoom and initAudio are copied from it, with
    its page state renamed to ENG). Each frame the sim takes four steps, its events go to the synth,
    then one set of params, exactly as the lab does it.
@@ -1952,84 +2073,14 @@ registerProcessor('digital-engine',DigitalEngine);`;
 }
 /* a bang in the pipes lights the bang chip and throws a flame out of the tips */
 function onStats(s){if(s.pops){ENG.popT=performance.now();ENG.flame=Math.min(1.4,ENG.flame+.45+.25*s.pops);ENG.flameL=.55+Math.random()*.6;}}
-async function startEngine(){
-  if(ENG.busy)return;ENG.busy=true;
-  try{await initAudio();if(ENG.audio.ctx.state!=='running')await ENG.audio.ctx.resume();ENG.sim.start();}
-  catch(e){ENG.status='Sound could not start: '+e.message;}
-  ENG.busy=false;engineLive(true);
-}
-function toggleEngine(){if(!ENG.audio||ENG.sim.st==='off'||ENG.sim.st==='stopping')startEngine();else{ENG.sim.stop();engineLive(true);}}
-const engineOn=()=>!!ENG.sim&&ENG.sim.st!=='off'&&ENG.sim.st!=='stopping';
-
-/* ---------- the truck's engine: the lab's applySpec, for whichever truck is on the turntable ---------- */
-function engineFor(i){
-  const spec=specOf(i);if(ENG.spec===spec)return;ENG.spec=spec;
-  if(!ENG.sim){ENG.sim=SIM.makeSim(spec);ENG.sim.mode='free';}else ENG.sim.setSpec(spec);
-  if(ENG.audio)ENG.audio.port.post({t:'cfg',cfg:SIM.dspCfg(spec)});
-}
-function setMode(m){
-  const sim=ENG.sim;sim.mode=m;
-  sim.gear=0;sim.clutch='open';sim.shiftT=0;sim.held=false;if(m==='free'){sim.v=0;sim.ww=0;sim.pos=0;}else sim.pos=-120;
-}
 function setListener(v){ENG.listener=+v;setRoom();saveEng();}
 function setRoomKind(v){ENG.room=v;setRoom();saveEng();}
 function setVolume(v){ENG.vol=+v;if(ENG.audio)ENG.audio.master.gain.setTargetAtTime(ENG.vol,ENG.audio.ctx.currentTime,.03);saveEng();}
-
-/* ---------- hands and feet (the lab's car controls) ---------- */
-const ENG_BTNS=[
-  {id:'brake',l:'Brake',k:'KeyS',t:'hold',drive:1,tone:'red'},{id:'down',l:'Shift down',k:'KeyQ',t:'tap',drive:1},{id:'up',l:'Shift up',k:'KeyE',t:'tap',drive:1},
-  {id:'nos',l:'Nitrous',k:'KeyN',t:'hold',tone:'cyan',need:e=>e.nosKw},{id:'purge',l:'Purge',k:'KeyP',t:'tap',need:e=>e.nosKw},{id:'blip',l:'Blip',k:'KeyB',t:'tap'}];
-const ENG_ACT={up:()=>ENG.sim.shift(1),down:()=>ENG.sim.shift(-1),purge:()=>{if(ENG.audio)ENG.audio.port.post({t:'ev',ev:{type:'purge'}});},blip:()=>{ENG.blipT=.22;}};
-function engHold(d,v){if(d.el)d.el.classList.toggle('on',v);if(d.id==='brake')ENG.brkBtn=v;else if(d.id==='nos')ENG.nos=v;}
-function engPress(d){if(d.el&&d.el.disabled)return;if(ENG_ACT[d.id])ENG_ACT[d.id]();}
-function readInput(dt){
-  let thr=ENG.keys.has('thr')?1:0;
-  for(const d of ENG.digits)thr=Math.max(thr,d/10);
-  if(ENG.padOn)thr=Math.max(thr,ENG.pad);
-  if(ENG.blipT>0){ENG.blipT-=dt;thr=1;}
-  return {thr,brk:ENG.keys.has('brk')||ENG.brkBtn?1:0,nos:ENG.nos};
-}
 const typing=t=>t&&(t.tagName==='SELECT'||t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.type!=='range'));
-addEventListener('keydown',e=>{
-  if(!ENG.sim||typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
-  const c=e.code,onRange=e.target&&e.target.type==='range';
-  const d=ENG_BTNS.find(x=>x.k===c&&x.el&&!x.el.hidden);
-  if(d){e.preventDefault();if(d.t==='hold'){if(!e.repeat)engHold(d,true);}else if(!e.repeat)engPress(d);return;}
-  if(c==='Space'||c==='KeyW'||(c==='ArrowUp'&&!onRange)){e.preventDefault();ENG.keys.add('thr');return;}
-  if(c==='KeyS'||(c==='ArrowDown'&&!onRange)){e.preventDefault();ENG.keys.add('brk');return;}
-  if(/^Digit\d$/.test(c)){ENG.digits.add(+c.slice(5)||10);return;}
-  if(e.repeat)return;
-  if(c==='KeyI')toggleEngine();
-  else if(c==='KeyV'){setListener((ENG.listener+1)%3);syncEngineDock();}
-});
-addEventListener('keyup',e=>{const c=e.code;
-  const d=ENG_BTNS.find(x=>x.k===c);if(d&&d.t==='hold'){engHold(d,false);return;}
-  if(c==='Space'||c==='KeyW'||c==='ArrowUp'){ENG.keys.delete('thr');if(c==='Space'&&!typing(e.target))e.preventDefault();}
-  if(c==='KeyS'||c==='ArrowDown')ENG.keys.delete('brk');
-  if(/^Digit\d$/.test(c))ENG.digits.delete(+c.slice(5)||10);});
-addEventListener('blur',()=>{ENG.keys.clear();ENG.digits.clear();ENG.padOn=false;ENG.brkBtn=false;ENG.nos=false;for(const d of ENG_BTNS)if(d.t==='hold')engHold(d,false);});
 
-/* ---------- the loop: the lab's frame, minus its instruments ---------- */
-function engineFrame(dt){
-  const sim=ENG.sim;if(!sim)return;
-  const inp=readInput(dt);for(let k=0;k<4;k++)sim.step(dt/4,inp);
-  const ev=sim.takeEvents();
-  if(ENG.audio){for(const e of ev)ENG.audio.port.post({t:'ev',ev:e});ENG.audio.port.post({t:'p',p:sim.params(ENG.listener,1)});}
-  if(sim.stalled){sim.stalled=false;ENG.status='It stalled. Start it again with the button or I.';}
-  ENG.inp=inp;
-  /* the truck answers: torque rocks the body on its springs, acceleration squats it, the wheels turn */
-  const e=ENG.spec,run=sim.running,Te=run?Math.max(-e.tq*.3,SIM.engTq(e,Math.max(sim.rpm,1),sim.thr,sim.boost)):0;
-  const rollT=-.02*Te/e.peak.tq,pitchT=sim.mode==='drive'?clamp(sim.aPrev/9.81,-1,1)*.014:0;
-  ENG.rollV+=(-(ENG.roll-rollT)*80-ENG.rollV*6.5)*dt;ENG.roll+=ENG.rollV*dt;
-  ENG.pitchV+=(-(ENG.pitch-pitchT)*60-ENG.pitchV*7)*dt;ENG.pitch+=ENG.pitchV*dt;
-  const idle=run?1-clamp((sim.rpm-e.idle)/(e.idle*1.5),0,1):0,lope=[0,.012,.032,.065][e.cam|0],amp=run?(.0004+lope*.03*idle+.0003*sim.load):0;
-  ENG.shake=[(Math.random()-.5)*amp,(Math.random()-.5)*amp*1.6];
-  ENG.wheelA=(ENG.wheelA+(sim.mode==='drive'?sim.ww:0)*dt)%(TAU*1000);
-  ENG.flame=Math.max(0,ENG.flame-dt*9);
-}
 /* ---------- the dot-matrix instruments: Shiftlight 2's shift lights, tach, gear and speed ---------- */
-function engShiftLights(x,y,e,rpm,n=15){
-  const sAt=e.shiftRpm,lo=sAt-Math.min(3500,sAt*.42),f=clamp((rpm-lo)/(sAt-lo),0,1),lit=Math.floor(f*n+.001),over=rpm>=sAt-40&&ENG.sim.running,blink=(APP.t*14|0)%2;
+function engShiftLights(x,y,e,rpm,running,n=15){
+  const sAt=e.shiftRpm,lo=sAt-Math.min(3500,sAt*.42),f=clamp((rpm-lo)/(sAt-lo),0,1),lit=Math.floor(f*n+.001),over=rpm>=sAt-40&&running,blink=(APP.t*14|0)%2;
   for(let i=0;i<n;i++){const cx=x+i*6,on=i<lit;
     let col=i<5?[60,255,90]:i<10?[255,210,40]:[255,50,60];if(over)col=[80,140,255];
     const c=(over?blink:on)?pack(col[0],col[1],col[2]):pack(col[0]*.12,col[1]*.12,col[2]*.12);
@@ -2040,32 +2091,6 @@ function engTach(cx,cy,r,e,rpm){
   for(let i=0;i<n;i++){const t=i/(n-1),a=a0+(a1-a0)*t,rv=t*lim*1.05,x=cx+Math.cos(a)*r,y=cy-Math.sin(a)*r;
     const on=rv<=rpm,red=rv>e.redline,c=red?(on?PAL.red:pack(70,10,16)):on?PAL.ink:pack(50,46,64);hDisc(x,y,1.3,c);}
   for(let k=0;k<=Math.floor(lim/1000);k++){const t=k*1000/(lim*1.05),a=a0+(a1-a0)*t;txt3(String(k),Math.round(cx+Math.cos(a)*(r-7))-1,Math.round(cy-Math.sin(a)*(r-7))-2,k*1000>e.redline?PAL.red:PAL.dim);}
-}
-function engineHud(){
-  const sim=ENG.sim,e=ENG.spec;if(!sim||!e)return;
-  const on=sim.st!=='off',rpm=on?Math.max(0,sim.rpmOut||0):0;
-  if(!on&&ENG.tab!=='engine')return;
-  engShiftLights(Math.round(W/2-45),3,e,rpm);
-  /* the tach in the corner with the gear in its middle; speed and the boost and nitrous bars to its left */
-  const r=Math.round(H*.15),cx=W-r-7,cy=H-11;
-  hDisc(cx,cy-r*.3,r*1.02,pack(4,3,8,150));
-  engTach(cx,cy,r,e,rpm);
-  const drive=sim.mode==='drive',g=!drive?'N':sim.shiftT>0?'-':sim.gear?String(sim.gear):'N';
-  otxt5(g,cx,cy-r+12,rpm>e.shiftRpm-50&&drive?GR.cyan:GR.volt,2,'c');
-  const sx=cx-r-47;hRect(sx-3,H-20,47,18,pack(4,3,8,150));
-  seg7(String(Math.round(sim.v*2.237)).padStart(3,' '),sx,H-17,11,PAL.white,pack(40,36,52),2);txt3('MPH',sx+29,H-9,PAL.dim);
-  let bx=sx-10;const by=H-36;
-  if(e.fiBoost){const b=clamp((sim.boost||0)/(e.fiBoost*1.05),0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*b),4,Math.round(28*b),e.sup?PAL.lime:PAL.amber);txt3('B',bx,by+30,PAL.dim);bx-=8;}
-  if(e.nosKw){const b=clamp(sim.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*b),4,Math.round(28*b),sim.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
-  /* the lab's chips */
-  const bang=performance.now()-ENG.popT<140,run=sim.running;
-  const C=[['LIMITER',sim.cutFrac>.5&&!sim.twostep&&!sim.tcOn&&sim.shiftT<=0,PAL.red],['2-STEP',sim.twostep,PAL.amber],['TC',sim.tcOn,PAL.green],
-    ['NOS',sim.nosOn,PAL.cyan],['BANG',bang,PAL.red]];
-  if(e.antilag)C.splice(3,0,['ANTI-LAG',!!(e.turbo&&sim.thr<.2&&run&&sim.rpm>e.redline*.3),PAL.amber]);
-  let x=4;for(const [t,v,col] of C){if(t==='NOS'&&!e.nosKw)continue;txt3(t,x,H-7,v?col:pack(70,64,86));x+=tw3(t)+5;}
-  txt3(LISTEN[ENG.listener].toUpperCase()+' . '+(drive?'DRIVE':'FREE REV'),x+2,H-7,PAL.dim);
-  if(!on){const msg=touchy?'TAP START ENGINE':'PRESS I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-24,GR.steel,1,'c');}
-  else if(sim.st==='crank')otxt3('CRANKING',W/2,H-20,PAL.amber,1,'c');
 }
 
 /* =====================================================================================
@@ -2866,6 +2891,108 @@ function buildStage(kind){
 }
 
 /* =====================================================================================
+   THE BAY'S ENGINE: the lab's own EngineSim drives the synth while the truck sits on the
+   turntable (free rev, or drive on the lab's virtual road), with the lab's car controls.
+   ===================================================================================== */
+async function startEngine(){
+  if(ENG.busy)return;ENG.busy=true;
+  try{await initAudio();if(ENG.audio.ctx.state!=='running')await ENG.audio.ctx.resume();ENG.sim.start();}
+  catch(e){ENG.status='Sound could not start: '+e.message;}
+  ENG.busy=false;engineLive(true);
+}
+function toggleEngine(){if(!ENG.audio||ENG.sim.st==='off'||ENG.sim.st==='stopping')startEngine();else{ENG.sim.stop();engineLive(true);}}
+const engineOn=()=>!!ENG.sim&&ENG.sim.st!=='off'&&ENG.sim.st!=='stopping';
+
+/* ---------- the truck's engine: the lab's applySpec, for whichever truck is on the turntable ---------- */
+function engineFor(i){
+  const spec=specOf(i);if(ENG.spec===spec)return;ENG.spec=spec;
+  if(!ENG.sim){ENG.sim=SIM.makeSim(spec);ENG.sim.mode='free';}else ENG.sim.setSpec(spec);
+  if(ENG.audio)ENG.audio.port.post({t:'cfg',cfg:SIM.dspCfg(spec)});
+}
+function setMode(m){
+  const sim=ENG.sim;sim.mode=m;
+  sim.gear=0;sim.clutch='open';sim.shiftT=0;sim.held=false;if(m==='free'){sim.v=0;sim.ww=0;sim.pos=0;}else sim.pos=-120;
+}
+
+/* ---------- hands and feet (the lab's car controls) ---------- */
+const ENG_BTNS=[
+  {id:'brake',l:'Brake',k:'KeyS',t:'hold',drive:1,tone:'red'},{id:'down',l:'Shift down',k:'KeyQ',t:'tap',drive:1},{id:'up',l:'Shift up',k:'KeyE',t:'tap',drive:1},
+  {id:'nos',l:'Nitrous',k:'KeyN',t:'hold',tone:'cyan',need:e=>e.nosKw},{id:'purge',l:'Purge',k:'KeyP',t:'tap',need:e=>e.nosKw},{id:'blip',l:'Blip',k:'KeyB',t:'tap'}];
+const ENG_ACT={up:()=>ENG.sim.shift(1),down:()=>ENG.sim.shift(-1),purge:()=>{if(ENG.audio)ENG.audio.port.post({t:'ev',ev:{type:'purge'}});},blip:()=>{ENG.blipT=.22;}};
+function engHold(d,v){if(d.el)d.el.classList.toggle('on',v);if(d.id==='brake')ENG.brkBtn=v;else if(d.id==='nos')ENG.nos=v;}
+function engPress(d){if(d.el&&d.el.disabled)return;if(ENG_ACT[d.id])ENG_ACT[d.id]();}
+function readInput(dt){
+  let thr=ENG.keys.has('thr')?1:0;
+  for(const d of ENG.digits)thr=Math.max(thr,d/10);
+  if(ENG.padOn)thr=Math.max(thr,ENG.pad);
+  if(ENG.blipT>0){ENG.blipT-=dt;thr=1;}
+  return {thr,brk:ENG.keys.has('brk')||ENG.brkBtn?1:0,nos:ENG.nos};
+}
+addEventListener('keydown',e=>{
+  if(!ENG.sim||typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
+  const c=e.code,onRange=e.target&&e.target.type==='range';
+  const d=ENG_BTNS.find(x=>x.k===c&&x.el&&!x.el.hidden);
+  if(d){e.preventDefault();if(d.t==='hold'){if(!e.repeat)engHold(d,true);}else if(!e.repeat)engPress(d);return;}
+  if(c==='Space'||c==='KeyW'||(c==='ArrowUp'&&!onRange)){e.preventDefault();ENG.keys.add('thr');return;}
+  if(c==='KeyS'||(c==='ArrowDown'&&!onRange)){e.preventDefault();ENG.keys.add('brk');return;}
+  if(/^Digit\d$/.test(c)){ENG.digits.add(+c.slice(5)||10);return;}
+  if(e.repeat)return;
+  if(c==='KeyI')toggleEngine();
+  else if(c==='KeyV'){setListener((ENG.listener+1)%3);syncEngineDock();}
+});
+addEventListener('keyup',e=>{const c=e.code;
+  const d=ENG_BTNS.find(x=>x.k===c);if(d&&d.t==='hold'){engHold(d,false);return;}
+  if(c==='Space'||c==='KeyW'||c==='ArrowUp'){ENG.keys.delete('thr');if(c==='Space'&&!typing(e.target))e.preventDefault();}
+  if(c==='KeyS'||c==='ArrowDown')ENG.keys.delete('brk');
+  if(/^Digit\d$/.test(c))ENG.digits.delete(+c.slice(5)||10);});
+addEventListener('blur',()=>{ENG.keys.clear();ENG.digits.clear();ENG.padOn=false;ENG.brkBtn=false;ENG.nos=false;for(const d of ENG_BTNS)if(d.t==='hold')engHold(d,false);});
+
+/* ---------- the loop: the lab's frame, minus its instruments ---------- */
+function engineFrame(dt){
+  const sim=ENG.sim;if(!sim)return;
+  const inp=readInput(dt);for(let k=0;k<4;k++)sim.step(dt/4,inp);
+  const ev=sim.takeEvents();
+  if(ENG.audio){for(const e of ev)ENG.audio.port.post({t:'ev',ev:e});ENG.audio.port.post({t:'p',p:sim.params(ENG.listener,1)});}
+  if(sim.stalled){sim.stalled=false;ENG.status='It stalled. Start it again with the button or I.';}
+  ENG.inp=inp;
+  /* the truck answers: torque rocks the body on its springs, acceleration squats it, the wheels turn */
+  const e=ENG.spec,run=sim.running,Te=run?Math.max(-e.tq*.3,SIM.engTq(e,Math.max(sim.rpm,1),sim.thr,sim.boost)):0;
+  const rollT=-.02*Te/e.peak.tq,pitchT=sim.mode==='drive'?clamp(sim.aPrev/9.81,-1,1)*.014:0;
+  ENG.rollV+=(-(ENG.roll-rollT)*80-ENG.rollV*6.5)*dt;ENG.roll+=ENG.rollV*dt;
+  ENG.pitchV+=(-(ENG.pitch-pitchT)*60-ENG.pitchV*7)*dt;ENG.pitch+=ENG.pitchV*dt;
+  const idle=run?1-clamp((sim.rpm-e.idle)/(e.idle*1.5),0,1):0,lope=[0,.012,.032,.065][e.cam|0],amp=run?(.0004+lope*.03*idle+.0003*sim.load):0;
+  ENG.shake=[(Math.random()-.5)*amp,(Math.random()-.5)*amp*1.6];
+  ENG.wheelA=(ENG.wheelA+(sim.mode==='drive'?sim.ww:0)*dt)%(TAU*1000);
+  ENG.flame=Math.max(0,ENG.flame-dt*9);
+}
+function engineHud(){
+  const sim=ENG.sim,e=ENG.spec;if(!sim||!e)return;
+  const on=sim.st!=='off',rpm=on?Math.max(0,sim.rpmOut||0):0;
+  if(!on&&ENG.tab!=='engine')return;
+  engShiftLights(Math.round(W/2-45),3,e,rpm,sim.running);
+  /* the tach in the corner with the gear in its middle; speed and the boost and nitrous bars to its left */
+  const r=Math.round(H*.15),cx=W-r-7,cy=H-11;
+  hDisc(cx,cy-r*.3,r*1.02,pack(4,3,8,150));
+  engTach(cx,cy,r,e,rpm);
+  const drive=sim.mode==='drive',g=!drive?'N':sim.shiftT>0?'-':sim.gear?String(sim.gear):'N';
+  otxt5(g,cx,cy-r+12,rpm>e.shiftRpm-50&&drive?GR.cyan:GR.volt,2,'c');
+  const sx=cx-r-47;hRect(sx-3,H-20,47,18,pack(4,3,8,150));
+  seg7(String(Math.round(sim.v*2.237)).padStart(3,' '),sx,H-17,11,PAL.white,pack(40,36,52),2);txt3('MPH',sx+29,H-9,PAL.dim);
+  let bx=sx-10;const by=H-36;
+  if(e.fiBoost){const b=clamp((sim.boost||0)/(e.fiBoost*1.05),0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*b),4,Math.round(28*b),e.sup?PAL.lime:PAL.amber);txt3('B',bx,by+30,PAL.dim);bx-=8;}
+  if(e.nosKw){const b=clamp(sim.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*b),4,Math.round(28*b),sim.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
+  /* the lab's chips */
+  const bang=performance.now()-ENG.popT<140,run=sim.running;
+  const C=[['LIMITER',sim.cutFrac>.5&&!sim.twostep&&!sim.tcOn&&sim.shiftT<=0,PAL.red],['2-STEP',sim.twostep,PAL.amber],['TC',sim.tcOn,PAL.green],
+    ['NOS',sim.nosOn,PAL.cyan],['BANG',bang,PAL.red]];
+  if(e.antilag)C.splice(3,0,['ANTI-LAG',!!(e.turbo&&sim.thr<.2&&run&&sim.rpm>e.redline*.3),PAL.amber]);
+  let x=4;for(const [t,v,col] of C){if(t==='NOS'&&!e.nosKw)continue;txt3(t,x,H-7,v?col:pack(70,64,86));x+=tw3(t)+5;}
+  txt3(LISTEN[ENG.listener].toUpperCase()+' . '+(drive?'DRIVE':'FREE REV'),x+2,H-7,PAL.dim);
+  if(!on){const msg=touchy?'TAP START ENGINE':'PRESS I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-24,GR.steel,1,'c');}
+  else if(sim.st==='crank')otxt3('CRANKING',W/2,H-20,PAL.amber,1,'c');
+}
+
+/* =====================================================================================
    THE MODEL BAY — one truck on the turntable (or all four in a grid), drawn into the scene
    target at matrix resolution and turned into LED dots by Shiftlight 2's present().
    ===================================================================================== */
@@ -2886,11 +3013,6 @@ const stageMesh=k=>STG[k]||(STG[k]=buildStage(k));
 /* ---------- GL state ---------- */
 function setRes(i){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;store.set('dsmini-res',i);$('res').textContent='Dots '+BW+'×'+BH;}
 /* ---------- matrices ---------- */
-const M4T=(x,y,z)=>{const m=M4.id();m[12]=x;m[13]=y;m[14]=z;return m;};
-const M4RY=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s;m[10]=c;return m;};
-const M4S=(x,y,z)=>{const m=M4.id();m[0]=x;m[5]=y;m[10]=z;return m;};
-const M4RX=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m;};
-const M4RZ=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m;};
 /* a flame for the exhaust tips: unit length along +X, hot at the root, red at the tip */
 let FLAME=null;
 function flameMesh(){if(FLAME)return FLAME;const mb=new MB(),seg=[[0,.18,1,.92,[1,.92,.62],9],[.18,.48,.92,.7,[1,.7,.22],7],[.48,.78,.7,.38,[1,.42,.08],5],[.78,1,.38,.04,[.9,.18,.04],3.5]];
@@ -2911,7 +3033,7 @@ function frameUniforms(cam,st){
 function carUniforms(b,i){
   const u=P_LIT.u,p=APP.paint[b.id]||b.paint,dirt=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt,T=truck(i),D=T.D;
   gl.uniform3fv(u.uPaint,lin(p));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
-  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,i===APP.build&&ENG.inp&&ENG.inp.brk?1:0);gl.uniform1f(u.uDirt,dirt);gl.uniform1f(u.uGround,0);
+  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,i===APP.build&&ENG.inp&&ENG.inp.brk?1:0);gl.uniform1f(u.uDirt,dirt);gl.uniform1f(u.uMudOff,0);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
 }
 /* ---------- one view: stage, turntable, truck ---------- */
@@ -2932,6 +3054,7 @@ function renderOne(i,vp,cam){
     const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,ENG.flame),fl=(.12+.42*k*ENG.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
   const R=b.look.tyre.R,tw=b.look.track/2,st2=APP.steer?.36:0,wa=live?-ENG.wheelA:0;
+  gl.uniform1f(u.uMudOff,R);
   for(const [u0,front] of [[D.uFa,1],[D.uRa,0]])for(const s of [1,-1]){
     const M=M4.mul(Mc,M4.mul(M4T(D.X(u0),R,s*tw),M4.mul(M4RY(front?st2:0),M4.mul(M4S(1,1,s),M4RZ(wa)))));
     gl.uniformMatrix4fv(u.uM,false,M);drawMesh(T.wheel);}

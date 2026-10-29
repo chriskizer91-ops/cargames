@@ -2,32 +2,87 @@
 
 The same off-road game as Dirt Sleeper, rebuilt light. Dirt Sleeper's high-detail mode lags a laptop
 once the truck starts rolling over; Mini draws everything on Shiftlight 2's LED dot-matrix pipeline
-instead (one small HDR scene target, the LED dot pass, two-level bloom, ACES). The engine sound will be
+instead (one small HDR scene target, the LED dot pass, two-level bloom, ACES). The engine sound is
 Digital Engine's, used exactly as it is.
 
-The first step is the truck. `dist/model-bay.html` is a model bay: one original, fictional mid-2000s
-SUV (no real badges, names or signature grille) in four builds, on a turntable in a dark bay or a light
-cyc.
+Two pages come out of `build.sh`:
 
-- **Stock**: as it left the factory. Chrome twin-bar face, six-spoke 17s on 245/65R17 all-seasons,
-  roof rails with crossbars, 4.6 V8.
-- **Sleeper**: dropped two inches on 20-inch ten-spokes with big red brakes, split-mesh face, smoked
-  lamps, hood scoop, lip, roof spoiler, LED tails, copper pinstripe.
-- **Rock & Mud**: six-inch lift, 37-inch mud-terrains on beadlocks, solid axles on coilovers, steel
-  bumpers with winch and shackles, sliders, snorkel, expedition rack, mud.
-- **Race**: bolted widebody, 18-inch centre-locks on slicks, splitter, canards, diffuser, GT wing,
-  vented hood, roof scoop, side-exit exhaust, white-and-red livery.
+- `dist/dirt-sleeper-mini.html`: the game. Free roam on Dirt Sleeper's ranch and the country round it, with the four trucks.
+- `dist/model-bay.html`: the model bay. The four trucks on a turntable, with their engines.
 
-Drag to orbit, wheel or pinch to zoom, double-tap to reset. The dock picks the build, the view (front
-¾, side, rear ¾, front, rear, top, low, or all four side by side), paint, mud, lights, steering, spin,
-the studio and the dot resolution.
+## The game
+
+Free roam on a mile-square map with the ranch in the middle: the shop and its yard, the dirt drag
+strip, the burnout pad, the mud pit, the rock garden, the hill climb up Red Hill, the trail loop with
+its kickers and creek, and the mud track that fords the creek twice. Round the ranch:
+
+- Gravel county roads with ditches, fences and a power line: the county road east to west below the
+  ranch, Range Road north from a crossroads, the forest road west through the woods and West Road back
+  down. The ranch drive runs out of the yard to the county road.
+- Feed & Fuel at the crossroads: a store with a canopy and pumps, a feed barn with a loading dock,
+  grain bins, stop signs.
+- A home place off the county road at the end of a long lane of muddy ruts (finer than the ground
+  grid, so the wheels sit in them): a white farmhouse with a porch, a red barn, a utility trailer, a
+  swing set and a trampoline.
+- Woods across the north with a two-track trail that splashes through the shallow end of a pond, and a
+  trail up to it from the ranch's trail loop.
+- A paved road course in the south-east: 1.6 km of asphalt with kerbs, gravel traps and tyre walls, a
+  paddock with garages, a pit wall, a grandstand and a start gantry. Laps are timed (over the line,
+  past two checkpoints, over the line again) and the best for each truck and level is kept.
+
+The corner map scrolls with the truck; M (or a tap on it) opens the whole map. The menu (Esc) picks the
+truck, the driving level, where to go, the camera and the volume.
+
+Three driving levels:
+
+- **Realistic** (the default): ABS, the automatic gearbox and, on the Stock and the Sleeper, the
+  factory all-wheel-drive traction control that brakes a spinning wheel so the others pull. It slides,
+  spins its tyres and rolls.
+- **Middle**: a steering helper, stability control and traction control.
+- **Kids**: all of that, extra grip and a hand that keeps it on its wheels, at full speed, and it flips
+  itself back over if it does go over.
+
+Keys: W/↑ gas, S/↓ brake and reverse, A/D steer, Space handbrake, Q/E shift, N nitrous, L low range,
+K lockers, H horn, J headlights, C camera, M map, T traction (developer), R reset, I engine, Esc menu. A game controller works too. On a phone
+or tablet there are on-screen pedals.
+
+- `src/50_physmath.js`, `51_tyre.js`, `52_tune.js`, `53_vehicle.js`: Dirt Sleeper's physics (Shiftlight
+  3's vehicle with Dirt Sleeper's off-road changes), at 240 steps a second. The three driving levels are
+  its assist sets.
+- Handling: the trucks carry 55% of their weight on the front and most of their roll stiffness there, and
+  their tyres lose some grip as they're loaded, so at the limit they push wide like real SUVs instead of
+  swapping ends. ABS lets the rear wheels slip far less than the fronts (brake proportioning), so braking
+  into a turn keeps the tail in line. Full steering narrows with speed to what the front tyres can use
+  (full lock at parking speeds, for donuts), and steering into a slide may go as far as the slide.
+  `tools/handling_check.js` runs keyboard manoeuvres (braking into a turn, lane changes, S-bends, lifting
+  mid-turn) for each truck and level and reports how sideways each one got.
+- Developer traction panel (`DEV` in `src/70_game.js`; set it to false to ship): in the menu, Traction
+  (grip on every surface), Back-end grip, Grip once sliding and Steering at speed, on top of whichever
+  driving level is picked, remembered between visits; T while driving steps Traction through 75, 100, 125
+  and 150%. The HUD shows when it's off the defaults.
+- `src/54_truckphys.js`: each build's chassis by Dirt Sleeper's rules (springs from ride height, shocks,
+  sway bars, brakes, grip and rolling resistance per tread and surface), with the body's real size.
+  The Stock runs all-season tyres and the Sleeper street performance tyres; both have the factory
+  traction control and a torque converter, so they pull out of muddy ruts the way the real truck does.
+  The Rock & Mud has mud tyres, lockers and low range; the Race's slicks still bog in mud and slide on grass.
+- `src/59_country.js`: the country round the ranch. It hooks into the ranch build at each stage (the
+  shape of the land, carving, the surface map, the ground in the lane's ruts, the geometry). Roads that
+  cross meet at one level; ditches fill in at junctions.
+- `src/60_ranch.js`: Dirt Sleeper's ranch code. The ranch itself builds the same: its land, trails and
+  surfaces match the old build (apart from the last metre of the old edge hills at its corners), and the
+  speed-ups give the same answers. The edge hills moved out to the mile, the trees are drawn instanced
+  (and on hillsides they are solid now; before, the truck could pass through them), and new surfaces
+  (gravel, asphalt, ruts) carry their own grip and rolling resistance in `54_truckphys.js`.
+- `src/61_ranchmesh.js`: the ground in 64 m tiles, each meshed at 2, 4 and 8 m with skirts; the fine
+  mesh is made only round the truck. Props in tiles, trees instanced (full near, one lump far), the sky.
+  The busiest views draw about 70 to 90 thousand triangles of world, fewer than the ranch alone did.
+- `src/62_fx.js`: dust, mud clods and creek spray, at most 360 at once in one instanced draw.
+- `src/70_game.js`, `71_hud.js`, `72_menus.js`: the loop, the camera, input, the engine sound from the
+  powertrain, the dot-matrix HUD and map, and the menu.
 
 ## The engines
 
-Each truck has its engine, and the sound is Digital Engine's synth, unchanged. The Engine tab in the
-dock starts it (or press I) and gives you the lab's car controls: Free rev or Drive, throttle (hold
-Space, 1 to 9 for part throttle, or the pad), brake S, shifts Q and E, nitrous N, purge P, blip B, and
-where you listen (V: behind, cabin, trackside), plus the lab's three rooms and a volume slider.
+Each truck has its engine, and the sound is Digital Engine's synth, unchanged.
 
 | Truck | Engine | Peak | Gearbox |
 |---|---|---|---|
@@ -40,12 +95,19 @@ where you listen (V: behind, cabin, trackside), plus the lab's three rooms and a
   `tools/check_de.py` proves it (and the built pages) still match the lab.
 - `src/16_engines.js`: the four engines as Digital Engine specs, built with the lab's own
   `SIM.makeSpec` from Dirt Sleeper's engine table and bolt-on rules.
-- `src/17_sound.js`: the lab's audio graph (master gain, its compressor, the room convolver and send)
-  and its loop (four sim steps a frame, events, then params). Also the dot-matrix shift lights, tach,
-  gear and speed, the body rocking on revs, wheels turning in Drive, brake lights and exhaust flames
-  when the synth fires a bang.
-- `tools/engine_check.js` runs each engine through the sim and synth offline and reports power,
-  levels, clipping and NaNs (`--wav DIR` writes the audio).
+- `src/17_audio.js`: the lab's audio graph (master gain, its compressor, the room convolver and send).
+  In the game the powertrain feeds the synth (Dirt Sleeper's `soundParams`, with the listener placed
+  from the camera); in the bay the lab's own EngineSim does (`src/39_bayengine.js`).
+- `src/18_instruments.js`: Shiftlight 2's shift lights and tach for the dot matrix.
+
+## The model bay
+
+Drag to orbit, wheel or pinch to zoom, double-tap to reset. The Look tab picks the view (front ¾, side,
+rear ¾, front, rear, top, low, or all four side by side), paint, mud, lights, steering, spin, the
+studio and the dot resolution. The Engine tab starts the engine (or press I) with the lab's car
+controls: Free rev or Drive, throttle (hold Space, 1 to 9 for part throttle, or the pad), brake S,
+shifts Q and E, nitrous N, purge P, blip B, where you listen (V), the lab's three rooms and a volume
+slider. [ and ] switch trucks.
 
 ## How the truck is made
 
@@ -57,8 +119,8 @@ where you listen (V: behind, cabin, trackside), plus the lab's three rooms and a
 - `src/23_wheels.js`: wheels and tyres, built once per build and drawn four times.
 - `src/24_builds.js`: the four builds. Each one is a `look` (ride height, track, tyres, face, tail,
   parts) plus paint, mud and specs.
-- `src/13_shader.js`: one lit shader with material IDs (paint with flake and livery, mud by height,
-  cladding, glass, chrome, lenses, rubber, mesh, brakes).
+- `src/13_shader.js`: one lit shader with material IDs (paint with flake and livery, mud, cladding,
+  glass, chrome, lenses, rubber, mesh, brakes, and the ranch's ground, rock, water and timber).
 - `src/10_core.js`, `11_display.js`, `12_gl.js`: Shiftlight 2's fonts, HUD buffer and display pipeline.
 
 About 48k to 60k triangles per truck, built in a few hundred milliseconds.
@@ -66,8 +128,19 @@ About 48k to 60k triangles per truck, built in a few hundred milliseconds.
 ## Build and check
 
 ```sh
-./build.sh                       # writes dist/model-bay.html (and an artifact copy)
+./build.sh                                   # both pages, plus artifact copies
+python3 tools/check_de.py                    # the synth is still the lab's
+node tools/engine_check.js                   # each engine through the synth, offline
+node tools/phys_check.js                     # each truck and driving level on flat ground
+node tools/ranch_check.js                    # the ranch: size, tiles, the ground at each area
+node tools/ranch_drive.js [level]            # a driver through the ranch's mud pit, rocks, climb, mud track, a jump
+node tools/country_drive.js [level]          # the home lane, the county road, a timed lap, the woods trail, a ditch
+node tools/handling_check.js [level]         # keyboard manoeuvres on flat ground: how sideways each truck gets
+node tools/world_map.js map.ppm 800          # a top-down map of the whole world
+python3 tools/tri_count.py                   # triangles drawn at spots round the world
+python3 tools/game_shots.py '{"runs":[{"name":"mud","build":2,"place":"mud","keys":["KeyW"],"secs":3}]}' /tmp/g
 python3 tools/shots.py '{"builds":[0,1,2,3],"views":["front34","side","rear34"]}' /tmp/sheet.png
 ```
 
-`tools/shots.py` renders the bay headless with Playwright and SwiftShader and stitches a contact sheet.
+The shot tools render headless with Playwright and SwiftShader (slow: software GL takes a minute or
+more per game frame; a real GPU takes milliseconds).
