@@ -64,11 +64,6 @@ function buildRanchGL(){
     m.tris=B.idx.length/3;RANCH.props.push({mesh:m,mn:B.mn,mx:B.mx,big:B.mx[0]-B.mn[0]>90||B.mx[2]-B.mn[2]>90});
   }
   RANCH.trees=buildTrees(W);
-  /* the sky: an inside-out dome that follows the camera */
-  {const mb=new Ranch.MeshBuilderI();mb.m=[0,0,0,0];const seg=28,rings=14,ix=[];
-    for(let j=0;j<=rings;j++){const ph=j/rings*Math.PI,row=[];for(let i=0;i<=seg;i++){const th=i/seg*TAU,n=[Math.sin(ph)*Math.cos(th),Math.cos(ph),Math.sin(ph)*Math.sin(th)];row.push(mb.v([n[0]*900,n[1]*900,n[2]*900],n));}ix.push(row);}
-    for(let j=0;j<rings;j++)for(let i=0;i<seg;i++)mb.quad(ix[j][i],ix[j+1][i+1],ix[j][i+1]);
-    RANCH.sky=makeMesh({pos:new Float32Array(mb.P),nrm:new Float32Array(mb.N),col:new Float32Array(mb.C),mat:new Float32Array(mb.P.length/3).fill(RMAT.SKY),idx:new Uint32Array(mb.idx)});}
   RANCH.ms=performance.now()-t0;RANCH.shapeMs=t1-t0;
   return RANCH;
 }
@@ -78,10 +73,20 @@ function frustum(m){const r=(a,b,c,d)=>{const l=Math.hypot(a,b,c);return [a/l,b/
     r(m[3]-m[1],m[7]-m[5],m[11]-m[9],m[15]-m[13]),r(m[3]+m[2],m[7]+m[6],m[11]+m[10],m[15]+m[14]),r(m[3]-m[2],m[7]-m[6],m[11]-m[10],m[15]-m[14])];}
 function boxVisible(F,mn,mx){for(const p of F){const x=p[0]>0?mx[0]:mn[0],y=p[1]>0?mx[1]:mn[1],z=p[2]>0?mx[2]:mn[2];if(p[0]*x+p[1]*y+p[2]*z+p[3]<0)return false;}return true;}
 const boxDist=(e,mn,mx)=>{let s=0;for(let k=0;k<3;k+=2){const d=Math.max(mn[k]-e[k],0,e[k]-mx[k]);s+=d*d;}return Math.sqrt(s);};
-/* draw the sky, the ground, the props and the trees; uM must be identity on entry */
+/* the sky, where nothing else has been drawn (13_lit's FS_SKY), with the lit program's frame uniforms */
+let P_SKY=null,P_SKYP=null;
+function drawSky(cam){
+  if(!P_SKY){P_SKY=compile(VS_SKY,FS_SKY,LIT_DEFS);P_SKYP=compile(VS_SKY,FS_SKY,LIT_DEFS+'#define PROBE\n');}
+  const SP=CUR===PRB.P?P_SKYP:P_SKY,u=SP.u,S=skyNow(),cl=cloudVec();gl.useProgram(SP.p);
+  gl.uniformMatrix4fv(u.uInvVP,false,M4.inv(cam.VP));gl.uniform3fv(u.uCam,cam.eye);gl.uniform1f(u.uTime,APP.t);
+  gl.uniform3fv(u.uSunDir,SKY.sun);gl.uniform3fv(u.uSunCol,S.sunCol);gl.uniform3fv(u.uSkyZen,S.zen);gl.uniform3fv(u.uSkyHor,S.hor);
+  gl.uniform1f(u.uNight,SKY.night||0);gl.uniform4fv(u.uCloud,cl);
+  gl.depthMask(false);gl.bindVertexArray(VAO0);gl.drawArrays(gl.TRIANGLES,0,3);gl.depthMask(true);
+  gl.useProgram(CUR.p);
+}
+/* draw the ground, the props, the trees and then the sky; uM must be identity on entry */
 function drawRanch(cam,maxD=420){
-  const u=P_LIT.u,F=frustum(cam.VP),e=cam.eye;let tris=0,built=0;
-  gl.uniformMatrix4fv(u.uM,false,M4T(e[0],e[1],e[2]));gl.depthMask(false);drawMesh(RANCH.sky);gl.depthMask(true);
+  const u=CUR.u,F=frustum(cam.VP),e=cam.eye;let tris=0,built=0;
   gl.uniformMatrix4fv(u.uM,false,M4.id());
   for(const t of RANCH.ground){const d=boxDist(e,t.mn,t.mx);
     /* the fine mesh is made a little before it's needed (a few a frame) and let go well after */
@@ -91,6 +96,7 @@ function drawRanch(cam,maxD=420){
     const m=t.lod[d<LOD_DIST[0]?0:d<LOD_DIST[1]?1:2]||t.lod[1];drawMesh(m);tris+=m.tris;}
   const tg=tris;for(const p of RANCH.props){const d=boxDist(e,p.mn,p.mx);if(d>maxD-40||!boxVisible(F,p.mn,p.mx))continue;drawMesh(p.mesh);tris+=p.mesh.tris;}
   const tt=drawTrees(cam,F,maxD-40);RANCH.stat={ground:tg,props:tris-tg,trees:tt};
+  drawSky(cam);
   return tris+tt;
 }
 /* sort the trees in view into near and far for each shape, then one instanced draw for each */
@@ -100,9 +106,9 @@ function drawTrees(cam,F,maxD){
   for(const t of TR.tiles){if(boxDist(e,t.mn,t.mx)>maxD||!boxVisible(F,t.mn,t.mx))continue;
     for(const i of t.list){const o=i*12,dx=T[o]-e[0],dz=T[o+2]-e[2],d2=dx*dx+dz*dz;if(d2>md)continue;
       const v=T[o+7]|0,l=d2<nn?0:1,b=TR.buf[v][l],k=TR.cnt[v][l]++*12;for(let q=0;q<12;q++)b[k+q]=T[o+q];}}
-  gl.uniform1f(P_LIT.u.uInst,1);
+  gl.uniform1f(CUR.u.uInst,1);
   for(let v=0;v<5;v++)for(let l=0;l<2;l++){const n=TR.cnt[v][l];if(!n)continue;const m=TR.shapes[v][l];setInst(m,TR.buf[v][l].subarray(0,n*12));drawMeshI(m);tris+=m.tris*n;}
-  gl.uniform1f(P_LIT.u.uInst,0);
+  gl.uniform1f(CUR.u.uInst,0);
   return tris;
 }
 

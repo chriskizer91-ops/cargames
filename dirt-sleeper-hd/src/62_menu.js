@@ -49,6 +49,10 @@ function syncMenu(){
   for(const el of $('sDots').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.res));
   for(const el of $('mGfx').children)el.setAttribute('aria-pressed',String(el.dataset.v===GFX.level));
   $('mGfxHint').textContent=GFX_LEVELS.find(l=>l[0]===GFX.level)[2];
+  for(const el of $('sDisp').children)el.setAttribute('aria-pressed',String(el.dataset.v===DISP.mode));
+  $('sDispHint').textContent=DISP.mode==='clear'?'The picture at your screen\'s own resolution, sharp, with the HUD lit up in dots over it. It draws at a share of the screen\'s pixels that follows the frame rate.':
+    'The LED matrix: the picture made of lit dots, each the average of what\'s behind it. The lightest for a phone.';
+  $('sDotsRow').hidden=$('sDetailHint').hidden=DISP.mode==='clear';
   syncWeather();
   $('sDetailHint').textContent='Detail is how finely the picture is drawn behind each dot. Auto starts sharp (smooth on a phone) and steps down by itself if the frame rate drops while you drive.';
   $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
@@ -72,6 +76,7 @@ function buildMenu(){
   segButtons($('sDetail'),[['auto','Auto'],['sharp','Sharp'],['smooth','Smooth'],['fast','Fast']],v=>setDetail(v));
   segButtons($('sDots'),RES.map((r,i)=>[i,r[0]+'×'+r[1]]),i=>{setRes(+i);layout();});
   segButtons($('mGfx'),GFX_LEVELS.map(l=>[l[0],l[1]]),id=>{setGfx(id);GFXW.said=false;GFXW.t=0;});
+  segButtons($('sDisp'),[['dots','LED dots'],['clear','Clear']],v=>setDisplay(v));
   $('gfx').addEventListener('click',()=>{const i=GFX_LEVELS.findIndex(l=>l[0]===GFX.level);setGfx(GFX_LEVELS[(i+1)%GFX_LEVELS.length][0]);GFXW.said=false;GFXW.t=0;if(GAME.state==='menu')syncMenu();});
   setGfx(GFX.level);
   buildDev();

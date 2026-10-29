@@ -12,10 +12,42 @@ the others in this repo. It started as two forks of Dirt Sleeper Mini's game mer
   shock and brake fade, roof loads, tyre pressure, weather, ABS by era), and graphics levels with
   real sun shadows, clouds and rain.
 
-From here it is being taken further toward Shiftlight 7's look, with graphics levels for a phone
-and for a laptop.
+On top of those it has a new renderer, after Shiftlight 7's, with graphics levels for a phone and for
+a laptop (below).
 
 Open `dirt-sleeper-hd.html` in a browser with WebGL2.
+
+## Graphics
+
+Settings has the **Graphics** level and the **Display**. A phone starts on Phone with LED dots, a
+laptop on Laptop with Clear; both can be changed, and the choice is kept.
+
+Every level gets the new lighting (`src/13_lit.js`):
+- A physically based highlight (GGX) from the sun and every lamp, with Fresnel, and specular
+  anti-aliasing so nothing sparkles.
+- Detail cut into the ground without textures: clods, grain and stones in the dirt, tufts in the
+  grass, gravel stones, cracked drying mud, rock relief, fine tarmac with cracks. It is bump-mapped,
+  and fades out with distance.
+- Leaves that glow with the sun behind them, and tree crowns broken into clumps.
+- Height fog coloured like the sky behind it, so the land melts into the horizon.
+- Headlights with a real low-beam cut-off.
+- Filmic tone mapping with exposure that adapts like an eye.
+- Soft, sun-lit dust and spray.
+- Three times of day: high noon, golden hour and night.
+
+The levels add, each to the one before (`src/55_gfx.js`, `src/55_post.js`, `src/55_grass.js`):
+
+| Level | What it adds |
+| --- | --- |
+| Mini | The soft shadow under the car and the least ground detail. For an old phone. |
+| Phone | Real sun shadows in two cascades (1024). Real reflections: a cubemap probe at the car (64, a face every third frame) that the paint, glass, chrome, water and puddles show. Clouds. |
+| Laptop | Three cascades (2048, a softer filter, to 200 m), a 128 probe every frame, all the ground's detail, the land drawn to 560 m. Plus three laptop-only effects: **ambient occlusion** in screen space, **light in the air** (sun shafts through the trees and dust, headlight beams at night) and **grass you drive through** (GPU-made clumps that sway, lie down under the car and take the shadows). |
+| Ultra | Laptop, bigger: 3072 cascades to 260 m, a 256 probe, denser grass further out, the land to 700 m. |
+
+**Display:** LED dots is the matrix every Dirt Sleeper has. Clear is the picture at the screen's own
+resolution, smoothed (FXAA), with the HUD still lit in dots on top. It draws at a share of the
+screen's pixels that follows the frame rate (dynamic resolution). If the frame rate stays low, the
+game suggests the level below.
 
 ## Files
 
@@ -23,7 +55,7 @@ Open `dirt-sleeper-hd.html` in a browser with WebGL2.
 | --- | --- |
 | `dirt-sleeper-hd.html` | The whole game in one file (built) |
 | `build.sh` | Builds the page: the shell's head, the source modules in order, the shell's tail. Run `./build.sh` after changing anything in `src/` or `shell/` |
-| `src/` | The modules. 10-33: the display, the meshes, the engines and their sound, the seven bodies, their parts, wheels and builds. 40-43: the physics, the ground contact, each build's chassis and the Sim level. 50-55: the country, the ranch, its drawing, the dust and mud, the developer panel and the graphics. 56-65: the garage's parts, the ratings, the feats, day and night, the game, its HUD, menu, garage, touch controls and boot |
+| `src/` | The modules. 10-33: the display, the meshes, the engines and their sound, the seven bodies, their parts, wheels and builds. 40-43: the physics, the ground contact, each build's chassis and the Sim level. 50-55: the country, the ranch, its drawing, the dust and mud, the developer panel, the graphics levels with the shadows and the probe (`55_gfx`), the passes between the scene and the screen and the displays (`55_post`), and the grass (`55_grass`). 56-65: the garage's parts, the ratings, the feats, day and night, the game, its HUD, menu, garage, touch controls and boot |
 | `shell/` | The page's head (title, styles, markup) and tail |
 | `tools/physcheck.js` | Steps the physics beside Dirt Sleeper Mini 4's (`tools/ref/dsm4-physics.js`) on the first three levels, with the e-brake's free centre diff switched off (`hbCentre`), and reports the worst difference: `node tools/physcheck.js` |
 | `tools/proving.js` | Every factory build through a drag run, grip tests and a 60-0 stop: `node tools/proving.js [build ids...]` |

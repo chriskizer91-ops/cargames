@@ -108,7 +108,7 @@ function placeCar(x,z,yaw){
   const pt=t.pt;pt.gear=1;pt.shiftT=0;pt.engage=0;pt.locked=false;t.rev=false;pt.rev=false;t.drift.on=false;
   if(pt.st!=='off')pt.st='run';
   for(let i=0;i<120;i++)t.step(DT,SETTLE);
-  t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;
+  t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;PRB.fresh=true;CSM.fresh=true;
 }
 /* the meshes of builds no longer driven are let go (the wheels are shared and stay) */
 function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
@@ -319,14 +319,14 @@ function camUpdate(dt){
 function camMats(c,asp){const tgt=add(c.eye,c.fwd),V_=M4.look(c.eye,tgt,c.up),P_=M4.persp(c.fov,asp,mode0Near(),1500);
   /* in the garage the menu covers the left of the screen: the picture slides right so the car sits in what's left */
   if(APP.orbit){const mr=APP.menuRight||0,right=Math.min(innerWidth,RECT.x+RECT.w),cx=(Math.max(mr,RECT.x)+right)/2;P_[8]=-clamp((cx-RECT.x)/RECT.w*2-1,0,.8);}
-  return Object.assign(c,{V:V_,P:P_,VP:M4.mul(P_,V_)});}
+  return Object.assign(c,{V:V_,P:P_,VP:M4.mul(P_,V_),asp,near:mode0Near()});}
 const mode0Near=()=>CAMS[APP.cam]==='Hood'&&!APP.orbit?.12:.3;
 
 /* ---------- drawing ---------- */
 const SKY={sun:V3.norm([-.52,.5,.4]),sunCol:[1.28,1.18,1.02],sky:[.44,.5,.62],gnd:[.24,.18,.13],zen:[.16,.32,.85],hor:[.78,.86,1.02],fogD:.0016,fogK:[.68,.72,.78],draw:420,night:0};
 function worldUniforms(c){
   /* the sky for the time of day, turned grey by the weather (55_gfx) */
-  const u=P_LIT.u,k=SKY.fogK,S=skyNow();
+  const u=CUR.u,k=SKY.fogK,S=skyNow();
   gl.uniformMatrix4fv(u.uVP,false,c.VP);gl.uniform3fv(u.uCam,c.eye);gl.uniform1f(u.uTime,APP.t);
   gl.uniform3fv(u.uSunDir,SKY.sun);gl.uniform3fv(u.uSunCol,S.sunCol);gl.uniform3fv(u.uSkyAmb,S.sky);gl.uniform3fv(u.uGndAmb,S.gnd);
   gl.uniform3fv(u.uSkyZen,S.zen);gl.uniform3fv(u.uSkyHor,S.hor);gl.uniform3fv(u.uFogCol,[S.hor[0]*k[0],S.hor[1]*k[1],S.hor[2]*k[2]]);gl.uniform1f(u.uFogD,S.fogD);gl.uniform1f(u.uStage,3);
@@ -335,9 +335,9 @@ function worldUniforms(c){
 /* the soft shadows under the cars on the ground: centre, half size, yaw and how dark (fading as a car leaves the ground) */
 const WSH=new Float32Array(32),WSA=new Float32Array(8),WSK=new Float32Array(8);
 function worldShadows(cars){
-  const u=P_LIT.u;let n=0;
+  const u=CUR.u;let n=0;
   for(const t of cars){if(n>=8)break;const D=carD(t),M=t.M,o=mvec(M,[-t.cg[0],-t.cg[1],0]),x=t.p[0]+o[0],z=t.p[2]+o[2],gy=RANCH.W.heightAt(x,z),hgt=t.p[1]+o[1]-gy;
-    WSH[n*4]=x;WSH[n*4+1]=z;WSH[n*4+2]=D.L/2-.02;WSH[n*4+3]=t.build.look.track/2+.12;WSA[n]=Math.atan2(-M[6],M[0]);WSK[n]=clamp(1-hgt/3.5,0,1)*(SKY.night?.5:SH.on?.55:.9);n++;}
+    WSH[n*4]=x;WSH[n*4+1]=z;WSH[n*4+2]=D.L/2-.02;WSH[n*4+3]=t.build.look.track/2+.12;WSA[n]=Math.atan2(-M[6],M[0]);WSK[n]=clamp(1-hgt/3.5,0,1)*(SKY.night?.5:CSM.on?.55:.9);n++;}
   gl.uniform4fv(u.uSh,WSH);gl.uniform1fv(u.uShA,WSA);gl.uniform1fv(u.uShK,WSK);gl.uniform1i(u.uNSh,n);
 }
 /* the car's model matrix: physics frame (centre of gravity) to the model's frame (ground under the middle) */
@@ -345,7 +345,7 @@ function carMatrix(t){const R=t.M,m=new Float32Array(16);
   m[0]=R[0];m[1]=R[3];m[2]=R[6];m[4]=R[1];m[5]=R[4];m[6]=R[7];m[8]=R[2];m[9]=R[5];m[10]=R[8];m[12]=t.p[0];m[13]=t.p[1];m[14]=t.p[2];m[15]=1;
   return M4.mul(m,M4T(-t.cg[0],-t.cg[1],0));}
 function carUniformsW(t,v,dirt){
-  const u=P_LIT.u,b=t.build,D=carD(t);
+  const u=CUR.u,b=t.build,D=carD(t);
   gl.uniform3fv(u.uPaint,lin(b.paint));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
   gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,t.brkIn>.05?1:0);gl.uniform1f(u.uDirt,dirt);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
@@ -354,7 +354,7 @@ function carUniformsW(t,v,dirt){
    shut, a blower through it, the spares, flames from the pipes, and each wheel at its own hub, steered and
    turning. Mud is measured up the car itself, not up the world */
 function drawWorldCar(t,v,dirt){
-  const i=t.bi,b=t.build,T=truck(i),D=T.D,u=P_LIT.u,M0=carMatrix(t);let Mb=M0;
+  const i=t.bi,b=t.build,T=truck(i),D=T.D,u=CUR.u,M0=carMatrix(t);let Mb=M0;
   carUniformsW(t,v,dirt);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
   gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);
@@ -372,19 +372,24 @@ function drawWorldCar(t,v,dirt){
 }
 function render(dt){
   hClear();
-  const T=sceneTarget(),c=CAM.last=camMats(camUpdate(dt),T.w/T.h),t=GAME.car;
-  /* the sun's shadow map round the car first (55_gfx) */
-  shadowPass(c,t);
+  const T=sceneTargetHD(),c=CAM.last=camMats(camUpdate(dt),T.w/T.h),t=GAME.car;GFX.frame++;
+  /* the sun's cascaded shadow maps and a face of the reflection probe first (55_gfx) */
+  csmPass(c,t);probePass(t);
   gl.bindFramebuffer(gl.FRAMEBUFFER,T.f);gl.viewport(0,0,T.w,T.h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);gl.useProgram(P_LIT.p);
+  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);useLit(P_LIT);
   worldUniforms(c);gfxUniforms();skyLights(t);worldShadows([t]);
   /* at night the fog closes in and the world past it isn't drawn; by day the graphics level sets how far */
   let tris=drawRanch(c,SKY.night?SKY.draw:GFX.far);
+  tris+=grassDraw(c,t);
   tris+=drawWorldCar(t,GAME.voice,GAME.dirt);
   tris+=fxDraw();tris+=rainDraw(c,dt);
+  /* the dust and spray last, blended over the rest (into the colour only, not the normals the passes read) */
+  if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.NONE]);tris+=fxDrawSoft(c);if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);
   gl.bindVertexArray(null);APP.tris=tris;
+  /* occlusion and light in the air (laptop), the exposure, then the HUD and the display (55_post) */
+  const src=postPasses(c,dt);
   drawHud(c);
-  present();
+  presentHD(src);
 }
 
 /* ---------- the matrix fills the window, 16:9 ---------- */
@@ -405,7 +410,7 @@ let LAST=0;
 function frame(ts){
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
-  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);if(CAM.last)soundUpdate(CAM.last);autoDetail(dt);}catch(e){console.error(e);}
+  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);if(CAM.last)soundUpdate(CAM.last);autoDetail(dt);drsStep(dt);}catch(e){console.error(e);}
   APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps';}
   requestAnimationFrame(frame);

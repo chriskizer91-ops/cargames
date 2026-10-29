@@ -7,7 +7,8 @@
    ===================================================================================== */
 const cv=$('gl');
 const gl=cv.getContext('webgl2',{antialias:false,alpha:false,depth:false,powerPreference:'high-performance',preserveDrawingBuffer:false});
-const HDR=gl?!!gl.getExtension('EXT_color_buffer_float'):false;
+/* float colour targets: full floats where there are, half floats on the phones that only have those */
+const HDR=gl?!!(gl.getExtension('EXT_color_buffer_float')||gl.getExtension('EXT_color_buffer_half_float')):false;
 const STYLE_ID={color:0,amber:1,lamp:2}[(location.search.match(/[?&]style=(\w+)/)||[])[1]||'color']||0;
 let SS=2;
 function compile(vs,fs,defs=''){
@@ -22,11 +23,12 @@ function compile(vs,fs,defs=''){
   return {p,u};
 }
 const VS_FS=`out vec2 vT;void main(){vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));vT=p;gl_Position=vec4(p*2.0-1.0,0.0,1.0);}`;
-const FS_LED=`in vec2 vT;uniform sampler2D uScene;uniform sampler2D uHud;uniform vec2 uRes;uniform float uGain;uniform int uStyle;uniform float uScn;uniform vec3 uFlash;uniform float uQuant;uniform vec3 uEdge;out vec4 o;
+const FS_LED=`in vec2 vT;uniform sampler2D uScene;uniform sampler2D uHud;uniform sampler2D uExpo;uniform vec2 uRes;uniform float uGain;uniform int uStyle;uniform float uScn;uniform vec3 uFlash;uniform float uQuant;uniform vec3 uEdge;out vec4 o;
 const float BY[16]=float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);
 void main(){
   vec2 cell=vT*uRes;vec2 id=floor(cell);vec2 f=fract(cell)-.5;vec2 tc=(id+.5)/uRes;
-  vec3 sc=texture(uScene,tc).rgb*uScn+uFlash;
+  /* (the exposure: 55_post's auto exposure, 1 where there is none) */
+  vec3 sc=texture(uScene,tc).rgb*uScn*texture(uExpo,vec2(.5)).r+uFlash;
   vec4 hu=texture(uHud,vec2(tc.x,1.-tc.y));
   /* tame HDR highlights under opaque UI so a bright light behind a panel can't glow through it */
   float ka=hu.a*hu.a*hu.a;sc/=1.+ka*max(max(sc.r,sc.g),sc.b)*4.;
