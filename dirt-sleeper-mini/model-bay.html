@@ -1910,6 +1910,9 @@ function engineSpec(b){
   const gears=DE_GEARS[r.trans],R=(r.drv==='FWD'?b.look.tyre:b.look.tyreR||b.look.tyre).R;
   const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:r.drv||'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:'car'}));
   e.gears=gears.slice();e.nG=gears.length;e.fd=r.axle;e.shiftT=DE_SHIFT[r.trans];e.R=R;
+  /* the automatics and the race four-speed pull away through a torque converter; the manuals, sequentials
+     and the rally dog box through a clutch (the game's physics reads this) */
+  e.conv=/^auto|^race4/.test(r.trans);
   return e;
 }
 const SPECS={};
