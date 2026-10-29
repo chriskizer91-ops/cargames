@@ -43,6 +43,9 @@ so their engine bays are never built.
 | `model-bay.html` | The whole bay in one file |
 | `reference/image-prompts.md` | The prompts for the reference sheets the 4x4, coupe, wagon, pickup, muscle car and hatch were modelled from |
 | `tools/shot.js` | Screenshots for checking the cars by eye: `node tools/shot.js <out-dir> <build>:<view>[:<stage>]` |
+| `tools/rank.js` | Ranks every build for circuit, street and off-road racing from its own engine and chassis: `node tools/rank.js [out-dir]` |
+| `design/car-rankings.md` | The rankings, how they were measured, and what they mean for the tracks |
+| `design/ratings.json`, `design/rank-tables.md` | The ratings as data for the game, and the full ranked tables |
 
 ## How a car is made
 

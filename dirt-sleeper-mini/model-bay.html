@@ -1906,7 +1906,8 @@ function engineSpec(b){
   if(r.trans==='seq6'||r.trans==='rally5'){base.seq=1;base.gearWhine=1;}
   /* anti-lag keeps the turbo lit off the throttle: bangs and flames on every lift */
   if(r.antilag){base.antilag=1;base.crackle=Math.max(base.crackle,.95);}
-  const gears=DE_GEARS[r.trans],R=b.look.tyre.R;
+  /* the sim turns the driven wheels: on a car with bigger tyres at the back, those */
+  const gears=DE_GEARS[r.trans],R=(r.drv==='FWD'?b.look.tyre:b.look.tyreR||b.look.tyre).R;
   const e=SIM.makeSpec(Object.assign(base,{id:b.id,name:b.name,machine:'car',mass:r.mass,drv:r.drv||'AWD',R,gears,cdA:r.cdA,mu:r.mu,horn:'car'}));
   e.gears=gears.slice();e.nG=gears.length;e.fd=r.axle;e.shiftT=DE_SHIFT[r.trans];e.R=R;
   return e;
@@ -3919,10 +3920,11 @@ function drawCar(i,Mc,v,hoodA,steer){
   if(live&&v.flame>.04&&D.tips)for(const tp of D.tips){
     const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*v.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
-  const st2=steer&&APP.steer?.36:0,wa=live?-v.wheelA:0,wb=D.uRa-D.uFa;
+  /* the sim's wheel angle is the driven wheels' at its own tyre radius: each wheel turns by its own */
+  const st2=steer&&APP.steer?.36:0,wa=live?-v.wheelA:0,wb=D.uRa-D.uFa,eR=specOf(i).R;
   for(const front of [1,0])for(const s of [1,-1]){
     const x=front?fx:fx-wb*Math.cos(D.pitch),Rw=front?R:D.Rr,tw=(front?b.look.track:b.look.trackR||b.look.track)/2;
-    const M=M4.mul(Mc,M4.mul(M4T(x,Rw,s*tw),M4.mul(M4RY(front?st2:0),M4.mul(M4S(1,1,s),M4RZ(wa*R/Rw)))));
+    const M=M4.mul(Mc,M4.mul(M4T(x,Rw,s*tw),M4.mul(M4RY(front?st2:0),M4.mul(M4S(1,1,s),M4RZ(wa*eR/Rw)))));
     gl.uniformMatrix4fv(u.uM,false,M);drawMesh(front?T.wheel:T.wheelR);}
   return T.tris+bt;
 }
