@@ -96,9 +96,11 @@ button{font:inherit;color:inherit}
     <div class="inl" data-p="look">
       <div class="seg" id="views" role="group" aria-label="View"></div>
       <button class="tog cmp" id="cmp" type="button" aria-pressed="false">Compare</button>
+      <button class="tog cmp" id="garage" type="button" aria-pressed="false">Garage</button>
     </div>
     <div class="inl" data-p="engine" hidden>
       <button class="tog power" id="power" type="button" aria-pressed="false"><i></i><span id="powerLbl">Start engine</span><kbd>I</kbd></button>
+      <button class="tog" id="allEng" type="button" hidden>Start all</button>
       <div class="seg" id="segMode" role="group" aria-label="Mode"><button type="button" data-v="free" aria-pressed="true">Free rev</button><button type="button" data-v="drive" aria-pressed="false">Drive</button></div>
       <div class="seg" id="segListen" role="group" aria-label="Where you listen"></div>
     </div>
@@ -552,7 +554,7 @@ const FS_LIT=GLSL_COMMON+`
 in vec3 vP;in vec3 vN;in vec4 vC;in float vMat;in vec3 vL;out vec4 o;
 uniform vec3 uPaint;uniform vec3 uPaint2;uniform vec3 uRim;uniform vec3 uCal;uniform vec3 uClad;
 uniform float uLiv;uniform float uLights;uniform float uBrake;uniform float uDirt;uniform float uGround;uniform vec4 uLivP;
-uniform vec4 uShadow;uniform vec4 uShadow2;uniform float uSpin;
+uniform vec4 uSh[8];uniform float uShA[8];uniform int uNSh;uniform float uSpin;
 /* mud: caked and wet low down, dry and splattered higher up; returns 0..1 coverage */
 float mud(vec3 L,float h){
   if(uDirt<=0.)return 0.;
@@ -620,10 +622,12 @@ void main(){
   else if(m==19){alb=uCal*.7;spec=.5;shin=50.;add+=env(R)*uCal*.1;}
   else if(m==20){float r=length(vL.xy);alb=vec3(.28,.28,.3)*(.8+.2*step(.5,fract(r*60.)));spec=.6;shin=40.;add+=env(R)*.15;}
   else if(m==21){
-    /* the studio floor: glossy, with a soft contact shadow under the truck */
-    vec2 q=vP.xz-uShadow.xy;float c=cos(uShadow2.z),s=sin(uShadow2.z);q=vec2(c*q.x-s*q.y,s*q.x+c*q.y);
-    vec2 e=abs(q)-uShadow.zw;float dd=length(max(e,0.))+min(max(e.x,e.y),0.);
-    float sh=1.-.82*(1.-smoothstep(-.35,.55,dd))-.10*(1.-smoothstep(-.2,2.4,dd));
+    /* the studio floor: glossy, with a soft contact shadow under each car (x, z, half length, half width; turned by uShA) */
+    float sh=1.;
+    for(int i=0;i<8;i++){if(i>=uNSh)break;
+      vec2 q=vP.xz-uSh[i].xy;float c=cos(uShA[i]),s=sin(uShA[i]);q=vec2(c*q.x-s*q.y,s*q.x+c*q.y);
+      vec2 e=abs(q)-uSh[i].zw;float dd=length(max(e,0.))+min(max(e.x,e.y),0.);
+      sh=min(sh,1.-.82*(1.-smoothstep(-.35,.55,dd))-.10*(1.-smoothstep(-.2,2.4,dd)));}
     spec=.55;shin=60.;alb*=sh;add+=env(R)*(.08+.5*F)*sh*(uStage>1.5?.5:1.);}
   else if(m==22){alb=vec3(.62,.62,.58);spec=.2;}
   else if(m==23){emc=vec3(.9)*uLights*.25;alb=vec3(.6);spec=.8;shin=80.;add+=env(R)*.3;}
@@ -1911,18 +1915,30 @@ const SPECS={};
 const specOf=i=>{const b=BUILDS[i];return SPECS[b.id]||(SPECS[b.id]=engineSpec(b));};
 
 /* =====================================================================================
-   THE ENGINE IN THE BAY. The audio graph, the room, and the loop that feeds the synth are the
-   Digital Engine lab's own (roomIR, ROOM_SEND, setRoom and initAudio are copied from it, with
-   its page state renamed to ENG). Each frame the sim takes four steps, its events go to the synth,
-   then one set of params, exactly as the lab does it.
+   THE ENGINES. The audio graph, the room, and the loop that feeds the synth are the Digital
+   Engine lab's own (roomIR, ROOM_SEND, setRoom and initAudio are copied from it, with its page
+   state renamed to ENG). Every car has a voice of its own: its own sim and its own synth, all
+   playing into the one room, so in the garage any number of them can run at once. Each frame
+   every running sim takes four steps, its events go to its synth, then one set of params, exactly
+   as the lab does it. Only the car on the turntable hears the throttle; the rest idle where they
+   are parked.
    ===================================================================================== */
-const ENG={sim:null,spec:null,audio:null,busy:false,listener:0,room:'open',vol:.8,tab:'look',
-  keys:new Set(),digits:new Set(),pad:0,padOn:false,brkBtn:false,nos:false,blipT:0,popT:-1e9,
-  status:'',flame:0,flameL:0,roll:0,rollV:0,pitch:0,pitchV:0,wheelA:0,shake:[0,0]};
+const ENG={audio:null,init:null,listener:0,room:'open',vol:.8,tab:'look',
+  keys:new Set(),digits:new Set(),pad:0,padOn:false,brkBtn:false,nos:false,blipT:0,status:''};
 try{const s=JSON.parse(store.get('dsmini-engine','{}'));if(['open','garage','tunnel'].includes(s.room))ENG.room=s.room;
   if(s.listener>=0&&s.listener<=2)ENG.listener=s.listener|0;if(s.vol>=0&&s.vol<=1)ENG.vol=+s.vol;if(s.tab==='engine')ENG.tab='engine';}catch(e){}
 const saveEng=()=>store.set('dsmini-engine',JSON.stringify({room:ENG.room,listener:ENG.listener,vol:ENG.vol,tab:ENG.tab}));
 const LISTEN=['Behind','Cabin','Trackside'];
+/* a car's voice: its sim, its synth, and the way its body answers the engine */
+const VOICES={};
+/* the camera the last frame was drawn from: where the parked cars are heard from, and what a tap picks */
+let CAMNOW=null;
+const voiceOf=car=>VOICES[car]||(VOICES[car]={car,sim:null,spec:null,node:null,port:null,busy:false,asleep:false,offT:0,inp:null,popT:-1e9,
+  flame:0,flameL:0,roll:0,rollV:0,pitch:0,pitchV:0,wheelA:0,shake:[0,0],dist:-1});
+/* the voice of the car on the turntable, which the dock, the keys and the instruments talk to */
+const cur=()=>voiceOf(BUILDS[APP.build].car);
+Object.defineProperties(ENG,{sim:{get:()=>cur().sim},spec:{get:()=>cur().spec},inp:{get:()=>cur().inp}});
+const runs=v=>!!v.sim&&v.sim.st!=='off'&&v.sim.st!=='stopping';
 
 /* ---------- from the lab: the room ---------- */
 function roomIR(ctx,kind){
@@ -1951,59 +1967,74 @@ function setRoom(){if(!ENG.audio)return;const a=ENG.audio;a.conv.buffer=roomIR(a
 /* ---------- from the lab: the audio graph, the synth in an audio worklet ---------- */
 async function initAudio(){
   if(ENG.audio)return ENG.audio;
-  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser has no Web Audio.');
-  const ctx=new AC({latencyHint:'interactive'});
-  const master=ctx.createGain();master.gain.value=ENG.vol;
-  const comp=ctx.createDynamicsCompressor();comp.threshold.value=-8;comp.knee.value=6;comp.ratio.value=4;comp.attack.value=.003;comp.release.value=.15;
-  master.connect(comp);comp.connect(ctx.destination);
-  const send=ctx.createGain();send.gain.value=0;const conv=ctx.createConvolver();send.connect(conv);conv.connect(master);
-  let node,port,kind;
-  try{
-    if(!ctx.audioWorklet)throw new Error('no worklet');
-    const src=`const EngineDSP=(${makeDSP.toString()})();
+  /* starting every car at once asks for the graph several times over; they all wait on the one */
+  if(!ENG.init)ENG.init=(async()=>{
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('This browser has no Web Audio.');
+    const ctx=new AC({latencyHint:'interactive'});
+    const master=ctx.createGain();master.gain.value=ENG.vol;
+    const comp=ctx.createDynamicsCompressor();comp.threshold.value=-8;comp.knee.value=6;comp.ratio.value=4;comp.attack.value=.003;comp.release.value=.15;
+    master.connect(comp);comp.connect(ctx.destination);
+    const send=ctx.createGain();send.gain.value=0;const conv=ctx.createConvolver();send.connect(conv);conv.connect(master);
+    let worklet=false,kind;
+    try{
+      if(!ctx.audioWorklet)throw new Error('no worklet');
+      /* the lab's processor, plus a nap: a parked engine that is off stops costing anything */
+      const src=`const EngineDSP=(${makeDSP.toString()})();
 class DigitalEngine extends AudioWorkletProcessor{
-  constructor(){super();this.d=new EngineDSP(sampleRate);this.k=0;
-    this.port.onmessage=e=>{const m=e.data;if(m.t==='cfg')this.d.configure(m.cfg);else if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);};}
-  process(i,o){const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);if(++this.k>=8){this.k=0;const s=this.d.takeStats();if(s)this.port.postMessage(s);}return true;}
+  constructor(){super();this.d=new EngineDSP(sampleRate);this.k=0;this.zz=false;
+    this.port.onmessage=e=>{const m=e.data;if(m.t==='cfg')this.d.configure(m.cfg);else if(m.t==='p')this.d.set(m.p);else if(m.t==='ev')this.d.event(m.ev);else if(m.t==='sleep')this.zz=!!m.v;};}
+  process(i,o){if(this.zz)return true;const out=o[0];this.d.process(out[0],out[1]||out[0],out[0].length);if(++this.k>=8){this.k=0;const s=this.d.takeStats();if(s)this.port.postMessage(s);}return true;}
 }
 registerProcessor('digital-engine',DigitalEngine);`;
-    /* a blob URL where the page has a real origin; a data URL where it does not (a file opened from disk) */
-    try{await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([src],{type:'application/javascript'})));}
-    catch(e1){await ctx.audioWorklet.addModule('data:application/javascript;charset=utf-8,'+encodeURIComponent(src));}
-    node=new AudioWorkletNode(ctx,'digital-engine',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2]});
-    node.port.onmessage=e=>onStats(e.data);port={post:m=>node.port.postMessage(m)};kind='audio worklet';
-  }catch(err){
+      /* a blob URL where the page has a real origin; a data URL where it does not (a file opened from disk) */
+      try{await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([src],{type:'application/javascript'})));}
+      catch(e1){await ctx.audioWorklet.addModule('data:application/javascript;charset=utf-8,'+encodeURIComponent(src));}
+      worklet=true;kind='audio worklet';
+    }catch(err){kind='main-thread fallback ('+(err&&err.message||err)+')';}
+    ENG.audio={ctx,master,comp,send,conv,worklet,kind};
+    setRoom();
+    ENG.status=`Digital Engine synth running live in an ${kind} at ${(ctx.sampleRate/1000).toFixed(1)} kHz.`;
+    return ENG.audio;
+  })();
+  try{return await ENG.init;}finally{ENG.init=null;}
+}
+/* one car's synth, made the first time its engine starts */
+function voiceNode(v){
+  if(v.port)return;const a=ENG.audio,ctx=a.ctx;let node=null,port;
+  if(a.worklet)try{node=new AudioWorkletNode(ctx,'digital-engine',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2]});
+    const np=node.port;np.onmessage=e=>onStats(v,e.data);port={post:m=>np.postMessage(m)};}catch(e){node=null;}
+  if(!node){
     /* fallback: the same synth on the main thread */
-    const D=makeDSP(),d=new D(ctx.sampleRate);node=ctx.createScriptProcessor(1024,1,2);
+    const D=makeDSP(),d=new D(ctx.sampleRate);let zz=false;node=ctx.createScriptProcessor(1024,1,2);
     const silent=ctx.createConstantSource?ctx.createConstantSource():null;if(silent){silent.offset.value=0;silent.connect(node);silent.start();}
-    node.onaudioprocess=ev=>{const b=ev.outputBuffer;d.process(b.getChannelData(0),b.getChannelData(1),b.length);const s=d.takeStats();if(s)onStats(s);};
-    port={post:m=>{if(m.t==='cfg')d.configure(m.cfg);else if(m.t==='p')d.set(m.p);else if(m.t==='ev')d.event(m.ev);}};kind='main-thread fallback ('+(err&&err.message||err)+')';
+    node.onaudioprocess=ev=>{const b=ev.outputBuffer;if(zz){b.getChannelData(0).fill(0);b.getChannelData(1).fill(0);return;}
+      d.process(b.getChannelData(0),b.getChannelData(1),b.length);const s=d.takeStats();if(s)onStats(v,s);};
+    port={post:m=>{if(m.t==='cfg')d.configure(m.cfg);else if(m.t==='p')d.set(m.p);else if(m.t==='ev')d.event(m.ev);else if(m.t==='sleep')zz=!!m.v;}};
   }
-  node.connect(master);node.connect(send);
-  ENG.audio={ctx,master,comp,send,conv,node,port,kind};
-  setRoom();port.post({t:'cfg',cfg:SIM.dspCfg(ENG.spec)});
-  ENG.status=`Digital Engine synth running live in an ${kind} at ${(ctx.sampleRate/1000).toFixed(1)} kHz.`;
-  return ENG.audio;
+  node.connect(a.master);node.connect(a.send);
+  v.node=node;v.port=port;v.asleep=false;port.post({t:'cfg',cfg:SIM.dspCfg(v.spec)});
 }
 /* a bang in the pipes lights the bang chip and throws a flame out of the tips */
-function onStats(s){if(s.pops){ENG.popT=performance.now();ENG.flame=Math.min(1.4,ENG.flame+.45+.25*s.pops);ENG.flameL=.55+Math.random()*.6;}}
-async function startEngine(){
-  if(ENG.busy)return;ENG.busy=true;
-  try{await initAudio();if(ENG.audio.ctx.state!=='running')await ENG.audio.ctx.resume();ENG.sim.start();}
+function onStats(v,s){if(s.pops){v.popT=performance.now();v.flame=Math.min(1.4,v.flame+.45+.25*s.pops);v.flameL=.55+Math.random()*.6;}}
+async function startEngine(v=cur()){
+  if(v.busy||!v.sim)return;v.busy=true;
+  try{await initAudio();if(ENG.audio.ctx.state!=='running')await ENG.audio.ctx.resume();voiceNode(v);
+    if(v.asleep){v.asleep=false;v.port.post({t:'sleep',v:0});}v.offT=0;v.sim.start();}
   catch(e){ENG.status='Sound could not start: '+e.message;}
-  ENG.busy=false;engineLive(true);
+  v.busy=false;engineLive(true);
 }
-function toggleEngine(){if(!ENG.audio||ENG.sim.st==='off'||ENG.sim.st==='stopping')startEngine();else{ENG.sim.stop();engineLive(true);}}
-const engineOn=()=>!!ENG.sim&&ENG.sim.st!=='off'&&ENG.sim.st!=='stopping';
+function toggleEngine(){const v=cur();if(!v.port||!runs(v))startEngine(v);else{v.sim.stop();engineLive(true);}}
+const engineOn=()=>runs(cur());
 
-/* ---------- the truck's engine: the lab's applySpec, for whichever truck is on the turntable ---------- */
+/* ---------- a car's engine: the lab's applySpec, for whichever build that car is on ---------- */
 function engineFor(i){
-  const spec=specOf(i);if(ENG.spec===spec)return;ENG.spec=spec;
-  if(!ENG.sim){ENG.sim=SIM.makeSim(spec);ENG.sim.mode='free';}else ENG.sim.setSpec(spec);
-  if(ENG.audio)ENG.audio.port.post({t:'cfg',cfg:SIM.dspCfg(spec)});
+  const v=voiceOf(BUILDS[i].car),spec=specOf(i);if(v.spec===spec)return v;v.spec=spec;
+  if(!v.sim){v.sim=SIM.makeSim(spec);v.sim.mode='free';}else v.sim.setSpec(spec);
+  if(v.port)v.port.post({t:'cfg',cfg:SIM.dspCfg(spec)});
+  return v;
 }
-function setMode(m){
-  const sim=ENG.sim;sim.mode=m;
+function setMode(m,v=cur()){
+  const sim=v.sim;sim.mode=m;
   sim.gear=0;sim.clutch='open';sim.shiftT=0;sim.held=false;if(m==='free'){sim.v=0;sim.ww=0;sim.pos=0;}else sim.pos=-120;
 }
 function setListener(v){ENG.listener=+v;setRoom();saveEng();}
@@ -2014,7 +2045,7 @@ function setVolume(v){ENG.vol=+v;if(ENG.audio)ENG.audio.master.gain.setTargetAtT
 const ENG_BTNS=[
   {id:'brake',l:'Brake',k:'KeyS',t:'hold',drive:1,tone:'red'},{id:'down',l:'Shift down',k:'KeyQ',t:'tap',drive:1},{id:'up',l:'Shift up',k:'KeyE',t:'tap',drive:1},
   {id:'nos',l:'Nitrous',k:'KeyN',t:'hold',tone:'cyan',need:e=>e.nosKw},{id:'purge',l:'Purge',k:'KeyP',t:'tap',need:e=>e.nosKw},{id:'blip',l:'Blip',k:'KeyB',t:'tap'}];
-const ENG_ACT={up:()=>ENG.sim.shift(1),down:()=>ENG.sim.shift(-1),purge:()=>{if(ENG.audio)ENG.audio.port.post({t:'ev',ev:{type:'purge'}});},blip:()=>{ENG.blipT=.22;}};
+const ENG_ACT={up:()=>ENG.sim.shift(1),down:()=>ENG.sim.shift(-1),purge:()=>{const v=cur();if(v.port)v.port.post({t:'ev',ev:{type:'purge'}});},blip:()=>{ENG.blipT=.22;}};
 function engHold(d,v){if(d.el)d.el.classList.toggle('on',v);if(d.id==='brake')ENG.brkBtn=v;else if(d.id==='nos')ENG.nos=v;}
 function engPress(d){if(d.el&&d.el.disabled)return;if(ENG_ACT[d.id])ENG_ACT[d.id]();}
 function readInput(dt){
@@ -2044,23 +2075,57 @@ addEventListener('keyup',e=>{const c=e.code;
   if(/^Digit\d$/.test(c))ENG.digits.delete(+c.slice(5)||10);});
 addEventListener('blur',()=>{ENG.keys.clear();ENG.digits.clear();ENG.padOn=false;ENG.brkBtn=false;ENG.nos=false;for(const d of ENG_BTNS)if(d.t==='hold')engHold(d,false);});
 
-/* ---------- the loop: the lab's frame, minus its instruments ---------- */
+/* ---------- the loop: the lab's frame, minus its instruments, once for every car that is running ---------- */
+const IDLE={thr:0,brk:0,nos:false};
 function engineFrame(dt){
-  const sim=ENG.sim;if(!sim)return;
-  const inp=readInput(dt);for(let k=0;k<4;k++)sim.step(dt/4,inp);
-  const ev=sim.takeEvents();
-  if(ENG.audio){for(const e of ev)ENG.audio.port.post({t:'ev',ev:e});ENG.audio.port.post({t:'p',p:sim.params(ENG.listener,1)});}
-  if(sim.stalled){sim.stalled=false;ENG.status='It stalled. Start it again with the button or I.';}
-  ENG.inp=inp;
-  /* the truck answers: torque rocks the body on its springs, acceleration squats it, the wheels turn */
-  const e=ENG.spec,run=sim.running,Te=run?Math.max(-e.tq*.3,SIM.engTq(e,Math.max(sim.rpm,1),sim.thr,sim.boost)):0;
+  const sel=cur();if(!sel.sim)return;
+  const inp=readInput(dt);
+  for(const car in VOICES){
+    const v=VOICES[car],sim=v.sim,mine=v===sel;if(!sim)continue;
+    /* a parked car that has never run has nothing to do */
+    if(!mine&&!v.port&&sim.st==='off')continue;
+    const vi=mine?inp:IDLE;for(let k=0;k<4;k++)sim.step(dt/4,vi);
+    const ev=sim.takeEvents();
+    if(v.port){
+      /* an engine that has been off a while sleeps in its worklet until it is started again */
+      v.offT=sim.st==='off'?v.offT+dt:0;const nap=v.offT>2;
+      if(nap!==v.asleep){v.asleep=nap;v.port.post({t:'sleep',v:nap?1:0});}
+      if(!nap){for(const e of ev)v.port.post({t:'ev',ev:e});v.port.post({t:'p',p:voiceParams(v,mine,dt)});}}
+    if(sim.stalled){sim.stalled=false;if(mine)ENG.status='It stalled. Start it again with the button or I.';}
+    v.inp=vi;
+    bodyFrame(v,dt);
+  }
+}
+/* the car answers: torque rocks the body on its springs, acceleration squats it, the wheels turn */
+function bodyFrame(v,dt){
+  const sim=v.sim,e=v.spec,run=sim.running,Te=run?Math.max(-e.tq*.3,SIM.engTq(e,Math.max(sim.rpm,1),sim.thr,sim.boost)):0;
   const rollT=-.02*Te/e.peak.tq,pitchT=sim.mode==='drive'?clamp(sim.aPrev/9.81,-1,1)*.014:0;
-  ENG.rollV+=(-(ENG.roll-rollT)*80-ENG.rollV*6.5)*dt;ENG.roll+=ENG.rollV*dt;
-  ENG.pitchV+=(-(ENG.pitch-pitchT)*60-ENG.pitchV*7)*dt;ENG.pitch+=ENG.pitchV*dt;
+  v.rollV+=(-(v.roll-rollT)*80-v.rollV*6.5)*dt;v.roll+=v.rollV*dt;
+  v.pitchV+=(-(v.pitch-pitchT)*60-v.pitchV*7)*dt;v.pitch+=v.pitchV*dt;
   const idle=run?1-clamp((sim.rpm-e.idle)/(e.idle*1.5),0,1):0,lope=[0,.012,.032,.065][e.cam|0],amp=run?(.0004+lope*.03*idle+.0003*sim.load):0;
-  ENG.shake=[(Math.random()-.5)*amp,(Math.random()-.5)*amp*1.6];
-  ENG.wheelA=(ENG.wheelA+(sim.mode==='drive'?sim.ww:0)*dt)%(TAU*1000);
-  ENG.flame=Math.max(0,ENG.flame-dt*9);
+  v.shake=[(Math.random()-.5)*amp,(Math.random()-.5)*amp*1.6];
+  v.wheelA=(v.wheelA+(sim.mode==='drive'?sim.ww:0)*dt)%(TAU*1000);
+  v.flame=Math.max(0,v.flame-dt*9);
+}
+/* where a car is heard from. The one on the turntable is heard the way the listener buttons say.
+   A parked car is heard from the camera: from the side it is on, in front of it or behind it, and
+   as far off as it is (a little nearer, the shed is a small room). How fast that distance can change
+   is held down, so the camera flying across the shed does not bend the pitch. Out of the garage only
+   the car on the turntable is heard. */
+function voiceParams(v,mine,dt){
+  const p=v.sim.params(mine?ENG.listener:0,1);
+  if(mine){v.dist=-1;return p;}
+  if(!APP.garage||!CAMNOW){p.vol=0;return p;}
+  const s=spotOf(v.car),c=CAMNOW,dx=s.p[0]-c.eye[0],dy=.6-c.eye[1],dz=s.p[2]-c.eye[2],d=Math.hypot(dx,dy,dz)||1,t=Math.max(3,d*.6);
+  v.dist=v.dist<0?t:v.dist+clamp(t-v.dist,-8*dt,8*dt);
+  const f=[Math.cos(s.yaw),-Math.sin(s.yaw)];
+  p.dist=v.dist;p.pan=clamp((dx*c.right[0]+dz*c.right[2])/d*.9,-.9,.9);p.rear=clamp(.5+.5*(f[0]*dx+f[1]*dz)/d,0,1);
+  return p;
+}
+/* every car in the shed at once */
+function allEngines(on){
+  for(const [car] of CARS){const v=engineFor(carBuild(car));if(on&&!runs(v))startEngine(v);else if(!on&&runs(v))v.sim.stop();}
+  engineLive(true);
 }
 /* ---------- the dot-matrix instruments: Shiftlight 2's shift lights, tach, gear and speed ---------- */
 function engShiftLights(x,y,e,rpm,n=15){
@@ -2093,7 +2158,7 @@ function engineHud(){
   if(e.fiBoost){const b=clamp((sim.boost||0)/(e.fiBoost*1.05),0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*b),4,Math.round(28*b),e.sup?PAL.lime:PAL.amber);txt3('B',bx,by+30,PAL.dim);bx-=8;}
   if(e.nosKw){const b=clamp(sim.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*b),4,Math.round(28*b),sim.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
   /* the lab's chips */
-  const bang=performance.now()-ENG.popT<140,run=sim.running;
+  const bang=performance.now()-cur().popT<140,run=sim.running;
   const C=[['LIMITER',sim.cutFrac>.5&&!sim.twostep&&!sim.tcOn&&sim.shiftT<=0,PAL.red],['2-STEP',sim.twostep,PAL.amber],['TC',sim.tcOn,PAL.green],
     ['NOS',sim.nosOn,PAL.cyan],['BANG',bang,PAL.red]];
   if(e.antilag)C.splice(3,0,['ANTI-LAG',!!(e.turbo&&sim.thr<.2&&run&&sim.rpm>e.redline*.3),PAL.amber]);
@@ -3704,12 +3769,27 @@ const carBuilds=car=>BUILDS.map((b,i)=>b.car===car?i:-1).filter(i=>i>=0);
    ===================================================================================== */
 const STAGES={
   dark:{id:1,sun:[0,1,0],sunCol:[0,0,0],sky:lin('#3a3a4c',.34),gnd:lin('#1c1c22',.24),fog:lin('#06060a'),fogD:.016,
-    lights:[[3.6,5.4,3.2,16,[1,.95,.88],2.6],[-4.2,4,-3.6,15,[.75,.82,1],1.3],[-5.6,2.3,4.4,12,[1,.35,.5],1.15],[5.6,2.3,-4.8,12,[.35,.75,1],1.3],[0,6.4,0,11,[1,1,1],1.2],[0,1.2,7,9,[1,.97,.92],.7]]},
+    lights:[[3.6,5.4,3.2,16,[1,.95,.88],2.6],[-4.2,4,-3.6,15,[.75,.82,1],1.3],[-5.6,2.3,4.4,12,[1,.35,.5],1.15],[5.6,2.3,-4.8,12,[.35,.75,1],1.3],[0,6.4,0,11,[1,1,1],1.2],[0,1.2,7,9,[1,.97,.92],.7]],
+    /* the garage keeps the turntable's key, rim and top lights and hangs three over the parked cars */
+    garage:[0,1,2,3,4],rowLight:[[1,.95,.86],2.4]},
   light:{id:2,sun:V3.norm([.45,.85,.35]),sunCol:lin('#fff4e6',1.25),sky:lin('#c9c7c3',.62),gnd:lin('#8e8a85',.42),fog:lin('#bdbab5'),fogD:.0035,
-    lights:[[4,4.5,4,14,[1,.97,.92],1.0],[-5,3,-3,14,[.85,.9,1],.6],[0,6,0,10,[1,1,1],.6]]}
+    lights:[[4,4.5,4,14,[1,.97,.92],1.0],[-5,3,-3,14,[.85,.9,1],.6],[0,6,0,10,[1,1,1],.6]],
+    garage:[0,1,2],rowLight:[[1,.97,.92],.8]}
 };
-function buildStage(kind){
-  const m=new MB(),SEG=72,FY=-.06,arc=(i,r,y)=>{const a=i/SEG*TAU;return [Math.cos(a)*r,y,Math.sin(a)*r];},dark=kind==='dark';
+/* ---------- the garage: the same shed made big enough to park every car round the back of it ---------- */
+const GAR={sc:1.45,R:12,step:.235};
+/* a car's bay: spread in an arc behind the turntable, nose in toward it. th is the bay's direction
+   from the middle in the camera's terms (0 is +X, turning toward -Z); yaw turns the car to face in */
+function spotOf(car){const k=CARS.findIndex(c=>c[0]===car),th=PI+(k-(CARS.length-1)/2)*GAR.step;
+  return {th,yaw:th+PI,p:[GAR.R*Math.cos(th),0,-GAR.R*Math.sin(th)]};}
+function stageLights(S,garage){
+  if(!garage)return S.lights;
+  const L=S.garage.map(k=>S.lights[k]);
+  for(const d of [-.45,0,.45]){const th=PI+d;L.push([11.4*Math.cos(th),5.4,-11.4*Math.sin(th),11.5,S.rowLight[0],S.rowLight[1]]);}
+  return L;
+}
+function buildStage(kind,garage){
+  const sc=garage?GAR.sc:1,m=new MB(),SEG=garage?112:72,FY=-.06,arc=(i,r,y)=>{const a=i/SEG*TAU;return [Math.cos(a)*r*sc,y,Math.sin(a)*r*sc];},dark=kind==='dark';
   const FL=dark?[[0,'#2c2c33'],[3.3,'#2a2a31'],[6.5,'#202026'],[10,'#17171b'],[12.3,'#111114']]:[[0,'#a7a49f'],[3.3,'#a39f9a'],[6.5,'#9c9893'],[10,'#97938e'],[12.3,'#95918c']];
   for(let k=0;k<FL.length-1;k++){const [r0,h0]=FL[k],[r1,h1]=FL[k+1],c0=lin(h0),c1=lin(h1);
     for(let i=0;i<SEG;i++)m.quadC(arc(i,r0,FY),arc(i+1,r0,FY),arc(i+1,r1,FY),arc(i,r1,FY),c0,c0,c1,c1,0,MAT.FLOOR);}
@@ -3718,16 +3798,25 @@ function buildStage(kind){
   for(let k=0;k<CV.length-1;k++){const [r0,y0]=CV[k],[r1,y1]=CV[k+1],c0=cvc(y0),c1=cvc(y1);for(let i=0;i<SEG;i++)m.quadC(arc(i,r0,y0),arc(i+1,r0,y0),arc(i+1,r1,y1),arc(i,r1,y1),c0,c0,c1,c1,0,MAT.COL);}
   if(dark){
     for(let i=0;i<SEG;i++)m.quad(arc(i,12.68,.04),arc(i+1,12.68,.04),arc(i+1,12.68,.12),arc(i,12.68,.12),[.85,.9,1],.55,MAT.EMIT);
-    for(let i=0;i<8;i++){const a=i/8*TAU,cx=Math.cos(a)*13.24,cz=Math.sin(a)*13.24,tx=-Math.sin(a)*.28,tz=Math.cos(a)*.28;
+    const NS=garage?12:8;
+    for(let i=0;i<NS;i++){const a=i/NS*TAU,cx=Math.cos(a)*13.24*sc,cz=Math.sin(a)*13.24*sc,tx=-Math.sin(a)*.28,tz=Math.cos(a)*.28;
       m.quad([cx-tx,1.25,cz-tz],[cx+tx,1.25,cz+tz],[cx+tx,6.6,cz+tz],[cx-tx,6.6,cz-tz],[.85,.9,1],.7,MAT.EMIT);}
-    /* the house name in dots on the wall behind the turntable */
-    const word='DIRT SLEEPER MINI',dp=.11,a0=2.52,tw=word.length*6*dp;
+    /* the house name in dots on the wall behind the turntable; in the garage, high on the wall over the parked cars */
+    const word='DIRT SLEEPER MINI',dp=garage?.13:.11,a0=garage?PI:2.52,y0=garage?3.7:2.75,rw=13.2*sc,tw=word.length*6*dp;
     for(let k=0;k<word.length;k++){const g=G5[word[k]];if(!g)continue;for(let r=0;r<7;r++)for(let c=0;c<5;c++)if((g[r]>>(4-c))&1){
-      const a=a0+((k*6+c)*dp-tw/2)/13.2,y=2.75-r*dp,px=Math.cos(a)*13.2,pz=Math.sin(a)*13.2;m.box(px-.04,y-.04,pz-.04,px+.04,y+.04,pz+.04,[1,.24,.32],.55,MAT.EMIT);}}
+      const a=a0+((k*6+c)*dp-tw/2)/rw,y=y0-r*dp,px=Math.cos(a)*rw,pz=Math.sin(a)*rw,h=garage?.047:.04;m.box(px-h,y-h,pz-h,px+h,y+h,pz+h,[1,.24,.32],.55,MAT.EMIT);}}
   }
-  const t=new MB(),TT=3.3,tc=dark?lin('#33333b'):lin('#b2afaa');
-  for(let i=0;i<SEG;i++){t.tri([0,0,0],arc(i,TT,0),arc(i+1,TT,0),tc,0,MAT.FLOOR);t.quad(arc(i,TT,FY),arc(i+1,TT,FY),arc(i+1,TT,0),arc(i,TT,0),dark?lin('#0c0c0f'):lin('#7d7a75'),0,MAT.COL);
-    t.quad(arc(i,TT-.08,.002),arc(i+1,TT-.08,.002),arc(i+1,TT-.03,.002),arc(i,TT-.03,.002),dark?[1,.22,.3]:lin('#8a8780'),dark?.45:0,dark?MAT.EMIT:MAT.COL);}
+  if(garage){
+    /* painted bays: a line either side of every car, and a stop line across the front */
+    const pc=dark?lin('#8c6d1f'):lin('#b38f2c'),y=FY+.012,r0=GAR.R-2.75,r1=GAR.R+3.2,lw=.06,n=CARS.length;
+    const at=(th,r,o)=>[r*Math.cos(th)-o*Math.sin(th),y,-r*Math.sin(th)-o*Math.cos(th)];
+    for(let k=0;k<=n;k++){const th=PI+(k-n/2)*GAR.step;m.quad(at(th,r0,-lw),at(th,r1,-lw),at(th,r1,lw),at(th,r0,lw),pc,0,MAT.FLOOR);}
+    const S=48,t0=PI-n/2*GAR.step,t1=PI+n/2*GAR.step;
+    for(let i=0;i<S;i++){const a=t0+(t1-t0)*i/S,b=t0+(t1-t0)*(i+1)/S;m.quad(at(a,r0-lw,0),at(b,r0-lw,0),at(b,r0+lw,0),at(a,r0+lw,0),pc,0,MAT.FLOOR);}
+  }
+  const t=new MB(),TT=3.3,tc=dark?lin('#33333b'):lin('#b2afaa'),tarc=(i,r,y)=>{const a=i/72*TAU;return [Math.cos(a)*r,y,Math.sin(a)*r];};
+  for(let i=0;i<72;i++){t.tri([0,0,0],tarc(i,TT,0),tarc(i+1,TT,0),tc,0,MAT.FLOOR);t.quad(tarc(i,TT,FY),tarc(i+1,TT,FY),tarc(i+1,TT,0),tarc(i,TT,0),dark?lin('#0c0c0f'):lin('#7d7a75'),0,MAT.COL);
+    t.quad(tarc(i,TT-.08,.002),tarc(i+1,TT-.08,.002),tarc(i+1,TT-.03,.002),tarc(i,TT-.03,.002),dark?[1,.22,.3]:lin('#8a8780'),dark?.45:0,dark?MAT.EMIT:MAT.COL);}
   return {stage:m.build(),table:t.build(),tris:(m.p.length+t.p.length)/9};
 }
 
@@ -3736,15 +3825,22 @@ function buildStage(kind){
    target at matrix resolution and turned into LED dots by Shiftlight 2's present().
    ===================================================================================== */
 const VIEWS=[['front34','Front ¾',-38,8,8.6,.86],['side','Side',90,2.5,8.4,.82],['rear34','Rear ¾',142,9,8.6,.86],
-  ['front','Front',0,4,7.4,.86],['rear','Rear',180,5,7.4,.86],['top','Top',-35,58,9.6,.55],['low','Low',-24,1.5,6.6,.62],['bay','Bay',-36,46,4.1,0]];
+  ['front','Front',0,4,7.4,.86],['rear','Rear',180,5,7.4,.86],['top','Top',-35,58,9.6,.55],['low','Low',-24,1.5,6.6,.62],['bay','Bay',-36,46,4.1,0],['all','All',0,22,19,.9]];
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3]];
 /* how far the hood swings open (rad) */
 const HOOD_OPEN=1.0;
-const APP={build:0,view:'front34',compare:false,stage:'dark',lights:false,steer:false,spin:false,hood:false,hoodA:0,yaw:0,paint:{},dirt:{},
-  cam:{th:-38,ph:8,d:8.6,ty:.86},camT:null,fov:.5,t:0,frameMs:0,fps:60,tris:0};
-try{const s=JSON.parse(store.get('dsmini-bay','{}'));for(const k of ['build','view','stage','lights','steer','hood','compare'])if(s[k]!==undefined)APP[k]=s[k];APP.hoodA=APP.hood?1:0;if(s.paint)APP.paint=s.paint;if(s.dirt)APP.dirt=s.dirt;}catch(e){}
+const APP={build:0,view:'front34',compare:false,garage:false,stage:'dark',lights:false,steer:false,spin:false,hood:false,hoodA:0,yaw:0,paint:{},dirt:{},
+  cam:{th:-38,ph:8,d:8.6,ty:.86,tx:0,tz:0,fov:.5},camT:null,fov:.5,t:0,frameMs:0,fps:60,tris:0};
+/* the build each car was last on: the one it sits on in the garage */
+const CAR_LAST={};
+try{const s=JSON.parse(store.get('dsmini-bay','{}'));for(const k of ['build','view','stage','lights','steer','hood','compare','garage'])if(s[k]!==undefined)APP[k]=s[k];APP.hoodA=APP.hood?1:0;if(s.paint)APP.paint=s.paint;if(s.dirt)APP.dirt=s.dirt;
+  if(s.last)for(const [car] of CARS){const i=s.last[car];if(BUILDS[i]&&BUILDS[i].car===car)CAR_LAST[car]=i;}}catch(e){}
 if(!(APP.build>=0&&APP.build<BUILDS.length))APP.build=0;
-const saveApp=()=>store.set('dsmini-bay',JSON.stringify({build:APP.build,view:APP.view,stage:APP.stage,lights:APP.lights,steer:APP.steer,hood:APP.hood,compare:APP.compare,paint:APP.paint,dirt:APP.dirt}));
+if(APP.garage)APP.compare=false;
+const saveApp=()=>store.set('dsmini-bay',JSON.stringify({build:APP.build,view:APP.view,stage:APP.stage,lights:APP.lights,steer:APP.steer,hood:APP.hood,compare:APP.compare,garage:APP.garage,
+  paint:APP.paint,dirt:APP.dirt,last:CAR_LAST}));
+/* the build a car is on: the one on the turntable, or the one each of the others was last on */
+const carBuild=car=>car===BUILDS[APP.build].car?APP.build:CAR_LAST[car]!==undefined?CAR_LAST[car]:carBuilds(car)[0];
 /* ---------- meshes, built on demand ---------- */
 const TRUCK={};
 function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
@@ -3754,7 +3850,7 @@ function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
 /* the engine bay: built the first time this build's hood opens, never with it shut */
 const bayOf=i=>{const T=truck(i);return T.bay||(T.bay=buildBay(BUILDS[i],T.D));};
 let STG={};
-const stageMesh=k=>STG[k]||(STG[k]=buildStage(k));
+const stageMesh=(k,g)=>{const id=k+(g?'G':'');return STG[id]||(STG[id]=buildStage(k,g));};
 /* ---------- GL state ---------- */
 function setRes(i){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;store.set('dsmini-res',i);$('res').textContent='Dots '+BW+'×'+BH;}
 /* ---------- matrices ---------- */
@@ -3769,44 +3865,45 @@ function flameMesh(){if(FLAME)return FLAME;const mb=new MB(),seg=[[0,.18,1,.92,[
   for(const [a,b,r0,r1,c,em] of seg)tubeAB(mb,[a,0,0],[b,0,0],r0,10,V(c,MAT.EMIT,em),a===0,r1);return FLAME=mb.build();}
 const CAMS={};
 function camFor(c,asp){
-  const th=c.th*PI/180,ph=c.ph*PI/180,tx=c.tx||0,t=[tx,c.ty,0],e=[tx+c.d*Math.cos(ph)*Math.cos(th),c.ty+c.d*Math.sin(ph),-c.d*Math.cos(ph)*Math.sin(th)];
-  const V_=M4.look(e,t,[0,1,0]),P_=M4.persp(APP.fov,asp,.2,200);return {eye:e,V:V_,P:P_,VP:M4.mul(P_,V_)};}
+  const th=c.th*PI/180,ph=c.ph*PI/180,tx=c.tx||0,tz=c.tz||0,t=[tx,c.ty,tz],e=[tx+c.d*Math.cos(ph)*Math.cos(th),c.ty+c.d*Math.sin(ph),tz-c.d*Math.cos(ph)*Math.sin(th)];
+  const V_=M4.look(e,t,[0,1,0]),P_=M4.persp(c.fov||APP.fov,asp,.2,200);return {eye:e,V:V_,P:P_,VP:M4.mul(P_,V_),right:[V_[0],V_[4],V_[8]]};}
+/* a point in the world to the matrix's -1..1 (null behind the camera) */
+const project=(M,p)=>{const x=M[0]*p[0]+M[4]*p[1]+M[8]*p[2]+M[12],y=M[1]*p[0]+M[5]*p[1]+M[9]*p[2]+M[13],w=M[3]*p[0]+M[7]*p[1]+M[11]*p[2]+M[15];return w>.1?[x/w,y/w]:null;};
 /* ---------- uniforms ---------- */
-function frameUniforms(cam,st){
-  const u=P_LIT.u,S=STAGES[st];
+function frameUniforms(cam,st,garage){
+  const u=P_LIT.u,S=STAGES[st],LS=stageLights(S,garage);
   gl.uniformMatrix4fv(u.uVP,false,cam.VP);gl.uniform3fv(u.uCam,cam.eye);gl.uniform1f(u.uTime,APP.t);
   gl.uniform3fv(u.uSunDir,S.sun);gl.uniform3fv(u.uSunCol,S.sunCol);gl.uniform3fv(u.uSkyAmb,S.sky);gl.uniform3fv(u.uGndAmb,S.gnd);
   gl.uniform3fv(u.uFogCol,S.fog);gl.uniform1f(u.uFogD,S.fogD);gl.uniform1f(u.uStage,S.id);
-  const LP=new Float32Array(32),LC=new Float32Array(32);S.lights.forEach((l,i)=>{LP.set([l[0],l[1],l[2],l[3]],i*4);LC.set([l[4][0]*l[5],l[4][1]*l[5],l[4][2]*l[5],0],i*4);});
-  gl.uniform4fv(u.uLP,LP);gl.uniform4fv(u.uLC,LC);gl.uniform1i(u.uNL,S.lights.length);
+  const LP=new Float32Array(32),LC=new Float32Array(32);LS.forEach((l,i)=>{LP.set([l[0],l[1],l[2],l[3]],i*4);LC.set([l[4][0]*l[5],l[4][1]*l[5],l[4][2]*l[5],0],i*4);});
+  gl.uniform4fv(u.uLP,LP);gl.uniform4fv(u.uLC,LC);gl.uniform1i(u.uNL,LS.length);
 }
-function carUniforms(b,i){
+function carUniforms(b,i,v){
   const u=P_LIT.u,p=APP.paint[b.id]||b.paint,dirt=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt,T=truck(i),D=T.D;
   gl.uniform3fv(u.uPaint,lin(p));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
-  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,i===APP.build&&ENG.inp&&ENG.inp.brk?1:0);gl.uniform1f(u.uDirt,dirt);gl.uniform1f(u.uGround,0);
+  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,v&&v.inp&&v.inp.brk?1:0);gl.uniform1f(u.uDirt,dirt);gl.uniform1f(u.uGround,0);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
 }
-/* ---------- one view: stage, turntable, truck ---------- */
-function renderOne(i,vp,cam){
-  const b=BUILDS[i],T=truck(i),D=T.D,u=P_LIT.u,st=stageMesh(APP.stage);
-  gl.viewport(vp[0],vp[1],vp[2],vp[3]);
-  frameUniforms(cam,APP.stage);carUniforms(b,i);
-  const yaw=APP.yaw,hl=D.L/2+.15,hw=b.look.track/2+b.look.tyre.W*.5;
-  gl.uniform4f(u.uShadow,0,0,hl,hw);gl.uniform4f(u.uShadow2,0,0,yaw,0);
-  gl.uniformMatrix4fv(u.uM,false,M4.id());drawMesh(st.stage);
-  const Mc=M4RY(yaw);gl.uniformMatrix4fv(u.uM,false,Mc);drawMesh(st.table);
-  gl.uniform4f(u.uShadow,1e3,1e3,0,0);
-  /* the truck on the turntable is the one whose engine is running: it rocks on its springs */
-  const live=i===APP.build&&!!ENG.sim;let Mb=Mc;
-  if(live){const pv=.62;Mb=M4.mul(Mc,M4.mul(M4T(0,pv+ENG.shake[1],ENG.shake[0]),M4.mul(M4RX(ENG.roll),M4.mul(M4RZ(ENG.pitch),M4T(0,-pv,0)))));}
+/* ---------- the floor's contact shadows: x, z, half length, half width and yaw for each car ---------- */
+const SHB=new Float32Array(32),SHA=new Float32Array(8);
+function setShadows(list){const u=P_LIT.u,n=Math.min(8,list.length);for(let k=0;k<n;k++){SHB.set(list[k].slice(0,4),k*4);SHA[k]=list[k][4];}
+  gl.uniform4fv(u.uSh,SHB);gl.uniform1fv(u.uShA,SHA);gl.uniform1i(u.uNSh,n);}
+const shadowOf=(i,x,z,yaw)=>{const b=BUILDS[i];return [x,z,truck(i).D.L/2+.15,b.look.track/2+b.look.tyre.W*.5,yaw];};
+/* ---------- one car, placed by Mc ----------
+   v is its engine's voice when the car should answer it (rock on its springs, shake, throw flames,
+   turn its wheels), hoodA how far its hood is open, steer whether its front wheels follow Steer */
+function drawCar(i,Mc,v,hoodA,steer){
+  const b=BUILDS[i],T=truck(i),D=T.D,u=P_LIT.u;carUniforms(b,i,v);
+  const live=!!(v&&v.sim);let Mb=Mc;
+  if(live){const pv=.62;Mb=M4.mul(Mc,M4.mul(M4T(0,pv+v.shake[1],v.shake[0]),M4.mul(M4RX(v.roll),M4.mul(M4RZ(v.pitch),M4T(0,-pv,0)))));}
   /* a build on bigger rear tyres sits tail-up: the whole body turns about the front axle */
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
   gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(T.body);
   /* the hood, swung up about its hinge at the cowl; while it is open the bay is drawn and the insides it replaces are not */
-  const ha=sstep(0,1,APP.hoodA);let Mh=Mb,bt=0;
+  const ha=sstep(0,1,hoodA);let Mh=Mb,bt=0;
   /* the engine rocks on its mounts against the torque. It is drawn only with the hood open, unless it
      sticks out through the hood (a blower), when it is part of the car on the road too */
-  const engM=BY=>{const p=BY.pivot,a=live?-ENG.roll*3:0;return a?M4.mul(Mb,M4.mul(M4T(p[0],p[1],p[2]),M4.mul(BY.trans?M4RZ(a):M4RX(a),M4T(-p[0],-p[1],-p[2])))):Mb;};
+  const engM=BY=>{const p=BY.pivot,a=live?-v.roll*3:0;return a?M4.mul(Mb,M4.mul(M4T(p[0],p[1],p[2]),M4.mul(BY.trans?M4RZ(a):M4RX(a),M4T(-p[0],-p[1],-p[2])))):Mb;};
   if(ha>0){const [hx,hy]=D.hood.hinge;Mh=M4.mul(Mb,M4.mul(M4T(hx,hy,0),M4.mul(M4RZ(ha*HOOD_OPEN),M4T(-hx,-hy,0))));
     /* the bay is built the first time this hood opens */
     const BY=bayOf(i),dirt=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt;bt=BY.tris;
@@ -3819,15 +3916,67 @@ function renderOne(i,vp,cam){
   /* a bare spare on the back is the build's own wheel, turned to face rearward */
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
-  if(live&&ENG.flame>.04&&D.tips)for(const tp of D.tips){
-    const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,ENG.flame),fl=(.12+.42*k*ENG.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
+  if(live&&v.flame>.04&&D.tips)for(const tp of D.tips){
+    const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*v.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
-  const st2=APP.steer?.36:0,wa=live?-ENG.wheelA:0,wb=D.uRa-D.uFa;
+  const st2=steer&&APP.steer?.36:0,wa=live?-v.wheelA:0,wb=D.uRa-D.uFa;
   for(const front of [1,0])for(const s of [1,-1]){
     const x=front?fx:fx-wb*Math.cos(D.pitch),Rw=front?R:D.Rr,tw=(front?b.look.track:b.look.trackR||b.look.track)/2;
     const M=M4.mul(Mc,M4.mul(M4T(x,Rw,s*tw),M4.mul(M4RY(front?st2:0),M4.mul(M4S(1,1,s),M4RZ(wa*R/Rw)))));
     gl.uniformMatrix4fv(u.uM,false,M);drawMesh(front?T.wheel:T.wheelR);}
-  return T.tris+st.tris+bt;
+  return T.tris+bt;
+}
+/* ---------- one view: stage, turntable, car ---------- */
+function renderOne(i,vp,cam){
+  const u=P_LIT.u,st=stageMesh(APP.stage),yaw=APP.yaw;
+  gl.viewport(vp[0],vp[1],vp[2],vp[3]);frameUniforms(cam,APP.stage);
+  setShadows([shadowOf(i,0,0,yaw)]);
+  gl.uniformMatrix4fv(u.uM,false,M4.id());drawMesh(st.stage);
+  const Mc=M4RY(yaw);gl.uniformMatrix4fv(u.uM,false,Mc);drawMesh(st.table);
+  setShadows([]);
+  /* the car on the turntable is the one whose engine is running: it rocks on its springs */
+  return st.tris+drawCar(i,Mc,i===APP.build?cur():null,APP.hoodA,true);
+}
+/* ---------- the garage: every car in the shed ----------
+   The car you picked is on the turntable, just as it is out of the garage: the views, the hood and
+   the bay all work on it. The others are parked in their bays round the back, each on the build it
+   was last on, hood shut, each with its own engine to start */
+function parked(){const sel=BUILDS[APP.build].car,out=[];
+  for(const [car] of CARS)if(car!==sel){const s=spotOf(car);out.push({car,i:carBuild(car),s,M:M4.mul(M4T(s.p[0],0,s.p[2]),M4RY(s.yaw))});}
+  return out;}
+function renderGarage(vp,cam){
+  /* a car not built yet is built on the frame it first shows, one a frame, so the shed fills up
+     car by car instead of the page stopping while all of them are made */
+  let fresh=false;const P=parked().filter(q=>TRUCK[BUILDS[q.i].id]||(!fresh&&(fresh=true)));
+  const u=P_LIT.u,st=stageMesh(APP.stage,true),yaw=APP.yaw;
+  gl.viewport(vp[0],vp[1],vp[2],vp[3]);frameUniforms(cam,APP.stage,true);
+  setShadows([shadowOf(APP.build,0,0,yaw)].concat(P.map(q=>shadowOf(q.i,q.s.p[0],q.s.p[2],q.s.yaw))));
+  gl.uniformMatrix4fv(u.uM,false,M4.id());drawMesh(st.stage);
+  const Mc=M4RY(yaw);gl.uniformMatrix4fv(u.uM,false,Mc);drawMesh(st.table);
+  setShadows([]);
+  let tris=st.tris+drawCar(APP.build,Mc,cur(),APP.hoodA,true);
+  for(const q of P){const v=VOICES[q.car];tris+=drawCar(q.i,q.M,v&&v.sim?v:null,0,false);}
+  garageLabels(cam,P);
+  return tris;
+}
+/* the parked cars' names on the floor in front of their bays, once the camera stands back far enough
+   to see the row; green while that car's engine runs */
+function garageLabels(cam,P){
+  if(APP.cam.d<12)return;
+  for(const q of P){const b=BUILDS[q.i],th=q.s.th,r=GAR.R-3.4,pr=project(cam.VP,[r*Math.cos(th),0,-r*Math.sin(th)]);if(!pr)continue;
+    const x=Math.round((pr[0]*.5+.5)*W),y=Math.round((.5-pr[1]*.5)*H),v=VOICES[q.car],on=!!(v&&runs(v));
+    otxt3(carName(b).toUpperCase(),x,y-6,on?PAL.green:PAL.ink,1,'c');otxt3(b.name.toUpperCase(),x,y+1,on?PAL.lime:PAL.dim,1,'c');}
+}
+/* a tap on a car in the garage puts it on the turntable */
+function pickCar(cx,cy){
+  if(!APP.garage||!CAMNOW)return false;
+  const nx=(cx-RECT.x)/RECT.w*2-1,ny=1-(cy-RECT.y)/RECT.h*2;if(Math.abs(nx)>1||Math.abs(ny)>1)return false;
+  const sel=BUILDS[APP.build].car,c=CAMNOW,asp=RECT.w/RECT.h;let best=null,bd=1;
+  for(const [car] of CARS){const p=car===sel?[0,.8,0]:[spotOf(car).p[0],.8,spotOf(car).p[2]],q=project(c.VP,p),q2=project(c.VP,V3.add(p,V3.mul(c.right,2.2)));if(!q||!q2)continue;
+    /* how far from the car's middle, in car half-widths */
+    const r=Math.hypot((q2[0]-q[0])*asp,q2[1]-q[1]),d=Math.hypot((q[0]-nx)*asp,q[1]-ny)/Math.max(r,.06);if(d<bd){bd=d;best=car;}}
+  if(best&&best!==sel)setCar(best);
+  return !!best;
 }
 /* ---------- the frame ---------- */
 function curCam(){const c=APP.cam,b=BUILDS[APP.build],T=truck(APP.build);return Object.assign({},c,{ty:c.ty+T.D.dy*.55});}
@@ -3836,48 +3985,61 @@ function render(dt){
   const T=sceneTarget();gl.bindFramebuffer(gl.FRAMEBUFFER,T.f);gl.viewport(0,0,T.w,T.h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);gl.useProgram(P_LIT.p);
   let tris=0;
-  if(APP.compare){
+  const label=()=>{const b=BUILDS[APP.build],sc=W>=400?2:1;otxt5((carName(b)+' '+b.name).toUpperCase(),5,5,GR.volt,sc,'l',.12);txt3(b.tag.toUpperCase(),5,7+7*sc+2,PAL.ink);};
+  if(APP.garage){const cam=camFor(curCam(),T.w/T.h);CAMNOW=cam;tris=renderGarage([0,0,T.w,T.h],cam);label();engineHud();}
+  else if(APP.compare){
     /* every build of this car: four in a 2x2 grid, two stacked */
     const list=carBuilds(BUILDS[APP.build].car),n=list.length,cols=n>2?2:1,rows=Math.ceil(n/cols),w=Math.floor(T.w/cols),h=Math.floor(T.h/rows),cw=Math.floor(W/cols),ch=Math.floor(H/rows);
     list.forEach((q,k)=>{const c=Object.assign({},APP.cam,{ty:APP.cam.ty+truck(q).D.dy*.55,d:APP.cam.d*(cols===1&&rows>1?.66:1)});tris+=renderOne(q,[(k%cols)*w,(rows-1-Math.floor(k/cols))*h,w,h],camFor(c,w/h));});
     list.forEach((q,k)=>otxt5(BUILDS[q].name.toUpperCase(),(k%cols)*cw+4,Math.floor(k/cols)*ch+3,q===APP.build?GR.volt:GR.steel,1));
     for(let c=1;c<cols;c++)hRect(cw*c,0,1,H,pack(0,0,0,255));for(let r=1;r<rows;r++)hRect(0,ch*r,W,1,pack(0,0,0,255));}
-  else{tris=renderOne(APP.build,[0,0,T.w,T.h],camFor(curCam(),T.w/T.h));
-    const b=BUILDS[APP.build],sc=W>=400?2:1;otxt5((carName(b)+' '+b.name).toUpperCase(),5,5,GR.volt,sc,'l',.12);txt3(b.tag.toUpperCase(),5,7+7*sc+2,PAL.ink);
-    engineHud();}
+  else{const cam=camFor(curCam(),T.w/T.h);CAMNOW=cam;tris=renderOne(APP.build,[0,0,T.w,T.h],cam);label();engineHud();}
   gl.bindVertexArray(null);
   APP.tris=tris;
   present();
 }
 /* ---------- input: drag to orbit, wheel or pinch to zoom, double-tap to reset ---------- */
-const PT=new Map();let pinch0=0,d0=0;
-cv.addEventListener('pointerdown',e=>{e.preventDefault();PT.set(e.pointerId,[e.clientX,e.clientY]);try{cv.setPointerCapture(e.pointerId);}catch(_){}cv.classList.add('drag');APP.camT=null;
+const PT=new Map();let pinch0=0,d0=0,tap=null;
+/* the garage lets the camera stand further back, to see the whole row */
+const dMax=()=>APP.garage?26:16;
+cv.addEventListener('pointerdown',e=>{e.preventDefault();PT.set(e.pointerId,[e.clientX,e.clientY]);try{cv.setPointerCapture(e.pointerId);}catch(_){}cv.classList.add('drag');
+  tap=PT.size===1?{x:e.clientX,y:e.clientY,t:performance.now(),cam:Object.assign({},APP.cam),camT:APP.camT,view:APP.view}:null;APP.camT=null;
   if(PT.size===2){const [a,b]=[...PT.values()];pinch0=Math.hypot(a[0]-b[0],a[1]-b[1]);d0=APP.cam.d;}});
 cv.addEventListener('pointermove',e=>{if(!PT.has(e.pointerId))return;const p=PT.get(e.pointerId),dx=e.clientX-p[0],dy=e.clientY-p[1];PT.set(e.pointerId,[e.clientX,e.clientY]);
+  if(tap&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<6)return;tap=null;
   if(PT.size===1){APP.cam.th-=dx*.35;APP.cam.ph=clamp(APP.cam.ph+dy*.25,-2,80);markView(null);}
-  else if(PT.size===2){const [a,b]=[...PT.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch0>0)APP.cam.d=clamp(d0*pinch0/d,3.5,16);}});
-const up=e=>{PT.delete(e.pointerId);if(!PT.size)cv.classList.remove('drag');pinch0=0;};
+  else if(PT.size===2){const [a,b]=[...PT.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch0>0)APP.cam.d=clamp(d0*pinch0/d,3.5,dMax());}});
+const up=e=>{PT.delete(e.pointerId);if(!PT.size)cv.classList.remove('drag');pinch0=0;
+  /* a tap, not a drag: in the garage it picks the car under it, and a tap on nothing leaves the camera where it was going */
+  if(tap&&e.type==='pointerup'&&performance.now()-tap.t<450&&!pickCar(tap.x,tap.y)&&tap.camT)APP.camT=tap.camT;tap=null;};
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
-cv.addEventListener('wheel',e=>{e.preventDefault();APP.camT=null;APP.cam.d=clamp(APP.cam.d*Math.exp(e.deltaY*.0012),3.5,16);},{passive:false});
-cv.addEventListener('dblclick',()=>setView(APP.view||'front34'));
+cv.addEventListener('wheel',e=>{e.preventDefault();APP.camT=null;APP.cam.d=clamp(APP.cam.d*Math.exp(e.deltaY*.0012),3.5,dMax());},{passive:false});
+cv.addEventListener('dblclick',()=>setView(APP.view||(APP.garage?'all':'front34')));
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.metaKey||e.ctrlKey||e.altKey)return;
   if(e.code==='BracketLeft'||e.code==='BracketRight'){setBuild((APP.build+(e.code==='BracketRight'?1:BUILDS.length-1))%BUILDS.length);}
-  else if(e.key==='c'||e.key==='C')setCompare(!APP.compare);else if(e.key==='l'||e.key==='L')toggle('lights');else if(e.key==='h'||e.key==='H')toggle('hood');
+  else if(e.key==='c'||e.key==='C')setCompare(!APP.compare);else if(e.key==='g'||e.key==='G')setGarage(!APP.garage);else if(e.key==='l'||e.key==='L')toggle('lights');else if(e.key==='h'||e.key==='H')toggle('hood');
   else if(e.key==='ArrowLeft'){APP.cam.th+=6;markView(null);}else if(e.key==='ArrowRight'){APP.cam.th-=6;markView(null);}});
 /* ---------- the dock ---------- */
-function setBuild(i){APP.build=i;engineFor(i);if($('builds').dataset.car!==BUILDS[i].car)fillBuilds();if(APP.view==='bay')setView('bay');
+function setBuild(i){
+  const was=cur(),m=was.sim?was.sim.mode:'free';APP.build=i;CAR_LAST[BUILDS[i].car]=i;const v=engineFor(i);
+  /* a car that leaves the turntable goes back into neutral and the next one takes over the mode. Out of
+     the garage the car you leave is gone from view, so a running engine moves with you to the next car */
+  if(was!==v){if(was.sim&&was.sim.mode!=='free')setMode('free',was);if(v.sim.mode!==m)setMode(m,v);
+    if(!APP.garage&&runs(was)){was.sim.stop();if(!runs(v))startEngine(v);}}
+  if($('builds').dataset.car!==BUILDS[i].car)fillBuilds();if(APP.view==='bay')setView('bay');
   for(const el of $('builds').children)el.setAttribute('aria-pressed',String(+el.dataset.i===i));
   for(const el of $('cars').children)el.setAttribute('aria-pressed',String(el.dataset.v===BUILDS[i].car));syncDock();saveApp();}
-/* a car remembers the build it was last on */
-const CAR_LAST={};
-function setCar(car){if(BUILDS[APP.build].car===car)return;CAR_LAST[BUILDS[APP.build].car]=APP.build;setBuild(CAR_LAST[car]!==undefined?CAR_LAST[car]:carBuilds(car)[0]);if(APP.compare)setCompare(true);}
+/* a car comes back on the build it was last on */
+function setCar(car){if(BUILDS[APP.build].car===car)return;setBuild(carBuild(car));if(APP.compare)setCompare(true);}
 function fillBuilds(){
   const bx=$('builds'),car=BUILDS[APP.build].car,list=carBuilds(car);bx.dataset.car=car;bx.textContent='';bx.style.gridTemplateColumns='repeat('+list.length+',minmax(0,1fr))';
   for(const i of list){const b=BUILDS[i],el=document.createElement('button');el.type='button';el.className='bld';el.dataset.i=String(i);el.innerHTML='<b></b><small></small>';
     el.querySelector('b').textContent=b.name;el.querySelector('small').textContent=b.tag;
     el.setAttribute('aria-pressed',String(i===APP.build));el.addEventListener('click',()=>setBuild(i));bx.appendChild(el);}
 }
-function setView(id){const v=VIEWS.find(q=>q[0]===id);if(!v)return;APP.view=id;APP.camT={th:v[2],ph:v[3],d:v[4],ty:v[5],tx:0};
+function setView(id){const v=VIEWS.find(q=>q[0]===id);if(!v)return;APP.view=id;APP.camT={th:v[2],ph:v[3],d:v[4],ty:v[5],tx:0,tz:0,fov:APP.fov};
+  /* the whole garage: from over the turntable, back toward the row of parked cars, a little wider */
+  if(id==='all')Object.assign(APP.camT,{tx:-4.5,fov:.6});
   if(id==='bay'){const D=truck(APP.build).D,H=D.hood;APP.camT.tx=D.X((H.u0+H.u1)/2);APP.camT.ty=H.hinge[1]-.38-D.dy*.55;
     if(!APP.hood){APP.hood=true;$('hood').setAttribute('aria-pressed','true');}}
   /* go round the short way */
@@ -3885,7 +4047,15 @@ function setView(id){const v=VIEWS.find(q=>q[0]===id);if(!v)return;APP.view=id;A
   if(APP.spin){APP.spin=false;$('spin').setAttribute('aria-pressed','false');}
   APP.yaw=0;markView(id);saveApp();}
 function markView(id){if(id===null)APP.view=null;for(const el of $('views').children)el.setAttribute('aria-pressed',String(el.dataset.v===id));}
-function setCompare(on){APP.compare=on;$('cmp').setAttribute('aria-pressed',String(on));if(on)for(const i of carBuilds(BUILDS[APP.build].car))truck(i);saveApp();}
+function setCompare(on){if(on&&APP.garage)setGarage(false);APP.compare=on;$('cmp').setAttribute('aria-pressed',String(on));if(on)for(const i of carBuilds(BUILDS[APP.build].car))truck(i);saveApp();}
+/* the garage: every car in one shed. Leaving it switches off the engines of the cars left parked there */
+function setGarage(on){
+  APP.garage=on;$('garage').setAttribute('aria-pressed',String(on));
+  for(const el of $('views').children)if(el.dataset.v==='all')el.hidden=!on;
+  if(on){if(APP.compare)setCompare(false);if(ENG.room!=='garage')setRoomKind('garage');setView('all');}
+  else{const sel=cur();for(const car in VOICES){const v=VOICES[car];if(v!==sel&&runs(v))v.sim.stop();}
+    setView(APP.view&&APP.view!=='all'?APP.view:'front34');APP.cam.d=Math.min(APP.cam.d,dMax());}
+  syncDock();saveApp();}
 function toggle(k){APP[k]=!APP[k];$(k).setAttribute('aria-pressed',String(APP[k]));saveApp();}
 function syncDock(){
   const b=BUILDS[APP.build],p=APP.paint[b.id]||b.paint;
@@ -3893,7 +4063,8 @@ function syncDock(){
   $('mud').value=APP.dirt[b.id]!==undefined?APP.dirt[b.id]:b.dirt;
   if(ENG.tab==='engine'){const e=specOf(APP.build),r=ENGINE_OF[b.id];
     $('info').innerHTML='<b>'+carName(b)+' '+b.name+' engine.</b> '+r.desc+' <b>'+fmt(Math.round(e.peak.hp))+' hp</b> at '+fmt(Math.round(e.peak.rpm/50)*50)+' rpm · <b>'+fmt(Math.round(e.peak.tq*.7376))+' lb-ft</b> · redline '+fmt(e.redline)+'. <span class="st">'+(ENG.status||'Sound starts when you start the engine.')+'</span>';}
-  else $('info').innerHTML='<b>'+carName(b)+' · '+b.name+'.</b> '+b.blurb+' '+b.specs.map(s=>'<b>'+s[0]+'</b> '+s[1]).join(' · ');
+  else $('info').innerHTML='<b>'+carName(b)+' · '+b.name+'.</b> '+b.blurb+' '+b.specs.map(s=>'<b>'+s[0]+'</b> '+s[1]).join(' · ')+
+    (APP.garage?' <span class="st">Tap a car in the garage to put it on the turntable.</span>':'');
   syncEngineDock();
   requestAnimationFrame(layout);
 }
@@ -3901,16 +4072,17 @@ function buildDock(){
   const cx=$('cars');for(const [id,n] of CARS){const el=document.createElement('button');el.type='button';el.dataset.v=id;el.textContent=n;
     el.setAttribute('aria-pressed',String(id===BUILDS[APP.build].car));el.addEventListener('click',()=>setCar(id));cx.appendChild(el);}
   fillBuilds();
-  const vx=$('views');for(const [id,n] of VIEWS){const el=document.createElement('button');el.type='button';el.dataset.v=id;el.textContent=n;el.addEventListener('click',()=>setView(id));vx.appendChild(el);}
+  const vx=$('views');for(const [id,n] of VIEWS){const el=document.createElement('button');el.type='button';el.dataset.v=id;el.textContent=n;el.hidden=id==='all'&&!APP.garage;el.addEventListener('click',()=>setView(id));vx.appendChild(el);}
   const px=$('paints');for(const [n,c] of PAINTS){const el=document.createElement('button');el.type='button';el.dataset.c=c;el.title=n;el.setAttribute('aria-label',n);el.style.background=c;
     el.addEventListener('click',()=>{APP.paint[BUILDS[APP.build].id]=c;syncDock();saveApp();});px.appendChild(el);}
   $('mud').addEventListener('input',e=>{APP.dirt[BUILDS[APP.build].id]=+e.target.value;saveApp();});
   $('cmp').addEventListener('click',()=>setCompare(!APP.compare));
+  $('garage').addEventListener('click',()=>setGarage(!APP.garage));
   for(const k of ['lights','steer','spin','hood'])$(k).addEventListener('click',()=>toggle(k));
   $('stage').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;APP.stage=b.dataset.v;for(const x of $('stage').children)x.setAttribute('aria-pressed',String(x===b));saveApp();});
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
   for(const k of ['lights','steer','hood'])$(k).setAttribute('aria-pressed',String(APP[k]));
-  $('cmp').setAttribute('aria-pressed',String(APP.compare));
+  $('cmp').setAttribute('aria-pressed',String(APP.compare));$('garage').setAttribute('aria-pressed',String(APP.garage));
   for(const x of $('stage').children)x.setAttribute('aria-pressed',String(x.dataset.v===APP.stage));
   syncDock();
 }
@@ -3920,6 +4092,7 @@ function setTab(v){ENG.tab=v;for(const el of document.querySelectorAll('#dock [d
 function buildEngineDock(){
   $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.v);});
   $('power').addEventListener('click',toggleEngine);
+  $('allEng').addEventListener('click',()=>allEngines(!allOn()));
   $('segMode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setMode(b.dataset.v);syncEngineDock();});
   const sl=$('segListen');LISTEN.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.dataset.v=String(i);b.textContent=n;sl.appendChild(b);});
   sl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setListener(+b.dataset.v);syncEngineDock();});
@@ -3948,13 +4121,16 @@ function syncEngineDock(){
   for(const d of ENG_BTNS){if(!d.el)continue;d.el.hidden=!!(d.need&&!d.need(e));d.el.disabled=!!(d.drive&&sim.mode!=='drive');}
   engineLive(true);
 }
-/* the bits that change every frame: the power button, the pad's fill and its label */
+/* whether every car in the shed is running */
+const allOn=()=>CARS.every(([car])=>VOICES[car]&&runs(VOICES[car]));
+/* the bits that change every frame: the power button, the start-all button, the pad's fill and its label */
 const ELIVE={};
 function engineLive(force){
   if(!ENG.sim)return;const on=engineOn(),thr=ENG.inp?ENG.inp.thr:0,lbl=on?'Hold to rev · further right, more throttle':'Start the engine first';
   if(force||ELIVE.on!==on){ELIVE.on=on;$('power').setAttribute('aria-pressed',String(on));$('powerLbl').textContent=on?'Engine on':'Start engine';}
   if(force||ELIVE.lbl!==lbl){ELIVE.lbl=lbl;$('padLbl').textContent=lbl;}
   const w=Math.round(thr*100);if(force||ELIVE.w!==w){ELIVE.w=w;$('padFill').style.width=w+'%';$('pad').setAttribute('aria-valuenow',String(w));}
+  const all=APP.garage?allOn()?'Stop all':'Start all':'';if(force||ELIVE.all!==all){ELIVE.all=all;$('allEng').hidden=!all;if(all)$('allEng').textContent=all;}
   if(ELIVE.st!==ENG.status){ELIVE.st=ENG.status;if(ENG.tab==='engine')syncDock();}
 }
 /* ---------- layout: the matrix fits the space between the top bar and the dock ---------- */
@@ -3969,7 +4145,7 @@ function frame(ts){
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   if(APP.spin)APP.yaw+=dt*.3;
   {const t=APP.hood?1:0;if(APP.hoodA!==t)APP.hoodA=t>APP.hoodA?Math.min(1,APP.hoodA+dt*1.8):Math.max(0,APP.hoodA-dt*1.8);}
-  if(APP.camT){const k=1-Math.exp(-dt*7),c=APP.cam,t=APP.camT;let done=true;for(const q of ['th','ph','d','ty','tx']){c[q]=(c[q]||0)+((t[q]||0)-(c[q]||0))*k;if(Math.abs(t[q]-c[q])>.01)done=false;}if(done){Object.assign(c,t);APP.camT=null;}}
+  if(APP.camT){const k=1-Math.exp(-dt*7),c=APP.cam,t=APP.camT;let done=true;for(const q of ['th','ph','d','ty','tx','tz','fov']){c[q]=(c[q]||0)+((t[q]||0)-(c[q]||0))*k;if(Math.abs(t[q]-c[q])>.01)done=false;}if(done){Object.assign(c,t);APP.camT=null;}}
   const t0=performance.now();
   try{engineFrame(dt);}catch(e){console.error(e);}
   try{render(dt);}catch(e){console.error(e);}
@@ -3983,11 +4159,14 @@ if(!gl){$('err').style.display='grid';}
 else{
   let r=parseInt(store.get('dsmini-res',-1),10);if(!(r>=0&&r<RES.length)){const d=devicePixelRatio||1;r=!touchy&&innerWidth*d>=1500?2:1;}
   setRes(r);glInit();engineFor(APP.build);buildDock();buildEngineDock();resize();
-  if(APP.view)setView(APP.view);if(APP.camT){Object.assign(APP.cam,APP.camT);APP.camT=null;}
+  if(APP.view==='all'&&!APP.garage)APP.view='front34';
+  if(APP.garage)setGarage(true);else if(APP.view)setView(APP.view);
+  if(APP.camT){Object.assign(APP.cam,APP.camT);APP.camT=null;}
   if(APP.compare)setCompare(true);
   addEventListener('resize',resize);
   requestAnimationFrame(frame);
-  window.__bay={APP,ENG,BUILDS,BODIES,SIM,specOf,suvDesign,secRing,startEngine,setMode,setTab,engineFrame,truck,render,setBuild,setView,setCompare,setRes,present,
+  window.__bay={APP,ENG,VOICES,BUILDS,BODIES,SIM,CARS,specOf,suvDesign,secRing,startEngine,setMode,setTab,engineFrame,truck,render,setBuild,setCar,setView,setCompare,setGarage,
+    allEngines,voiceOf,spotOf,pickCar,carBuild,setRes,present,get CAMNOW(){return CAMNOW;},get RECT(){return RECT;},
     shot(o){Object.assign(APP,o.app||{});if(o.cam)Object.assign(APP.cam,o.cam);APP.camT=null;APP.hoodA=APP.hood?1:0;render(1/60);return true;},
     snap(){render(1/60);return cv.toDataURL('image/png');},bench(n=5){gl.finish();const t=performance.now();for(let i=0;i<n;i++)render(1/60);gl.finish();return (performance.now()-t)/n;}};
 }

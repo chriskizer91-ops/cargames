@@ -1,7 +1,7 @@
 # Dirt Sleeper Mini
 
-The model bay: four cars and their builds on a turntable, drawn on an LED dot matrix, each with
-its own engine running live in the Engine tab.
+The model bay: seven cars and their builds on a turntable, or all of them parked together in a
+garage, drawn on an LED dot matrix. Every car has its own Digital Engine running live.
 
 | Car | Builds | What it is |
 | --- | --- | --- |
@@ -15,6 +15,26 @@ its own engine running live in the Engine tab.
 
 Open `model-bay.html` in a browser with WebGL2. Pick a car, then a build; **Compare** shows all of a
 car's builds at once. **Hood** (or H) opens the hood, and the **Bay** view looks into the engine bay.
+**Garage** (or G) parks every car in one shed, each on the build it was last on. The car you
+picked sits on the turntable in the middle, where the views, the hood and the Bay view work as usual.
+Tap a parked car to swap it onto the turntable. The **All** view stands back to show the whole row.
+
+## The garage's engines
+
+Every car has a voice of its own: its own sim and its own synth (an audio worklet), all playing into
+one room, so any number can run at once. In the Engine tab, the power button starts the car on the
+turntable and **Start all** starts every car in the shed. Only the car on the turntable takes the
+throttle, brake, shift and nitrous; the rest idle in their bays. The car on the turntable is heard
+from where the listener buttons say (behind, cabin or trackside). Each parked car is heard from the
+camera, panned to its side, as far off as it is, and from its front or its tail depending on which
+end faces you. The garage switches the room to Garage; you can change it in the Engine tab. Leaving
+the garage stops the parked engines, and an engine that is off sleeps in its worklet, so it costs
+nothing until it is started again. Outside the garage a running engine moves with you when you
+switch cars.
+
+The parked cars are built one per frame the first time the garage opens, so the shed fills up car
+by car instead of the page freezing while all of them are made. Parked cars keep their hoods shut,
+so their engine bays are never built.
 
 ## Files
 
