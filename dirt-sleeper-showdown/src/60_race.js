@@ -50,13 +50,13 @@ const raceSave=()=>store.set('dssd-races',JSON.stringify({best:RACE.best,diff:RA
 /* the strip callouts: the ladder, slowest first (tools/ladder.js: the robots' eighth-mile times on the dirt strip),
    and how far up it you are. Each has a line for a car that looks slower than theirs and one for a car that doesn't. */
 const LADDER=[
-  {name:'Earl Tibbs',bid:'muscle',low:'Four-speed, big block, no computers. You sure that thing runs?',high:'Fancy. Let\'s see if it\'s all paint.'},
-  {name:'Wade Pruitt',bid:'pickup',low:'That the church van? I\'ll give you a car length.',high:'Big talk for the parking lot. Eighth mile?'},
-  {name:'Tommy Vo',bid:'coupe',low:'Nice grocery-getter. Try to keep up.',high:'Hope it goes like it looks.'},
-  {name:'Big Red',bid:'muscleDrag',low:'Pull up, grandma. This won\'t take long.',high:'You brought a real car. Good.'},
-  {name:'Dusty Maddox',bid:'prerunner',low:'Thought this was the race, not the car wash line.',high:'Dirt\'s my strip. You sure?'},
-  {name:'Lena Marsh',bid:'hatchB',low:'Cute. I run the hill climb in this.',high:'Four-wheel drive and a big turbo. Bring it.'},
-  {name:'Rita Kowalski',bid:'wagonSleeper',low:'Ha. A sleeper. Takes one to know one.',high:'All that and no surprises? Shame.'},
+  {name:'Earl Tibbs',bid:'muscle',low:'That thing even run?',high:'Let\'s see if it\'s all paint.'},
+  {name:'Wade Pruitt',bid:'pickup',low:'I\'ll give the church van a length.',high:'Big talk. Eighth mile?'},
+  {name:'Tommy Vo',bid:'coupe',low:'Nice grocery-getter.',high:'Hope it goes like it looks.'},
+  {name:'Big Red',bid:'muscleDrag',low:'Pull up, grandma.',high:'You brought a real car. Good.'},
+  {name:'Dusty Maddox',bid:'prerunner',low:'Car wash line is that way.',high:'Dirt\'s my strip. You sure?'},
+  {name:'Lena Marsh',bid:'hatchB',low:'Cute. I run hill climbs in this.',high:'Big turbo, four-wheel drive. Bring it.'},
+  {name:'Rita Kowalski',bid:'wagonSleeper',low:'A sleeper. Takes one to know one.',high:'All show? Shame.'},
   {name:'The Ghost',bid:'race',low:'...',high:'...'}];
 const CALLOUT={beaten:0,t:0,offer:null,lane:1,car:null};
 try{const s=JSON.parse(store.get('dssd-ladder','{}'))||{};CALLOUT.beaten=clamp(s.beaten|0,0,LADDER.length);}catch(e){}
@@ -297,9 +297,10 @@ function calloutStep(dt,t){
     CALLOUT.offer={k,r};const again=all;
     {const car=makeCar(bi,RANCH.world,null);car.setAssists('ai');truck(bi);const z=S.lanes[1-lane];car.place([S.start-40,RANCH.W.heightAt(S.start-40,z)+.05,z],0);car.pt.start();
       const I={steer:0,thr:0,brk:1,hb:0,nos:false};for(let q=0;q<60;q++)car.step(DT,I);car.v[0]=9;CALLOUT.car=car;CALLOUT.bi=bi;}
-    say((again?'REMATCH: ':'')+r.name.toUpperCase()+' PULLS UP',3.6,PAL.gold);
-    say(`${carName({car:b.car}).toUpperCase()} ${b.name.toUpperCase()}: "${(lk<looksOf(bi)-1?r.low:r.high).toUpperCase()}"`,3.6,PAL.white);
-    say('STAY IN THE LANE TO RUN',3.6,PAL.amber);}
+    /* (the newest message shows on top: said bottom line first) */
+    say('STAY IN THE LANE TO RUN',4.5,PAL.amber);
+    say(`"${(lk<looksOf(bi)-1?r.low:r.high).toUpperCase()}"`,4.5,PAL.white);
+    say((again?'REMATCH: ':'')+r.name.toUpperCase()+' PULLS UP',4.5,PAL.gold);void b;}
   if(CALLOUT.offer&&CALLOUT.t>6.5){const {k,r}=CALLOUT.offer;CALLOUT.offer=null;CALLOUT.t=-1e9;CALLOUT.car=null;
     startRace('callout',{id:'callout',name:'Callout: '+r.name,kind:'drag',course:'strip',field:2,terrain:'asphalt',purse:600+300*k,rival:r.bid,rivalName:r.name,rung:k,lane:CALLOUT.lane,
       blurb:'One on one down the eighth mile.'});}
