@@ -4967,6 +4967,8 @@ function qToM(m,q){
   m[6]=2*(x*z-y*w);m[7]=2*(y*z+x*w);m[8]=1-2*(x*x+y*y);return m;
 }
 /* turn q by the angular velocity w for dt, in place */
+/* (rad/s: where the spin's step turns careful, and the most it can tumble: about six turns a second) */
+const SPIN_SAFE=10,SPIN_MAX=38;
 function qStep(q,w,dt){
   const a0=w[0]*dt*.5,a1=w[1]*dt*.5,a2=w[2]*dt*.5,b0=q[0],b1=q[1],b2=q[2],b3=q[3];
   const x=b0+(a0*b3+a1*b2-a2*b1),y=b1+(-a0*b2+a1*b3+a2*b0),z=b2+(a0*b1-a1*b0+a2*b3),w2=b3+(-a0*b0-a1*b1-a2*b2),l=Math.hypot(x,y,z,w2)||1;
@@ -5488,7 +5490,18 @@ class Vehicle{
     const acc=this.acc;for(let k=0;k<3;k++){acc[k]=Fs[k]/m;v[k]+=acc[k]*dt;}
     const tb=m3tv(this._t1,M,T[0],T[1],T[2]),I=this.I,i0=I[0]*wb[0],i1=I[1]*wb[1],i2=I[2]*wb[2],
       g0=wb[1]*i2-wb[2]*i1,g1=wb[2]*i0-wb[0]*i2,g2=wb[0]*i1-wb[1]*i0;
-    wb[0]+=dt*(tb[0]-g0)/I[0];wb[1]+=dt*(tb[1]-g1)/I[1];wb[2]+=dt*(tb[2]-g2)/I[2];
+    /* the body's spin. Stepped plainly (as Mini 4 did), the spin's own gyroscopic term adds a little energy every
+       step, which is nothing at driving rates but feeds on itself in a fast tumble: a 260 mph hit on a tree sent
+       the Rock & Mud tumbling in the air ever faster until the numbers ran out (a black screen). Above a fast
+       spin the gyroscopic step is held to the energy the spin had (it does no work), then the torque goes on, and
+       nothing tumbles faster than six turns a second. Below that the sums are exactly as they were. */
+    const W2=wb[0]*wb[0]+wb[1]*wb[1]+wb[2]*wb[2];
+    if(W2<SPIN_SAFE*SPIN_SAFE){wb[0]+=dt*(tb[0]-g0)/I[0];wb[1]+=dt*(tb[1]-g1)/I[1];wb[2]+=dt*(tb[2]-g2)/I[2];}
+    else{const E0=I[0]*wb[0]*wb[0]+I[1]*wb[1]*wb[1]+I[2]*wb[2]*wb[2];
+      wb[0]-=dt*g0/I[0];wb[1]-=dt*g1/I[1];wb[2]-=dt*g2/I[2];
+      const E1=I[0]*wb[0]*wb[0]+I[1]*wb[1]*wb[1]+I[2]*wb[2]*wb[2];if(E1>E0&&E1>0){const s=Math.sqrt(E0/E1);wb[0]*=s;wb[1]*=s;wb[2]*=s;}
+      wb[0]+=dt*tb[0]/I[0];wb[1]+=dt*tb[1]/I[1];wb[2]+=dt*tb[2]/I[2];
+      const wl=Math.hypot(wb[0],wb[1],wb[2]);if(wl>SPIN_MAX){const s=SPIN_MAX/wl;wb[0]*=s;wb[1]*=s;wb[2]*=s;}}
     m3v(w,M,wb[0],wb[1],wb[2]);
     for(let k=0;k<3;k++)p[k]+=v[k]*dt;
     qStep(this.q,w,dt);m3tv(this.accB,M,acc[0],acc[1],acc[2]);
@@ -6849,6 +6862,7 @@ const RO=[0,0,0],RO_STEP=512,ORG_CELL=4096;
    now at p was at p+d), and the probe's spot moves back by it, so nothing is redrawn all at once (a hitch every
    512 m on a phone otherwise) */
 function setOrigin(eye){
+  if(!Number.isFinite(eye[0])||!Number.isFinite(eye[2]))return false;
   const x=Math.round(eye[0]/RO_STEP)*RO_STEP,z=Math.round(eye[2]/RO_STEP)*RO_STEP;
   if(x===RO[0]&&z===RO[2])return false;
   const dx=x-RO[0],dz=z-RO[2];RO[0]=x;RO[1]=0;RO[2]=z;
@@ -8748,6 +8762,7 @@ function spawnCar(i,x,z,yaw){
 }
 /* drive the current car's rig (after a garage change or a new car) */
 function spawnRig(keepPlace=true){const t=GAME.car;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));}
+const carWhole=t=>{for(const a of [t.p,t.v,t.w,t.q])for(let k=0;k<a.length;k++)if(!Number.isFinite(a[k]))return false;return true;};
 function resetCar(){const t=GAME.car;placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));}
 function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;if(RACE.on)raceEnd('Race abandoned');placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
 /* overdrive off: the automatic holds out of its top gear (the button on the shifter) */
@@ -8875,6 +8890,10 @@ function step(dt){
      spending a slow frame catching up and making the next one slow too */
   const tp=performance.now();
   while(GAME.acc>=DT&&n<8){t.step(DT,drive);if(RACE.on)raceSub(DT);GAME.acc-=DT;n++;GAME.time+=DT;}
+  /* a last line: if the car's numbers ever break, it goes back to where it last was whole, on its wheels, and the
+     camera starts afresh (one broken frame used to leave the screen black until a restart) */
+  if(carWhole(t)){if(GAME.time-(GAME.safeT||-9)>.5){GAME.safeT=GAME.time;GAME.safe=[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])];}}
+  else{const s=GAME.safe||[38,-57,-PI/2];spawnCar(APP.bi,s[0],s[1],Number.isFinite(s[2])?s[2]:0);CAM.cut=true;CAM.yaw=null;CAM.off=null;say('Reset',1.2);}
   PS.sub+=n;psT(PS_PHYS,tp);
   if(GAME.acc>DT)GAME.acc=0;
   /* rolled over: say how to get back up; Kids flips it back by itself */
@@ -9073,7 +9092,10 @@ function render(dt){
   if(showActive()){renderShow(dt);return;}
   hClear();
   let tq=performance.now();
-  const T=sceneTargetHD(),cw=camUpdate(dt),t=GAME.car;worldUpdate(cw.eye,t);setOrigin(cw.eye);const c=CAM.last=camMats(cw,T.w/T.h);GFX.frame++;
+  let cw=camUpdate(dt);
+  /* (a camera that lost its numbers starts again behind the car rather than staying lost) */
+  if(![...cw.eye,...cw.fwd].every(Number.isFinite)){CAM.cut=true;CAM.yaw=null;CAM.off=null;CAM.fq=null;cw=camUpdate(dt);}
+  const T=sceneTargetHD(),t=GAME.car;worldUpdate(cw.eye,t);setOrigin(cw.eye);const c=CAM.last=camMats(cw,T.w/T.h);GFX.frame++;
   tq=psT(PS_WORLD,tq);
   /* the sun's cascaded shadow maps and a face of the reflection probe first (55_gfx) */
   csmPass(c,t);tq=psT(PS_SHADOW,tq);probePass(t);tq=psT(PS_PROBE,tq);
@@ -10942,7 +10964,7 @@ else{
       $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
     }catch(e){console.error(e);$('loading').textContent='Something went wrong starting the world: '+e.message;}
   },30));
-  window.__game={syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DRS,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
+  window.__game={GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DRS,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
     GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},gl,CSM,PRB,SKY,scn:()=>SCN,lit:()=>P_LIT,compile,VS_LIT,FS_LIT,DISP,setDisplay,SC,PT,
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
