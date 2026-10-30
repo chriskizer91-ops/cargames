@@ -145,7 +145,7 @@ function spawnCar(i,x,z,yaw){
   t.pt.maxG=APP.od&&t.pt.e.conv?t.pt.e.nG-1:0;
   GAME.car=t;APP.bi=i;GAME.dirt=b.dirt;
   if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];yaw=Math.atan2(-prev.M[6],prev.M[0]);}else{x=6;z=4;yaw=0;}}
-  placeCar(x,z,yaw);
+  placeCar(x,z,yaw);if(GAME.state!=='drive')settleCar();
   /* the synth becomes this engine */
   const v=GAME.voice;v.spec=t.spec;if(v.port)v.port.post({t:'cfg',cfg:SIM.dspCfg(t.spec)});
   syncTouch();
@@ -168,20 +168,24 @@ async function startEngine(){
 }
 function toggleEngine(){const pt=GAME.car.pt;if(pt.st==='off'||pt.st==='stopping')startEngine();else pt.stop();}
 /* what the synth hears: the lab's 'behind' listener, from wherever the chase camera is */
-function soundUpdate(c){
-  const v=GAME.voice;if(!ENG.audio||!v.port)return;const t=GAME.car,M=t.M,F=mcol(M,0),mode=CAMS[APP.cam],D=carD(t);
+function soundUpdate(c,dt){
+  const v=GAME.voice;if(!ENG.audio||!v.port)return;if(BAY.active)return bayVoice();const t=GAME.car,M=t.M,F=mcol(M,0),mode=CAMS[APP.cam],D=carD(t);
   const ex=add(t.p,mvec(M,[-(D.L/2-.15)-t.cg[0],.4-t.cg[1],0])),dist=len(sub2(c.eye,ex)),right=norm2([-c.fwd[2],0,c.fwd[0]]),toCam=norm2(sub2(c.eye,t.p));
   /* the camera sits 7 to 11 m back; the synth hears it from no further than the lab's own 'behind' spot plus a little, so it sounds like the lab */
   let geo={dist:clamp(dist,1.5,5),pan:clamp(-dot2(norm2(sub2(t.p,c.eye)),right)*.9,-1,1),rear:clamp(.5-.5*dot2(toCam,F),0,1)*.6+.4};
   if(mode==='Hood'&&!APP.orbit)geo={dist:3.2,pan:0,rear:.3};
   const ep=t.pt.soundParams(0,t.speed,geo);ep.horn=GAME.state==='drive'&&keyOn('horn')?1:0;
+  /* paused: the physics waits, but the engine settles to idle in the sound rather than droning where it was caught */
+  if(GAME.state!=='drive'){const idle=t.pt.e.idle;GAME.pRpm=GAME.pRpm===undefined?ep.rpm:GAME.pRpm+(idle-GAME.pRpm)*Math.min(1,(dt||0)*3);
+    if(t.pt.running)ep.rpm=GAME.pRpm;ep.load=0;ep.cutFrac=0;ep.boost=0;ep.nos=0;ep.speed=0;ep.twostep=0;ep.antilag=0;}
+  else GAME.pRpm=undefined;
   for(const e of t.pt.takeEvents())v.port.post({t:'ev',ev:e});
   v.port.post({t:'p',p:ep});
 }
 
 /* ---------- keyboard, game controller and the touch controls ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape'],perf:['KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],od:['KeyO'],trac:['KeyT']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape'],perf:['KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],od:['KeyO'],trac:['KeyT'],listen:['KeyV'],blip:['KeyG']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -199,7 +203,7 @@ function pollInput(dt){
   INPUT.steer+=clamp(tgt-INPUT.steer,-rate*dt,rate*dt);
   INPUT.thr+=clamp((keyOn('thr')?1:0)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
   out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
-  for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map','od','trac','perf'])out[k]=keyHit(k);
+  for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map','od','trac','perf','listen','blip'])out[k]=keyHit(k);
   /* the touch controls: analog steering (slide or tilt), a gas pedal set by how high the thumb sits, the brake and the e-brake */
   if(TOUCH.on){if(TOUCH.steerActive||APP.steer==='tilt')out.steer=TOUCH.steer;if(TOUCH.thr>0)out.thr=Math.max(out.thr,pedalMap(TOUCH.thr));if(TOUCH.brk>0)out.brk=Math.max(out.brk,TOUCH.brk);if(TOUCH.hb)out.hb=1;}
   const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const p of pads)if(p&&p.connected){gp=p;break;}
@@ -213,15 +217,22 @@ function pollInput(dt){
 }
 
 /* ---------- one frame of driving ---------- */
-const IDLE_IN={steer:0,thr:0,brk:1,hb:1,nos:false};
+/* with the game paused (the menu up, or boot) a car that has just been placed settles onto its springs here and now:
+   a second and a half of physics with the handbrake on and nothing else touched. (Not the brake pedal: a brake held
+   at a standstill for half a second is how the physics engages reverse, which is what used to happen under the menu.) */
+const SETTLE_IN={steer:0,thr:0,brk:0,hb:1,nos:false};
+function settleCar(){const t=GAME.car;for(let k=0;k<360;k++)t.step(DT,SETTLE_IN);t.takeEvents();GAME.acc=0;}
 /* a test's hands on the wheel (tools/showdown_check.js): what it returns overrides the keys */
 let AUTO=null;const setAuto=f=>{AUTO=f;};
 function step(dt){
   const t=GAME.car,inp=pollInput(dt),pt=t.pt;if(AUTO)Object.assign(inp,AUTO(dt,t)||{});
   if(inp.menu){if(GAME.state==='results')hideResults();else GAME.state==='drive'?openMenu(false):closeMenu();}
   if(inp.perf){setPerf(!PERF.on);say(PERF.on?'Performance readout on':'Performance readout off',1.2);}
-  let drive=IDLE_IN;
-  if(GAME.state==='drive'){
+  /* the menu or the results up: the game is paused. The physics waits exactly where it is (so nothing can engage reverse
+     or drive the car off under the menu), the dust finishes falling, and the garage's model bay gets the keys */
+  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);bayKeys(inp);return;}
+  let drive=inp;
+  {
     if(inp.cam){APP.cam=(APP.cam+1)%CAMS.length;CAM.cut=true;saveGame();say(CAMS[APP.cam]+' camera',1.2);}
     if(inp.reset){if(RACE.on&&RACE.state!=='grid')raceResetMe();else if(!RACE.on)resetCar();say('Reset',1);}
     if(inp.up)pt.shift(1);if(inp.down)pt.shift(-1);
@@ -233,7 +244,6 @@ function step(dt){
     if(inp.trac&&DEV)say('Traction '+pct(devStep()),1.4);
     if(inp.ign)toggleEngine();
     if(inp.purge&&GAME.voice.port&&pt.e.nosKw)GAME.voice.port.post({t:'ev',ev:{type:'purge'}});
-    drive=inp;
     /* brake and gas together at a standstill: a race gearbox holds on its trans-brake for a launch; anything
        else gets a line lock (the front brakes held, the drive to the rear wheels) for a burnout */
     if(!pt.e.launch&&inp.brk>.5&&inp.thr>.3&&t.speed<3&&!t.rev&&pt.running)drive=Object.assign({},inp,{brk:0,lock:true});
@@ -241,7 +251,6 @@ function step(dt){
   }
   /* a race: held on the grid until the lights go green; paused with the menu up (60_race) */
   if(RACE.on&&RACE.hold)drive={steer:0,thr:drive.thr||0,brk:1,hb:1,nos:false};
-  if(RACE.on&&GAME.state!=='drive'){GAME.acc=0;return;}
   GAME.acc+=dt;let n=0;
   if(RACE.on)raceFrame(dt);
   while(GAME.acc>=DT&&n<24){t.step(DT,drive);if(RACE.on)raceSub(DT);GAME.acc-=DT;n++;GAME.time+=DT;}
@@ -319,10 +328,15 @@ function camUpdate(dt){
   CAM.shake=Math.max(0,CAM.shake-dt*3);
   const body=(x,y,z)=>add(t.p,mvec(M,[x-t.cg[0],y-t.cg[1],z]));let eye,fwd,up=[0,1,0],fov=1.02;
   if(APP.orbit){
-    /* the garage: round and round the car, a little above it */
-    CAM.orbitA+=dt*.32;const yaw=Math.atan2(-M[6],M[0])+CAM.orbitA,r=D.L*1.25+2.2+lift*2;
-    eye=[t.p[0]+Math.cos(yaw)*r,t.p[1]+1.1+lift,t.p[2]-Math.sin(yaw)*r];const gy=RANCH.W.heightAt(eye[0],eye[2])+.6;if(eye[1]<gy)eye[1]=gy;
-    fwd=norm2(sub2([t.p[0],t.p[1]+.1,t.p[2]],eye));CAM.yaw=null;CAM.off=null;CAM.fq=null;return {eye,fwd,up,fov:.9};
+    /* the garage: round and round the car, a little above it; or held at one of the model bay's views, or where a drag left it */
+    const k=Math.min(1,dt*6);
+    if(BAY.spin)CAM.orbitA+=dt*.32;else{let d=BAY.th-CAM.orbitA;while(d>PI)d-=TAU;while(d<-PI)d+=TAU;CAM.orbitA+=d*k;}
+    BAY.ph+=(BAY.phT-BAY.ph)*k;BAY.dk+=(BAY.dkT-BAY.dk)*k;
+    const yaw=Math.atan2(-M[6],M[0])+CAM.orbitA,r=(D.L*1.25+2.2+lift*2)*BAY.dk,ph=BAY.ph,H=D.hood;
+    const atT=BAY.view==='bay'&&H?body(D.X((H.u0+H.u1)/2),H.hinge[1]-.25,0):[t.p[0],t.p[1]+BAY.tyT,t.p[2]];
+    if(!BAY.at||cut)BAY.at=atT.slice();else for(let q=0;q<3;q++)BAY.at[q]+=(atT[q]-BAY.at[q])*k;
+    eye=[BAY.at[0]+Math.cos(yaw)*r*Math.cos(ph),BAY.at[1]+.35+r*Math.sin(ph),BAY.at[2]-Math.sin(yaw)*r*Math.cos(ph)];const gy=RANCH.W.heightAt(eye[0],eye[2])+.6;if(eye[1]<gy)eye[1]=gy;
+    fwd=norm2(sub2(BAY.at,eye));CAM.yaw=null;CAM.off=null;CAM.fq=null;return {eye,fwd,up,fov:.9};
   }
   if(mode==='Hood'){
     /* on the hood, just behind the front axle */
@@ -380,11 +394,24 @@ function drawWorldCar(P,t,v,dirt,far,depth){
   const G=R.G,i=t.bi,b=t.build,T=truck(i),D=T.D,M0=carMatrix(t);let Mb=M0;
   const pm=t.drawPrev||(t.drawPrev={});const setM=(key,M,prev)=>{G.uni(P,'uM',M);if(!depth){G.uni(P,'uPrevM',prev||pm[key]||M);pm[key]=M;}};
   if(!depth){carUniforms(P,t,v,dirt);G.uni(P,'uMudLocal',1);G.uni(P,'uMudOff',0);}
+  /* in the garage's model bay the engine rocks the body on its springs (63_bay: a roll, a pitch and a shiver) */
+  const live=!!(v&&v.live&&t===GAME.car&&BAY.active);
+  if(live){const pv=.62;Mb=M4.mul(Mb,M4.mul(M4T(0,pv+v.shake[1],v.shake[0]),M4.mul(M4RX(v.roll),M4.mul(M4RZ(v.pitch),M4T(0,-pv,0)))));}
   const fx=D.X(D.uFa),Rr=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,Rr,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-Rr,0))));
   setM('body',Mb);
   /* a car far off (another car in a race) is drawn from its coarse copy */
   if(far){const F=truckFar(i);drawMesh(F.body);drawMesh(F.hood);}
-  else{drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
+  else{drawMesh(T.body);
+    /* the hood, swung up about its hinge at the cowl when the bay opens it; while it is open the engine bay is drawn
+       and the insides it replaces are not. An engine that sticks out through the hood (a blower) is always drawn */
+    const ha=t===GAME.car?sstep(0,1,BAY.hoodA):0;let Mh=Mb;
+    const engM=BY=>{const p=BY.pivot,a=live?-v.roll*3:0;return a?M4.mul(Mb,M4.mul(M4T(p[0],p[1],p[2]),M4.mul(BY.trans?M4RZ(a):M4RX(a),M4T(-p[0],-p[1],-p[2])))):Mb;};
+    if(ha>0&&D.hood){const [hx,hy]=D.hood.hinge;Mh=M4.mul(Mb,M4.mul(M4T(hx,hy,0),M4.mul(M4RZ(ha*HOOD_OPEN),M4T(-hx,-hy,0))));
+      const BY=bayOf(i);if(!depth)G.uni(P,'uDirt',dirt*.3);drawMesh(BY.bay);
+      if(!T.engineOut){setM('eng',engM(BY));drawMesh(BY.engine);}
+      setM('liner',Mh);drawMesh(BY.liner);if(!depth)G.uni(P,'uDirt',dirt);}
+    if(T.engineOut){setM('eng',engM(T.bay));drawMesh(T.bay.engine);}
+    setM('hood',Mh);drawMesh(T.hood);setM('body',Mb);if(ha===0)drawMesh(T.hide);}
   (D.spares||[]).forEach((sp,k)=>{const W=sp.rear?T.wheelR:T.wheel;
     setM('sp'+k,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);});
   if(!depth&&v&&v.flame>.04&&D.tips)for(const tp of D.tips){
@@ -417,7 +444,7 @@ const CARHOOK={list:[],
       if(!P){P=G.use(P_DEPTH);G.uni(P,'uVP',VP);G.uni(P,'uInst',0);}
       drawWorldCar(P,t,null,0,c.far||k>=2,true);}
     if(P)G.use(Pd);},
-  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);G.set(P,U);G.tex(P,texs);landUniforms(P);let tris=0;
+  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);let tris=0;
     for(const c of this.list)tris+=drawWorldCar(P,c.t,c.v,c.dirt,c.far,false);APP.carTris=tris;}
 };
 /* the soft occlusion under a car, for the renderer: where it is, its height, which way it faces, its size */
@@ -441,7 +468,9 @@ function render(dt){
 
 /* ---------- the HUD's grid fills the window, 16:9 ---------- */
 function setRes(i){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;store.set('rut-res',i);$('res').textContent='Dots '+BW+'×'+BH;if(R)resize();}
-function layout(){const vw=innerWidth,vh=innerHeight;let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};}
+function layout(){const vw=innerWidth,vh=innerHeight;let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};
+  /* the performance readout sits under the HUD's name block, right of the touch buttons, clear of the tach and the car */
+  const pf=$('perf');if(pf){pf.style.left=Math.max(92,RECT.x+RECT.w*.01)+'px';pf.style.top=(RECT.y+RECT.h*.215)+'px';}}
 /* (Dirt Sleeper's Detail setting is kept in the save; the renderer's dynamic resolution does its job now) */
 function setDetail(id){APP.detail=id;saveGame();}
 
@@ -456,8 +485,8 @@ function frame(ts){
   if(RESO){if(LAST_RAW)RESO.noteVsync(ts-LAST_RAW);LAST_RAW=ts;const k=fpsDivisor();RESO.setDivisor(k);const per=1000/RESO.hz;if(k>1&&LAST&&ts-LAST<k*per-per*.5)return;}
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
-  if(!GAME.hold)try{const t0=performance.now();step(dt);const t1=performance.now();GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const t2=performance.now();
-    if(CAM.last){soundUpdate(CAM.last);raceSound(CAM.last);}drsStep(dt);perfAcc(dt,t1-t0,t2-t1);}catch(e){console.error(e);}
+  if(!GAME.hold)try{const t0=performance.now();step(dt);bayTick(dt);const t1=performance.now();GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const t2=performance.now();
+    if(CAM.last){soundUpdate(CAM.last,dt);raceSound(CAM.last);}drsStep(dt);perfAcc(dt,t1-t0,t2-t1);}catch(e){console.error(e);}
   APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps';}
 }

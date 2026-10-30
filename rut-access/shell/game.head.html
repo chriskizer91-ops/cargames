@@ -36,7 +36,40 @@ button{font:inherit;color:inherit}
 .stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
 @media (max-width:640px){.stat{display:none}}
 body.touch #res,body.touch .stat{display:none}
-#perf{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:max(46px,calc(env(safe-area-inset-top,0px) + 42px));margin:0;padding:8px 10px;border-radius:8px;background:rgba(7,7,11,.74);color:var(--cyan);font:500 10.5px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none;z-index:6}
+#perf{position:fixed;left:92px;top:90px;margin:0;padding:6px 9px;border-radius:8px;background:rgba(7,7,11,.7);color:var(--cyan);font:500 10px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:auto;cursor:pointer;z-index:6}
+body.touch #gfx,body.touch .stat{display:none}
+
+/* ---------- the garage's model bay (Dirt Sleeper Mini's dock, in the Garage tab) ---------- */
+.bay{display:flex;flex-direction:column;gap:8px}
+.brow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.inl{display:contents}
+.tog{height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--edge);background:var(--panel);cursor:pointer;font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;touch-action:none}
+.tog[aria-pressed="true"]{color:var(--amber);border-color:rgba(255,180,60,.6)}
+.tog kbd{font:600 9.5px/1 var(--f);color:var(--ink-3);border:1px solid var(--edge);border-radius:4px;padding:2px 4px;margin-left:6px}
+.tog.on{color:var(--amber);border-color:rgba(255,180,60,.75);background:var(--raised)}
+.tog[data-tone="red"].on{color:var(--accent);border-color:rgba(255,61,90,.75)}
+.tog[data-tone="cyan"].on{color:var(--cyan);border-color:rgba(79,227,255,.75)}
+.tog:disabled{opacity:.35;cursor:default}
+.power{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+.power i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.power[aria-pressed="true"]{border-color:rgba(93,255,122,.6)}
+.power[aria-pressed="true"] i{background:#5dff7a;box-shadow:0 0 8px #5dff7a}
+.sw{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center;padding:0 2px}
+.sw button{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.15);cursor:pointer;padding:0}
+.sw button.kit{background:repeating-linear-gradient(45deg,#4a4a56 0 3px,#23232c 3px 6px)}
+.sw button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ink-2)}
+.mud{display:inline-flex;align-items:center;gap:7px;font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.mud input{width:90px;accent-color:#9a6a32}
+.mud.vol input{accent-color:var(--amber)}
+.pad{position:relative;flex:1 1 200px;min-width:150px;height:44px;border-radius:10px;border:1px solid var(--edge-2);background:var(--panel);overflow:hidden;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.padFill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(255,180,60,.15),rgba(255,180,60,.55) 70%,rgba(255,61,90,.75))}
+.pad span{position:absolute;inset:0;display:grid;place-items:center;font:600 10.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);pointer-events:none;text-align:center;padding:0 8px}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.info{margin:0;color:var(--ink-2);font-size:12px}
+.info b{color:var(--ink);font-weight:500}
+.info .st{color:var(--ink-3)}
+@media (hover:none){.tog kbd{display:none}}
+#bayDrag{position:fixed;top:max(46px,calc(env(safe-area-inset-top,0px) + 42px));bottom:0;left:min(560px,100%);right:16px;z-index:9;touch-action:none;cursor:grab}
 
 /* ---------- the touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:4}
@@ -280,6 +313,21 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
     </div>
     <div class="tab" data-tab="garage" hidden>
       <section><h2>Car</h2><div class="seg" id="gCars" role="group" aria-label="Car"></div></section>
+      <section class="bay" id="bay"><h2>Model bay</h2>
+        <div class="brow"><div class="seg" id="bTabs" role="group" aria-label="Panel"><button type="button" data-v="look" aria-pressed="true">Look</button><button type="button" data-v="engine" aria-pressed="false">Engine</button></div>
+          <div class="inl" data-bp="look"><div class="seg" id="bViews" role="group" aria-label="View"></div><button class="tog" id="bSpin" type="button" aria-pressed="true">Spin</button></div>
+          <div class="inl" data-bp="engine" hidden><button class="tog power" id="bPower" type="button" aria-pressed="false"><i></i><span id="bPowerLbl">Start engine</span><kbd>I</kbd></button>
+            <div class="seg" id="bMode" role="group" aria-label="Mode"><button type="button" data-v="free" aria-pressed="true">Free rev</button><button type="button" data-v="drive" aria-pressed="false">Drive</button></div>
+            <div class="seg" id="bListen" role="group" aria-label="Where you listen"></div></div></div>
+        <div class="brow" data-bp="look"><div class="sw" id="bPaints" role="group" aria-label="Paint"></div>
+          <label class="mud" for="bMud">Mud <input id="bMud" type="range" min="0" max="1" step="0.01"></label>
+          <button class="tog" id="bLights" type="button" aria-pressed="false">Lights</button><button class="tog" id="bSteer" type="button" aria-pressed="false">Steer</button><button class="tog" id="bHood" type="button" aria-pressed="false">Hood</button></div>
+        <div class="brow" data-bp="engine" hidden><div class="pad" id="bPad" role="slider" tabindex="0" aria-label="Throttle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="padFill" id="bPadFill"></div><span id="bPadLbl">Hold to rev</span></div><div class="btns" id="bBtns"></div></div>
+        <div class="brow" data-bp="engine" hidden><div class="seg" id="bRoom" role="group" aria-label="Room"><button type="button" data-v="open">Open air</button><button type="button" data-v="garage">Garage</button><button type="button" data-v="tunnel">Tunnel</button></div>
+          <label class="mud vol" for="bVol">Volume <input id="bVol" type="range" min="0" max="1" step="0.01"></label></div>
+        <p class="keys" id="bKeys"><kbd>Space</kbd> throttle · <kbd>1</kbd>–<kbd>9</kbd> part throttle · <kbd>S</kbd> brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>N</kbd> nitrous · <kbd>B</kbd> purge · <kbd>G</kbd> blip · <kbd>V</kbd> where you listen · <kbd>I</kbd> engine · <kbd>J</kbd> lights · drag the picture beside the menu to turn the view</p>
+        <p class="info" id="bInfo"></p>
+      </section>
       <section><h2>Start from</h2><div class="places" id="gPresets"></div></section>
       <section><h2>Building for</h2><div class="ratings" id="gRatings"></div><div class="figs" id="gFigs" style="margin-top:10px"></div></section>
       <p class="guide" id="gGuide"></p>
@@ -331,10 +379,16 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <div id="mDevLookT" style="margin-top:10px"></div>
       <p style="margin-top:10px"><button class="btn sm" id="mDevLookReset" type="button">Back to the tuned look</button></p>
     </section>
+    <section class="dev" id="mDevTone" hidden><h2>Developer: the engine note</h2>
+      <p class="hint" style="margin:0 0 10px">The game's own tone controls, after every engine's synth and before the lab's compressor, so every engine moves together. Set them on the phone, say what you landed on, and those numbers become the defaults. Saved on this device.</p>
+      <div class="devrows" id="mDevToneS"></div>
+      <p style="margin-top:10px"><button class="btn sm" id="mDevToneReset" type="button">Back to the lab's chain</button></p>
+    </section>
     </div>
     <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button><button class="btn sm" id="mLeave" type="button" hidden>Leave the race</button></div>
   </div>
 </div>
+<div id="bayDrag" hidden></div>
 <div id="rres" hidden>
   <div class="mwrap">
     <div class="mhead"><div><span class="eyebrow" id="rrEyebrow">Results</span><h1 id="rrTitle">Results</h1></div>

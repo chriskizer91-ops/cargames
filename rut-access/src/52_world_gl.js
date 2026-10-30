@@ -123,8 +123,10 @@ const LAND={cam:[0,0,0],
   shadow(R,Pd,VP,kind,k){const G=R.G,P=G.use(P_DEPTH);G.uni(P,'uVP',VP);G.uni(P,'uM',M4_ID);G.uni(P,'uInst',0);G.uni(P,'uTime',APP.t);
     const planes=SL3.M4.planes(VP),e=kind==='hl'?R.hlPos:this.cam,maxD=kind==='hl'?90:[70,130,290][k];
     landDrawDepth(P,planes,e,maxD,k>=1||kind==='hl'?1:0);G.use(Pd);},
-  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);G.set(P,U);G.tex(P,texs);landUniforms(P);
+  /* Showdown's meshes are two-sided (the shader turns a normal to face the eye), so the renderer's back-face culling,
+     switched on just before these hooks, would open holes in them: off for the land and the cars, in the scene and the probe */
+  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);
     RANCH.tris=landDraw(P,R.planes,U.uCam,drawFar(),true)+fxDraw(P);},
-  probe(R,U2,texs){const G=R.G,P=G.use(P_LANDP);G.set(P,U2);G.tex(P,texs);landUniforms(P);
+  probe(R,U2,texs){const G=R.G,P=G.use(P_LANDP);gl.disable(gl.CULL_FACE);G.set(P,U2);G.tex(P,texs);landUniforms(P);
     landDraw(P,SL3.M4.planes(U2.uVP),U2.uCam,Math.min(GFX.q.probeFar,GFX.far),false);}
 };

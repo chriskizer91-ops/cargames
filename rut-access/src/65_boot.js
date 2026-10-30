@@ -32,5 +32,6 @@
     GFX,GFX_LEVELS,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,LAND,CARHOOK,FXP,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},M4_ID,landDraw,landDrawDepth,drawTrees,boxVisible,compile,VS_FS,DISP,setDisplay,PIC,get RESO(){return RESO;},PERF,setPerf,SKY,TOD,WX,envNow,
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,
     CROSS_ROUTES,raceLine,looksOf,LADDER,CALLOUT,calloutStep,setAuto,syncRaces,
+    BAY,bayTick,bayView,baySetTab,bayEnter,bayLeave,baySync,bayToggleEngine,TONE,toneApply,settleCar,LOOK,
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }

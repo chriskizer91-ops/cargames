@@ -6,11 +6,12 @@
    env: W, H (the viewport, 960 x 540), FRAMES (frames drawn before the shot, 24), SIM (seconds of driving first, 4),
         DEBUG (one of the renderer's buffers instead of the picture: color normal rough vel depth ssr fog lit hist bloom expo probe),
         JS (code run in the page before the frames, with the game as g: e.g. JS="g.SKY.ambUp=[0,0,0]"),
-        PAGE=1 (a screenshot of the whole page, menus and readouts included, instead of the picture alone)
+        PAGE=1 (a screenshot of the whole page, menus and readouts included, instead of the picture alone),
+        FILE (another built page to shoot, e.g. an older build kept for comparison)
    e.g.   node tools/shot_rut.js /tmp/shots noon:mobile:clear:day:loop night:mobile:dots:night:strip
    Software rendering: a minute or three a shot. Any page error is printed. */
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
-const [out,...jobs]=process.argv.slice(2);const file=path.resolve(__dirname,'..','rut-access.html');
+const [out,...jobs]=process.argv.slice(2);const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','rut-access.html');
 const W=+(process.env.W||960),H=+(process.env.H||540),FRAMES=+(process.env.FRAMES||24),SIM=+(process.env.SIM||4),DEBUG=process.env.DEBUG||'',JS=process.env.JS||'',PAGE=!!process.env.PAGE;
 fs.mkdirSync(out,{recursive:true});
 (async()=>{

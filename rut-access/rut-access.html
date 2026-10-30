@@ -36,7 +36,40 @@ button{font:inherit;color:inherit}
 .stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
 @media (max-width:640px){.stat{display:none}}
 body.touch #res,body.touch .stat{display:none}
-#perf{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:max(46px,calc(env(safe-area-inset-top,0px) + 42px));margin:0;padding:8px 10px;border-radius:8px;background:rgba(7,7,11,.74);color:var(--cyan);font:500 10.5px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none;z-index:6}
+#perf{position:fixed;left:92px;top:90px;margin:0;padding:6px 9px;border-radius:8px;background:rgba(7,7,11,.7);color:var(--cyan);font:500 10px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:auto;cursor:pointer;z-index:6}
+body.touch #gfx,body.touch .stat{display:none}
+
+/* ---------- the garage's model bay (Dirt Sleeper Mini's dock, in the Garage tab) ---------- */
+.bay{display:flex;flex-direction:column;gap:8px}
+.brow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.inl{display:contents}
+.tog{height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--edge);background:var(--panel);cursor:pointer;font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;touch-action:none}
+.tog[aria-pressed="true"]{color:var(--amber);border-color:rgba(255,180,60,.6)}
+.tog kbd{font:600 9.5px/1 var(--f);color:var(--ink-3);border:1px solid var(--edge);border-radius:4px;padding:2px 4px;margin-left:6px}
+.tog.on{color:var(--amber);border-color:rgba(255,180,60,.75);background:var(--raised)}
+.tog[data-tone="red"].on{color:var(--accent);border-color:rgba(255,61,90,.75)}
+.tog[data-tone="cyan"].on{color:var(--cyan);border-color:rgba(79,227,255,.75)}
+.tog:disabled{opacity:.35;cursor:default}
+.power{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+.power i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.power[aria-pressed="true"]{border-color:rgba(93,255,122,.6)}
+.power[aria-pressed="true"] i{background:#5dff7a;box-shadow:0 0 8px #5dff7a}
+.sw{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center;padding:0 2px}
+.sw button{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.15);cursor:pointer;padding:0}
+.sw button.kit{background:repeating-linear-gradient(45deg,#4a4a56 0 3px,#23232c 3px 6px)}
+.sw button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ink-2)}
+.mud{display:inline-flex;align-items:center;gap:7px;font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.mud input{width:90px;accent-color:#9a6a32}
+.mud.vol input{accent-color:var(--amber)}
+.pad{position:relative;flex:1 1 200px;min-width:150px;height:44px;border-radius:10px;border:1px solid var(--edge-2);background:var(--panel);overflow:hidden;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.padFill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(255,180,60,.15),rgba(255,180,60,.55) 70%,rgba(255,61,90,.75))}
+.pad span{position:absolute;inset:0;display:grid;place-items:center;font:600 10.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);pointer-events:none;text-align:center;padding:0 8px}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.info{margin:0;color:var(--ink-2);font-size:12px}
+.info b{color:var(--ink);font-weight:500}
+.info .st{color:var(--ink-3)}
+@media (hover:none){.tog kbd{display:none}}
+#bayDrag{position:fixed;top:max(46px,calc(env(safe-area-inset-top,0px) + 42px));bottom:0;left:min(560px,100%);right:16px;z-index:9;touch-action:none;cursor:grab}
 
 /* ---------- the touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:4}
@@ -280,6 +313,21 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
     </div>
     <div class="tab" data-tab="garage" hidden>
       <section><h2>Car</h2><div class="seg" id="gCars" role="group" aria-label="Car"></div></section>
+      <section class="bay" id="bay"><h2>Model bay</h2>
+        <div class="brow"><div class="seg" id="bTabs" role="group" aria-label="Panel"><button type="button" data-v="look" aria-pressed="true">Look</button><button type="button" data-v="engine" aria-pressed="false">Engine</button></div>
+          <div class="inl" data-bp="look"><div class="seg" id="bViews" role="group" aria-label="View"></div><button class="tog" id="bSpin" type="button" aria-pressed="true">Spin</button></div>
+          <div class="inl" data-bp="engine" hidden><button class="tog power" id="bPower" type="button" aria-pressed="false"><i></i><span id="bPowerLbl">Start engine</span><kbd>I</kbd></button>
+            <div class="seg" id="bMode" role="group" aria-label="Mode"><button type="button" data-v="free" aria-pressed="true">Free rev</button><button type="button" data-v="drive" aria-pressed="false">Drive</button></div>
+            <div class="seg" id="bListen" role="group" aria-label="Where you listen"></div></div></div>
+        <div class="brow" data-bp="look"><div class="sw" id="bPaints" role="group" aria-label="Paint"></div>
+          <label class="mud" for="bMud">Mud <input id="bMud" type="range" min="0" max="1" step="0.01"></label>
+          <button class="tog" id="bLights" type="button" aria-pressed="false">Lights</button><button class="tog" id="bSteer" type="button" aria-pressed="false">Steer</button><button class="tog" id="bHood" type="button" aria-pressed="false">Hood</button></div>
+        <div class="brow" data-bp="engine" hidden><div class="pad" id="bPad" role="slider" tabindex="0" aria-label="Throttle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="padFill" id="bPadFill"></div><span id="bPadLbl">Hold to rev</span></div><div class="btns" id="bBtns"></div></div>
+        <div class="brow" data-bp="engine" hidden><div class="seg" id="bRoom" role="group" aria-label="Room"><button type="button" data-v="open">Open air</button><button type="button" data-v="garage">Garage</button><button type="button" data-v="tunnel">Tunnel</button></div>
+          <label class="mud vol" for="bVol">Volume <input id="bVol" type="range" min="0" max="1" step="0.01"></label></div>
+        <p class="keys" id="bKeys"><kbd>Space</kbd> throttle · <kbd>1</kbd>–<kbd>9</kbd> part throttle · <kbd>S</kbd> brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>N</kbd> nitrous · <kbd>B</kbd> purge · <kbd>G</kbd> blip · <kbd>V</kbd> where you listen · <kbd>I</kbd> engine · <kbd>J</kbd> lights · drag the picture beside the menu to turn the view</p>
+        <p class="info" id="bInfo"></p>
+      </section>
       <section><h2>Start from</h2><div class="places" id="gPresets"></div></section>
       <section><h2>Building for</h2><div class="ratings" id="gRatings"></div><div class="figs" id="gFigs" style="margin-top:10px"></div></section>
       <p class="guide" id="gGuide"></p>
@@ -331,10 +379,16 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
       <div id="mDevLookT" style="margin-top:10px"></div>
       <p style="margin-top:10px"><button class="btn sm" id="mDevLookReset" type="button">Back to the tuned look</button></p>
     </section>
+    <section class="dev" id="mDevTone" hidden><h2>Developer: the engine note</h2>
+      <p class="hint" style="margin:0 0 10px">The game's own tone controls, after every engine's synth and before the lab's compressor, so every engine moves together. Set them on the phone, say what you landed on, and those numbers become the defaults. Saved on this device.</p>
+      <div class="devrows" id="mDevToneS"></div>
+      <p style="margin-top:10px"><button class="btn sm" id="mDevToneReset" type="button">Back to the lab's chain</button></p>
+    </section>
     </div>
     <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button><button class="btn sm" id="mLeave" type="button" hidden>Leave the race</button></div>
   </div>
 </div>
+<div id="bayDrag" hidden></div>
 <div id="rres" hidden>
   <div class="mwrap">
     <div class="mhead"><div><span class="eyebrow" id="rrEyebrow">Results</span><h1 id="rrTitle">Results</h1></div>
@@ -5173,6 +5227,16 @@ function roomIR(ctx,kind){
   return b;
 }
 const ROOM_SEND={open:.28,garage:.5,tunnel:.8};
+/* ---------- the game's tone: after every voice and the room, before the lab's compressor. Three bands and a touch
+   of grit, for the developer to tune the engine note on a phone speaker from the Dev tab; it works on every engine
+   alike. At its defaults (0 dB everywhere, no grit) the chain is the lab's own. Saved as rut-tone ---------- */
+const TONE_DEF={bass:0,body:0,treble:0,grit:0},TONE=Object.assign({},TONE_DEF);
+try{const s=JSON.parse(store.get('rut-tone','{}'))||{};for(const k in TONE_DEF)if(typeof s[k]==='number')TONE[k]=s[k];}catch(e){}
+const toneSave=()=>store.set('rut-tone',JSON.stringify(TONE));
+const toneOff=()=>Object.keys(TONE_DEF).some(k=>Math.abs(TONE[k]-TONE_DEF[k])>1e-6);
+function toneApply(){if(!ENG.audio||!ENG.audio.eq)return;const a=ENG.audio,q=a.eq,t=a.ctx.currentTime;
+  q.bass.gain.setTargetAtTime(TONE.bass,t,.03);q.body.gain.setTargetAtTime(TONE.body,t,.03);q.treble.gain.setTargetAtTime(TONE.treble,t,.03);
+  const g=clamp(TONE.grit,0,1);q.wet.gain.setTargetAtTime(g*.9,t,.03);q.dry.gain.setTargetAtTime(1-g*.55,t,.03);}
 function setRoom(){if(!ENG.audio)return;const a=ENG.audio;a.conv.buffer=roomIR(a.ctx,ENG.room);a.send.gain.setTargetAtTime(ROOM_SEND[ENG.room]*(ENG.listener===1?.35:1),a.ctx.currentTime,.05);}
 
 /* ---------- from the lab: the audio graph, the synth in an audio worklet ---------- */
@@ -5184,7 +5248,13 @@ async function initAudio(){
     const ctx=new AC({latencyHint:'interactive'});
     const master=ctx.createGain();master.gain.value=ENG.vol;
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-8;comp.knee.value=6;comp.ratio.value=4;comp.attack.value=.003;comp.release.value=.15;
-    master.connect(comp);comp.connect(ctx.destination);
+    /* the tone (TONE): a bass shelf, a body band and a treble shelf, then a clean path and a softly saturated one into the compressor */
+    const bass=ctx.createBiquadFilter();bass.type='lowshelf';bass.frequency.value=120;bass.gain.value=TONE.bass;
+    const body=ctx.createBiquadFilter();body.type='peaking';body.frequency.value=320;body.Q.value=.9;body.gain.value=TONE.body;
+    const treble=ctx.createBiquadFilter();treble.type='highshelf';treble.frequency.value=3200;treble.gain.value=TONE.treble;
+    const dry=ctx.createGain(),wet=ctx.createGain(),shaper=ctx.createWaveShaper();
+    {const n=1024,c=new Float32Array(n),k=2.6,nk=Math.tanh(k);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*k)/nk;}shaper.curve=c;shaper.oversample='2x';}
+    master.connect(bass);bass.connect(body);body.connect(treble);treble.connect(dry);dry.connect(comp);treble.connect(shaper);shaper.connect(wet);wet.connect(comp);comp.connect(ctx.destination);
     const send=ctx.createGain();send.gain.value=0;const conv=ctx.createConvolver();send.connect(conv);conv.connect(master);
     let worklet=false,kind;
     try{
@@ -5202,8 +5272,8 @@ registerProcessor('digital-engine',DigitalEngine);`;
       catch(e1){await ctx.audioWorklet.addModule('data:application/javascript;charset=utf-8,'+encodeURIComponent(src));}
       worklet=true;kind='audio worklet';
     }catch(err){kind='main-thread fallback ('+(err&&err.message||err)+')';}
-    ENG.audio={ctx,master,comp,send,conv,worklet,kind};
-    setRoom();
+    ENG.audio={ctx,master,comp,send,conv,worklet,kind,eq:{bass,body,treble,dry,wet}};
+    setRoom();toneApply();
     ENG.status=`Digital Engine synth running live in an ${kind} at ${(ctx.sampleRate/1000).toFixed(1)} kHz.`;
     return ENG.audio;
   })();
@@ -9787,9 +9857,11 @@ const LAND={cam:[0,0,0],
   shadow(R,Pd,VP,kind,k){const G=R.G,P=G.use(P_DEPTH);G.uni(P,'uVP',VP);G.uni(P,'uM',M4_ID);G.uni(P,'uInst',0);G.uni(P,'uTime',APP.t);
     const planes=SL3.M4.planes(VP),e=kind==='hl'?R.hlPos:this.cam,maxD=kind==='hl'?90:[70,130,290][k];
     landDrawDepth(P,planes,e,maxD,k>=1||kind==='hl'?1:0);G.use(Pd);},
-  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);G.set(P,U);G.tex(P,texs);landUniforms(P);
+  /* Showdown's meshes are two-sided (the shader turns a normal to face the eye), so the renderer's back-face culling,
+     switched on just before these hooks, would open holes in them: off for the land and the cars, in the scene and the probe */
+  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);
     RANCH.tris=landDraw(P,R.planes,U.uCam,drawFar(),true)+fxDraw(P);},
-  probe(R,U2,texs){const G=R.G,P=G.use(P_LANDP);G.set(P,U2);G.tex(P,texs);landUniforms(P);
+  probe(R,U2,texs){const G=R.G,P=G.use(P_LANDP);gl.disable(gl.CULL_FACE);G.set(P,U2);G.tex(P,texs);landUniforms(P);
     landDraw(P,SL3.M4.planes(U2.uVP),U2.uCam,Math.min(GFX.q.probeFar,GFX.far),false);}
 };
 /* =====================================================================================
@@ -9921,7 +9993,7 @@ const simDevOff=()=>Object.keys(SIMDEV0).some(k=>Math.abs(SIMDEV[k]-SIMDEV0[k])>
 /* the HUD's tag while anything is off the defaults: TRACTION 125%, with + when more than that has changed */
 function devTag(){
   if(!DEV)return '';
-  const more=DEV_GROUND.some(([k])=>off1(DEV_T.ground[k]))||DEV_CAR.some(([k])=>off1(DEV_T.car[k]))||APP.level==='sim'&&simDevOff()||lookOff();
+  const more=DEV_GROUND.some(([k])=>off1(DEV_T.ground[k]))||DEV_CAR.some(([k])=>off1(DEV_T.car[k]))||APP.level==='sim'&&simDevOff()||lookOff()||toneOff();
   return off1(DEV_T.all)?'TRACTION '+Math.round(DEV_T.all*100)+'%'+(more?' +':''):more?'DEV':'';
 }
 /* T while driving: Traction through 75, 100, 125 and 150% */
@@ -9970,6 +10042,12 @@ function slider(host,id,label,note,min,max,get,set){
   el.sync=()=>{inp.value=get();el.querySelector('output').textContent=pct(get());};
   host.appendChild(el);return el;
 }
+/* ---------- the engine note: 17_audio's TONE, the game's own EQ in front of the lab's compressor ---------- */
+const dB=v=>(v>0?'+':'')+v.toFixed(1)+' dB';
+const TONE_S=[['bass','Bass',-12,12,'A shelf below about 120 Hz: the engine\'s low end. A phone speaker has almost none of it and a laptop has some, which is most of why the same engine sounds fuller on the laptop.',dB],
+  ['body','Body',-12,12,'A band around 320 Hz: the chest of the note, the part a small speaker can carry. Worth pushing up on a phone.',dB],
+  ['treble','Treble',-12,12,'A shelf above about 3 kHz: the exhaust rasp, the turbo whistle, the crackle on the overrun.',dB],
+  ['grit','Grit',0,1,'Soft saturation blended in. It adds harmonics of the low end that a small speaker can\'t play, so the engine reads on a phone. 0 is the lab\'s clean chain.',pct]];
 const DEV_ROWS=[];
 function buildDev(){
   if(!DEV)return;
@@ -10000,6 +10078,12 @@ function buildDev(){
     const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
     inp.addEventListener('change',()=>{LOOK[k]=inp.checked?1:0;lookSave();});el.sync=()=>{inp.checked=!!LOOK[k];};$('mDevLookT').appendChild(el);DEV_ROWS.push(el);}
   $('mDevLookReset').addEventListener('click',()=>{Object.assign(LOOK,LOOK_DEF);lookSave();syncDev();});
+  /* the engine note */
+  $('mDevTone').hidden=false;
+  for(const [k,n,lo,hi,note,fm] of TONE_S){const el=document.createElement('div');el.className='devrow';el.innerHTML='<label></label><output></output><input type="range"><small></small>';
+    const inp=el.querySelector('input'),lb=el.querySelector('label');lb.textContent=n;lb.htmlFor=inp.id='devt_'+k;inp.min=lo;inp.max=hi;inp.step=k==='grit'?.01:.5;el.querySelector('small').textContent=note;
+    inp.addEventListener('input',()=>{TONE[k]=+inp.value;toneSave();toneApply();el.sync();});el.sync=()=>{inp.value=TONE[k];el.querySelector('output').textContent=fm(TONE[k]);};$('mDevToneS').appendChild(el);DEV_ROWS.push(el);}
+  $('mDevToneReset').addEventListener('click',()=>{Object.assign(TONE,TONE_DEF);toneSave();toneApply();syncDev();});
 }
 /* a Sim piece changed: the car reads it now (the roof load rebuilds the car where it stands) */
 function simDevApply(rebuild){store.set('rut-simdev',JSON.stringify(SIMDEV));if(rebuild&&APP.level==='sim')spawnRig();else if(GAME.car)GAME.car.applySim();syncDev();}
@@ -10997,7 +11081,7 @@ function spawnCar(i,x,z,yaw){
   t.pt.maxG=APP.od&&t.pt.e.conv?t.pt.e.nG-1:0;
   GAME.car=t;APP.bi=i;GAME.dirt=b.dirt;
   if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];yaw=Math.atan2(-prev.M[6],prev.M[0]);}else{x=6;z=4;yaw=0;}}
-  placeCar(x,z,yaw);
+  placeCar(x,z,yaw);if(GAME.state!=='drive')settleCar();
   /* the synth becomes this engine */
   const v=GAME.voice;v.spec=t.spec;if(v.port)v.port.post({t:'cfg',cfg:SIM.dspCfg(t.spec)});
   syncTouch();
@@ -11020,20 +11104,24 @@ async function startEngine(){
 }
 function toggleEngine(){const pt=GAME.car.pt;if(pt.st==='off'||pt.st==='stopping')startEngine();else pt.stop();}
 /* what the synth hears: the lab's 'behind' listener, from wherever the chase camera is */
-function soundUpdate(c){
-  const v=GAME.voice;if(!ENG.audio||!v.port)return;const t=GAME.car,M=t.M,F=mcol(M,0),mode=CAMS[APP.cam],D=carD(t);
+function soundUpdate(c,dt){
+  const v=GAME.voice;if(!ENG.audio||!v.port)return;if(BAY.active)return bayVoice();const t=GAME.car,M=t.M,F=mcol(M,0),mode=CAMS[APP.cam],D=carD(t);
   const ex=add(t.p,mvec(M,[-(D.L/2-.15)-t.cg[0],.4-t.cg[1],0])),dist=len(sub2(c.eye,ex)),right=norm2([-c.fwd[2],0,c.fwd[0]]),toCam=norm2(sub2(c.eye,t.p));
   /* the camera sits 7 to 11 m back; the synth hears it from no further than the lab's own 'behind' spot plus a little, so it sounds like the lab */
   let geo={dist:clamp(dist,1.5,5),pan:clamp(-dot2(norm2(sub2(t.p,c.eye)),right)*.9,-1,1),rear:clamp(.5-.5*dot2(toCam,F),0,1)*.6+.4};
   if(mode==='Hood'&&!APP.orbit)geo={dist:3.2,pan:0,rear:.3};
   const ep=t.pt.soundParams(0,t.speed,geo);ep.horn=GAME.state==='drive'&&keyOn('horn')?1:0;
+  /* paused: the physics waits, but the engine settles to idle in the sound rather than droning where it was caught */
+  if(GAME.state!=='drive'){const idle=t.pt.e.idle;GAME.pRpm=GAME.pRpm===undefined?ep.rpm:GAME.pRpm+(idle-GAME.pRpm)*Math.min(1,(dt||0)*3);
+    if(t.pt.running)ep.rpm=GAME.pRpm;ep.load=0;ep.cutFrac=0;ep.boost=0;ep.nos=0;ep.speed=0;ep.twostep=0;ep.antilag=0;}
+  else GAME.pRpm=undefined;
   for(const e of t.pt.takeEvents())v.port.post({t:'ev',ev:e});
   v.port.post({t:'p',p:ep});
 }
 
 /* ---------- keyboard, game controller and the touch controls ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape'],perf:['KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],od:['KeyO'],trac:['KeyT']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],reset:['KeyR'],menu:['Escape'],perf:['KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],od:['KeyO'],trac:['KeyT'],listen:['KeyV'],blip:['KeyG']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -11051,7 +11139,7 @@ function pollInput(dt){
   INPUT.steer+=clamp(tgt-INPUT.steer,-rate*dt,rate*dt);
   INPUT.thr+=clamp((keyOn('thr')?1:0)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
   out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
-  for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map','od','trac','perf'])out[k]=keyHit(k);
+  for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map','od','trac','perf','listen','blip'])out[k]=keyHit(k);
   /* the touch controls: analog steering (slide or tilt), a gas pedal set by how high the thumb sits, the brake and the e-brake */
   if(TOUCH.on){if(TOUCH.steerActive||APP.steer==='tilt')out.steer=TOUCH.steer;if(TOUCH.thr>0)out.thr=Math.max(out.thr,pedalMap(TOUCH.thr));if(TOUCH.brk>0)out.brk=Math.max(out.brk,TOUCH.brk);if(TOUCH.hb)out.hb=1;}
   const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const p of pads)if(p&&p.connected){gp=p;break;}
@@ -11065,15 +11153,22 @@ function pollInput(dt){
 }
 
 /* ---------- one frame of driving ---------- */
-const IDLE_IN={steer:0,thr:0,brk:1,hb:1,nos:false};
+/* with the game paused (the menu up, or boot) a car that has just been placed settles onto its springs here and now:
+   a second and a half of physics with the handbrake on and nothing else touched. (Not the brake pedal: a brake held
+   at a standstill for half a second is how the physics engages reverse, which is what used to happen under the menu.) */
+const SETTLE_IN={steer:0,thr:0,brk:0,hb:1,nos:false};
+function settleCar(){const t=GAME.car;for(let k=0;k<360;k++)t.step(DT,SETTLE_IN);t.takeEvents();GAME.acc=0;}
 /* a test's hands on the wheel (tools/showdown_check.js): what it returns overrides the keys */
 let AUTO=null;const setAuto=f=>{AUTO=f;};
 function step(dt){
   const t=GAME.car,inp=pollInput(dt),pt=t.pt;if(AUTO)Object.assign(inp,AUTO(dt,t)||{});
   if(inp.menu){if(GAME.state==='results')hideResults();else GAME.state==='drive'?openMenu(false):closeMenu();}
   if(inp.perf){setPerf(!PERF.on);say(PERF.on?'Performance readout on':'Performance readout off',1.2);}
-  let drive=IDLE_IN;
-  if(GAME.state==='drive'){
+  /* the menu or the results up: the game is paused. The physics waits exactly where it is (so nothing can engage reverse
+     or drive the car off under the menu), the dust finishes falling, and the garage's model bay gets the keys */
+  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);bayKeys(inp);return;}
+  let drive=inp;
+  {
     if(inp.cam){APP.cam=(APP.cam+1)%CAMS.length;CAM.cut=true;saveGame();say(CAMS[APP.cam]+' camera',1.2);}
     if(inp.reset){if(RACE.on&&RACE.state!=='grid')raceResetMe();else if(!RACE.on)resetCar();say('Reset',1);}
     if(inp.up)pt.shift(1);if(inp.down)pt.shift(-1);
@@ -11085,7 +11180,6 @@ function step(dt){
     if(inp.trac&&DEV)say('Traction '+pct(devStep()),1.4);
     if(inp.ign)toggleEngine();
     if(inp.purge&&GAME.voice.port&&pt.e.nosKw)GAME.voice.port.post({t:'ev',ev:{type:'purge'}});
-    drive=inp;
     /* brake and gas together at a standstill: a race gearbox holds on its trans-brake for a launch; anything
        else gets a line lock (the front brakes held, the drive to the rear wheels) for a burnout */
     if(!pt.e.launch&&inp.brk>.5&&inp.thr>.3&&t.speed<3&&!t.rev&&pt.running)drive=Object.assign({},inp,{brk:0,lock:true});
@@ -11093,7 +11187,6 @@ function step(dt){
   }
   /* a race: held on the grid until the lights go green; paused with the menu up (60_race) */
   if(RACE.on&&RACE.hold)drive={steer:0,thr:drive.thr||0,brk:1,hb:1,nos:false};
-  if(RACE.on&&GAME.state!=='drive'){GAME.acc=0;return;}
   GAME.acc+=dt;let n=0;
   if(RACE.on)raceFrame(dt);
   while(GAME.acc>=DT&&n<24){t.step(DT,drive);if(RACE.on)raceSub(DT);GAME.acc-=DT;n++;GAME.time+=DT;}
@@ -11171,10 +11264,15 @@ function camUpdate(dt){
   CAM.shake=Math.max(0,CAM.shake-dt*3);
   const body=(x,y,z)=>add(t.p,mvec(M,[x-t.cg[0],y-t.cg[1],z]));let eye,fwd,up=[0,1,0],fov=1.02;
   if(APP.orbit){
-    /* the garage: round and round the car, a little above it */
-    CAM.orbitA+=dt*.32;const yaw=Math.atan2(-M[6],M[0])+CAM.orbitA,r=D.L*1.25+2.2+lift*2;
-    eye=[t.p[0]+Math.cos(yaw)*r,t.p[1]+1.1+lift,t.p[2]-Math.sin(yaw)*r];const gy=RANCH.W.heightAt(eye[0],eye[2])+.6;if(eye[1]<gy)eye[1]=gy;
-    fwd=norm2(sub2([t.p[0],t.p[1]+.1,t.p[2]],eye));CAM.yaw=null;CAM.off=null;CAM.fq=null;return {eye,fwd,up,fov:.9};
+    /* the garage: round and round the car, a little above it; or held at one of the model bay's views, or where a drag left it */
+    const k=Math.min(1,dt*6);
+    if(BAY.spin)CAM.orbitA+=dt*.32;else{let d=BAY.th-CAM.orbitA;while(d>PI)d-=TAU;while(d<-PI)d+=TAU;CAM.orbitA+=d*k;}
+    BAY.ph+=(BAY.phT-BAY.ph)*k;BAY.dk+=(BAY.dkT-BAY.dk)*k;
+    const yaw=Math.atan2(-M[6],M[0])+CAM.orbitA,r=(D.L*1.25+2.2+lift*2)*BAY.dk,ph=BAY.ph,H=D.hood;
+    const atT=BAY.view==='bay'&&H?body(D.X((H.u0+H.u1)/2),H.hinge[1]-.25,0):[t.p[0],t.p[1]+BAY.tyT,t.p[2]];
+    if(!BAY.at||cut)BAY.at=atT.slice();else for(let q=0;q<3;q++)BAY.at[q]+=(atT[q]-BAY.at[q])*k;
+    eye=[BAY.at[0]+Math.cos(yaw)*r*Math.cos(ph),BAY.at[1]+.35+r*Math.sin(ph),BAY.at[2]-Math.sin(yaw)*r*Math.cos(ph)];const gy=RANCH.W.heightAt(eye[0],eye[2])+.6;if(eye[1]<gy)eye[1]=gy;
+    fwd=norm2(sub2(BAY.at,eye));CAM.yaw=null;CAM.off=null;CAM.fq=null;return {eye,fwd,up,fov:.9};
   }
   if(mode==='Hood'){
     /* on the hood, just behind the front axle */
@@ -11232,11 +11330,24 @@ function drawWorldCar(P,t,v,dirt,far,depth){
   const G=R.G,i=t.bi,b=t.build,T=truck(i),D=T.D,M0=carMatrix(t);let Mb=M0;
   const pm=t.drawPrev||(t.drawPrev={});const setM=(key,M,prev)=>{G.uni(P,'uM',M);if(!depth){G.uni(P,'uPrevM',prev||pm[key]||M);pm[key]=M;}};
   if(!depth){carUniforms(P,t,v,dirt);G.uni(P,'uMudLocal',1);G.uni(P,'uMudOff',0);}
+  /* in the garage's model bay the engine rocks the body on its springs (63_bay: a roll, a pitch and a shiver) */
+  const live=!!(v&&v.live&&t===GAME.car&&BAY.active);
+  if(live){const pv=.62;Mb=M4.mul(Mb,M4.mul(M4T(0,pv+v.shake[1],v.shake[0]),M4.mul(M4RX(v.roll),M4.mul(M4RZ(v.pitch),M4T(0,-pv,0)))));}
   const fx=D.X(D.uFa),Rr=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,Rr,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-Rr,0))));
   setM('body',Mb);
   /* a car far off (another car in a race) is drawn from its coarse copy */
   if(far){const F=truckFar(i);drawMesh(F.body);drawMesh(F.hood);}
-  else{drawMesh(T.body);drawMesh(T.hood);drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
+  else{drawMesh(T.body);
+    /* the hood, swung up about its hinge at the cowl when the bay opens it; while it is open the engine bay is drawn
+       and the insides it replaces are not. An engine that sticks out through the hood (a blower) is always drawn */
+    const ha=t===GAME.car?sstep(0,1,BAY.hoodA):0;let Mh=Mb;
+    const engM=BY=>{const p=BY.pivot,a=live?-v.roll*3:0;return a?M4.mul(Mb,M4.mul(M4T(p[0],p[1],p[2]),M4.mul(BY.trans?M4RZ(a):M4RX(a),M4T(-p[0],-p[1],-p[2])))):Mb;};
+    if(ha>0&&D.hood){const [hx,hy]=D.hood.hinge;Mh=M4.mul(Mb,M4.mul(M4T(hx,hy,0),M4.mul(M4RZ(ha*HOOD_OPEN),M4T(-hx,-hy,0))));
+      const BY=bayOf(i);if(!depth)G.uni(P,'uDirt',dirt*.3);drawMesh(BY.bay);
+      if(!T.engineOut){setM('eng',engM(BY));drawMesh(BY.engine);}
+      setM('liner',Mh);drawMesh(BY.liner);if(!depth)G.uni(P,'uDirt',dirt);}
+    if(T.engineOut){setM('eng',engM(T.bay));drawMesh(T.bay.engine);}
+    setM('hood',Mh);drawMesh(T.hood);setM('body',Mb);if(ha===0)drawMesh(T.hide);}
   (D.spares||[]).forEach((sp,k)=>{const W=sp.rear?T.wheelR:T.wheel;
     setM('sp'+k,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);});
   if(!depth&&v&&v.flame>.04&&D.tips)for(const tp of D.tips){
@@ -11269,7 +11380,7 @@ const CARHOOK={list:[],
       if(!P){P=G.use(P_DEPTH);G.uni(P,'uVP',VP);G.uni(P,'uInst',0);}
       drawWorldCar(P,t,null,0,c.far||k>=2,true);}
     if(P)G.use(Pd);},
-  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);G.set(P,U);G.tex(P,texs);landUniforms(P);let tris=0;
+  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);let tris=0;
     for(const c of this.list)tris+=drawWorldCar(P,c.t,c.v,c.dirt,c.far,false);APP.carTris=tris;}
 };
 /* the soft occlusion under a car, for the renderer: where it is, its height, which way it faces, its size */
@@ -11293,7 +11404,9 @@ function render(dt){
 
 /* ---------- the HUD's grid fills the window, 16:9 ---------- */
 function setRes(i){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;store.set('rut-res',i);$('res').textContent='Dots '+BW+'×'+BH;if(R)resize();}
-function layout(){const vw=innerWidth,vh=innerHeight;let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};}
+function layout(){const vw=innerWidth,vh=innerHeight;let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};
+  /* the performance readout sits under the HUD's name block, right of the touch buttons, clear of the tach and the car */
+  const pf=$('perf');if(pf){pf.style.left=Math.max(92,RECT.x+RECT.w*.01)+'px';pf.style.top=(RECT.y+RECT.h*.215)+'px';}}
 /* (Dirt Sleeper's Detail setting is kept in the save; the renderer's dynamic resolution does its job now) */
 function setDetail(id){APP.detail=id;saveGame();}
 
@@ -11308,8 +11421,8 @@ function frame(ts){
   if(RESO){if(LAST_RAW)RESO.noteVsync(ts-LAST_RAW);LAST_RAW=ts;const k=fpsDivisor();RESO.setDivisor(k);const per=1000/RESO.hz;if(k>1&&LAST&&ts-LAST<k*per-per*.5)return;}
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
-  if(!GAME.hold)try{const t0=performance.now();step(dt);const t1=performance.now();GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const t2=performance.now();
-    if(CAM.last){soundUpdate(CAM.last);raceSound(CAM.last);}drsStep(dt);perfAcc(dt,t1-t0,t2-t1);}catch(e){console.error(e);}
+  if(!GAME.hold)try{const t0=performance.now();step(dt);bayTick(dt);const t1=performance.now();GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const t2=performance.now();
+    if(CAM.last){soundUpdate(CAM.last,dt);raceSound(CAM.last);}drsStep(dt);perfAcc(dt,t1-t0,t2-t1);}catch(e){console.error(e);}
   APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps';}
 }
@@ -11824,20 +11937,20 @@ const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic
 function openMenu(first){
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
   if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
-  GAME.state='menu';$('menu').hidden=false;syncTouch();
+  GAME.state='menu';$('menu').hidden=false;touchRelease();syncTouch();
   $('mGo').textContent=first?'Start driving':RACE.on?'Back to the race':'Back to driving';$('mEyebrow').textContent=first?'Free play: every car and part is yours':RACE.on?'Paused: '+RACE.ev.name:'Paused';
   $('mLeave').hidden=!RACE.on;
   showTab(MENU.tab);syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
 }
 function closeMenu(){
-  GAME.state='drive';$('menu').hidden=true;APP.orbit=false;CAM.cut=true;syncTouch();INPUT.down.clear();
+  GAME.state='drive';$('menu').hidden=true;APP.orbit=false;baySync();CAM.cut=true;syncTouch();INPUT.down.clear();
   if(GAME.car.pt.st==='off'&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
 }
 function showTab(id){
   if(MENU.tab!==id)$('menu').scrollTop=0;MENU.tab=id;for(const b of $('mTabs').children)b.setAttribute('aria-selected',String(b.dataset.t===id));
   for(const el of document.querySelectorAll('#menu .tab'))el.hidden=el.dataset.tab!==id;
   /* in the garage the car turns in front of you */
-  APP.orbit=id==='garage'&&GAME.state==='menu';$('menu').classList.toggle('garage',APP.orbit);
+  APP.orbit=id==='garage'&&GAME.state==='menu';$('menu').classList.toggle('garage',APP.orbit);baySync();
   requestAnimationFrame(()=>{const r=document.querySelector('#menu .mwrap').getBoundingClientRect();APP.menuRight=r.right;});
   if(id==='garage')syncGarage();if(id==='cool')syncCool();if(id==='runs')syncRuns();if(id==='dev')syncDev();if(id==='races')syncRaces();
 }
@@ -11865,10 +11978,10 @@ function syncMenu(){
   for(const el of $('sDisp').children)el.setAttribute('aria-pressed',String(el.dataset.v===DISP.mode));
   $('sDispHint').textContent=DISP.mode==='clear'?'The picture at your screen\'s own resolution, with the HUD lit up in dots over it. It is drawn at a share of the screen\'s pixels that follows the frame rate and rebuilt to full by TAA.':
     'The LED matrix every Dirt Sleeper has had: the picture made of lit dots, each the average of what\'s behind it. Dots is how many dots tall. Lighter for a phone.';
-  $('sDotsRow').hidden=DISP.mode==='clear';
+  $('sDotsRow').hidden=DISP.mode==='clear';$('res').hidden=DISP.mode==='clear';
   for(const el of $('sPerf').children)el.setAttribute('aria-pressed',String((el.dataset.v==='on')===PERF.on));
   syncWeather();
-  $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
+  $('vol').value=ENG.vol;$('bVol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
 function buildMenu(){
@@ -11905,7 +12018,8 @@ function buildMenu(){
   $('rrDone').addEventListener('click',()=>{hideResults();});
   $('menuBtn').addEventListener('click',()=>GAME.state==='results'?hideResults():GAME.state==='drive'?openMenu(false):closeMenu());
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
-  buildGarage();
+  $('perf').addEventListener('click',()=>setPerf(false));
+  buildGarage();buildBayDock();
 }
 /* ---------- the Sim card: tyre pressure, weather and roof cargo ---------- */
 let SIM_HINT='air';
@@ -12095,6 +12209,196 @@ function suggestBuild(){
   setTimeout(next,0);
 }
 /* =====================================================================================
+   THE MODEL BAY, in the garage: Dirt Sleeper Mini's bay brought into the game. The car stands where it was
+   parked while the game is paused, turning in front of you or held at a view, and the dock under the car
+   lets you look it over (hood up with the engine bay built and drawn, lights, wheels turned, paint, mud)
+   and listen to its engine: start it, rev it on the pad or drive it up through its gears in the Digital
+   Engine lab's own sim, heard from behind, inside or trackside, in the open, a garage or a tunnel. The
+   engine you leave running is running when you drive off, and the one you switch off is off.
+   The bay's sim is the lab's (15_digital_engine's SIM), fed the car's own engine spec, so what you hear
+   here is the model bay's sound exactly; the car's physics waits, untouched, for the drive.
+   ===================================================================================== */
+/* how far the hood swings open (rad) */
+const HOOD_OPEN=1.0;
+/* the views: id, name, where round the car (deg; 0 is in front of it), how high (deg), how near (times the orbit's distance), where to look (m above the car's centre) */
+const BAY_VIEWS=[['front34','Front ¾',-38,8,1,.1],['side','Side',90,2.5,.98,.1],['rear34','Rear ¾',142,9,1,.1],['front','Front',0,4,.88,.1],['rear','Rear',180,5,.88,.1],
+  ['top','Top',-35,58,1.1,-.2],['low','Low',-24,1.5,.78,-.15],['bay','Bay',-36,46,.6,0]];
+const BAY={active:false,sim:null,spec:null,mode:'free',tab:'look',view:'front34',spin:true,hood:false,hoodA:0,steer:false,room:'open',
+  th:-.66,ph:.14,phT:.14,dk:1,dkT:1,tyT:.1,at:null,pad:0,padOn:false,brkBtn:false,nos:false,blipT:0,status:'',drag:null};
+try{const s=JSON.parse(store.get('rut-bay','{}'))||{};for(const k of ['tab','view','spin','steer','mode'])if(s[k]!==undefined)BAY[k]=s[k];if(['open','garage','tunnel'].includes(s.room))BAY.room=s.room;}catch(e){}
+if(BAY.view&&!BAY_VIEWS.some(v=>v[0]===BAY.view))BAY.view='front34';
+const baySave=()=>store.set('rut-bay',JSON.stringify({tab:BAY.tab,view:BAY.view,spin:BAY.spin,steer:BAY.steer,mode:BAY.mode,room:BAY.room}));
+const BAY_BTNS=[{id:'brake',l:'Brake',key:'S',t:'hold',drive:1,tone:'red'},{id:'down',l:'Shift down',key:'Q',t:'tap',drive:1},{id:'up',l:'Shift up',key:'E',t:'tap',drive:1},
+  {id:'nos',l:'Nitrous',key:'N',t:'hold',tone:'cyan',need:e=>e.nosKw},{id:'purge',l:'Purge',key:'B',t:'tap',need:e=>e.nosKw},{id:'blip',l:'Blip',key:'G',t:'tap'}];
+/* ---------- the bay's engine: the lab's sim on the car's own spec, kept across a change of parts (a rebuilt car brings a new spec; the sim takes it and keeps running) ---------- */
+function baySim(){const t=GAME.car,spec=t.spec;if(BAY.sim&&BAY.spec===spec)return BAY.sim;BAY.spec=spec;
+  if(BAY.sim)BAY.sim.setSpec(spec);else{BAY.sim=SIM.makeSim(spec);BAY.sim.mode=BAY.mode;}return BAY.sim;}
+const bayOn=()=>!!BAY.sim&&BAY.sim.running;
+/* into the bay: the game's engine, running or not, is what you hear; out of it: the bay's engine is what you drive off with */
+function baySync(){if(APP.orbit)bayEnter();else bayLeave();}
+function bayEnter(){
+  if(BAY.active)return;BAY.active=true;const t=GAME.car,pt=t.pt,sim=baySim(),v=GAME.voice;
+  if(pt.running&&!sim.running&&sim.st!=='crank'){sim.st='run';sim.we=Math.max(t.spec.idle*TAU/60,pt.we||0);sim.rpm=sim.we*60/TAU;}
+  else if(!pt.running&&pt.st!=='crank'&&sim.st!=='off'){sim.st='off';sim.we=0;sim.rpm=0;}
+  if(sim.mode!==BAY.mode)baySetMode(BAY.mode);
+  v.live=true;v.roll=v.rollV=v.pitch=v.pitchV=0;v.shake=[0,0];
+  BAY.at=null;BAY.status='';{const sp=BAY.spin;if(BAY.view)bayView(BAY.view,true);else BAY.th=CAM.orbitA;BAY.spin=sp;}
+  if(ENG.room!==BAY.room)setRoomKind(BAY.room);
+  /* a key is a pedal here: nothing in the menu should have the keyboard's focus */
+  if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();
+  $('bayDrag').hidden=false;baySyncDock();
+}
+function bayLeave(){
+  if(!BAY.active)return;BAY.active=false;const t=GAME.car,pt=t.pt,sim=BAY.sim,v=GAME.voice;
+  if(sim){if(sim.running&&!pt.running&&pt.st!=='crank'){pt.st='run';pt.we=Math.max(pt.e.idle*TAU/60,sim.we);}
+    else if(!sim.running&&sim.st!=='crank'&&pt.st!=='off')pt.stop();}
+  t.steer=0;v.live=false;v.roll=v.pitch=0;v.shake=[0,0];
+  BAY.hood=false;BAY.pad=0;BAY.padOn=false;BAY.brkBtn=false;BAY.nos=false;BAY.blipT=0;BAY.drag=null;
+  for(const d of BAY_BTNS)if(d.el)d.el.classList.remove('on');
+  /* the drive is heard in the open; the bay keeps its own room for next time */
+  if(ENG.room!=='open')setRoomKind('open');
+  GAME.pRpm=undefined;$('bayDrag').hidden=true;
+}
+/* ---------- every frame (from the loop, paused or not): the hood swings; in the bay the sim runs and the car answers it ---------- */
+function bayTick(dt){
+  const ht=BAY.active&&BAY.hood?1:0;if(BAY.hoodA!==ht)BAY.hoodA=ht>BAY.hoodA?Math.min(1,BAY.hoodA+dt*1.8):Math.max(0,BAY.hoodA-dt*1.8);
+  if(!BAY.active)return;
+  const t=GAME.car,sim=baySim(),v=GAME.voice,inp=bayInput(dt);
+  for(let k=0;k<4;k++)sim.step(dt/4,inp);
+  const ev=sim.takeEvents();if(v.port)for(const e of ev)v.port.post({t:'ev',ev:e});
+  if(sim.stalled){sim.stalled=false;BAY.status='It stalled. Start it again with the button or I.';baySyncDock();}
+  bayBody(v,sim,dt);
+  t.steer=BAY.steer?.36:0;
+  /* in Drive the wheels turn with the sim's road speed (a look only: the physics is paused) */
+  if(sim.mode==='drive'&&sim.ww)for(const w of t.wheels)w.ang+=sim.ww*dt*sim.e.R/w.R;
+  bayLive();
+}
+/* the car answers: torque rocks the body on its springs, acceleration squats it (the model bay's bodyFrame) */
+function bayBody(v,sim,dt){
+  const e=sim.e,run=sim.running,Te=run?Math.max(-e.tq*.3,SIM.engTq(e,Math.max(sim.rpm,1),sim.thr,sim.boost)):0;
+  const rollT=-.02*Te/e.peak.tq,pitchT=sim.mode==='drive'?clamp(sim.aPrev/9.81,-1,1)*.014:0;
+  v.rollV+=(-(v.roll-rollT)*80-v.rollV*6.5)*dt;v.roll+=v.rollV*dt;
+  v.pitchV+=(-(v.pitch-pitchT)*60-v.pitchV*7)*dt;v.pitch+=v.pitchV*dt;
+  const idle=run?1-clamp((sim.rpm-e.idle)/(e.idle*1.5),0,1):0,lope=[0,.012,.032,.065][e.cam|0]||0,amp=run?(.0004+lope*.03*idle+.0003*sim.load):0;
+  v.shake=[(Math.random()-.5)*amp,(Math.random()-.5)*amp*1.6];
+}
+/* what the synth hears from the bay: the lab's own params, from wherever the listener buttons say */
+function bayVoice(){const v=GAME.voice,sim=BAY.sim;if(!sim||!v.port)return;v.port.post({t:'p',p:sim.params(ENG.listener,1)});}
+/* ---------- hands and feet: the pad, the buttons and the keys (the lab's car controls) ---------- */
+function bayInput(dt){
+  let thr=keyOn('thr')||INPUT.down.has('Space')?1:0;
+  for(let d=1;d<=9;d++)if(INPUT.down.has('Digit'+d))thr=Math.max(thr,d/10);
+  if(BAY.padOn)thr=Math.max(thr,BAY.pad);
+  if(BAY.blipT>0){BAY.blipT-=dt;thr=1;}
+  return {thr,brk:keyOn('brk')||BAY.brkBtn?1:0,nos:keyOn('nos')||BAY.nos};
+}
+/* the keys that are taps, from the game's own poll (60_game's step hands them here while the game is paused) */
+function bayKeys(inp){
+  if(!BAY.active||!BAY.sim)return;const sim=BAY.sim;
+  if(inp.ign)bayToggleEngine();if(inp.up)sim.shift(1);if(inp.down)sim.shift(-1);if(inp.purge)bayPurge();if(inp.blip)BAY.blipT=.22;
+  if(inp.listen){setListener((ENG.listener+1)%3);baySyncDock();}
+  if(inp.lights){APP.lights=!APP.lights;baySyncDock();}
+}
+function bayHold(d,v){if(d.el)d.el.classList.toggle('on',v);if(d.id==='brake')BAY.brkBtn=v;else if(d.id==='nos')BAY.nos=v;}
+function bayPress(d){if(d.el&&d.el.disabled)return;const sim=baySim();({up:()=>sim.shift(1),down:()=>sim.shift(-1),purge:bayPurge,blip:()=>{BAY.blipT=.22;}})[d.id]();}
+function bayPurge(){const v=GAME.voice;if(v.port&&BAY.sim&&BAY.sim.e.nosKw)v.port.post({t:'ev',ev:{type:'purge'}});}
+/* ---------- the engine: start, stop, free rev or drive ---------- */
+async function bayStart(){
+  if(GAME.busy)return;const sim=baySim();GAME.busy=true;sim.start();BAY.status='';
+  try{await initAudio();if(ENG.audio.ctx.state!=='running')await ENG.audio.ctx.resume();voiceNode(GAME.voice);if(ENG.room!==BAY.room)setRoomKind(BAY.room);}
+  catch(e){ENG.status='Sound could not start: '+e.message;}
+  GAME.busy=false;bayLive(true);baySyncDock();
+}
+function bayToggleEngine(){const sim=baySim();if(!sim.running&&sim.st!=='crank')bayStart();else{sim.stop();bayLive(true);}}
+function baySetMode(m,save){const sim=baySim();BAY.mode=m;sim.mode=m;sim.gear=0;sim.clutch='open';sim.shiftT=0;sim.held=false;if(m==='free'){sim.v=0;sim.ww=0;sim.pos=0;}else sim.pos=-120;if(save)baySave();}
+/* ---------- the look: a view, the spin, a drag ---------- */
+function bayView(id,now){const v=BAY_VIEWS.find(q=>q[0]===id);if(!v)return;BAY.view=id;BAY.spin=false;BAY.th=v[2]*PI/180;BAY.phT=v[3]*PI/180;BAY.dkT=v[4];BAY.tyT=v[5];
+  if(id==='bay')BAY.hood=true;
+  if(now){CAM.orbitA=BAY.th;BAY.ph=BAY.phT;BAY.dk=BAY.dkT;}baySave();baySyncDock();}
+/* ---------- the dock ---------- */
+function baySetTab(v){BAY.tab=v;for(const el of document.querySelectorAll('#bay [data-bp]'))el.hidden=el.dataset.bp!==v;
+  for(const x of $('bTabs').children)x.setAttribute('aria-pressed',String(x.dataset.v===v));baySave();baySyncDock();}
+const BAY_TRANS={auto6:'a six-speed automatic',race4:'a race four-speed with a trans-brake',seq6:'a six-speed sequential',auto4:'a four-speed automatic',auto5:'a five-speed automatic',man6:'a six-speed manual',man4:'a four-speed manual',man5:'a five-speed manual',rally5:'a five-speed dog box'};
+/* a custom build has no written recipe: one is read off its parts */
+function bayDescribe(e,r){
+  const base=DE_ENGINES[r.engine]||{},lay={V8:'V8',V6:'V6',I6:'straight six',I5:'inline five',I4:'inline four',V8F:'flat-plane V8'}[base.layout]||base.layout||'engine';
+  const bits=[];
+  if(r.power==='roots')bits.push('a Roots blower');else if(r.power==='twin')bits.push('twin turbos');else if(r.power==='bigturbo')bits.push('bigger turbos');else if(base.fi==='turbo')bits.push('its turbo');else if(base.fi==='twin')bits.push('its twin turbos');
+  bits.push(['the stock airbox','a cold-air intake','ram air'][r.intake|0]);
+  bits.push({stock:'the stock exhaust',catback:'a cat-back exhaust',headers:'long-tube headers',straight:'straight pipes',side:'side pipes',stacks:'stacks'}[r.exhaust]||'the stock exhaust');
+  if(r.cam)bits.push(['','a mild cam','a hot cam','a race cam'][r.cam]);
+  if(r.tune)bits.push(['','a street tune','a race tune'][r.tune]);
+  if(e.nosKw)bits.push('a '+Math.round(e.nosKw*1.341/5)*5+'-hp shot of nitrous');
+  const disp=(r.disp||base.disp||0).toFixed(1);
+  return 'A '+disp+' '+lay+' with '+bits.slice(0,-1).join(', ')+(bits.length>1?' and ':'')+bits[bits.length-1]+'; '+(BAY_TRANS[r.trans]||'its gearbox')+(r.axle?', '+r.axle+' gears':'')+'.';
+}
+function bayInfo(){
+  const t=GAME.car,b=t.build,e=t.spec,r=ENGINE_OF[b.id]||ENGINE_OF.stock;
+  if(BAY.tab==='engine'){const d=r.desc||bayDescribe(e,r),pk=e.peak||{hp:0,rpm:0,tq:0};
+    return '<b>'+carName(b)+' '+b.name+' engine.</b> '+d+' <b>'+fmt(Math.round(pk.hp))+' hp</b> at '+fmt(Math.round(pk.rpm/50)*50)+' rpm · <b>'+fmt(Math.round(pk.tq*.7376))+' lb-ft</b> · redline '+fmt(e.redline)+'. <span class="st">'+(BAY.status||ENG.status||'Sound starts when you start the engine. In Drive, Space and the pad are the gas; in Free rev the engine is out of gear.')+'</span>';}
+  return '<b>'+carName(b)+' · '+b.name+'.</b> '+(b.blurb||'')+' '+(b.specs||[]).map(s=>'<b>'+s[0]+'</b> '+s[1]).join(' · ')+' <span class="st">Drag the picture to turn the car. The parts below change it where it stands.</span>';
+}
+function baySyncDock(){
+  if(!$('bViews').children.length)return;
+  for(const el of $('bViews').children)el.setAttribute('aria-pressed',String(el.dataset.v===BAY.view&&!BAY.spin));
+  $('bSpin').setAttribute('aria-pressed',String(!!BAY.spin));$('bHood').setAttribute('aria-pressed',String(!!BAY.hood));
+  $('bSteer').setAttribute('aria-pressed',String(!!BAY.steer));$('bLights').setAttribute('aria-pressed',String(!!APP.lights));
+  const paint=rigOf(APP.car).paint;for(const el of $('bPaints').children)el.setAttribute('aria-pressed',String(+el.dataset.i===(paint===undefined?-1:paint)));
+  $('bMud').value=GAME.dirt;
+  for(const x of $('bMode').children)x.setAttribute('aria-pressed',String(x.dataset.v===BAY.mode));
+  for(const x of $('bListen').children)x.setAttribute('aria-pressed',String(+x.dataset.v===ENG.listener));
+  for(const x of $('bRoom').children)x.setAttribute('aria-pressed',String(x.dataset.v===BAY.room));
+  const e=GAME.car.spec;for(const d of BAY_BTNS){if(!d.el)continue;d.el.hidden=!!(d.need&&!d.need(e));d.el.disabled=!!(d.drive&&BAY.mode!=='drive');}
+  $('bVol').value=ENG.vol;$('bInfo').innerHTML=bayInfo();bayLive(true);
+}
+/* the bits that change every frame: the power button, the pad's fill and its label */
+const BLIVE={};
+function bayLive(force){
+  const on=bayOn(),thr=BAY.sim?BAY.sim.thr:0,lbl=on?'Hold to rev · further right, more throttle':'Hold to start the engine and rev it';
+  if(force||BLIVE.on!==on){BLIVE.on=on;$('bPower').setAttribute('aria-pressed',String(on));$('bPowerLbl').textContent=on?'Engine on':'Start engine';}
+  if(force||BLIVE.lbl!==lbl){BLIVE.lbl=lbl;$('bPadLbl').textContent=lbl;}
+  const w=Math.round(thr*100);if(force||BLIVE.w!==w){BLIVE.w=w;$('bPadFill').style.width=w+'%';$('bPad').setAttribute('aria-valuenow',String(w));}
+  if(BLIVE.st!==ENG.status){BLIVE.st=ENG.status;if(BAY.tab==='engine')$('bInfo').innerHTML=bayInfo();}
+}
+/* the dock: built once with the menu (62_menu) */
+function buildBayDock(){
+  $('bTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)baySetTab(b.dataset.v);});
+  const vx=$('bViews');for(const [id,n] of BAY_VIEWS){const el=document.createElement('button');el.type='button';el.dataset.v=id;el.textContent=n;el.addEventListener('click',()=>bayView(id));vx.appendChild(el);}
+  $('bSpin').addEventListener('click',()=>{BAY.spin=!BAY.spin;if(BAY.spin){BAY.view=null;}else{BAY.th=CAM.orbitA;}baySave();baySyncDock();});
+  $('bHood').addEventListener('click',()=>{BAY.hood=!BAY.hood;baySyncDock();});
+  $('bSteer').addEventListener('click',()=>{BAY.steer=!BAY.steer;baySave();baySyncDock();});
+  $('bLights').addEventListener('click',()=>{APP.lights=!APP.lights;baySyncDock();});
+  const px=$('bPaints'),sw=(i,n,c)=>{const el=document.createElement('button');el.type='button';el.dataset.i=String(i);el.title=n;el.setAttribute('aria-label',n);if(c)el.style.background=c;else el.className='kit';
+    el.addEventListener('click',()=>{setPart('paint',i);baySyncDock();});px.appendChild(el);};
+  sw(-1,'As the body kit comes',null);PAINTS.forEach((p,i)=>sw(i,p[0],p[1]));
+  $('bMud').addEventListener('input',e=>{GAME.dirt=+e.target.value;});
+  $('bPower').addEventListener('click',bayToggleEngine);
+  $('bMode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;baySetMode(b.dataset.v,true);baySyncDock();});
+  const sl=$('bListen');LISTEN.forEach((n,i)=>{const b=document.createElement('button');b.type='button';b.dataset.v=String(i);b.textContent=n;sl.appendChild(b);});
+  sl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setListener(+b.dataset.v);baySyncDock();});
+  $('bRoom').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;BAY.room=b.dataset.v;setRoomKind(BAY.room);baySave();baySyncDock();});
+  $('bVol').value=ENG.vol;$('bVol').addEventListener('input',e=>{setVolume(e.target.value);$('vol').value=ENG.vol;});
+  /* the pad: further right, more throttle; pressing it with the engine off starts the engine, as the gas pedal does on the road */
+  const pad=$('bPad'),setPad=e=>{const r=pad.getBoundingClientRect();BAY.pad=clamp((e.clientX-r.left-4)/(r.width-8),0,1);};
+  pad.addEventListener('pointerdown',e=>{e.preventDefault();try{pad.setPointerCapture(e.pointerId);}catch(_){}BAY.padOn=true;setPad(e);if(!bayOn()&&BAY.sim&&BAY.sim.st!=='crank')bayStart();});
+  pad.addEventListener('pointermove',e=>{if(BAY.padOn)setPad(e);});
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])pad.addEventListener(ev,()=>{BAY.padOn=false;});
+  const box=$('bBtns');
+  for(const d of BAY_BTNS){const b=document.createElement('button');b.type='button';b.className='tog';if(d.tone)b.dataset.tone=d.tone;
+    b.innerHTML='<span></span><kbd></kbd>';b.querySelector('span').textContent=d.l;b.querySelector('kbd').textContent=d.key;d.el=b;
+    if(d.t==='hold'){const set=v=>{if(!b.disabled)bayHold(d,v);};
+      b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}set(true);});
+      for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>set(false));}
+    else b.addEventListener('click',()=>bayPress(d));
+    box.appendChild(b);}
+  /* a drag on the picture beside the menu turns the view and stops the spin */
+  const dz=$('bayDrag');
+  dz.addEventListener('pointerdown',e=>{e.preventDefault();BAY.drag={id:e.pointerId,x:e.clientX,a:CAM.orbitA};try{dz.setPointerCapture(e.pointerId);}catch(_){}});
+  dz.addEventListener('pointermove',e=>{const d=BAY.drag;if(!d||e.pointerId!==d.id)return;if(BAY.spin||BAY.view){BAY.spin=false;BAY.view=null;baySave();baySyncDock();}CAM.orbitA=BAY.th=d.a-(e.clientX-d.x)*.012;});
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])dz.addEventListener(ev,e=>{if(BAY.drag&&e.pointerId===BAY.drag.id)BAY.drag=null;});
+  baySetTab(BAY.tab);
+}
+/* =====================================================================================
    THE TOUCH CONTROLS, made for a phone held sideways.
    Left thumb steers: put it down anywhere on the left side and slide; how far from where it landed is how
    far the wheels turn, and letting go lets them come back. (Or tilt the phone, or the old two buttons.)
@@ -12105,6 +12409,8 @@ function suggestBuild(){
    ===================================================================================== */
 const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false};
 const TOUCH_KEY={reset:'KeyR',cam:'KeyC',nos:'KeyN',low:'KeyL',lock:'KeyK',od:'KeyO',lights:'KeyJ',horn:'KeyH'};
+/* every touch input let go (the menu opening mid-press: nothing stays held under it) */
+function touchRelease(){TOUCH.thr=TOUCH.brk=TOUCH.hb=0;TOUCH.steer=0;TOUCH.steerActive=false;}
 function enableTouch(){if(GAME.touch)return;GAME.touch=TOUCH.on=true;document.body.classList.add('touch');syncTouch();}
 function syncTouch(){
   const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='drive');if(!GAME.car)return;
@@ -12190,6 +12496,7 @@ async function enableTilt(){TOUCH.tilt0=null;TOUCH.tiltOK=false;try{if(window.De
     GFX,GFX_LEVELS,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,LAND,CARHOOK,FXP,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},M4_ID,landDraw,landDrawDepth,drawTrees,boxVisible,compile,VS_FS,DISP,setDisplay,PIC,get RESO(){return RESO;},PERF,setPerf,SKY,TOD,WX,envNow,
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,
     CROSS_ROUTES,raceLine,looksOf,LADDER,CALLOUT,calloutStep,setAuto,syncRaces,
+    BAY,bayTick,bayView,baySetTab,bayEnter,bayLeave,baySync,bayToggleEngine,TONE,toneApply,settleCar,LOOK,
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }
 

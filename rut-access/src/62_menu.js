@@ -11,20 +11,20 @@ const CAR_HINT={suv:'A mid-2000s luxury SUV with a 4.6 V8, a six-speed automatic
 function openMenu(first){
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
   if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
-  GAME.state='menu';$('menu').hidden=false;syncTouch();
+  GAME.state='menu';$('menu').hidden=false;touchRelease();syncTouch();
   $('mGo').textContent=first?'Start driving':RACE.on?'Back to the race':'Back to driving';$('mEyebrow').textContent=first?'Free play: every car and part is yours':RACE.on?'Paused: '+RACE.ev.name:'Paused';
   $('mLeave').hidden=!RACE.on;
   showTab(MENU.tab);syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
 }
 function closeMenu(){
-  GAME.state='drive';$('menu').hidden=true;APP.orbit=false;CAM.cut=true;syncTouch();INPUT.down.clear();
+  GAME.state='drive';$('menu').hidden=true;APP.orbit=false;baySync();CAM.cut=true;syncTouch();INPUT.down.clear();
   if(GAME.car.pt.st==='off'&&!GAME.engineWanted){GAME.engineWanted=true;startEngine();}
 }
 function showTab(id){
   if(MENU.tab!==id)$('menu').scrollTop=0;MENU.tab=id;for(const b of $('mTabs').children)b.setAttribute('aria-selected',String(b.dataset.t===id));
   for(const el of document.querySelectorAll('#menu .tab'))el.hidden=el.dataset.tab!==id;
   /* in the garage the car turns in front of you */
-  APP.orbit=id==='garage'&&GAME.state==='menu';$('menu').classList.toggle('garage',APP.orbit);
+  APP.orbit=id==='garage'&&GAME.state==='menu';$('menu').classList.toggle('garage',APP.orbit);baySync();
   requestAnimationFrame(()=>{const r=document.querySelector('#menu .mwrap').getBoundingClientRect();APP.menuRight=r.right;});
   if(id==='garage')syncGarage();if(id==='cool')syncCool();if(id==='runs')syncRuns();if(id==='dev')syncDev();if(id==='races')syncRaces();
 }
@@ -52,10 +52,10 @@ function syncMenu(){
   for(const el of $('sDisp').children)el.setAttribute('aria-pressed',String(el.dataset.v===DISP.mode));
   $('sDispHint').textContent=DISP.mode==='clear'?'The picture at your screen\'s own resolution, with the HUD lit up in dots over it. It is drawn at a share of the screen\'s pixels that follows the frame rate and rebuilt to full by TAA.':
     'The LED matrix every Dirt Sleeper has had: the picture made of lit dots, each the average of what\'s behind it. Dots is how many dots tall. Lighter for a phone.';
-  $('sDotsRow').hidden=DISP.mode==='clear';
+  $('sDotsRow').hidden=DISP.mode==='clear';$('res').hidden=DISP.mode==='clear';
   for(const el of $('sPerf').children)el.setAttribute('aria-pressed',String((el.dataset.v==='on')===PERF.on));
   syncWeather();
-  $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
+  $('vol').value=ENG.vol;$('bVol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
 function buildMenu(){
@@ -92,7 +92,8 @@ function buildMenu(){
   $('rrDone').addEventListener('click',()=>{hideResults();});
   $('menuBtn').addEventListener('click',()=>GAME.state==='results'?hideResults():GAME.state==='drive'?openMenu(false):closeMenu());
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
-  buildGarage();
+  $('perf').addEventListener('click',()=>setPerf(false));
+  buildGarage();buildBayDock();
 }
 /* ---------- the Sim card: tyre pressure, weather and roof cargo ---------- */
 let SIM_HINT='air';

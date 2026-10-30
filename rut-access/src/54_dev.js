@@ -58,7 +58,7 @@ const simDevOff=()=>Object.keys(SIMDEV0).some(k=>Math.abs(SIMDEV[k]-SIMDEV0[k])>
 /* the HUD's tag while anything is off the defaults: TRACTION 125%, with + when more than that has changed */
 function devTag(){
   if(!DEV)return '';
-  const more=DEV_GROUND.some(([k])=>off1(DEV_T.ground[k]))||DEV_CAR.some(([k])=>off1(DEV_T.car[k]))||APP.level==='sim'&&simDevOff()||lookOff();
+  const more=DEV_GROUND.some(([k])=>off1(DEV_T.ground[k]))||DEV_CAR.some(([k])=>off1(DEV_T.car[k]))||APP.level==='sim'&&simDevOff()||lookOff()||toneOff();
   return off1(DEV_T.all)?'TRACTION '+Math.round(DEV_T.all*100)+'%'+(more?' +':''):more?'DEV':'';
 }
 /* T while driving: Traction through 75, 100, 125 and 150% */
@@ -107,6 +107,12 @@ function slider(host,id,label,note,min,max,get,set){
   el.sync=()=>{inp.value=get();el.querySelector('output').textContent=pct(get());};
   host.appendChild(el);return el;
 }
+/* ---------- the engine note: 17_audio's TONE, the game's own EQ in front of the lab's compressor ---------- */
+const dB=v=>(v>0?'+':'')+v.toFixed(1)+' dB';
+const TONE_S=[['bass','Bass',-12,12,'A shelf below about 120 Hz: the engine\'s low end. A phone speaker has almost none of it and a laptop has some, which is most of why the same engine sounds fuller on the laptop.',dB],
+  ['body','Body',-12,12,'A band around 320 Hz: the chest of the note, the part a small speaker can carry. Worth pushing up on a phone.',dB],
+  ['treble','Treble',-12,12,'A shelf above about 3 kHz: the exhaust rasp, the turbo whistle, the crackle on the overrun.',dB],
+  ['grit','Grit',0,1,'Soft saturation blended in. It adds harmonics of the low end that a small speaker can\'t play, so the engine reads on a phone. 0 is the lab\'s clean chain.',pct]];
 const DEV_ROWS=[];
 function buildDev(){
   if(!DEV)return;
@@ -137,6 +143,12 @@ function buildDev(){
     const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
     inp.addEventListener('change',()=>{LOOK[k]=inp.checked?1:0;lookSave();});el.sync=()=>{inp.checked=!!LOOK[k];};$('mDevLookT').appendChild(el);DEV_ROWS.push(el);}
   $('mDevLookReset').addEventListener('click',()=>{Object.assign(LOOK,LOOK_DEF);lookSave();syncDev();});
+  /* the engine note */
+  $('mDevTone').hidden=false;
+  for(const [k,n,lo,hi,note,fm] of TONE_S){const el=document.createElement('div');el.className='devrow';el.innerHTML='<label></label><output></output><input type="range"><small></small>';
+    const inp=el.querySelector('input'),lb=el.querySelector('label');lb.textContent=n;lb.htmlFor=inp.id='devt_'+k;inp.min=lo;inp.max=hi;inp.step=k==='grit'?.01:.5;el.querySelector('small').textContent=note;
+    inp.addEventListener('input',()=>{TONE[k]=+inp.value;toneSave();toneApply();el.sync();});el.sync=()=>{inp.value=TONE[k];el.querySelector('output').textContent=fm(TONE[k]);};$('mDevToneS').appendChild(el);DEV_ROWS.push(el);}
+  $('mDevToneReset').addEventListener('click',()=>{Object.assign(TONE,TONE_DEF);toneSave();toneApply();syncDev();});
 }
 /* a Sim piece changed: the car reads it now (the roof load rebuilds the car where it stands) */
 function simDevApply(rebuild){store.set('rut-simdev',JSON.stringify(SIMDEV));if(rebuild&&APP.level==='sim')spawnRig();else if(GAME.car)GAME.car.applySim();syncDev();}

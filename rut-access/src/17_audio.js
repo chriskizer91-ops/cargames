@@ -33,6 +33,16 @@ function roomIR(ctx,kind){
   return b;
 }
 const ROOM_SEND={open:.28,garage:.5,tunnel:.8};
+/* ---------- the game's tone: after every voice and the room, before the lab's compressor. Three bands and a touch
+   of grit, for the developer to tune the engine note on a phone speaker from the Dev tab; it works on every engine
+   alike. At its defaults (0 dB everywhere, no grit) the chain is the lab's own. Saved as rut-tone ---------- */
+const TONE_DEF={bass:0,body:0,treble:0,grit:0},TONE=Object.assign({},TONE_DEF);
+try{const s=JSON.parse(store.get('rut-tone','{}'))||{};for(const k in TONE_DEF)if(typeof s[k]==='number')TONE[k]=s[k];}catch(e){}
+const toneSave=()=>store.set('rut-tone',JSON.stringify(TONE));
+const toneOff=()=>Object.keys(TONE_DEF).some(k=>Math.abs(TONE[k]-TONE_DEF[k])>1e-6);
+function toneApply(){if(!ENG.audio||!ENG.audio.eq)return;const a=ENG.audio,q=a.eq,t=a.ctx.currentTime;
+  q.bass.gain.setTargetAtTime(TONE.bass,t,.03);q.body.gain.setTargetAtTime(TONE.body,t,.03);q.treble.gain.setTargetAtTime(TONE.treble,t,.03);
+  const g=clamp(TONE.grit,0,1);q.wet.gain.setTargetAtTime(g*.9,t,.03);q.dry.gain.setTargetAtTime(1-g*.55,t,.03);}
 function setRoom(){if(!ENG.audio)return;const a=ENG.audio;a.conv.buffer=roomIR(a.ctx,ENG.room);a.send.gain.setTargetAtTime(ROOM_SEND[ENG.room]*(ENG.listener===1?.35:1),a.ctx.currentTime,.05);}
 
 /* ---------- from the lab: the audio graph, the synth in an audio worklet ---------- */
@@ -44,7 +54,13 @@ async function initAudio(){
     const ctx=new AC({latencyHint:'interactive'});
     const master=ctx.createGain();master.gain.value=ENG.vol;
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-8;comp.knee.value=6;comp.ratio.value=4;comp.attack.value=.003;comp.release.value=.15;
-    master.connect(comp);comp.connect(ctx.destination);
+    /* the tone (TONE): a bass shelf, a body band and a treble shelf, then a clean path and a softly saturated one into the compressor */
+    const bass=ctx.createBiquadFilter();bass.type='lowshelf';bass.frequency.value=120;bass.gain.value=TONE.bass;
+    const body=ctx.createBiquadFilter();body.type='peaking';body.frequency.value=320;body.Q.value=.9;body.gain.value=TONE.body;
+    const treble=ctx.createBiquadFilter();treble.type='highshelf';treble.frequency.value=3200;treble.gain.value=TONE.treble;
+    const dry=ctx.createGain(),wet=ctx.createGain(),shaper=ctx.createWaveShaper();
+    {const n=1024,c=new Float32Array(n),k=2.6,nk=Math.tanh(k);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(x*k)/nk;}shaper.curve=c;shaper.oversample='2x';}
+    master.connect(bass);bass.connect(body);body.connect(treble);treble.connect(dry);dry.connect(comp);treble.connect(shaper);shaper.connect(wet);wet.connect(comp);comp.connect(ctx.destination);
     const send=ctx.createGain();send.gain.value=0;const conv=ctx.createConvolver();send.connect(conv);conv.connect(master);
     let worklet=false,kind;
     try{
@@ -62,8 +78,8 @@ registerProcessor('digital-engine',DigitalEngine);`;
       catch(e1){await ctx.audioWorklet.addModule('data:application/javascript;charset=utf-8,'+encodeURIComponent(src));}
       worklet=true;kind='audio worklet';
     }catch(err){kind='main-thread fallback ('+(err&&err.message||err)+')';}
-    ENG.audio={ctx,master,comp,send,conv,worklet,kind};
-    setRoom();
+    ENG.audio={ctx,master,comp,send,conv,worklet,kind,eq:{bass,body,treble,dry,wet}};
+    setRoom();toneApply();
     ENG.status=`Digital Engine synth running live in an ${kind} at ${(ctx.sampleRate/1000).toFixed(1)} kHz.`;
     return ENG.audio;
   })();

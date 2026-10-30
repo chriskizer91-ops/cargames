@@ -9,6 +9,8 @@
    ===================================================================================== */
 const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false};
 const TOUCH_KEY={reset:'KeyR',cam:'KeyC',nos:'KeyN',low:'KeyL',lock:'KeyK',od:'KeyO',lights:'KeyJ',horn:'KeyH'};
+/* every touch input let go (the menu opening mid-press: nothing stays held under it) */
+function touchRelease(){TOUCH.thr=TOUCH.brk=TOUCH.hb=0;TOUCH.steer=0;TOUCH.steerActive=false;}
 function enableTouch(){if(GAME.touch)return;GAME.touch=TOUCH.on=true;document.body.classList.add('touch');syncTouch();}
 function syncTouch(){
   const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='drive');if(!GAME.car)return;
