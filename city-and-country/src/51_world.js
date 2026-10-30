@@ -77,7 +77,8 @@ const WRING={mini:{near:540,farR:1800,lodD:[115,270],propD:340},phone:{near:540,
 function worldRings(){
   const r=WRING[GFX.level]||WRING.phone,k=DEVW.view==='near'?.75:DEVW.view==='far'?1.35:1;
   WORLD.near=r.near*k;WORLD.farR=r.farR*k;WORLD.lodD=[r.lodD[0]*k,r.lodD[1]*k];WORLD.propD=r.propD*k;
-  if(SKY.night){WORLD.near=Math.min(WORLD.near,420);WORLD.farR=0;WORLD.propD=Math.min(WORLD.propD,330);}
+  /* under the full moon the fog is thin enough to see a long way; the far land (and downtown's skyline) on a laptop */
+  if(SKY.night){WORLD.near=Math.min(WORLD.near,560);WORLD.farR=GFX.level==='mini'||GFX.level==='phone'?0:Math.min(WORLD.farR,1800);WORLD.propD=Math.min(WORLD.propD,420);}
 }
 
 /* ---------- the worker ---------- */
@@ -139,7 +140,10 @@ function worldResult(msg){
         /* the colliders into 16 m buckets, 8 x 8 to a chunk */
         const cb=new Array(64);for(const o of r.cols){const a=o.t==='c'?o.x-o.r:o.x0,b=o.t==='c'?o.z-o.r:o.z0,d=o.t==='c'?o.x+o.r:o.x1,e=o.t==='c'?o.z+o.r:o.z1;
           for(let i=Math.max(0,Math.floor((a-c.x0)/16));i<=Math.min(7,Math.floor((d-c.x0)/16));i++)for(let j=Math.max(0,Math.floor((b-c.z0)/16));j<=Math.min(7,Math.floor((e-c.z0)/16));j++)(cb[j*8+i]||(cb[j*8+i]=[])).push(o);}
-        c.st={roads:meshOf(r.roads),props:meshOf(r.props),trees:r.trees,cb,lights:r.lights};WLC.cx=NaN;if(r.trees&&r.trees.length)WORLD.treeGen++;}}
+        c.st={roads:meshOf(r.roads),props:meshOf(r.props),trees:r.trees,cb,lights:r.lights};WLC.cx=NaN;if(r.trees&&r.trees.length)WORLD.treeGen++;
+        /* what's built on it can reach out of its 128 m and far up (the town's towers): the culling box takes it in */
+        const bb=r.bb;if(bb&&bb[4]>-1e8){c.mn[0]=Math.min(c.mn[0],bb[0]);c.mn[1]=Math.min(c.mn[1],bb[1]);c.mn[2]=Math.min(c.mn[2],bb[2]);c.mx[0]=Math.max(c.mx[0],bb[3]);c.mx[1]=Math.max(c.mx[1],bb[4]);c.mx[2]=Math.max(c.mx[2],bb[5]);c.ymax=Math.max(c.ymax,bb[4]);}
+        if(r.lights.length)WORLD.lgen=(WORLD.lgen||0)+1;}}
   }
   S.upms+=performance.now()-t0;if(q.t0){const lat=performance.now()-q.t0;S.lat=S.lat?S.lat+(lat-S.lat)*.1:lat;S.latMx=Math.max(S.latMx||0,lat);}
   /* keep the worker busy between frames: the next most wanted */
@@ -154,7 +158,7 @@ function wPump(){const W=WORLD,T=W.todo;if(!T)return;
 /* ---------- chunks ---------- */
 function newChunk(cx,cz){const x0=cx*CHK,z0=cz*CHK;return {cx,cz,x0,z0,key:ckey(cx,cz),g:[null,null,null],H:null,SC:null,st:null,req:{},want:2,seen:0,
   mn:[x0,1e9,z0],mx:[x0+CHK,-1e9,z0+CHK],ymax:-1e9};}
-function freeChunk(c){for(const g of c.g)if(g){freeM(g.m);freeM(g.w);}if(c.st){freeM(c.st.roads);freeM(c.st.props);if(c.st.trees&&c.st.trees.length)WORLD.treeGen++;}c.g=[null,null,null];c.st=null;c.H=null;}
+function freeChunk(c){for(const g of c.g)if(g){freeM(g.m);freeM(g.w);}if(c.st){freeM(c.st.roads);freeM(c.st.props);if(c.st.trees&&c.st.trees.length)WORLD.treeGen++;if(c.st.lights&&c.st.lights.length)WORLD.lgen=(WORLD.lgen||0)+1;}c.g=[null,null,null];c.st=null;c.H=null;}
 const wBox2=(x,z,c)=>{const dx=Math.max(c.x0-x,0,x-c.x0-CHK),dz=Math.max(c.z0-z,0,z-c.z0-CHK);return Math.hypot(dx,dz);};
 /* once a frame: ask for what's missing round the camera (the car's own ground first, then what's ahead of
    it, then the rest by distance), and let go of what's far behind */
@@ -312,6 +316,14 @@ function treeShapes(){
   for(let v=0;v<2;v++){const th=1.6,cr=2.2*(.92+v*.16);
     out.push([mk(B=>{B.m=[18,1,0,0];B.c=[110,90,72,255];B.tube([0,-.3,0],[0,th+cr*.5,0],.22,6,false,.1);for(let k=0;k<3;k++){leaf(B,1);const r=cr*(1-k*.26),y0=th-.4+k*cr*.62;B.tube([0,y0,0],[0,y0+cr*1.15,0],r,7,true,.05);}}),
       mk(B=>{B.m=[18,1,0,0];B.c=[110,90,72,255];B.tube([0,-.3,0],[0,th,0],.22,4,false,.12);leaf(B,1);B.tube([0,th-.4,0],[0,th-.4+cr*2.45,0],cr*1.02,5,true,.05);})]);}
+  /* two palms (the town's, City Limits'): a leaning ringed trunk and a crown of drooping fronds; far, a stick and a tuft */
+  for(let v=0;v<2;v++){const H=7.6+v*1.8,lean=.5+v*.4,top=[lean,H,0],mid=[lean*.35,H*.5,0];
+    const fronds=(B,n,L0,segs)=>{for(let k=0;k<n;k++){const a=k/n*TAU+v*.3,L=L0*(.85+.3*((k*7)%5)/5),ca=Math.cos(a),sa=Math.sin(a),w=.34;let p0=top;
+      for(let j=1;j<=segs;j++){const t=j/segs,d=L*t,dr=-.2-1.7*t*t,p1=[top[0]+ca*d,top[1]+dr+.35*t,top[2]+sa*d],sd=[-sa*w*(1-t*.6),0,ca*w*(1-t*.6)];
+        const a0=[p0[0]-sd[0],p0[1],p0[2]-sd[2]],a1=[p0[0]+sd[0],p0[1],p0[2]+sd[2]],b0=[p1[0]-sd[0],p1[1],p1[2]-sd[2]],b1=[p1[0]+sd[0],p1[1],p1[2]+sd[2]],nn=[0,1,0];
+        B.quad(B.v(a0,nn),B.v(a1,nn),B.v(b1,nn),B.v(b0,nn));p0=p1;}}};
+    out.push([mk(B=>{B.m=[18,1,0,0];B.c=[120,96,70,255];B.tube([0,-.3,0],mid,.24,7,false,.2);B.tube(mid,top,.2,7,false,.16);leaf(B,0);B.c=[200,235,170,255];fronds(B,9,3.2,3);}),
+      mk(B=>{B.m=[18,1,0,0];B.c=[120,96,70,255];B.tube([0,-.3,0],top,.22,4,false,.16);leaf(B,0);B.c=[200,235,170,255];B.blob(top,2.6,.9,2.6,5,2);})]);}
   return out;
 }
 /* sort the trees near enough into near and far for each shape (relative to the camera), one instanced draw each */
@@ -322,7 +334,7 @@ function treeShapes(){
 const TLIST=new Map();
 function treeList(id,ctr,maxD,F,nearOnly){
   let L=TLIST.get(id);
-  if(!L){L={cnt:[],buf:[],gb:[],k:[]};for(let v=0;v<5;v++){L.cnt.push([0,0]);L.buf.push([new Float32Array(12*256),new Float32Array(12*256)]);L.gb.push([gl.createBuffer(),gl.createBuffer()]);}TLIST.set(id,L);}
+  if(!L){L={cnt:[],buf:[],gb:[],k:[]};for(let v=0;v<TREES.shapes.length;v++){L.cnt.push([0,0]);L.buf.push([new Float32Array(12*256),new Float32Array(12*256)]);L.gb.push([gl.createBuffer(),gl.createBuffer()]);}TLIST.set(id,L);}
   const t0=performance.now(),cx=Math.floor(ctr[0]/8),cz=Math.floor(ctr[2]/8),mg=maxD+12,md=mg*mg;let sig=0;
   if(F)for(const c of WORLD.chunks.values()){const T=c.st&&c.st.trees;if(!T||!T.length)continue;
     const dx=Math.max(c.x0-ctr[0],0,ctr[0]-c.x0-CHK),dz=Math.max(c.z0-ctr[2],0,ctr[2]-c.z0-CHK);if(dx*dx+dz*dz>md)continue;
@@ -338,11 +350,11 @@ function treeList(id,ctr,maxD,F,nearOnly){
       const v=T[o+7]|0,l=nearOnly||d2<nn?0:1,cn=L.cnt[v];let b=L.buf[v][l];
       if((cn[l]+1)*12>b.length){const nb=new Float32Array(b.length*2);nb.set(b);L.buf[v][l]=b=nb;}
       const k=cn[l]++*12;b[k]=T[o]-RO[0];b[k+1]=T[o+1]-RO[1];b[k+2]=T[o+2]-RO[2];for(let q=3;q<12;q++)b[k+q]=T[o+q];}}
-  for(let v=0;v<5;v++)for(let l=0;l<2;l++){const n=L.cnt[v][l];if(!n)continue;gl.bindBuffer(gl.ARRAY_BUFFER,L.gb[v][l]);gl.bufferData(gl.ARRAY_BUFFER,L.buf[v][l].subarray(0,n*12),gl.DYNAMIC_DRAW);}
+  for(let v=0;v<L.cnt.length;v++)for(let l=0;l<2;l++){const n=L.cnt[v][l];if(!n)continue;gl.bindBuffer(gl.ARRAY_BUFFER,L.gb[v][l]);gl.bufferData(gl.ARRAY_BUFFER,L.buf[v][l].subarray(0,n*12),gl.DYNAMIC_DRAW);}
   PS.cur[PS_TREES]+=performance.now()-t0;PS.tl++;return L;
 }
 function drawTreeList(L,u,far){let tris=0;gl.uniform1f(u.uInst,1);
-  for(let v=0;v<5;v++)for(let l=0;l<2;l++){const n=L.cnt[v][l];if(!n)continue;const m=TREES.shapes[v][far?1:l];instBind(m,L.gb[v][l],n);drawMeshI(m);tris+=m.tris*n;}
+  for(let v=0;v<L.cnt.length;v++)for(let l=0;l<2;l++){const n=L.cnt[v][l];if(!n)continue;const m=TREES.shapes[v][far?1:l];instBind(m,L.gb[v][l],n);drawMeshI(m);tris+=m.tris*n;}
   gl.uniform1f(u.uInst,0);return tris;}
 function drawTreesW(cam,F,maxD,probe){
   TREE_NEAR=TREE_NEARL[GFX.level]||95;

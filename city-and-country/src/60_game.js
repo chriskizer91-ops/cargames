@@ -7,10 +7,10 @@
    Engine synth (17_audio), heard from behind the car.
    ===================================================================================== */
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3],[1280,720,4]];
-const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:false,tod:'day',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
+const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:true,tod:'night',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
-const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'pickup',muscle:'muscle',hatch:'hatch'};
+const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'pickup',muscle:'muscle',hatch:'hatch',ev:'ev',wedge:'wedge',hyper:'hyper'};
 for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('cc-game','{}'))||{};
   if(CAR_PARTS[s.car])APP.car=s.car;if(['real','middle','kids','sim'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
@@ -53,16 +53,17 @@ function rigName(car,rig){
   return 'Custom';}
 const carLabel=()=>carName({car:APP.car})+' '+rigName(APP.car,rigOf(APP.car))+plusTag(APP.car);
 
-/* ---------- where things are: the garage, the roads out of it, the towns, and far out on Route 6 ---------- */
+/* ---------- where things are: the garage in town, the town's streets, the roads out, the salt ---------- */
 let PLACES=[];
+/* inside Marisol's garage, facing its door (the game starts here) */
+const HOME=[58,95,-PI/2];
 function computePlaces(){
-  const L=WG.L,xe=WG.xExp(-150),jx=WG.townsNear(2*L,0,900)[0],far=WG.townsNear(0,0,16000).filter(t=>t.name!=='Junction').sort((a,b)=>Math.hypot(a.x,a.z)-Math.hypot(b.x,b.z))[0];
-  PLACES=[['garage','The garage',38,-57,-PI/2],['dirt','The dirt road north',WG.offNS(0,-140)+1,-140,PI/2],
-    ['r6e','Route 6, heading east',70,1.85,0],['r6w','Route 6, heading west',-40,-1.85,PI],['exp','The expressway, heading north',xe+5.5,-150,PI/2]];
-  if(jx)PLACES.push(['junction','Junction',jx.x-170,1.85,0]);
-  if(far){const z=far.j*L+WG.offEW(far.j,far.x-170);PLACES.push(['town',far.name,far.x-170,z+1.6,0]);}
-  PLACES.push(['hills','Into the hills',WG.offNS(0,-4300)+1.2,-4300,PI/2],['far5','5 miles out on Route 6',5*L,1.85,0],['far10','10 miles out on Route 6',10*L,1.85,0],
-    ['edge','The end of Route 6 (20 mi)',WG.ROAD_END-400,1.85,0]);
+  const L=WG.L,P=WG.PARK,hx=WG.HWY_X,rz=z=>WG.offNS(0,z);
+  PLACES=[['garage',"Marisol's garage",...HOME],['downtown','Downtown, on Highway 40',-60,4,0],['neon','Neon Row',-180,117,0],['ring','Limits Boulevard',-120,-352,0],
+    ['hwyE','Highway 40, heading east',420,4,0],['hwyW','Highway 40, heading west',-420,-4,PI],['gas',"Deke's Gas",470,-32,PI/2],['diner','The Starlite Diner',-470,22,0],
+    ['ridge','Ridge Road, into the hills',rz(-420)+1,-420,PI/2],['hills','Up in the hills',rz(-2200)+1,-2200,PI/2],['wash','Wash Road, south',rz(420)-1,420,-PI/2],
+    ['bog','The bog',WG.BOG.x+48,WG.BOG.z,PI],['park','The off-road park ground',(P.x0+P.x1)/2,(P.z0+P.z1)/2,0],
+    ['saltE','Where the highway ends (east)',hx-200,4,0],['saltW','Where the highway ends (west)',-hx+200,-4,PI],['deep','Deep out on the salt',hx+3000,400,0]];
 }
 /* the name of the place the car is in */
 function placeName(x,z){return WG.placeAt(x,z);}
@@ -102,7 +103,7 @@ function spawnCar(i,x,z,yaw){
   /* a machine's rider leans (34_machines); the semi has its jake brake */
   if(t.c.riderKg)t.lean={x:0,z:0,bail:null};t.pt.jake=!!t.pt.e.jake;
   GAME.car=t;APP.bi=i;GAME.dirt=b.dirt;
-  if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];yaw=Math.atan2(-prev.M[6],prev.M[0]);}else{x=38;z=-57;yaw=-PI/2;}}
+  if(x===undefined){if(prev){x=prev.p[0];z=prev.p[2];yaw=Math.atan2(-prev.M[6],prev.M[0]);}else{x=HOME[0];z=HOME[1];yaw=HOME[2];}}
   placeCar(x,z,yaw);
   /* the synth becomes this engine */
   const v=GAME.voice;v.spec=t.spec;if(v.port)v.port.post({t:'cfg',cfg:SIM.dspCfg(t.spec)});
@@ -129,9 +130,15 @@ async function startEngine(){
 function toggleEngine(){const pt=GAME.car.pt;if(pt.st==='off'||pt.st==='stopping')startEngine();else pt.stop();}
 /* the room the engine is heard in: the setting, or on Auto the lab's garage inside a building and open air outside */
 function roomNow(){if(ENG.roomMode!=='auto')return ENG.roomMode;const p=GAME.place||'';return /^In (the|a) /.test(p)?'garage':'open';}
+/* City Limits' electric car has no engine to synthesise: its own voice (45_ev's evSound) on the engine bus, and the
+   synth asleep while it plays */
+function evVoice(car,dt,on){const v=GAME.voice,a=ENG.audio;if(!a)return;
+  if(on){if(!v.ev){v.ev=evSound(a.ctx);v.ev.out.connect(a.eng);}if(car)v.ev.update(car,dt,GAME.state);if(v.port&&!v.evZ){v.port.post({t:'sleep',v:true});v.evZ=true;}}
+  else{if(v.ev)v.ev.out.gain.setTargetAtTime(0,a.ctx.currentTime,.05);if(v.port&&v.evZ){v.port.post({t:'sleep',v:false});v.evZ=false;}}}
 /* what the synth hears: the lab's 'behind' listener, from wherever the chase camera is */
 function soundUpdate(c){
   const v=GAME.voice;if(!ENG.audio||!v.port)return;const t=GAME.car,M=t.M,F=mcol(M,0),mode=CAMS[APP.cam],D=carD(t);
+  const isEV=!!t.spec.ev;evVoice(t,1/60,isEV);if(isEV){t.pt.takeEvents();return;}
   const ex=add(t.p,mvec(M,[-(D.L/2-.15)-t.cg[0],.4-t.cg[1],0])),dist=len(sub2(c.eye,ex)),right=norm2([-c.fwd[2],0,c.fwd[0]]),toCam=norm2(sub2(c.eye,t.p));
   /* the camera sits 7 to 11 m back; the synth hears it from no further than the lab's own 'behind' spot plus a little, so it sounds like the lab */
   let geo={dist:clamp(dist,1.5,5),pan:clamp(-dot2(norm2(sub2(t.p,c.eye)),right)*.9,-1,1),rear:clamp(.5-.5*dot2(toCam,F),0,1)*.6+.4};
@@ -241,7 +248,7 @@ function step(dt){
   /* a last line: if the car's numbers ever break, it goes back to where it last was whole, on its wheels, and the
      camera starts afresh (one broken frame used to leave the screen black until a restart) */
   if(carWhole(t)){if(GAME.time-(GAME.safeT||-9)>.5){GAME.safeT=GAME.time;GAME.safe=[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])];}}
-  else{const s=GAME.safe||[38,-57,-PI/2];spawnCar(APP.bi,s[0],s[1],Number.isFinite(s[2])?s[2]:0);CAM.cut=true;CAM.yaw=null;CAM.off=null;say('Reset',1.2);}
+  else{const s=GAME.safe||HOME;spawnCar(APP.bi,s[0],s[1],Number.isFinite(s[2])?s[2]:0);CAM.cut=true;CAM.yaw=null;CAM.off=null;say('Reset',1.2);}
   PS.sub+=n;psT(PS_PHYS,tp);
   if(GAME.acc>DT)GAME.acc=0;
   /* rolled over: say how to get back up; Kids flips it back by itself */
@@ -394,7 +401,7 @@ function carMatrix(t){const R=t.M,m=new Float32Array(16);
 function carUniformsW(t,v,dirt){
   const u=CUR.u,b=t.build,D=carD(t);
   gl.uniform3fv(u.uPaint,lin(b.paint));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
-  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform1f(u.uBrake,t.brkIn>.05?1:0);gl.uniform1f(u.uDirt,dirt);
+  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform3fv(u.uGlow,b.glow||[0,0,0]);gl.uniform1f(u.uBrake,t.brkIn>.05?1:0);gl.uniform1f(u.uDirt,dirt);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
 }
 /* one car where the physics has it: the body (tail-up over big rear tyres, as on the turntable), the hood

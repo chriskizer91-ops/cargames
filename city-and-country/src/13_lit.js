@@ -142,12 +142,17 @@ in vec3 vP;in vec3 vN;in vec4 vC;in float vMat;in vec3 vL;
 layout(location=0) out vec4 o;layout(location=1) out vec4 oN;
 uniform vec3 uPaint;uniform vec3 uPaint2;uniform vec3 uRim;uniform vec3 uCal;uniform vec3 uClad;
 uniform float uLiv;uniform float uLights;uniform float uBrake;uniform float uDirt;uniform float uGround;uniform vec4 uLivP;
+/* City Limits' cars: the build's glow colour (its light strips and its underglow) */
+uniform vec3 uGlow;
 /* positions are drawn relative to a floating origin; uOrg puts the textures back on the world (51_world) */
 uniform vec3 uOrg;
 uniform vec4 uSh[8];uniform float uShA[8];uniform int uNSh;uniform float uSpin;
 uniform float uShK[8];uniform float uMudOff;uniform float uMudLocal;
 /* how much fine detail to draw (0 a weak phone .. 1 a laptop) */
 uniform float uDetail;
+/* the town's light grid (59_daynight): the lights, each cell's start and count, the lists; the grid's corner
+   (relative to the origin), 1/cell and cells across; on or off */
+uniform highp sampler2D uLTex;uniform highp usampler2D uLGrid;uniform highp usampler2D uLList;uniform vec4 uLG;uniform float uLGOn;
 /* the light this pixel gets: the sun's visibility, ambient occlusion, a leaf's translucency, and the
    ambient light's share of the colour (for the screen-space AO pass) */
 float gSun=1.,gAO=1.,gTrans=0.,gAmb=0.,gMet=0.;
@@ -192,6 +197,19 @@ vec3 shade(vec3 P,vec3 N,vec3 V,vec3 alb,float spec,float sh){
     /* (a lamp's highlight is capped like the sun's: a chrome stack under a studio lamp or a headlight would otherwise
        be tens of thousands, and the bloom adding those up runs past what the targets hold) */
     c+=uLC[i].rgb*k*(alb*(ln*.85+.15*gAO)+min(ln*f0*ggx(max(dot(N,Hh),0.),NV,ln,al),3.*clamp(al/.12,.25,1.)));}
+  /* City Limits' street lights: every lamp, sign and shopfront round the car in a grid of 8 m cells on the
+     ground (59_daynight), each cell with its own list, so a street can have hundreds of lights for the price of
+     the few that reach this pixel. Lights: position (relative to the origin) and reach, colour, spot direction
+     and the cosine of its edge (-2: every way) */
+  if(uLGOn>.5){vec3 Pg=P-vec3(uLG.x,0.,uLG.y);ivec2 cc=ivec2(floor(Pg.xz*uLG.z));int gw=int(uLG.w);
+    if(cc.x>=0&&cc.y>=0&&cc.x<gw&&cc.y<gw){uvec2 g=texelFetch(uLGrid,cc,0).xy;
+      for(uint q=0u;q<g.y;q++){uint e=g.x+q;int li=int(texelFetch(uLList,ivec2(int(e&1023u),int(e>>10u)),0).r)*3;
+        vec4 A=texelFetch(uLTex,ivec2(li&1023,li>>10),0);vec3 L=A.xyz-Pg;float d2=dot(L,L),r=A.w;if(d2>r*r)continue;
+        vec4 Dd=texelFetch(uLTex,ivec2((li+2)&1023,(li+2)>>10),0);float d=sqrt(d2);L/=d;float k=1.-d/r;k*=k;
+        if(Dd.w>-1.)k*=smoothstep(Dd.w,Dd.w+.1,dot(-L,Dd.xyz));if(k<=0.)continue;
+        vec3 Lc=texelFetch(uLTex,ivec2((li+1)&1023,(li+1)>>10),0).rgb;
+        float ln=max(dot(N,L),0.);vec3 Hh=normalize(L+V);float al=min(1.,a+.05/d);
+        c+=Lc*k*(alb*(ln*.85+.15*gAO)+min(ln*f0*ggx(max(dot(N,Hh),0.),NV,ln,al),3.*clamp(al/.12,.25,1.)));}}}
   gAmb=dot(amb,vec3(.3,.59,.11));
   return c;}
 /* mud: caked and wet low down, dry and splattered higher up; returns 0..1 coverage */
@@ -348,14 +366,25 @@ void main(){
   else if(m==26){float g=vn3(vL*60.);alb*=.85+.3*g;spec=.03;dirty=true;}
   else if(m==27){spec=.05;shin=10.;dirty=true;}
   else if(m==29){emc=vec3(.75,.88,1.)*(.15+uLights*2.4);alb=vec3(.2);}
+  /* City Limits: 30 a light strip that glows the build's colour with the lamps on; 31 an underglow tube */
+  else if(m==30){emc=uGlow*(.25+uLights*1.8);alb=uGlow*.2;spec=.5;shin=60.;}
+  else if(m==31){emc=uGlow*2.6;alb=uGlow*.3;}
   else if(m>=40){
     vec2 wp=Pw.xz;float sh=wshadow(vP),pud=0.;bool ground=true;
     if(m==51){o=vec4(skyCol(normalize(vP-uCam)),1.);oN=vec4(0.);return;}
     if(m==40){
-      /* the ground: weights for grass, rock and mud in the colour, ambient occlusion in its alpha */
+      /* the ground: weights for grass, rock and mud in the colour (salt as negative mud: they never meet),
+         ambient occlusion in its alpha */
       float n2=vn(wp*.7),n3=vn(wp*3.1),n4=vn(wp*11.);
-      float gw=smoothstep(.3,.72,vC.r+(n2-.5)*.45),rw=smoothstep(.35,.65,vC.g+(n3-.5)*.3),mw=smoothstep(.25,.6,vC.b+(n2-.5)*.25);
+      float gw=smoothstep(.3,.72,vC.r+(n2-.5)*.45),rw=smoothstep(.35,.65,vC.g+(n3-.5)*.3),mw=vC.b>0.?smoothstep(.25,.6,vC.b+(n2-.5)*.25):0.;
+      float sw=smoothstep(.05,.75,-vC.b+(n2-.5)*.18);
       alb=dirtCol(wp);dirtDetail(wp,alb,1.-gw);
+      /* the salt flats (City Limits'): pale crust and tan clay in big soft patches, cracked into plates in places */
+      if(sw>.004){float big=fbm(wp*.0035),mid=vn(wp*.045),fine=vn(wp*1.7);
+        vec3 sc=mix(vec3(.47,.42,.35),vec3(.70,.67,.61),smoothstep(.32,.78,big*.85+mid*.3))*(.93+.1*fine*near(.6));
+        float crack=smoothstep(.3,.62,fbm(wp*.012+4.1))*near(.25);
+        if(crack>0.&&uDetail>.3){float e=cellEdge(wp*.52);sc*=1.-(1.-smoothstep(.0,.05,e))*.26*crack;}
+        alb=mix(alb,sc,sw);gG*=1.-sw*.85;gw*=1.-sw;rw*=1.-sw;}
       if(gw>.004){vec3 gc=grassCol(wp);vec2 g0=gG;gG=vec2(0.);grassDetail(wp,gc);gG=mix(g0,gG,gw);alb=mix(alb,gc,gw);}
       if(rw>.004){alb=mix(alb,rockCol(Pw),rw);vec3 a=vnd(wp*1.1);gG+=a.yz*1.1*.08*rw*near(.4);}
       spec=.03;shin=8.;
@@ -479,17 +508,91 @@ void main(){
       alb=c;spec=.03;shin=8.;
     }
     else if(m==58){
-      /* the open world's public roads (51_world): blacktop (blue 3), Route 6 (4), the expressway (5). Red = metres
-         along (mod 1200), green = metres across; edge lines white, a dashed yellow down the middle (a double one on
-         the expressway, with dashed white between its lanes), darker where the tyres run */
-      float sx=vC.r,d=vC.g,ad=abs(d),cls=vC.b,n2=vn(wp*6.),n3=vn(wp*37.),lane=cls>3.5?3.65:3.2,lanes=cls>4.5?2.:1.,el=lane*lanes;
+      /* the public roads: blacktop (blue 3); Highway 40 (6, three lanes each way); in town the boulevard (7), Central
+         (8), the avenues (9) and the streets (10), and the intersections (11). Red = metres along (mod 1200), green =
+         metres across, alpha = half width (an intersection's packs both); edge lines white, the middle a double
+         yellow (a dashed one on a single-lane street), dashed white between lanes, darker where the tyres run */
+      float sx=vC.r,d=vC.g,ad=abs(d),cls=floor(vC.b+.5),n2=vn(wp*6.),n3=vn(wp*37.);
       vec3 ac=(cls<3.5?vec3(.085,.08,.074):vec3(.052,.052,.058))*(.84+.26*n2)*(.88+.22*n3);
-      float q=mod(ad,lane);ac*=1.-.12*exp(-pow((q-lane*.28)/.45,2.))-.12*exp(-pow((q-lane*.72)/.45,2.));
-      asphaltDetail(wp,ac,ad,el);
-      float wht=step(el-.16,ad)*step(ad,el),yel=cls>4.5?step(.07,ad)*step(ad,.19):step(ad,.065)*step(fract(sx/12.),.25);
-      if(cls>4.5)wht=max(wht,step(abs(ad-lane),.065)*step(fract(sx/12.),.25));
-      ac=mix(ac,vec3(.6,.6,.58),wht*(.75+.25*n3));ac=mix(ac,vec3(.58,.42,.07),yel*(.75+.25*n3));
+      if(cls>10.5){
+        /* an intersection: no lane lines, a zebra across each road coming in */
+        float hx=floor(em)/10.,hz=fract(em)*100.,ex=hx-abs(sx),ez=hz-abs(d);asphaltDetail(wp,ac,0.,99.);
+        float zx=step(.6,ez)*step(ez,3.4)*step(.5,fract(sx/1.1))*step(abs(sx),hx-1.);
+        float zz=step(.6,ex)*step(ex,3.4)*step(.5,fract(d/1.1))*step(abs(d),hz-1.);
+        ac=mix(ac,vec3(.6,.6,.58),max(zx,zz)*(.7+.3*n3));
+      }else{
+        float lane=cls>3.5?3.65:3.2,lanes=cls>4.5?2.:1.,med=0.;
+        if(cls>5.5){lane=cls<6.5?3.6:cls<7.5?3.5:cls<9.5?3.4:3.6;lanes=cls<6.5?3.:cls<9.5?2.:1.;med=cls<6.5?.3:cls<7.5?.7:cls<8.5?.6:0.;}
+        float el=med+lane*lanes,q=mod(max(ad-med,0.),lane);ac*=1.-.12*exp(-pow((q-lane*.28)/.45,2.))-.12*exp(-pow((q-lane*.72)/.45,2.));
+        asphaltDetail(wp,ac,ad,el);
+        float wht=step(el-.16,ad)*step(ad,el),yel;
+        if(cls>5.5){yel=med>0.?step(abs(ad-med+.1),.065):lanes>1.5?step(.07,ad)*step(ad,.19):step(ad,.065)*step(fract(sx/12.),.25);
+          float lw=0.;for(int k=1;k<3;k++){if(float(k)>=lanes)break;lw=max(lw,step(abs(ad-med-lane*float(k)),.065));}
+          wht=max(wht,lw*step(fract(sx/12.),.3));
+          /* a painted median: hatched between its yellow lines */
+          if(med>.25&&ad<med-.1)yel=max(yel,step(.7,fract((sx+ad)/1.6))*.8);
+          /* the kerb's gutter in town */
+          if(cls>6.5)ac*=1.-.3*smoothstep(em-.6,em,ad);}
+        else{yel=cls>4.5?step(.07,ad)*step(ad,.19):step(ad,.065)*step(fract(sx/12.),.25);
+          if(cls>4.5)wht=max(wht,step(abs(ad-lane),.065)*step(fract(sx/12.),.25));}
+        ac=mix(ac,vec3(.6,.6,.58),wht*(.75+.25*n3));ac=mix(ac,vec3(.58,.42,.07),yel*(.75+.25*n3));
+      }
       alb=ac;spec=.18;shin=40.;add+=envR(R,shin)*F*.08;em=0.;
+    }
+    else if(m==60){
+      /* a town building's walls (City Limits' facades): floors and bays from where the wall is, so nothing needs
+         texture coordinates; brick, concrete, glass, stucco or corrugated metal by its style; a storefront along
+         the street where it has shops; at night some of its windows lit. Alpha: style + 5 if it has shops, plus a
+         seed in the fraction */
+      vec3 an=abs(N);float code=floor(em),sd=fract(em)*41.;int style=int(code)-5*(int(code)/5);bool shops=code>4.5;
+      vec3 tint=vC.rgb;em=0.;ground=false;
+      if(an.y>.5){alb=vec3(.035);spec=.04;}
+      else{
+        float u=(an.x>an.z?Pw.z:Pw.x)+sd*7.,v=Pw.y;
+        float fh=style==0?3.3:style==1?3.6:style==2?3.9:style==3?3.2:4.2,bw=style==0?2.3:style==1?3.1:style==2?1.6:style==3?2.5:3.6;
+        float gf=shops?4.8:0.,glass=0.,nB=vn(vec2(u*.5,v*.25)+sd);vec3 wcol=vec3(0.);float rough=.85;
+        alb=tint;
+        if(v<gf){
+          /* the storefront: units of four bays, glass and its light, a sign band over it, some shuttered */
+          float uw=bw*4.,ui=floor(u/uw),uf=fract(u/uw)*uw,hs2=h12(vec2(ui,sd*3.1)),open=step(.25,hs2),side=min(uf,uw-uf);
+          vec3 shop=hs2>.85?vec3(1.,.55,.85):hs2>.6?vec3(.85,.95,1.):vec3(1.,.72,.42);
+          if(v<.35){alb=vec3(.3,.29,.28);}
+          else if(v<3.3){if(side<.25){alb=vec3(.04);rough=.4;}
+            else if(open>0.){glass=1.;float shelves=step(.5,fract(v*1.6))*step(v,2.2)*.35;wcol=shop*(.75*(.5+.5*smoothstep(.4,3.2,v))-shelves*.5)*uNight*(.7+.6*hs2);
+              if(abs(fract(uf/1.9)-.5)>.48){glass=0.;alb=vec3(.05);wcol=vec3(0.);}}
+            else{float rib=abs(fract(v*6.)-.5);alb=vec3(.2,.2,.21)*(.7+.3*rib);rough=.5;}}
+          else if(v<4.4){vec3 sc=.5+.5*cos(6.28*(hs2*1.7+vec3(0.,.33,.67)));
+            if(side>.3&&open>0.&&v>3.45&&v<4.3){alb=sc*.3;emc+=sc*.35*(1.2+.8*h12(vec2(hs2,3.)))*uNight;}else alb=vec3(.12,.11,.1);}
+          else alb=vec3(.2);}
+        else{
+          float vv=v-gf,fi=floor(vv/fh),fv=fract(vv/fh)*fh,bi=floor(u/bw),bu=fract(u/bw)*bw,r1=h12(vec2(bi,fi)+sd*13.71),r2=h12(vec2(fi,bi*1.7)+sd*5.3);
+          if(style==0){vec2 bk=vec2(u/.25+step(.5,fract(v/.15))*.5,v/.075);vec2 bf=fract(bk);float mort=1.-smoothstep(.06,.12,min(min(bf.x,1.-bf.x)*3.3,min(bf.y,1.-bf.y)));
+            alb=tint*(.85+.2*h12(floor(bk))*near(.08))*(1.-mort*.35*near(.04));
+            float wx=abs(bu-bw*.5),wy=fv-fh*.5+.15,ww=bw*.27,wh=fh*.3;
+            if(wx<ww+.08&&abs(wy)<wh+.08)alb=vec3(.42,.4,.36);if(wx<ww&&abs(wy)<wh)glass=1.;}
+          else if(style==1){alb=tint*(.8+.25*nB);float jn=min(abs(fv-.02),abs(bu-.01));alb*=1.-(1.-smoothstep(0.,.03,jn))*.4;
+            if(fv>fh*.38&&fv<fh*.9&&abs(bu-bw*.5)<bw*.46)glass=1.;}
+          else if(style==2){float mx=min(bu,bw-bu),my=min(fv,fh-fv);
+            if(mx<.05||my<.05){alb=vec3(.08,.085,.09);rough=.35;}else if(fv<fh*.22){alb=tint*.3;glass=.6;}else glass=1.;}
+          else if(style==3){alb=tint*(.82+.25*nB);float wx=abs(bu-bw*.5),wy=fv-fh*.52,ww=bw*.24,wh=fh*.33;
+            if(wx<ww+.07&&abs(wy)<wh+.07)alb=vec3(.85,.84,.8);if(wx<ww&&abs(wy)<wh)glass=1.;}
+          else{float rib=abs(fract(u*4.)-.5);alb=tint*(.7+.3*rib)*(.75+.3*nB);rough=.45;if(fv>fh*.55&&fv<fh*.85&&r1<.25)glass=1.;}
+          /* night: some windows lit, warm or cool; offices light whole floors; now and then a TV's flicker */
+          if(glass>0.){float fr=.38*(style==2?.55:1.);bool on=style==2?(h12(vec2(fi,sd*7.))<fr*.7?r1<.88:r1<fr*.25):r1<fr;
+            if(on){vec3 wc=mix(vec3(1.,.62,.3),vec3(.8,.9,1.),step(.62,r2))*mix(.55,1.,h12(vec2(r1*91.,3.)));
+              if(r2>.94)wc=vec3(.45,.6,1.)*(.6+.4*sin(uTime*7.+r1*40.)*sin(uTime*3.1));
+              float blinds=r2>.3&&r2<.5?.55+.45*step(.4,fract(fv*9.)):1.;
+              wcol=wc*blinds*mix(.55,1.15,sat(fv/fh*1.3))*(.35+.65*r1/max(fr,.05))*.5*uNight;}}}
+        if(glass>0.){alb=mix(alb,vec3(.012,.014,.016),glass);spec=mix(.04,.9,glass);shin=mix(12.,400.,glass);add+=envR(R,400.)*F*.5*glass;emc+=wcol*glass;}
+        else{spec=.04+.3*(1.-rough);shin=mix(60.,8.,rough);}}
+    }
+    else if(m==61){
+      /* a traffic signal's lamp (red 0, amber 1, green 2 in red; which road it faces in green; the junction's
+         phase in blue): a 30 s cycle, one road green while the other is red */
+      float l=floor(vC.r+.5),tt=fract(uTime/30.+vC.b+(vC.g>.5?.5:0.));
+      float on=tt<.42?(l>1.5?1.:0.):tt<.5?(l>.5&&l<1.5?1.:0.):(l<.5?1.:0.);
+      vec3 lc3=l<.5?vec3(1.,.08,.05):l<1.5?vec3(1.,.55,.05):vec3(.1,1.,.45);
+      alb=lc3*.06;emc+=lc3*(on*3.4+.03);spec=.6;shin=80.;em=0.;ground=false;
     }
     /* rain soaks the porous ground dark and puts a sheen with the world in it on the hard ground; low spots fill */
     float por=m==40||m==42||m==43||m==44||m==53||m==55||m==56||m==57?1.:0.,hard=m==54||m==45||m==58?1.:0.;

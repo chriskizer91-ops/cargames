@@ -181,7 +181,7 @@ const showShadowOf=(i,x,z,yaw)=>{const b=BUILDS[i];return [x,z,truck(i).D.L/2+.1
 function showCarUniforms(i,dirt){
   const u=CUR.u,b=BUILDS[i],D=truck(i).D;
   gl.uniform3fv(u.uPaint,lin(b.paint));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
-  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,SHOW.lights?1:0);gl.uniform1f(u.uBrake,0);gl.uniform1f(u.uDirt,dirt);
+  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,SHOW.lights?1:0);gl.uniform3fv(u.uGlow,b.glow||[0,0,0]);gl.uniform1f(u.uBrake,0);gl.uniform1f(u.uDirt,dirt);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
 }
 /* one car placed by Mc (the bay's drawCar on HD's uniforms): live, it rocks on its springs to the engine and
@@ -377,6 +377,8 @@ function showAct(id){const sim=SHOW.sim,v=GAME.voice;
   else if(id==='purge'){if(v.port&&showRuns())v.port.post({t:'ev',ev:{type:'purge'}});}}
 function showSound(dt){
   const v=GAME.voice;if(!ENG.audio||!v.port||!SHOW.eng||!SHOW.sim){SHOW.inp={thr:0,brk:0,nos:false};return;}
+  /* (the electric car: no engine for the synth; the bay is quiet for it for now) */
+  if(GAME.car.spec.ev){evVoice(null,dt,true);}else if(v.evZ)evVoice(null,dt,false);
   /* a part changed in the garage: the turntable's engine becomes the new one, still running */
   if(SHOW.simSpec!==GAME.car.spec){
     /* (the dyno's own tune coming back as the car's engine: it's running already) */

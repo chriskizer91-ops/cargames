@@ -171,6 +171,8 @@ function exhausts(K){
   /* the drag car's headers: four pipes a side out under the rocker, ahead of the rear wheels */
   if(ex==='zoomie')pair(s=>{const u=D.uRa-D.archB.a-.12,y=D.sill(u)+.05;for(let k=0;k<4;k++){const uk=u-k*.07,z0=D.plan(uk);
     tubePath(pm,[[X(uk+.4),y+.12,s*.35],[X(uk),y+.02,s*(z0-.08)],[X(uk),y-.04,s*(z0+.02)]],.022,8,MM.CHROME);tipAt([X(uk),y-.04,s*(z0+.02)],.024,V3.norm([-.4,-.6,s*.5]),.08);}});
+  /* City Limits: the hypercar's pair of big round tips high in the middle of the tail, and the electric car's none */
+  if(ex==='centre')pair(s=>{const y=D.sill(L)+.33+F.rdy,z=s*.13;tubeAB(pm,[X(L-.5),y,z],[X(L-.04),y,z],.06,12,MM.UNDER);tipAt([X(L-.05),y,z],.07,[-1,0,0],.08);});
   /* the plain wagon's: two small tips tucked under the bumper */
   if(ex==='tuck')for(const z of [.48,.58]){const y=D.sill(L);tubeAB(pm,[X(F.exU),y-.02,z*.8],[X(L-.12),y,z],.025,8,MM.UNDER);tipAt([X(L-.12),y,z],.03,[-1,0,0],.06);}}
 }

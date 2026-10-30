@@ -32,7 +32,7 @@ function drawBigMap(){
   mapFill(x0*HS,y0*HS,n,cxw,czw,span/n,pack(22,24,26,235));
   if(Math.hypot(cxw-BIGM.x,czw-BIGM.z)>250){BIGM.x=cxw;BIGM.z=czw;BIGM.roads=WG.roadLines(cxw-span*.6,czw-span*.6,cxw+span*.6,czw+span*.6,40);BIGM.towns=WG.townsNear(cxw,czw,span*.75);}
   const toM=(x,z)=>[x0+size/2+(x-cxw)/span*size,y0+size/2+(z-czw)/span*size],inR=(a,b)=>a>=x0&&a<=x0+size&&b>=y0&&b<=y0+size;
-  const RC=[0,pack(150,108,66),pack(196,180,150),pack(214,214,222),PAL.gold,PAL.amber];
+  const RC=[0,pack(150,108,66),pack(196,180,150),pack(214,214,222),PAL.gold,PAL.amber,PAL.gold,pack(236,236,244),pack(214,214,222),pack(200,200,210),pack(170,170,182),pack(170,170,182)];
   for(const r of BIGM.roads){const col=RC[r.cls];for(let k=2;k<r.pts.length;k+=2){const [a,b]=toM(r.pts[k-2],r.pts[k-1]),[c,d]=toM(r.pts[k],r.pts[k+1]);if(inR(a,b)&&inR(c,d))hLine(a,b,c,d,col);}}
   for(const tw of BIGM.towns){const [a,b]=toM(tw.x,tw.z);if(!inR(a,b))continue;hDisc(a,b,1.6,PAL.white);otxt3(tw.name.toUpperCase(),a+3,b-6,PAL.ink);}
   {const [a,b]=toM(37,-50);if(inR(a,b)){hDisc(a,b,1.6,PAL.gold);otxt3('GARAGE',a+3,b-6,PAL.gold);}}
