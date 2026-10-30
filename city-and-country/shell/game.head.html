@@ -1,0 +1,612 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>City &amp; Country</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#07070b">
+<!--FONTS-->
+<style>
+/* Back Forty: Dirt Sleeper HD (Mini Dirt Run Solo and Dirt Sleeper Sim in one game, on a renderer after
+   Shiftlight 7) in Mini Dirt Run Open World's forty-mile world, made as you drive.
+   From HD: The ranch and the country round it
+   on an LED dot matrix, dark-only by design, the menu a lit sign over it. The matrix fills the window; a slim
+   bar on top; on a phone the steering on the left, the pedals on the right and small buttons down both
+   sides; one menu card with tabs for driving, the garage, the cool things you've done, the clock runs, the
+   settings and (while the game is being made) the developer panel. */
+:root{
+  --bg:#07070b;--panel:#111119;--raised:#1a1a25;--ink:#efeaf6;--ink-2:#a8a2b8;--ink-3:#6c6880;
+  --edge:rgba(255,255,255,.12);--edge-2:rgba(255,255,255,.22);--accent:#ff3d5a;--amber:#ffb43c;--cyan:#4fe3ff;--go:#5dff7a;--bad:#ff6a6a;
+  --f:"Chakra Petch","Arial Narrow",system-ui,sans-serif;--fb:"Saira",system-ui,-apple-system,sans-serif;--fn:"Saira Condensed","Arial Narrow",system-ui,sans-serif;color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none}
+body{font:400 13px/1.45 var(--fb);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+/* the words over the picture: drawn crisp in the UI fonts (10_core TXT), not in dots */
+#txt{position:fixed;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:3}
+.bar{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;justify-content:flex-end;gap:10px;pointer-events:none;z-index:5;
+  padding:max(8px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.rot{display:none;font:600 10px/1.3 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--amber);max-width:46vw}
+@media (orientation:portrait) and (pointer:coarse){.rot{display:block;margin-right:auto}}
+.opts{display:flex;gap:8px;align-items:center}
+.chip{pointer-events:auto;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--edge);background:rgba(17,17,25,.82);color:var(--ink);cursor:pointer;
+  font:600 10.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip:hover{border-color:var(--edge-2)}
+.stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:640px){.stat{display:none}}
+body.touch #res,body.touch .stat{display:none}
+
+/* ---------- the touch controls ---------- */
+#touch{position:fixed;inset:0;pointer-events:none;z-index:4}
+#steerZone{position:absolute;left:0;bottom:0;width:46vw;height:72vh;pointer-events:auto;touch-action:none}
+#steerZone[data-mode="tilt"],#steerZone[data-mode="buttons"]{pointer-events:none}
+#steerTrack{position:absolute;left:24vw;bottom:max(34px,calc(env(safe-area-inset-bottom,0px) + 26px));width:0;height:0}
+#steerTrack::before{content:"";position:absolute;left:-120px;width:240px;top:-2px;height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
+#steerKnob{position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;border:2px solid rgba(79,227,255,.7);background:rgba(17,17,25,.55);transition:transform .05s linear}
+#steerZone.on #steerKnob{background:rgba(79,227,255,.25)}
+#steerHint{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));font:600 9.5px/1 var(--f);letter-spacing:.18em;color:var(--ink-3)}
+#steerZone[data-mode="buttons"] #steerTrack,#steerZone[data-mode="buttons"] #steerHint{display:none}
+#steerBtns{position:absolute;left:max(14px,env(safe-area-inset-left,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;pointer-events:auto}
+.tb{border:1px solid var(--edge-2);background:rgba(17,17,25,.55);color:var(--ink);touch-action:none;cursor:pointer;backdrop-filter:blur(2px);
+  font:700 10.5px/1 var(--f);letter-spacing:.12em;border-radius:12px}
+.tb.big{width:84px;height:84px;font-size:22px;border-radius:18px}
+.tb.on{background:rgba(255,255,255,.2)}
+.tb.lit{border-color:var(--amber);color:var(--amber)}
+.tside{position:absolute;top:max(46px,calc(env(safe-area-inset-top,0px) + 40px));display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+.tside.L{left:max(10px,env(safe-area-inset-left,0px))}.tside.R{right:max(10px,env(safe-area-inset-right,0px))}
+.tside .tb{width:62px;height:34px}
+.tpedals{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:flex-end;pointer-events:auto}
+.tcol{display:flex;flex-direction:column;gap:10px}
+.pedal{position:relative;width:80px;border-radius:16px;border:1px solid var(--edge-2);background:rgba(17,17,25,.5);overflow:hidden;touch-action:none;cursor:pointer}
+.pedal.gas{height:min(190px,50vh);border-color:rgba(93,255,122,.55)}.pedal.brk{height:min(132px,34vh);border-color:rgba(255,61,90,.55)}
+.pedal i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(to top,rgba(93,255,122,.42),rgba(93,255,122,.12))}
+.pedal.brk i{background:linear-gradient(to top,rgba(255,61,90,.42),rgba(255,61,90,.12))}
+.pedal span{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:700 13px/1 var(--f);letter-spacing:.14em}
+.pedal.gas span{color:var(--go)}.pedal.brk span{color:var(--accent)}
+.pedal.gas::after{content:"MORE";position:absolute;left:0;right:0;top:10px;text-align:center;font:600 8.5px/1 var(--f);letter-spacing:.2em;color:var(--ink-3)}
+#tHb{width:80px;height:46px;border-color:rgba(255,180,60,.6);color:var(--amber)}
+@media (max-height:380px){.pedal.gas{height:46vh}.pedal.brk{height:30vh}#tHb{height:40px}.tside .tb{height:30px}}
+
+/* ---------- the menu ---------- */
+#menu{position:fixed;inset:0;z-index:8;display:grid;place-items:start center;overflow-y:auto;background:rgba(7,7,11,.55);
+  padding:max(48px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#menu.garage{background:linear-gradient(to right,rgba(7,7,11,.9) 0,rgba(7,7,11,.9) min(560px,100%),rgba(7,7,11,.15) min(640px,100%));place-items:start start}
+.mwrap{width:min(880px,100%);display:flex;flex-direction:column;gap:14px;background:rgba(14,14,21,.95);border:1px solid var(--edge);border-radius:16px;padding:16px 18px 0;
+  box-shadow:0 30px 80px rgba(0,0,0,.6)}
+#menu.garage .mwrap{width:min(560px,100%)}
+.mhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.eyebrow{font:600 10.5px/1 var(--f);letter-spacing:.2em;text-transform:uppercase;color:var(--amber)}
+h1{margin:4px 0 0;font:700 clamp(20px,3.6vw,32px)/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);text-wrap:balance}
+h2{margin:0 0 8px;font:600 10.5px/1 var(--f);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.wallet{text-align:right}
+.wallet b{display:block;font:700 22px/1 var(--f);letter-spacing:.06em;color:var(--go);font-variant-numeric:tabular-nums}
+.wallet small{font:600 10px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--edge);margin:0 -18px;padding:0 18px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;background:none;height:36px;padding:0 12px;cursor:pointer;font:600 11.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab{display:flex;flex-direction:column;gap:16px}
+.cars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+@media (max-width:720px){.cars{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.card{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:9px 10px 8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
+.card b{font:700 12.5px/1 var(--f);letter-spacing:.1em;text-transform:uppercase}
+.card small{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card[aria-pressed="true"]{border-color:var(--accent);background:linear-gradient(180deg,rgba(255,61,90,.16),var(--panel))}
+.card[aria-pressed="true"] small{color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:999px;padding:2px;background:var(--panel);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{border:0;background:none;height:30px;padding:0 12px;border-radius:999px;cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--edge-2) inset}
+.hint{margin:8px 0 0;color:var(--ink-2);font-size:12.5px;max-width:70ch}
+.places{display:flex;flex-wrap:wrap;gap:6px}
+.place{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--edge);background:var(--panel);cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.place:hover,.place:focus-visible{color:var(--ink);border-color:var(--edge-2)}
+.place[aria-pressed="true"]{color:var(--ink);border-color:var(--amber)}
+.row2{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-start}
+.vol{display:inline-flex;align-items:center;gap:8px;height:34px;font:600 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.vol input{width:130px;accent-color:var(--amber)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;bottom:0;margin:0 -18px;padding:12px 18px 14px;background:linear-gradient(to top,rgba(14,14,21,1) 75%,rgba(14,14,21,0));border-radius:0 0 16px 16px}
+.btn{height:44px;padding:0 22px;border-radius:12px;border:1px solid var(--edge-2);background:var(--raised);cursor:pointer;font:700 13px/1 var(--f);letter-spacing:.14em;text-transform:uppercase}
+.btn.go{background:linear-gradient(180deg,#ff5470,#d92a47);border-color:#ff7088;color:#fff;box-shadow:0 0 22px rgba(255,61,90,.35)}
+.btn.sm{height:32px;padding:0 14px;font-size:11px;border-radius:9px}
+.keys{margin:0;color:var(--ink-3);font-size:11.5px;line-height:1.9}
+.keys kbd{font:600 9.5px/1 var(--f);color:var(--ink-2);border:1px solid var(--edge);border-radius:4px;padding:2px 5px}
+@media (hover:none){.keys{display:none}}
+.status{color:var(--ink-3);font-size:11.5px}
+/* ---------- the garage ---------- */
+.ratings{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+@media (max-width:520px){.ratings{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.rate{border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:7px 7px 6px;display:flex;flex-direction:column;gap:5px;cursor:pointer;text-align:left;min-width:0}
+.rate[aria-pressed="true"]{border-color:var(--amber);background:linear-gradient(180deg,rgba(255,180,60,.14),var(--panel))}
+.rate span{font:600 8.5px/1.1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rate b{font:700 18px/1 var(--f);font-variant-numeric:tabular-nums;color:var(--ink)}
+.rate b em{font-style:normal;font-size:12px;margin-left:4px}
+.bar5{height:5px;border-radius:3px;background:rgba(255,255,255,.08);position:relative;overflow:hidden}
+.bar5 i{position:absolute;left:0;top:0;bottom:0;background:var(--amber);border-radius:3px}
+.bar5 u{position:absolute;top:0;bottom:0;text-decoration:none}
+.up{color:var(--go)}.dn{color:var(--bad)}
+.figs{display:flex;flex-wrap:wrap;gap:4px 14px;font:500 11.5px/1.3 var(--f);letter-spacing:.06em;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.figs b{color:var(--ink);font-weight:600}
+.guide{border-left:2px solid var(--amber);padding:2px 0 2px 10px;color:var(--ink-2);font-size:12.5px;max-width:70ch}
+.slots{display:flex;flex-direction:column;gap:14px}
+.sgroup{display:flex;flex-direction:column;gap:6px}
+.slot{border:1px solid var(--edge);border-radius:10px;background:var(--panel)}
+.slot>button{width:100%;display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:10px;align-items:center;border:0;background:none;padding:10px 12px;cursor:pointer;text-align:left}
+.slot>button span{font:600 10.5px/1.2 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.slot>button b{font:600 12.5px/1.25 var(--f);letter-spacing:.04em;color:var(--ink);min-width:0}
+.slot>button i{font-style:normal;font:600 10px/1 var(--f);letter-spacing:.1em;color:var(--amber)}
+.slot[open]{border-color:var(--edge-2)}
+.opts2{display:flex;flex-direction:column;border-top:1px solid var(--edge)}
+.opt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;border:0;border-bottom:1px solid rgba(255,255,255,.05);background:none;padding:9px 12px;text-align:left;cursor:pointer}
+.opt:last-child{border-bottom:0}
+.opt b{font:600 12.5px/1.3 var(--fb);color:var(--ink)}
+.opt small{grid-column:1/-1;color:var(--ink-3);font-size:11.5px;line-height:1.35}
+.opt .dl{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:3px 10px;font:600 10.5px/1.2 var(--f);letter-spacing:.06em}
+.opt .tag{font:600 9.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;padding:3px 6px;border-radius:5px;border:1px solid var(--edge);color:var(--ink-2);align-self:start}
+.opt .tag.rec{border-color:var(--amber);color:var(--amber)}
+.opt[aria-current="true"]{background:rgba(255,61,90,.1)}
+.opt[aria-current="true"] b::after{content:"  ·  on the car";color:var(--accent);font:600 10px/1 var(--f);letter-spacing:.1em}
+.opt:disabled{cursor:not-allowed;opacity:.5}
+.opt:disabled small{color:var(--bad)}
+/* ---------- cool things and runs ---------- */
+.log{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.log li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;border:1px solid var(--edge);border-radius:10px;padding:9px 12px;background:var(--panel)}
+.log li b{font:600 12.5px/1.3 var(--f);letter-spacing:.04em}
+.log li em{font-style:normal;font:700 13px/1 var(--f);color:var(--go);font-variant-numeric:tabular-nums;align-self:center}
+.log li small{grid-column:1/-1;color:var(--ink-3);font-size:11.5px}
+.bests{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+@media (max-width:640px){.bests{grid-template-columns:minmax(0,1fr)}}
+.bests div{border:1px solid var(--edge);border-radius:10px;padding:8px 12px;background:var(--panel);display:flex;flex-direction:column;gap:3px}
+.bests span{font:600 10px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.bests b{font:600 12.5px/1.3 var(--fb);color:var(--ink)}
+.bests small{color:var(--ink-3);font-size:11px}
+.empty{color:var(--ink-3);font-size:12.5px;margin:0}
+.runs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.run{border:1px solid var(--edge);border-radius:10px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:6px;text-align:left;cursor:pointer}
+.run b{font:700 12.5px/1.2 var(--f);letter-spacing:.08em;text-transform:uppercase}
+.run small{color:var(--ink-3);font-size:11.5px}
+.run i{font-style:normal;font:600 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-2);font-variant-numeric:tabular-nums}
+/* ---------- races ---------- */
+.race{border:1px solid var(--edge);border-radius:10px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:6px;text-align:left;cursor:pointer}
+.race:hover,.race:focus-visible{border-color:var(--edge-2)}
+.race b{font:700 12.5px/1.2 var(--f);letter-spacing:.08em;text-transform:uppercase}
+.race small{color:var(--ink-3);font-size:11.5px;line-height:1.4}
+.race i{font-style:normal;font:600 10.5px/1.3 var(--f);letter-spacing:.08em;color:var(--ink-2);font-variant-numeric:tabular-nums;text-transform:uppercase}
+.race i em{font-style:normal;color:var(--go)}
+#rres{position:fixed;inset:0;z-index:8;display:grid;place-items:center;overflow-y:auto;background:rgba(7,7,11,.62);padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px}
+#rres .mwrap{width:min(620px,100%);padding-bottom:0}
+.rtab{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rtab td{padding:7px 6px;border-bottom:1px solid var(--edge);font-size:12.5px;vertical-align:top}
+.rtab td:first-child{font:700 13px/1.2 var(--f);color:var(--ink-3);width:28px}
+.rtab td:last-child{text-align:right;font:600 12px/1.2 var(--f);letter-spacing:.06em;white-space:nowrap}
+.rtab small{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
+.rtab tr.me td{color:var(--amber)}.rtab tr.me td:first-child{color:var(--amber)}
+.prize{font:700 22px/1 var(--f);color:var(--go);letter-spacing:.04em}
+/* ---------- the Sim card ---------- */
+.simcard{border:1px solid rgba(79,227,255,.28);border-radius:12px;padding:12px 14px;background:linear-gradient(180deg,rgba(79,227,255,.06),transparent)}
+.simcard h2{color:var(--cyan)}
+.simrows{display:flex;flex-wrap:wrap;gap:12px 24px}
+.simcard h3,h3.sub{margin:0 0 6px;font:600 10px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.seg button:disabled{opacity:.35;cursor:default}
+/* ---------- the developer panel (only while the game is being made) ---------- */
+.dev{border:1px dashed rgba(255,176,64,.45);border-radius:12px;padding:12px 14px}
+.dev h2{color:var(--amber)}
+.dev h3{margin:14px 0 8px;font:600 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.devrows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+@media (max-width:640px){.devrows{grid-template-columns:minmax(0,1fr)}}
+.devrow{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:2px 10px;align-items:center}
+.devrow label{font:600 11px/1.2 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.devrow output{font:600 12px/1 var(--f);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.devrow input{grid-column:1/-1;width:100%;accent-color:var(--amber)}
+.devrow small{grid-column:1/-1;color:var(--ink-3);font-size:11px;line-height:1.35}
+.dev details{margin-top:12px}
+.dev summary{cursor:pointer;font:600 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);padding:4px 0}
+.dev details .devrows{margin-top:10px}
+.dev .places{margin-bottom:10px}
+/* the ladder reads down the first column, then the second */
+.ladder{columns:2;column-gap:24px}
+@media (max-width:640px){.ladder{columns:1}}
+.lrow{display:grid;grid-template-columns:150px minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:11.5px;color:var(--ink-2);break-inside:avoid;padding:1.5px 0}
+.lrow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow i{height:6px;border-radius:3px;background:var(--panel);overflow:hidden}
+.lrow em{display:block;height:100%;background:var(--amber);opacity:.55}
+.lrow b{font:600 11px/1 var(--f);text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.lrow.me{color:var(--ink)}.lrow.me em{opacity:1}.lrow.me b{color:var(--ink)}
+.devacts{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.devchks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+@media (max-width:640px){.devchks{grid-template-columns:minmax(0,1fr)}}
+.devchk{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:start;cursor:pointer}
+.devchk input{margin:2px 0 0;width:16px;height:16px;accent-color:var(--amber)}
+.devchk b{display:block;font:600 11px/1.2 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.devchk small{display:block;color:var(--ink-3);font-size:11px;line-height:1.35;margin-top:2px}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+/* a phone held sideways is short: a smaller header and button so there's room for the menu itself */
+@media (max-height:520px){#menu{padding-top:max(8px,env(safe-area-inset-top,0px))}.mwrap{gap:10px;padding-top:12px}h1{font-size:20px}.eyebrow{font-size:9px}
+  .wallet b{font-size:18px}.tabs button{height:32px}.acts{padding:8px 18px 10px}.btn{height:38px}}
+#loading{position:fixed;inset:0;display:grid;place-items:center;z-index:9;font:600 13px/1 var(--f);letter-spacing:.24em;text-transform:uppercase;color:var(--amber);background:var(--bg);text-align:center;padding:24px}
+#err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:500 14px/1.6 var(--f);color:var(--ink-2);z-index:10}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.dev h2.sub{font-size:11px}
+#mCars .cgrp{grid-column:1/-1;flex:1 0 100%;font:600 10px/1.2 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin:8px 0 2px}
+/* the bay's own window (63_showroom): the car fills the screen; along the bottom the lab's buttons and the throttle
+   pad over a bar of the panel's settings (Look or Engine), side by side when the phone is sideways, stacked when
+   it's upright */
+body.bayfull>.bar{display:none}
+#bay{position:fixed;inset:0;z-index:7;pointer-events:none}
+#bay .btop{position:absolute;top:calc(env(safe-area-inset-top,0px) + 8px);left:calc(env(safe-area-inset-left,0px) + 8px);display:flex;gap:6px;align-items:center;pointer-events:auto}
+#bay .btop .seg{background:rgba(17,17,25,.85)}
+#bay .bdock{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#bay .bbar{display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none;pointer-events:auto;
+  padding:10px calc(env(safe-area-inset-right,0px) + 8px) calc(env(safe-area-inset-bottom,0px) + 8px) calc(env(safe-area-inset-left,0px) + 8px);
+  background:linear-gradient(to top,rgba(7,7,11,.86) 60%,rgba(7,7,11,0))}
+#bay .bbar[hidden],#bay .bctl[hidden],#bay .bdock[hidden]{display:none}
+#bay .bbar::-webkit-scrollbar{display:none}
+#bay .bbar>*{flex:0 0 auto}#bay .btn.sm{height:36px;padding:0 12px}#bay .seg button{height:32px;padding:0 10px;font-size:11px}
+#shSpin[aria-pressed=true],#shHood[aria-pressed=true],#shLights[aria-pressed=true]{background:var(--amber);color:#000;border-color:var(--amber)}
+/* the engine's power button (the bay's, with its light) */
+#bay .bpow{height:36px;padding:0 14px 0 12px;border-radius:999px;border:1px solid var(--edge-2);background:var(--raised);display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+  font:700 11px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+#bay .bpow i{width:9px;height:9px;border-radius:50%;background:#3a3a46}
+#bay .bpow[aria-pressed=true]{border-color:rgba(93,255,122,.6);color:var(--amber)}#bay .bpow[aria-pressed=true] i{background:var(--go);box-shadow:0 0 8px var(--go)}
+#bay .bvol{display:inline-flex;align-items:center;gap:8px;font:600 10px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+#bay .bvol input{width:110px;accent-color:var(--amber)}
+/* the Look panel's pad, to rev it while you look */
+#bay .bctl{display:flex;gap:10px;align-items:flex-end;padding:0 calc(env(safe-area-inset-right,0px) + 8px) 0 calc(env(safe-area-inset-left,0px) + 8px);pointer-events:none}
+#bay .bpad{flex:1;min-width:160px;height:60px;margin-left:auto;position:relative;overflow:hidden;border-radius:14px;border:1px solid rgba(255,180,60,.55);background:rgba(17,14,8,.82);
+  pointer-events:auto;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;display:flex;align-items:center;justify-content:center}
+#bay[data-tab=look] .bpad{flex:0 1 46%}
+#bay .bfill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(255,180,60,.25),rgba(255,180,60,.75))}
+#bay .bpad span{position:relative;font:700 11px/1.2 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);text-align:center;padding:0 10px}
+@media (max-height:420px){#bay .bpad{height:50px}#bay .bdock{gap:4px}
+  #bay .bbar{gap:4px}#bay .bbar .seg button{padding:0 8px;font-size:10px;letter-spacing:.06em}#bay .bbar .btn.sm{padding:0 9px;font-size:10px;letter-spacing:.08em}
+  #bay .bpow{padding:0 10px;font-size:10px;letter-spacing:.08em}#bay .bvol span{display:none}#bay .bvol input{width:84px}}
+/* upright: the Look panel's pad and bar stack under the picture, full width, the bar wrapping instead of scrolling */
+@media (orientation:portrait){#bay .bctl{flex-direction:column;align-items:stretch}#bay .bpad,#bay[data-tab=look] .bpad{flex:none;width:100%;margin:0}#bay .bbar{flex-wrap:wrap;justify-content:center;overflow:visible}}
+#bay .btop .bpow{margin-left:4px}
+#bay .btop{z-index:2}
+/* ---------- THE DYNO LAB: the Digital Engine lab's own look over the car (63_dyno_lab). A test house at night: lit
+   instruments in dark glass, the car on the dyno showing between them. Upright, the instruments and the hands and
+   feet stack at the bottom and the car fills the top; sideways, the cluster on the left, the controls on the right,
+   the car between them. ---------- */
+#dl{--bg:#0a0b0f;--surface:rgba(17,19,25,.86);--raised:#181b23;--well:#07080b;--line:rgba(214,220,255,.09);--line-2:rgba(214,220,255,.17);
+  --ink:#ecebf3;--ink-2:#a09fb3;--ink-3:#6b6a80;--accent:#ff3d5a;--amber:#ffb43c;--bank-a:#3fd8ff;--bank-b:#ff5ab4;--go:#5dff7a;--blue:#4c86ff;
+  --glass:rgba(9,10,14,.8);--fd:"Chakra Petch","Arial Narrow",system-ui,sans-serif;--fnum:"Saira Condensed","Arial Narrow",system-ui,sans-serif;
+  position:absolute;inset:0;pointer-events:none;color:var(--ink);font:400 13px/1.4 "Saira",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+#dl[hidden]{display:none}
+/* a shade behind the name and the top bar, so they read over the studio's lights */
+#dl::before{content:"";position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 130px);background:linear-gradient(to bottom,rgba(7,8,11,.82),rgba(7,8,11,.45) 60%,rgba(7,8,11,0))}
+#dl .dlhead{position:absolute;top:calc(env(safe-area-inset-top,0px) + 54px);left:calc(env(safe-area-inset-left,0px) + 12px);right:12px;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;
+  text-shadow:0 1px 8px rgba(0,0,0,.8)}
+#dl .mark{font:700 12px/1 var(--fd);letter-spacing:.26em;text-transform:uppercase;color:var(--accent)}
+#dl .sub{font:600 10px/1 var(--fd);letter-spacing:.22em;text-transform:uppercase;color:var(--ink-2);margin-right:4px}
+#dl .dlhead b{flex-basis:100%;font:700 19px/1.15 var(--fd);letter-spacing:.04em}
+#dl .dlhead #dlTag{color:var(--ink-2);font-size:12.5px}
+#dl .dlhead #dlTag em{font-style:normal;color:var(--amber)}
+#dl .dlsheet{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:minmax(0,1fr);gap:7px;
+  padding:0 calc(env(safe-area-inset-right,0px) + 8px) calc(env(safe-area-inset-bottom,0px) + 8px) calc(env(safe-area-inset-left,0px) + 8px)}
+#dl .dlsheet>*{pointer-events:auto}
+#dl section,#dl .dltabs{border-radius:14px;border:1px solid var(--line);background:var(--glass);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 14px 34px rgba(0,0,0,.35)}
+@media (hover:hover){#dl section,#dl .dltabs{-webkit-backdrop-filter:blur(10px) saturate(1.15);backdrop-filter:blur(10px) saturate(1.15);background:rgba(9,10,14,.68)}}
+#dl .lbl{display:block;font:600 9.5px/1 var(--fd);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the cluster */
+#dl .dlslot{min-width:0}
+#dl .dlclu{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:2px 12px;padding:8px 12px 10px;
+  background:radial-gradient(ellipse 70% 90% at 28% 50%,rgba(23,26,36,.9) 0%,rgba(7,8,11,.86) 72%)}
+#dl #dlTach{width:100%;aspect-ratio:1.12;display:block;min-width:0}
+#dl .dlread{display:flex;flex-direction:column;gap:7px;padding-top:4px;min-width:0}
+#dl .gearrow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:end}
+#dl .big{display:block;font:700 54px/.85 var(--fnum);color:var(--amber);text-shadow:0 0 18px rgba(255,180,60,.4);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:.6em}
+#dl .pair{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0}
+#dl .num{font:600 23px/1 var(--fnum);font-variant-numeric:tabular-nums}
+#dl .unit{font:500 10px/1 "Saira",sans-serif;color:var(--ink-2);margin-left:3px}
+#dl .meter .row{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+#dl .meter .row .lbl{margin:0}
+#dl .meter .row span:last-child{font:600 12px/1 var(--fnum);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}
+#dl .meter .track{height:5px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:4px}
+#dl .meter .track i{display:block;height:100%;width:0;border-radius:4px;background:var(--amber)}
+#dl #dlF2{background:var(--go)}#dl #dlF3{background:var(--bank-a)}
+#dl .meter[hidden]{display:none}
+#dl .chips{display:flex;flex-wrap:wrap;gap:4px}
+#dl .chips span{font:600 9px/1 var(--fd);letter-spacing:.1em;text-transform:uppercase;padding:4px 5px;border-radius:5px;border:1px solid var(--line-2);color:var(--ink-3)}
+#dl .chips span.on{color:#0a0b0f;border-color:transparent}
+#dl .chips span.on[data-tone=red]{background:var(--accent)}#dl .chips span.on[data-tone=amber]{background:var(--amber)}
+#dl .chips span.on[data-tone=green]{background:var(--go)}#dl .chips span.on[data-tone=cyan]{background:var(--bank-a)}
+/* the drawer: the lab's panels in the cluster's place */
+#dl .dldraw{padding:9px 12px 10px;background:rgba(9,10,14,.9)}
+#dl .dldraw[hidden]{display:none}
+#dl .panel{margin:0;min-width:0}
+#dl .panel[hidden]{display:none}
+#dl .panel figcaption{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:6px}
+#dl .panel figcaption b{font:600 10px/1 var(--fd);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap}
+#dl .panel figcaption span{font:500 11.5px/1.2 var(--fnum);color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
+#dl .panel canvas{display:block;width:100%;height:150px}
+#dl .note{margin:6px 0 0;color:var(--ink-2);font-size:11.5px;line-height:1.35}
+#dl .note b{font-weight:600;color:var(--ink)}
+#dl .bchart{display:flex;flex-direction:column;gap:4px}
+#dl .bchart canvas{height:168px}
+#dl .bchh{display:flex;align-items:center;gap:8px;font:700 10px/1.2 var(--fd);letter-spacing:.1em;text-transform:uppercase}
+#dl .bchh b{color:var(--amber);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#dl .bchl{margin-left:auto;display:flex;gap:5px;align-items:center;color:var(--ink-2);font-weight:600;font-size:8.5px;flex:0 0 auto}
+#dl .bchl i{display:inline-block;width:11px;border-top:2px solid;margin-left:3px}
+#dl .bchl .lh{border-color:#ffb43c}#dl .bchl .lt{border-color:#4fe3ff}#dl .bchl .lc{border-top:2px dotted #a8a2b8}#dl .bchl .lp{border-top:1px dashed #a8a2b8}
+#dl .bchf{font:500 11px/1.4 "Saira",sans-serif;color:var(--ink-2)}#dl .bchf b{color:var(--ink);font-weight:600}
+/* the setup sheet, in the drawer, scrolling */
+#dl .tune{max-height:min(36vh,330px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line-2) transparent;margin:-2px -4px 0;padding:0 4px}
+#dl .sheet{padding:2px 0 8px}
+#dl .sheet h3{font:600 10px/1 var(--fd);letter-spacing:.18em;text-transform:uppercase;color:var(--amber);margin:8px 0 4px}
+#dl .srow{display:grid;grid-template-columns:minmax(0,1fr);gap:5px;padding:7px 0;border-top:1px solid var(--line)}
+#dl .sheet h3+.srow{border-top:0;padding-top:2px}
+#dl .srow .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px}
+#dl .srow .head output{font:600 13px/1 var(--fnum);color:var(--ink);font-variant-numeric:tabular-nums}
+#dl .srow select{width:100%;height:34px;border-radius:7px;border:1px solid var(--line-2);background:var(--raised);color:var(--ink);padding:0 8px;font:inherit}
+#dl .srow .seg{display:flex;width:100%}
+#dl .srow .seg button{flex:1;padding:0 4px;font-size:11.5px;height:30px}
+#dl .srow input[type=range]{width:100%;accent-color:var(--amber);height:24px}
+#dl .srow.tog{grid-template-columns:1fr auto;align-items:center}
+#dl .srow .why{font-size:11px;color:var(--ink-3);margin:-2px 0 0}
+#dl .switch{position:relative;width:40px;height:24px;border-radius:999px;border:1px solid var(--line-2);background:var(--raised);cursor:pointer;padding:0}
+#dl .switch::after{content:"";position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;background:var(--ink-3);transition:transform .12s,background .12s}
+#dl .switch[aria-checked="true"]{background:rgba(93,255,122,.18);border-color:rgba(93,255,122,.5)}
+#dl .switch[aria-checked="true"]::after{transform:translateX(16px);background:var(--go)}
+#dl .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+#dl .actions button{flex:1;min-height:38px;border-radius:8px;border:1px solid var(--line-2);background:var(--raised);color:var(--ink);cursor:pointer;font:600 10.5px/1 var(--fd);letter-spacing:.12em;text-transform:uppercase}
+#dl .tuned{font-size:11.5px;color:var(--ink-3);margin:8px 0 2px}
+/* the dyno's row: the pull, what the drums read, Plus */
+#dl .dldyno{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 8px}
+#dl .dlb{height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:var(--raised);color:var(--ink);cursor:pointer;font:700 11px/1 var(--fd);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+#dl #shPull{border-color:rgba(255,61,90,.6);background:radial-gradient(circle at 50% 30%,rgba(255,61,90,.32),#1a0d12 80%)}
+#dl #shPull[aria-pressed=true]{background:var(--accent);color:#fff}
+#dl #shPlus[aria-pressed=true]{background:var(--amber);border-color:var(--amber);color:#000}
+#dl .dlw{min-width:0;display:flex;flex-direction:column;align-items:center}
+#dl .dlw .lbl{margin-bottom:2px}
+#dl .dlw b{font:600 21px/1 var(--fnum);font-variant-numeric:tabular-nums;color:var(--amber)}
+#dl .dlw b+small+b{color:var(--bank-a)}
+#dl .dlw small{font:500 10px/1 "Saira",sans-serif;color:var(--ink-2);margin:0 8px 0 3px}
+#dl .dlw em{font:500 10.5px/1.2 var(--fnum);font-style:normal;color:var(--ink-3);letter-spacing:.04em;white-space:nowrap}
+/* hands and feet: the lab's throttle pad and its buttons */
+#dl .dlctl{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:8px;padding:8px}
+#dl .dlpad{position:relative;overflow:hidden;min-height:104px;border-radius:10px;border:1px solid rgba(93,255,122,.38);background:rgba(17,19,25,.9);cursor:ns-resize;touch-action:none;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;display:flex;flex-direction:column;justify-content:center;padding:8px 12px}
+#dl .dlpad span{font:700 12px/1 var(--fd);letter-spacing:.2em;text-transform:uppercase;position:relative;z-index:1}
+#dl .dlpad small{color:var(--ink-2);font-size:11px;line-height:1.3;margin-top:5px;position:relative;z-index:1}
+#dl .dlpad i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(to top,rgba(93,255,122,.42),rgba(93,255,122,.08))}
+#dl .dlbtns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-content:stretch}
+#dl .bk{min-height:46px;border-radius:8px;border:1px solid var(--line-2);background:rgba(17,19,25,.9);color:var(--ink);cursor:pointer;font:600 10.5px/1.15 var(--fd);letter-spacing:.08em;text-transform:uppercase;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 3px}
+#dl .bk[hidden]{display:none}
+#dl .bk kbd{font:600 9.5px/1 var(--fnum);padding:1px 4px;border-radius:4px;border:1px solid var(--line-2);background:var(--raised);color:var(--ink-3)}
+#dl .bk.on,#dl .bk[aria-pressed=true]{background:var(--raised);border-color:var(--amber);color:var(--amber)}
+#dl .bk:disabled{opacity:.35;cursor:default}
+#dl .bk[data-tone=red]{border-color:rgba(255,61,90,.5)}#dl .bk[data-tone=cyan]{border-color:rgba(63,216,255,.5)}
+#dl .bk[data-tone=red].on{background:var(--accent);color:#fff}
+@media (pointer:coarse){#dl .bk kbd{display:none}}
+/* the room, where you listen, free rev or drive */
+#dl .dlset{display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none;padding:6px 8px}
+#dl .dlset::-webkit-scrollbar{display:none}
+@media (orientation:portrait){#dl .dltabs button{padding:0 4px;letter-spacing:.07em}}
+@media (orientation:portrait){#dl .dlset{-webkit-mask-image:linear-gradient(to right,#000 86%,transparent);mask-image:linear-gradient(to right,#000 86%,transparent)}}
+#dl .dlset>*{flex:0 0 auto}
+#dl .seg{background:rgba(17,19,25,.9)}
+#dl .seg button{height:30px;padding:0 10px;font-size:11px}
+#dl .bvol{display:inline-flex;align-items:center;gap:8px;font:600 9.5px/1 var(--fd);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+#dl .bvol input{width:96px;accent-color:var(--amber)}
+/* the panels' tabs */
+#dl .dltabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:5px}
+#dl .dltabs::-webkit-scrollbar{display:none}
+#dl .dltabs button{flex:1 0 auto;height:30px;padding:0 10px;border-radius:8px;border:1px solid transparent;background:none;color:var(--ink-2);cursor:pointer;font:600 10px/1 var(--fd);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+#dl .dltabs button[aria-pressed=true]{background:var(--raised);border-color:var(--line-2);color:var(--amber)}
+/* sideways: the cluster (or a panel) and the dyno on the left, the hands and feet on the right, the car between */
+@media (orientation:landscape){
+  #dl .dlhead{top:calc(env(safe-area-inset-top,0px) + 8px);left:auto;right:calc(env(safe-area-inset-right,0px) + 12px);text-align:right;justify-content:flex-end;max-width:44vw}
+  #dl .dlsheet{top:calc(env(safe-area-inset-top,0px) + 62px);grid-template-columns:minmax(250px,31vw) minmax(0,1fr) minmax(250px,31vw);grid-template-rows:minmax(0,1fr) auto auto auto;pointer-events:none}
+  #dl .dlslot{grid-column:1;grid-row:2/4;align-self:end}
+  #dl .dldyno{grid-column:1;grid-row:4}
+  #dl .dlctl{grid-column:3;grid-row:2}
+  #dl .dlset{grid-column:3;grid-row:3;flex-wrap:wrap;overflow:visible}
+  #dl .dltabs{grid-column:3;grid-row:4;flex-wrap:wrap}
+  #dl .dltabs button{flex:1 1 auto}
+  #dl .tune{max-height:calc(100vh - 190px)}}
+@media (orientation:landscape) and (max-height:500px){
+  #dl .dlhead b{font-size:15px}#dl .dlhead #dlTag{font-size:11px}
+  #dl .dlclu{grid-template-columns:minmax(0,1fr) minmax(0,.95fr);padding:6px 8px 8px}
+  #dl #dlTach{aspect-ratio:1.2}#dl .big{font-size:40px}#dl .num{font-size:18px}#dl .dlread{gap:5px}
+  #dl .meter .track{height:4px}#dl .chips span{font-size:8px;padding:3px 4px}
+  #dl .dlpad{min-height:84px}#dl .dlpad small{display:none}#dl .bk{min-height:40px;font-size:9.5px}
+  #dl .dldyno{padding:5px 6px;gap:6px}#dl .dlb{height:34px;padding:0 9px;font-size:10px}#dl .dlw b{font-size:17px}
+  #dl .dlset{padding:4px 6px;gap:4px}#dl .seg button{height:26px;padding:0 7px;font-size:10px}#dl .bvol span{display:none}#dl .bvol input{width:80px}
+  #dl .dltabs button{height:26px;padding:0 6px;font-size:9px}
+  #dl .panel canvas{height:118px}#dl .bchart canvas{height:126px}#dl .note{display:none}#dl .bchl{display:none}}
+@media (min-width:1100px) and (orientation:landscape){
+  #dl .dlsheet{grid-template-columns:minmax(360px,29vw) minmax(0,1fr) minmax(340px,27vw);gap:10px;padding:0 16px 16px}
+  #dl .big{font-size:68px}#dl .num{font-size:28px}#dl .dlhead b{font-size:22px}
+  #dl .panel canvas{height:190px}#dl .bchart canvas{height:200px}}
+</style>
+
+<canvas id="gl" aria-label="The ranch and the country round it, drawn on an LED dot matrix"></canvas><canvas id="txt" aria-hidden="true"></canvas>
+<div class="bar">
+  <span class="rot" id="rot">Turn your phone sideways</span>
+  <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="gfx" type="button">Gfx Plus</button><button class="chip" id="res" type="button">Dots 960×540</button><button class="chip" id="menuBtn" type="button">Menu</button></div>
+</div>
+<div id="touch" hidden>
+  <div id="steerZone" data-mode="slide"><div id="steerTrack"><b id="steerKnob"></b></div><span id="steerHint">SLIDE TO STEER</span>
+    <div id="steerBtns" hidden><button class="tb big" id="tLeft" type="button" aria-label="Steer left">◀</button><button class="tb big" id="tRight" type="button" aria-label="Steer right">▶</button></div></div>
+  <div class="tside L"><button class="tb" data-k="cam" type="button">CAM</button><button class="tb" data-k="reset" type="button">RESET</button><button class="tb" data-k="horn" type="button">HORN</button><button class="tb" data-k="lights" id="tLights" type="button">LIGHTS</button></div>
+  <div class="tside R"><button class="tb" data-k="nos" id="tNos" type="button">N2O</button><button class="tb" data-k="low" id="tLow" type="button">LOW</button><button class="tb" data-k="lock" id="tLock" type="button">LOCK</button><button class="tb" data-k="od" id="tOD" type="button">O/D OFF</button></div>
+  <div class="tpedals">
+    <div class="tcol"><button class="tb" id="tHb" type="button">E-BRAKE</button><div class="pedal brk" id="tBrk" role="button" aria-label="Brake"><i></i><span>BRAKE</span></div></div>
+    <div class="pedal gas" id="tGas" role="button" aria-label="Gas"><i></i><span>GAS</span></div>
+  </div>
+</div>
+<div id="menu">
+  <div class="mwrap">
+    <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free play</span><h1>City &amp; Country</h1></div>
+      <div class="wallet"><small>Free play money</small><b id="mMoney">$0</b></div></div>
+    <nav class="tabs" role="tablist" id="mTabs">
+      <button type="button" role="tab" data-t="drive">Drive</button><button type="button" role="tab" data-t="races" hidden>Races</button><button type="button" role="tab" data-t="garage">Garage</button>
+      <button type="button" role="tab" data-t="cool">Cool stuff</button><button type="button" role="tab" data-t="runs" hidden>Clock runs</button><button type="button" role="tab" data-t="settings">Settings</button><button type="button" role="tab" data-t="dev" id="tabDev" hidden>Dev</button></nav>
+    <div class="tab" data-tab="drive">
+      <section><h2>Car</h2><div class="cars" id="mCars"></div><p class="hint" id="mCarHint"></p></section>
+      <section><h2>Build</h2><div class="places" id="mPresets"></div></section>
+      <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
+      <section class="simcard" id="mSim" hidden><h2>Sim</h2>
+        <div class="simrows">
+          <div><h3>Tyres</h3><div class="seg" id="mSimAir" role="group" aria-label="Tyre pressure"></div></div>
+          <div><h3>Weather</h3><div class="seg" id="mSimWx" role="group" aria-label="Weather"></div></div>
+          <div><h3>Roof cargo</h3><div class="seg" id="mSimCargo" role="group" aria-label="Roof cargo"></div></div>
+        </div><p class="hint" id="mSimHint"></p></section>
+      <section class="row2"><div><h2>Time of day</h2><div class="seg" id="mTod" role="group" aria-label="Time of day"></div></div>
+        <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div></section>
+      <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
+    </div>
+    <div class="tab" data-tab="races" hidden>
+      <section><h2>How hard</h2><div class="seg" id="raDiff" role="group" aria-label="How hard"></div><p class="hint" id="raDiffHint"></p></section>
+      <section><h2>Races</h2><p class="hint" style="margin:0 0 10px" id="raNote">You race the car you're in, as it's built, against drivers in factory cars rated close to yours for that ground. The better you place, the more it pays.</p><div class="runs" id="raList"></div></section>
+    </div>
+    <div class="tab" data-tab="garage" hidden>
+      <section class="row2" style="align-items:center"><div><h2>The bay</h2><p class="hint" style="margin:0">Your car on the turntable, the whole screen: the views, the hood up on the engine, and the engine on the lab's own sim. Drag to turn round it, pinch or scroll to come closer.</p></div>
+        <button class="btn go" id="shOpen" type="button">Open the bay</button></section>
+      <section><h2>Car</h2><div class="seg" id="gCars" role="group" aria-label="Car"></div></section>
+      <section><h2>Start from</h2><div class="places" id="gPresets"></div></section>
+      <section><h2>Building for</h2><div class="ratings" id="gRatings"></div><div class="figs" id="gFigs" style="margin-top:10px"></div></section>
+      <p class="guide" id="gGuide"></p>
+      <div><button class="btn sm" id="gSuggest" type="button">Build it for me</button> <span class="status" id="gNote"></span></div>
+      <div class="slots" id="gSlots"></div>
+    </div>
+    <div class="tab" data-tab="cool" hidden>
+      <section class="row2"><div><h2>This session</h2><b id="cSession" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div><div><h2>All free play</h2><b id="cTotal" style="font:700 18px/1 var(--f);color:var(--go)">$0</b></div></section>
+      <section><h2>Your last 10 cool things</h2><ul class="log" id="cLog"></ul></section>
+      <section><h2>Bests</h2><div class="bests" id="cBests"></div></section>
+      <section><h2>How the money works</h2><p class="hint" style="margin:0">Every feat pays: drifts, jumps, two wheels, saving it from a roll, speed runs on dirt and gravel, burnouts, close calls past the trees, splashes, the mud pit, Red Hill, the rock garden, laps and clock runs. Do them back to back and they stack into a combo: the multiplier grows with every feat and more with every new kind. The combo banks after a few quiet seconds. Roll it, wreck it or reset before then and the unbanked money is gone.</p></section>
+    </div>
+    <div class="tab" data-tab="runs" hidden>
+      <section><h2>Clock runs</h2><p class="hint" style="margin:0 0 10px">From one place to another, any way you like. The clock starts when you move. Beat the par time for a bonus.</p><div class="runs" id="rList"></div></section>
+      <section><h2>The race track</h2><p class="hint" style="margin:0" id="rLaps">Drive over the start line at the race track to start a lap.</p></section>
+    </div>
+    <div class="tab" data-tab="settings" hidden>
+      <section><h2>Steering on a phone</h2><div class="seg" id="sSteer" role="group" aria-label="Steering"></div><p class="hint" id="sSteerHint"></p></section>
+      <section class="row2"><div><h2>Phone buzz</h2><div class="seg" id="sHaptics" role="group" aria-label="Phone buzz"></div></div>
+        <div><h2>Sound</h2><label class="vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label></div></section>
+      <section><h2>The engine's sound</h2><p class="hint" style="margin:0 0 10px">The synth is the Digital Engine lab's, untouched: these change how it's heard. <b>Like the bay</b> hears it from the lab's spot 3 m behind, like the model bay; <b>From the camera</b> is how Dirt Sleeper HD did it. <b>Fuller</b> adds low end after the synth; <b>Phone speaker</b> lifts the low mids instead, if a phone's own speaker turns the deep bass into buzz.</p>
+        <div class="row2"><div><h2 class="sub">Heard from</h2><div class="seg" id="sMic" role="group" aria-label="Heard from"></div></div>
+          <div><h2 class="sub">Body</h2><div class="seg" id="sBody" role="group" aria-label="Body"></div></div>
+          <div><h2 class="sub">Room</h2><div class="seg" id="sRoom" role="group" aria-label="Room"></div></div></div>
+        <div class="row2" style="margin-top:12px"><div><h2 class="sub">Pitch (V while driving)</h2><div class="seg" id="sPitch" role="group" aria-label="Pitch"></div></div>
+          <div><h2 class="sub">Keyboard gas</h2><div class="seg" id="sGas" role="group" aria-label="Keyboard gas"></div></div></div>
+        <p class="hint" style="margin:10px 0 0"><b>Pitch</b> is a test: the synth is told the engine turns 10 or 20% slower than it does, so the note drops; the tach, the shifts and the speed stay true. <b>Keyboard gas</b>: <b>Like a foot</b> is half gas while you hold W, so the automatic shifts around 3,500 like a truck driven normally; tap W twice quickly to floor it (a kickdown) until you let go; <b>Floor it</b> is all or nothing, every gear to the redline. 1 to 9 always give that much gas.</p></section>
+      <section><h2>Graphics</h2><div class="seg" id="mGfx" role="group" aria-label="Graphics"></div><p class="hint" id="mGfxHint"></p></section>
+      <section><h2>Display</h2><div class="seg" id="sDisp" role="group" aria-label="Display"></div><p class="hint" id="sDispHint"></p></section>
+      <section class="row2" id="sDotsRow"><div><h2>Detail</h2><div class="seg" id="sDetail" role="group" aria-label="Detail"></div></div>
+        <div><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></div></section>
+      <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>
+      <section><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
+      <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>1</kbd>–<kbd>9</kbd> part gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> e-brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>O</kbd> overdrive off ·
+        <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>F</kbd> world numbers · <kbd>Y</kbd> cruise · <kbd>V</kbd> engine pitch · <kbd>R</kbd> reset (in a race: back onto the course) · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
+      <p class="status" id="mStatus"></p>
+    </div>
+    <div class="tab" data-tab="dev" hidden>
+    <section class="dev"><h2>The open world</h2><p class="hint" style="margin:0 0 10px">Forty miles square, made in 128 m chunks round you as you drive and let go behind you. Cruise holds the road you're on (its right-hand lane) so you can watch the world come in. Brake to stop it.</p>
+        <div class="row2"><div><h2 class="sub">World numbers on screen (F)</h2><div class="seg" id="dHud" role="group" aria-label="World numbers"></div></div>
+          <div><h2 class="sub">View distance</h2><div class="seg" id="dView" role="group" aria-label="View distance"></div></div></div>
+        <div class="row2" style="margin-top:12px"><div><h2 class="sub">Made on</h2><div class="seg" id="dGen" role="group" aria-label="Made on"></div></div>
+          <div><h2 class="sub">Cruise (Y)</h2><div class="seg" id="dCruise" role="group" aria-label="Cruise"></div></div></div>
+        <div class="row2" style="margin-top:12px"><div><h2 class="sub">Text on screen</h2><div class="seg" id="dText" role="group" aria-label="Text on screen"></div></div><div></div></div>
+        <h2 class="sub" style="margin-top:12px">Passes off (for measuring on a phone: switch one off and watch the frame time)</h2><div class="devchks" id="dPasses"></div>
+        <p class="hint" id="dNote"></p><div class="places" style="margin-top:8px"><button class="btn sm" id="dReset" type="button">Reset the trip numbers</button></div></section>
+    <section class="dev" id="mDev" hidden><h2>Developer: traction</h2>
+      <p class="hint" style="margin:0 0 10px">For tuning while the game is made; the finished game won't have this. <b>Traction is the ground, not the cars.</b> It sets how much grip each surface gives, and every car feels that through its own tyres, so the cars keep their order: on dirt the drag car's slicks have less grip than the crawler's mud tyres at any setting, and on the drag strip they have more. The handling knobs work on every car, each from its own setup. Changes take hold as you drive and are remembered. <b>T</b> while driving steps Traction through 75, 100, 125 and 150%.</p>
+      <div class="devrows" id="mDevAll"></div>
+      <details><summary>Each surface</summary><div class="devrows" id="mDevSurf"></div></details>
+      <h3 id="mDevLadderHead">Grip</h3>
+      <div class="places" id="mDevPick" role="group" aria-label="Surface"></div>
+      <div class="ladder" id="mDevLadder"></div>
+      <h3>Every car's handling</h3>
+      <div class="devrows" id="mDevCar"></div>
+      <div class="devacts"><button class="btn sm" id="mDevReset" type="button">Reset to the defaults</button><span class="status" id="mDevNote"></span></div>
+      <div id="mDevSim" hidden><h3>Sim physics: each piece</h3>
+        <p class="hint" style="margin:0 0 10px">Every piece of the Sim level, so you can switch one off and feel what it does. All on is the Sim level.</p>
+        <div class="devchks" id="mDevSimT"></div>
+        <h3>Sim physics: strengths</h3><div class="devrows" id="mDevSimS"></div>
+        <div class="devacts"><button class="btn sm" id="mDevSimReset" type="button">Reset Sim physics</button></div></div></section>
+    </div>
+    <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button><button class="btn sm" id="mLeave" type="button" hidden>Leave the race</button></div>
+  </div>
+</div>
+<div id="rres" hidden>
+  <div class="mwrap">
+    <div class="mhead"><div><span class="eyebrow" id="rrEyebrow">Results</span><h1 id="rrTitle">Results</h1></div>
+      <div class="wallet"><small>Prize</small><b class="prize" id="rrPrize">$0</b></div></div>
+    <table class="rtab"><tbody id="rrList"></tbody></table>
+    <p class="hint" id="rrNote" style="margin:0"></p>
+    <div class="acts"><button class="btn go" id="rrAgain" type="button">Race again</button><button class="btn sm" id="rrDone" type="button">Back to free roam</button></div>
+  </div>
+</div>
+<div id="bay" hidden>
+  <div class="btop"><button class="btn sm" id="shBack" type="button">◀ Garage</button><div class="seg" id="shTab" role="group" aria-label="Panel"></div>
+    <button class="bpow" id="shEng" type="button" aria-pressed="false"><i></i><span id="shEngLbl">Start engine</span></button></div>
+  <!-- Look: the studio, the views, and a pad to rev it while you look -->
+  <div class="bdock" id="shDock">
+  <div class="bctl" id="shCtl">
+    <div class="bpad" id="shPad" role="slider" tabindex="0" aria-label="Throttle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="bfill" id="shPadFill"></div><span id="shPadLbl">Hold to start and rev</span></div>
+  </div>
+  <div class="bbar" id="shLook" role="toolbar" aria-label="Look">
+    <div class="seg" id="shStage" role="group" aria-label="Studio"></div>
+    <div class="seg" id="shView" role="group" aria-label="View"></div>
+    <button class="btn sm" id="shSpin" type="button">Spin</button><button class="btn sm" id="shHood" type="button">Hood</button><button class="btn sm" id="shLights" type="button">Lights</button><button class="btn sm" id="shWash" type="button">Wash</button>
+  </div>
+  </div>
+  <!-- Engine: the Digital Engine lab's instruments over the car on the dyno (63_dyno_lab) -->
+  <div id="dl" hidden>
+    <div class="dlhead"><span class="mark">Digital Engine</span><span class="sub">Dyno</span><b id="dlName"></b><span id="dlTag"></span></div>
+    <div class="dlsheet">
+      <div class="dlslot">
+        <section class="dlclu" id="dlClu" aria-label="Instruments">
+          <canvas id="dlTach" aria-label="Tachometer and shift lights"></canvas>
+          <div class="dlread">
+            <div class="gearrow"><div><span class="lbl">Gear</span><span id="dlGear" class="big">N</span></div>
+              <div class="pair"><div><span class="lbl">Speed</span><span id="dlSpd" class="num">0</span><span class="unit">mph</span></div>
+                <div><span class="lbl">Power</span><span id="dlPwr" class="num">0</span><span class="unit">hp</span></div></div></div>
+            <div class="meter" id="dlM1"><div class="row"><span class="lbl" id="dlL1">Throttle</span><span id="dlT1">0%</span></div><div class="track"><i id="dlF1"></i></div></div>
+            <div class="meter" id="dlM2"><div class="row"><span class="lbl" id="dlL2">Boost</span><span id="dlT2">0.00 bar</span></div><div class="track"><i id="dlF2"></i></div></div>
+            <div class="meter" id="dlM3"><div class="row"><span class="lbl" id="dlL3">Nitrous</span><span id="dlT3">None</span></div><div class="track"><i id="dlF3"></i></div></div>
+            <div class="chips" id="dlChips"></div>
+          </div>
+        </section>
+        <section class="dldraw" id="dlDraw" hidden>
+          <figure class="panel" data-p="sheet"><div class="bchart" id="shChart">
+            <div class="bchh"><b id="shChartT">Dyno sheet</b><span class="bchl"><i class="lh"></i>WHP<i class="lt"></i>LB-FT<i class="lc"></i>Crank<i class="lp"></i>Last</span></div>
+            <canvas id="shChartC"></canvas><div class="bchf" id="shChartF"></div></div></figure>
+          <figure class="panel" data-p="curve"><figcaption><b>Torque and power</b><span id="dlCurvePk"></span></figcaption><canvas id="dlCurve" aria-label="Torque and power at the crank"></canvas><p class="note" id="dlCurveNote"></p></figure>
+          <figure class="panel" data-p="crank"><figcaption><b id="dlCrankT">Firing order</b><span id="dlCrankN"></span></figcaption><canvas id="dlCrank" aria-label="Firing order"></canvas><p class="note" id="dlCrankNote"></p></figure>
+          <figure class="panel" data-p="scope"><figcaption><b>Pressure at your ear</b><span id="dlScopeN">one engine cycle</span></figcaption><canvas id="dlScope" aria-label="Waveform"></canvas></figure>
+          <figure class="panel" data-p="spec"><figcaption><b>Spectrogram</b><span id="dlSpecN"></span></figcaption><canvas id="dlSpec" aria-label="Spectrogram"></canvas><p class="note">The last few seconds of sound, 20 Hz to 10 kHz. The dashed cyan trace marks the firing note.</p></figure>
+          <div class="panel tune" data-p="tune" id="dlSetup" aria-label="Setup sheet"></div>
+        </section>
+      </div>
+      <section class="dldyno" aria-label="Dyno">
+        <button class="dlb" id="shPull" type="button">Dyno pull</button>
+        <div class="dlw"><span class="lbl">At the drums</span><span><b id="dlWhp">0</b><small>whp</small><b id="dlWtq">0</b><small>lb-ft</small></span><em id="dlPk">Peak –</em></div>
+        <button class="dlb" id="shPlus" type="button">Plus</button>
+      </section>
+      <section class="dlctl" aria-label="Hands and feet">
+        <div class="dlpad" id="dlPad" role="slider" tabindex="0" aria-label="Throttle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span>Throttle</span><small id="dlPadHint">Press and hold. Higher up, more throttle.</small><i id="dlPadFill"></i></div>
+        <div class="dlbtns" id="shBtns"></div>
+      </section>
+      <section class="dlset" aria-label="Sound">
+        <div class="seg" id="shMode" role="group" aria-label="Mode"></div>
+        <div class="seg" id="shListen" role="group" aria-label="Where you listen"></div>
+        <div class="seg" id="shRoom" role="group" aria-label="Room"></div>
+        <label class="bvol"><span>Volume</span> <input id="shVol" type="range" min="0" max="1" step="0.01" aria-label="Volume"></label>
+      </section>
+      <nav class="dltabs" id="dlTabs" aria-label="Panels"></nav>
+    </div>
+  </div>
+</div>
+<div id="loading">Laying out forty miles of country</div>
+<div id="err">This needs WebGL2, which this browser has turned off.</div>
+<script>
+(()=>{
+'use strict';
