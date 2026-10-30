@@ -36,6 +36,7 @@ button{font:inherit;color:inherit}
 .stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
 @media (max-width:640px){.stat{display:none}}
 body.touch #res,body.touch .stat{display:none}
+#perf{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:max(46px,calc(env(safe-area-inset-top,0px) + 42px));margin:0;padding:8px 10px;border-radius:8px;background:rgba(7,7,11,.74);color:var(--cyan);font:500 10.5px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none;z-index:6}
 
 /* ---------- the touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:4}
@@ -237,7 +238,7 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 <canvas id="gl" aria-label="The ranch and the country round it, drawn on an LED dot matrix"></canvas>
 <div class="bar">
   <span class="rot" id="rot">Turn your phone sideways</span>
-  <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="gfx" type="button">Gfx Plus</button><button class="chip" id="res" type="button">Dots 960×540</button><button class="chip" id="menuBtn" type="button">Menu</button></div>
+  <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="gfx" type="button">Gfx Mobile</button><button class="chip" id="res" type="button">Dots 960×540</button><button class="chip" id="menuBtn" type="button">Menu</button></div>
 </div>
 <div id="touch" hidden>
   <div id="steerZone" data-mode="slide"><div id="steerTrack"><b id="steerKnob"></b></div><span id="steerHint">SLIDE TO STEER</span>
@@ -301,12 +302,11 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
         <div><h2>Sound</h2><label class="vol" for="vol">Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label></div></section>
       <section><h2>Graphics</h2><div class="seg" id="mGfx" role="group" aria-label="Graphics"></div><p class="hint" id="mGfxHint"></p></section>
       <section><h2>Display</h2><div class="seg" id="sDisp" role="group" aria-label="Display"></div><p class="hint" id="sDispHint"></p></section>
-      <section class="row2" id="sDotsRow"><div><h2>Detail</h2><div class="seg" id="sDetail" role="group" aria-label="Detail"></div></div>
-        <div><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></div></section>
-      <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>
+      <section id="sDotsRow"><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></section>
+      <section><h2>Performance readout</h2><div class="seg" id="sPerf" role="group" aria-label="Performance readout"></div><p class="hint">Frames a second, where each frame's time goes, the GPU's time, the resolution being drawn and the graphics chip. P on a keyboard.</p></section>
       <section><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
       <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> e-brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>O</kbd> overdrive off ·
-        <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>R</kbd> reset (in a race: back onto the course) · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
+        <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>R</kbd> reset (in a race: back onto the course) · <kbd>I</kbd> engine · <kbd>P</kbd> performance readout · <kbd>Esc</kbd> menu</p>
       <p class="status" id="mStatus"></p>
     </div>
     <div class="tab" data-tab="dev" hidden>
@@ -325,6 +325,12 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
         <div class="devchks" id="mDevSimT"></div>
         <h3>Sim physics: strengths</h3><div class="devrows" id="mDevSimS"></div>
         <div class="devacts"><button class="btn sm" id="mDevSimReset" type="button">Reset Sim physics</button></div></div></section>
+    <section class="dev" id="mDevLook" hidden><h2>Developer: the look</h2>
+      <p class="hint" style="margin:0 0 10px">Judgment calls about the picture, to A/B on the phone. Each is a multiplier on what the time of day sets; 100% is the game as tuned. Saved on this device.</p>
+      <div class="devrows" id="mDevLookS"></div>
+      <div id="mDevLookT" style="margin-top:10px"></div>
+      <p style="margin-top:10px"><button class="btn sm" id="mDevLookReset" type="button">Back to the tuned look</button></p>
+    </section>
     </div>
     <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button><button class="btn sm" id="mLeave" type="button" hidden>Leave the race</button></div>
   </div>
@@ -338,6 +344,7 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
     <div class="acts"><button class="btn go" id="rrAgain" type="button">Race again</button><button class="btn sm" id="rrDone" type="button">Back to free roam</button></div>
   </div>
 </div>
+<pre id="perf" hidden></pre>
 <div id="loading">Building the ranch and the country round it</div>
 <div id="err">This needs WebGL2, which this browser has turned off.</div>
 <script>

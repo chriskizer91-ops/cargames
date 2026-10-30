@@ -5,9 +5,12 @@
    meshes are made only for the tiles round the truck and let go behind it. Everything else the
    ranch code drew comes in tiles too, and the trees are drawn instanced, full shape near and a
    single lump far. Tiles behind the camera or past the fog are skipped.
+   The drawing is Shiftlight 3's renderer's (11_sl3): LAND below is the hook it calls for each pass (the sun's
+   cascades and the headlight shadow map, the reflection probe at the car, the scene), drawing with this
+   game's own programs (13_lit) in Shiftlight's lighting.
    ===================================================================================== */
-const RANCH={W:null,world:null,ground:[],props:[],sky:null,tris:0,ms:0,trees:null,lod0:0};
-const LOD_STEP=[1,2,4],LOD_DIST=[150,290],TREE_NEAR=95;
+const RANCH={W:null,world:null,ground:[],props:[],tris:0,ms:0,trees:null,lod0:0,stat:null};
+const LOD_STEP=[1,2,4],LOD_DIST=[150,290];let TREE_NEAR=95;
 /* one ground tile at one level of detail: every st-th grid point, skirts hanging off its edges */
 function groundMesh(W,t,st){
   const N=W.N,H=W.H,NR=W.NRM,WT=W.W,{i0,j0,i1,j1}=t,P=[],Nn=[],C=[],M=[],I=[],grid=[];let nv=0;
@@ -70,48 +73,58 @@ function buildRanchGL(){
   RANCH.ms=performance.now()-t0;RANCH.shapeMs=t1-t0;
   return RANCH;
 }
-/* the six planes of the view frustum from a column-major view-projection matrix */
-function frustum(m){const r=(a,b,c,d)=>{const l=Math.hypot(a,b,c);return [a/l,b/l,c/l,d/l];};
-  return [r(m[3]+m[0],m[7]+m[4],m[11]+m[8],m[15]+m[12]),r(m[3]-m[0],m[7]-m[4],m[11]-m[8],m[15]-m[12]),r(m[3]+m[1],m[7]+m[5],m[11]+m[9],m[15]+m[13]),
-    r(m[3]-m[1],m[7]-m[5],m[11]-m[9],m[15]-m[13]),r(m[3]+m[2],m[7]+m[6],m[11]+m[10],m[15]+m[14]),r(m[3]-m[2],m[7]-m[6],m[11]-m[10],m[15]-m[14])];}
-function boxVisible(F,mn,mx){for(const p of F){const x=p[0]>0?mx[0]:mn[0],y=p[1]>0?mx[1]:mn[1],z=p[2]>0?mx[2]:mn[2];if(p[0]*x+p[1]*y+p[2]*z+p[3]<0)return false;}return true;}
+/* ---------- the land through the renderer ---------- */
+const boxVisible=(F,mn,mx)=>SL3.M4.boxVisible(F,mn,mx);
 const boxDist=(e,mn,mx)=>{let s=0;for(let k=0;k<3;k+=2){const d=Math.max(mn[k]-e[k],0,e[k]-mx[k]);s+=d*d;}return Math.sqrt(s);};
-/* the sky, where nothing else has been drawn (13_lit's FS_SKY), with the lit program's frame uniforms */
-let P_SKY=null,P_SKYP=null;
-function drawSky(cam){
-  if(!P_SKY){P_SKY=compile(VS_SKY,FS_SKY,LIT_DEFS);P_SKYP=compile(VS_SKY,FS_SKY,LIT_DEFS+'#define PROBE\n');}
-  const SP=CUR===PRB.P?P_SKYP:P_SKY,u=SP.u,S=skyNow(),cl=cloudVec();gl.useProgram(SP.p);
-  gl.uniformMatrix4fv(u.uInvVP,false,M4.inv(cam.VP));gl.uniform3fv(u.uCam,cam.eye);gl.uniform1f(u.uTime,APP.t);
-  gl.uniform3fv(u.uSunDir,SKY.sun);gl.uniform3fv(u.uSunCol,S.sunCol);gl.uniform3fv(u.uSkyZen,S.zen);gl.uniform3fv(u.uSkyHor,S.hor);
-  gl.uniform1f(u.uNight,SKY.night||0);gl.uniform4fv(u.uCloud,cl);
-  gl.depthMask(false);gl.bindVertexArray(VAO0);gl.drawArrays(gl.TRIANGLES,0,3);gl.depthMask(true);
-  gl.useProgram(CUR.p);
-}
-/* draw the ground, the props, the trees and then the sky; uM must be identity on entry */
-function drawRanch(cam,maxD=420){
-  const u=CUR.u,F=frustum(cam.VP),e=cam.eye;let tris=0,built=0;
-  gl.uniformMatrix4fv(u.uM,false,M4.id());
+/* the land's programs: the lit pass, the cheaper one the probe sees, and the depth pass for the shadow maps */
+let P_LAND=null,P_LANDP=null,P_DEPTH=null;
+function landPrograms(){if(P_LAND)return;const S=rutShaders(),G=R.G;
+  P_LAND=G.program('land',S.VS,S.FS,DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?{DEBUG_SHADOW:+(DEBUG_VIEW.slice(6)||0)}:{});P_LANDP=G.program('landProbe',S.VS,S.FS,{PROBE:1});P_DEPTH=G.program('landDepth',S.DEPTH_VS,S.DEPTH_FS);}
+const M4_ID=M4.id();
+/* what every lit pass starts from: the world's own frame, no car */
+function landUniforms(P){const G=R.G;G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID);G.uni(P,'uInst',0);G.uni(P,'uDetail',GFX.q.detail*LOOK.detail);G.uni(P,'uDrawFar',drawFar());
+  G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);}
+/* the ground tiles at their level of detail (the fine mesh made a little before it's needed, a few a frame, and
+   let go well after), the props and the trees inside the planes, out to maxD from e */
+function landDraw(P,planes,e,maxD,build){
+  let tris=0,built=0;
   for(const t of RANCH.ground){const d=boxDist(e,t.mn,t.mx);
-    /* the fine mesh is made a little before it's needed (a few a frame) and let go well after */
-    if(d<LOD_DIST[0]+50){if(!t.lod[0]&&built<3){t.lod[0]=groundMesh(RANCH.W,t,LOD_STEP[0]);built++;RANCH.lod0++;}}
-    else if(t.lod[0]&&d>LOD_DIST[0]+140){freeMesh(t.lod[0]);t.lod[0]=null;RANCH.lod0--;}
-    if(d>maxD||!boxVisible(F,t.mn,t.mx))continue;
+    if(build){if(d<LOD_DIST[0]+50){if(!t.lod[0]&&built<3){t.lod[0]=groundMesh(RANCH.W,t,LOD_STEP[0]);built++;RANCH.lod0++;}}
+      else if(t.lod[0]&&d>LOD_DIST[0]+140){freeMesh(t.lod[0]);t.lod[0]=null;RANCH.lod0--;}}
+    if(d>maxD||!boxVisible(planes,t.mn,t.mx))continue;
     const m=t.lod[d<LOD_DIST[0]?0:d<LOD_DIST[1]?1:2]||t.lod[1];drawMesh(m);tris+=m.tris;}
-  const tg=tris;for(const p of RANCH.props){const d=boxDist(e,p.mn,p.mx);if(d>maxD-40||!boxVisible(F,p.mn,p.mx))continue;drawMesh(p.mesh);tris+=p.mesh.tris;}
-  const tt=drawTrees(cam,F,maxD-40);RANCH.stat={ground:tg,props:tris-tg,trees:tt};
-  drawSky(cam);
+  const tg=tris;for(const p of RANCH.props){const d=boxDist(e,p.mn,p.mx);if(d>maxD-40||!boxVisible(planes,p.mn,p.mx))continue;drawMesh(p.mesh);tris+=p.mesh.tris;}
+  const tt=drawTrees(P,planes,e,maxD-40,null);if(build)RANCH.stat={ground:tg,props:tris-tg,trees:tt};
   return tris+tt;
 }
-/* sort the trees in view into near and far for each shape, then one instanced draw for each */
-function drawTrees(cam,F,maxD){
-  const TR=RANCH.trees,T=TR.T,e=cam.eye,nn=TREE_NEAR*TREE_NEAR,md=maxD*maxD;let tris=0;
+/* sort the trees in view into near and far for each shape, then one instanced draw for each (lod: all one level) */
+function drawTrees(P,planes,e,maxD,lod){
+  const G=R.G,TR=RANCH.trees,T=TR.T,nn=TREE_NEAR*TREE_NEAR,md=maxD*maxD;let tris=0;
   for(const c of TR.cnt){c[0]=0;c[1]=0;}
-  for(const t of TR.tiles){if(boxDist(e,t.mn,t.mx)>maxD||!boxVisible(F,t.mn,t.mx))continue;
+  for(const t of TR.tiles){if(boxDist(e,t.mn,t.mx)>maxD||!boxVisible(planes,t.mn,t.mx))continue;
     for(const i of t.list){const o=i*12,dx=T[o]-e[0],dz=T[o+2]-e[2],d2=dx*dx+dz*dz;if(d2>md)continue;
-      const v=T[o+7]|0,l=d2<nn?0:1,b=TR.buf[v][l],k=TR.cnt[v][l]++*12;for(let q=0;q<12;q++)b[k+q]=T[o+q];}}
-  gl.uniform1f(CUR.u.uInst,1);
+      const v=T[o+7]|0,l=lod!==null?lod:d2<nn?0:1,b=TR.buf[v][l],k=TR.cnt[v][l]++*12;for(let q=0;q<12;q++)b[k+q]=T[o+q];}}
+  G.uni(P,'uInst',1);
   for(let v=0;v<5;v++)for(let l=0;l<2;l++){const n=TR.cnt[v][l];if(!n)continue;const m=TR.shapes[v][l];setInst(m,TR.buf[v][l].subarray(0,n*12));drawMeshI(m);tris+=m.tris*n;}
-  gl.uniform1f(CUR.u.uInst,0);
+  G.uni(P,'uInst',0);
   return tris;
 }
-
+/* into a shadow map: the ground at its coarsest (hills shade the valleys), the props, the trees (the far lump
+   past the near cascade: their shadows are a few texels across there) */
+function landDrawDepth(P,planes,e,maxD,lod){
+  let tris=0;
+  for(const t of RANCH.ground){if(boxDist(e,t.mn,t.mx)>maxD||!boxVisible(planes,t.mn,t.mx))continue;const m=t.lod[2];drawMesh(m);tris+=m.tris;}
+  for(const p of RANCH.props){if(boxDist(e,p.mn,p.mx)>maxD||!boxVisible(planes,p.mn,p.mx))continue;drawMesh(p.mesh);tris+=p.mesh.tris;}
+  return tris+drawTrees(P,planes,e,maxD,lod);
+}
+/* the renderer's hook for the land */
+const LAND={cam:[0,0,0],
+  prepare(R,S){this.cam=S.cam.pos;if(!LOOK.shadows)R.U.uCSMOn=0;},
+  shadow(R,Pd,VP,kind,k){const G=R.G,P=G.use(P_DEPTH);G.uni(P,'uVP',VP);G.uni(P,'uM',M4_ID);G.uni(P,'uInst',0);G.uni(P,'uTime',APP.t);
+    const planes=SL3.M4.planes(VP),e=kind==='hl'?R.hlPos:this.cam,maxD=kind==='hl'?90:[70,130,290][k];
+    landDrawDepth(P,planes,e,maxD,k>=1||kind==='hl'?1:0);G.use(Pd);},
+  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);G.set(P,U);G.tex(P,texs);landUniforms(P);
+    RANCH.tris=landDraw(P,R.planes,U.uCam,drawFar(),true)+fxDraw(P);},
+  probe(R,U2,texs){const G=R.G,P=G.use(P_LANDP);G.set(P,U2);G.tex(P,texs);landUniforms(P);
+    landDraw(P,SL3.M4.planes(U2.uVP),U2.uCam,Math.min(GFX.q.probeFar,GFX.far),false);}
+};

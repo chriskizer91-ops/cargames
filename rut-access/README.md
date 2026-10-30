@@ -12,14 +12,38 @@ Open `rut-access.html` in a browser with WebGL2, or on a phone held sideways.
 
 ## Where it stands
 
-**Phase 0, the fork, is done.** `rut-access.html` is Dirt Sleeper Showdown (branch
-`dirt-sleeper-showdown/cross-country`) with the title and the saved-settings keys changed (`rut-`, so this
-game never reads or overwrites another version's). It plays exactly like Showdown: the same seven cars and
-sixteen factory builds, the two-mile world, the four driving levels, the feats, the races, the rivals who
-size you up and the callouts at the strip. Every Showdown tool runs on it with the same results, and
-`tools/check_de.py` proves its Digital Engine is byte for byte the lab's.
+**Phase 1, the renderer, is done.** The game is drawn by Shiftlight 3's renderer (`src/11_sl3.js`, bundled from
+`chriskizer91-ops/shiftlight3`): HDR with the sun through cascaded shadow maps, the lamps in a clustered light
+grid, the car's headlights with a real low-beam cut-off and their own shadow map, a reflection probe at the car
+that the paint, glass, chrome and water show, screen-space reflections on wet ground, volumetric fog, TAA that
+rebuilds full resolution from a jittered lower-resolution frame with dynamic resolution, bloom, eye-like auto
+exposure and the ACES grade. Everything Showdown drew still comes from its own meshes and materials
+(`src/13_lit.js` carries Dirt Sleeper's ground, car and tree materials into the renderer's lighting), through the
+renderer's hooks: the land (`52_world_gl.js`), the cars (`60_game.js`), the dust and spray (`53_fx.js`). The
+car models are the shapes they were. The HUD is still drawn in dots, over the clear picture or as part of the
+LED matrix.
 
-Next: Phase 1, Shiftlight 3's renderer.
+- **Graphics** has Shiftlight's tiers, Mobile to Ultra; Mobile is the default on a touch screen. Changing the
+  tier restarts the page on it (the renderer's targets are sized by the tier).
+- **Display**: the clear picture is the default; LED dots is the matrix every Dirt game has had, now drawn at
+  twice the dot pitch and sampled per dot. The dot count (Dots) is the HUD's grid too.
+- **P** (or Settings) shows the performance readout: frames a second against the beat the screen is paced
+  to, where each frame's time goes, the GPU time where the browser reports it, the resolution being drawn, the
+  tier, the triangles, the graphics chip.
+- Frames come on an even beat: every refresh of the screen, or on a phone that refreshes faster than 75 Hz,
+  every second one (45 fps on a 90 Hz Pixel 7a), and the dynamic resolution aims for that beat.
+- **Dev: the look** (the Dev tab) has the judgment calls to A/B on the phone: saturation, contrast, exposure,
+  haze, ground detail, sun shadows on and off, the shade under the cars.
+- Day and night are in the renderer's units now (`59_daynight.js`); the ranch's own lamps and the fixtures
+  (Feed & Fuel, home, the paddock, the speedway, the mast) are real lights in the grid. Night, rain and fog get
+  their proper pass in Phase 3; the grass you drive through comes back in Phase 2 (`tools/ref/55_grass.showdown.js`
+  is Showdown's, kept for it).
+- Physics, proving and the whole-race check are unchanged and pass; `tools/check_de.py` proves the Digital
+  Engine block is the lab's.
+
+Phase 0, the fork, was Showdown with the title and the saved-settings keys changed (`rut-`).
+
+Next: Phase 2, the land: ground materials, trees, water and mud, dust and spray, golden hour.
 
 ## Layout
 
@@ -29,7 +53,7 @@ Next: Phase 1, Shiftlight 3's renderer.
 | `rut-access.html` | The whole game in one file (built) |
 | `dist/rut-access.artifact.html` | The same page without its outer tags, for publishing as an artifact |
 | `build.sh` | Builds both: the shell's head, the source modules in order, the shell's tail. Run `./build.sh` after changing anything in `src/` or `shell/` |
-| `src/` | The modules, Showdown's: 10-33 the display, the meshes, the engines and their sound, the seven bodies, their parts, wheels and builds; 40-45 the physics, the ground contact, each build's chassis, the Sim level, the robot drivers and the cross-country routes; 50-55 the far country, the country, the ranch, its drawing, the dust and mud, the developer panel and the graphics; 56-65 the garage's parts, the ratings, the feats, day and night, the game, the races and callouts, its HUD, menu, garage, touch controls and boot |
+| `src/` | The modules: `10_core` the basics and the HUD's pixel buffer; `11_sl3` Shiftlight 3's renderer, bundled; `12_display` the renderer's GL context and shader compiling; `12_gl_mesh` the mesh builder; `13_lit` the scene shaders (Dirt Sleeper's materials in the renderer's lighting, the sky, the shadow depth pass, the puffs); 14-33 the lofts, the engines and their sound, the seven bodies, their parts, wheels and builds; 40-45 the physics, the ground contact, each build's chassis, the Sim level, the robot drivers and the cross-country routes; `50_far`, `50_country`, `51_ranch` the world; `52_world_gl` the land through the renderer's hooks; `53_fx` the dust, mud and spray; `54_dev` the developer panel (traction, Sim, the look); `55_gfx` the graphics tiers, the weather and the frame's environment; `55_post` the display (clear or LED dots), the HUD's dots, dynamic resolution and the performance readout; 56-65 the garage's parts, the ratings, the feats, day and night (the lamps), the game and its drawing hooks, the races and callouts, the HUD, menu, garage, touch controls and boot |
 | `shell/` | The page's head (title, styles, markup) and tail |
 | `design/ratings.json` | Each factory build's six ground ratings |
 | `lab/digital-engine.html` | The Digital Engine lab: the engine synth and sim every Dirt game uses, and a page to hear them in |
@@ -39,5 +63,7 @@ Next: Phase 1, Shiftlight 3's renderer.
 | `tools/races.js`, `cross.js`, `ladder.js` | The robot drivers round every course, down every cross-country route, and down the eighth mile: `node tools/races.js par`, `node tools/cross.js`, `node tools/ladder.js` |
 | `tools/showdown_check.js` | The built page in headless Chromium: a whole race on each route with a robot in your seat, then a callout; fails on any page error: `node tools/showdown_check.js` |
 | `tools/check_de.py` | Proves the game's Digital Engine block is byte for byte the lab's: `python3 tools/check_de.py` |
-| `tools/shot_showdown.js`, `shot_sl3.js`, `shot_dirt_sleeper.js` | Headless screenshots of this game (and HD, Showdown, Open World), of Shiftlight 3, and of the original Dirt Sleeper |
+| `tools/shot_rut.js` | Headless screenshots of this game, drawn frame by frame through its hooks: `node tools/shot_rut.js <out> name:quality:display:tod:place ...`; `DEBUG=` shows one of the renderer's buffers (or `shadow` for the sun's visibility), `PAGE=1` shoots the whole page, `JS=` runs code first |
+| `tools/shot_showdown.js`, `shot_sl3.js`, `shot_dirt_sleeper.js` | Headless screenshots of HD, Showdown and Open World, of Shiftlight 3, and of the original Dirt Sleeper |
+| `tools/ref/55_grass.showdown.js` | Showdown's grass you drive through, kept for Phase 2 |
 | `tools/sheet.py` | Lays screenshots out in a labelled grid |

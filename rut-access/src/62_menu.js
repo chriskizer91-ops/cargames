@@ -46,16 +46,15 @@ function syncMenu(){
   $('sSteerHint').textContent={slide:'Put your left thumb down anywhere on the left side and slide it: how far from where it landed is how far the wheels turn.',
     tilt:'Tilt the phone like a steering wheel. It takes the way you hold it when you pick this as straight ahead.',buttons:'Two buttons, left and right, like before.'}[APP.steer];
   for(const el of $('sHaptics').children)el.setAttribute('aria-pressed',String((el.dataset.v==='on')===APP.haptics));
-  for(const el of $('sDetail').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.detail));
   for(const el of $('sDots').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.res));
   for(const el of $('mGfx').children)el.setAttribute('aria-pressed',String(el.dataset.v===GFX.level));
   $('mGfxHint').textContent=GFX_LEVELS.find(l=>l[0]===GFX.level)[2];
   for(const el of $('sDisp').children)el.setAttribute('aria-pressed',String(el.dataset.v===DISP.mode));
-  $('sDispHint').textContent=DISP.mode==='clear'?'The picture at your screen\'s own resolution, sharp, with the HUD lit up in dots over it. It draws at a share of the screen\'s pixels that follows the frame rate.':
-    'The LED matrix: the picture made of lit dots, each the average of what\'s behind it. The lightest for a phone.';
-  $('sDotsRow').hidden=$('sDetailHint').hidden=DISP.mode==='clear';
+  $('sDispHint').textContent=DISP.mode==='clear'?'The picture at your screen\'s own resolution, with the HUD lit up in dots over it. It is drawn at a share of the screen\'s pixels that follows the frame rate and rebuilt to full by TAA.':
+    'The LED matrix every Dirt Sleeper has had: the picture made of lit dots, each the average of what\'s behind it. Dots is how many dots tall. Lighter for a phone.';
+  $('sDotsRow').hidden=DISP.mode==='clear';
+  for(const el of $('sPerf').children)el.setAttribute('aria-pressed',String((el.dataset.v==='on')===PERF.on));
   syncWeather();
-  $('sDetailHint').textContent='Detail is how finely the picture is drawn behind each dot. Auto starts sharp (smooth on a phone) and steps down by itself if the frame rate drops while you drive.';
   $('vol').value=ENG.vol;$('mStatus').textContent=ENG.status||'';
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
@@ -74,12 +73,12 @@ function buildMenu(){
     el.addEventListener('click',()=>{goTo(id);closeMenu();});px.appendChild(el);}
   segButtons($('sSteer'),[['slide','Slide'],['tilt','Tilt'],['buttons','Buttons']],v=>{APP.steer=v;if(v==='tilt')enableTilt();saveGame();syncTouch();});
   segButtons($('sHaptics'),[['on','On'],['off','Off']],v=>{APP.haptics=v==='on';saveGame();if(APP.haptics&&navigator.vibrate)navigator.vibrate(20);});
-  segButtons($('sDetail'),[['auto','Auto'],['sharp','Sharp'],['smooth','Smooth'],['fast','Fast']],v=>setDetail(v));
+  segButtons($('sPerf'),[['on','On'],['off','Off']],v=>setPerf(v==='on'));
   segButtons($('sDots'),RES.map((r,i)=>[i,r[0]+'×'+r[1]]),i=>{setRes(+i);layout();});
-  segButtons($('mGfx'),GFX_LEVELS.map(l=>[l[0],l[1]]),id=>{setGfx(id);GFXW.said=false;GFXW.t=0;});
+  segButtons($('mGfx'),GFX_LEVELS.map(l=>[l[0],l[1]]),id=>{setGfx(id);});
   segButtons($('sDisp'),[['dots','LED dots'],['clear','Clear']],v=>setDisplay(v));
-  $('gfx').addEventListener('click',()=>{const i=GFX_LEVELS.findIndex(l=>l[0]===GFX.level);setGfx(GFX_LEVELS[(i+1)%GFX_LEVELS.length][0]);GFXW.said=false;GFXW.t=0;if(GAME.state==='menu')syncMenu();});
-  setGfx(GFX.level);
+  $('gfx').addEventListener('click',()=>{const i=GFX_LEVELS.findIndex(l=>l[0]===GFX.level);setGfx(GFX_LEVELS[(i+1)%GFX_LEVELS.length][0]);});
+  gfxLabel();
   buildDev();
   $('sClear').addEventListener('click',()=>{if($('sClear').dataset.sure!=='1'){$('sClear').dataset.sure='1';$('sClear').textContent='Tap again to clear it all';return;}
     Feats.clear();$('sClear').dataset.sure='';$('sClear').textContent='Clear money, cool stuff and bests';$('sNote').textContent='Cleared.';syncMenu();});

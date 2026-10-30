@@ -9,7 +9,7 @@
    ===================================================================================== */
 const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false};
 const TOUCH_KEY={reset:'KeyR',cam:'KeyC',nos:'KeyN',low:'KeyL',lock:'KeyK',od:'KeyO',lights:'KeyJ',horn:'KeyH'};
-function enableTouch(){if(GAME.touch)return;GAME.touch=TOUCH.on=true;document.body.classList.add('touch');if(APP.detail==='auto'&&SS>1.5)SS=1.5;syncTouch();}
+function enableTouch(){if(GAME.touch)return;GAME.touch=TOUCH.on=true;document.body.classList.add('touch');syncTouch();}
 function syncTouch(){
   const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='drive');if(!GAME.car)return;
   const e=GAME.car.pt.e,c=GAME.car.c.diff.can;

@@ -137,7 +137,7 @@ function startRace(id,evo){
   for(const c of RACE.cars)if(!c.me){c.drv.track();}me.trk.track();
   truckEvict(RECENT.concat(RACE.cars.map(c=>BUILDS[c.car.bi].id)));
   if(GAME.car.pt.st==='off'){GAME.engineWanted=true;startEngine();}
-  RACE.hold=true;CAM.cut=true;PRB.fresh=true;CSM.fresh=true;
+  RACE.hold=true;CAM.cut=true;viewCut();
   /* the sleeper twist: every rival sizes your car up. Against one that looks slow they drive at nine-tenths or so
      (less the slower it looks) and off the line a beat late; one that looks like a race car gets everything */
   RACE.myLooks=looksOf(GAME.car.bi);const e0=RACE.myLooks>=7?1:.9+.01*RACE.myLooks;
@@ -311,16 +311,6 @@ function raceEnd(why){
   if(why)say(why,1.6);
 }
 /* ---------- drawing the robots' cars ---------- */
-function raceDraw(c){
-  if(!RACE.on)return 0;let tris=0;const F=frustum(c.VP),e=c.eye;
-  for(const o of RACE.cars){if(o.me||o.gone)continue;const t=o.car,r=t.c.body.L*.6+1,d=Math.hypot(t.p[0]-e[0],t.p[2]-e[2]);
-    if(d>(SKY.night?SKY.draw:GFX.far))continue;if(!boxVisible(F,[t.p[0]-r,t.p[1]-r,t.p[2]-r],[t.p[0]+r,t.p[1]+r,t.p[2]+r]))continue;
-    tris+=drawWorldCar(t,null,o.dirt,d>45);}
-  return tris;
-}
-const raceCars=()=>RACE.on?RACE.cars.filter(o=>!o.me&&!o.gone).map(o=>o.car):CALLOUT.car?[CALLOUT.car]:[];
-/* a callout's rival, rolling up before the race */
-function calloutDraw(c){const t=CALLOUT.car;if(RACE.on||!t)return 0;const d=Math.hypot(t.p[0]-c.eye[0],t.p[2]-c.eye[2]);return d>GFX.far?0:drawWorldCar(t,null,BUILDS[CALLOUT.bi].dirt||0,d>45);}
 /* ---------- the others' engines: a cheap voice each for the three nearest (the Digital Engine is yours alone) ---------- */
 const RVOX=[];
 function raceSound(c){
