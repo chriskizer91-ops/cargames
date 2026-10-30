@@ -100,7 +100,7 @@ const DEV_ROWS=[];
 function buildDev(){
   if(!DEV)return;
   $('mDev').hidden=false;$('tabDev').hidden=false;
-  DEV_ROWS.push(slider($('mDevAll'),'all','Traction','The ground on every surface, for every car. 100% is the physics as tuned; Back Forty starts at 200%, the way you play it.',...DEV_ALL,()=>DEV_T.all,v=>DEV_T.all=v));
+  DEV_ROWS.push(slider($('mDevAll'),'all','Traction','The ground on every surface, for every car. 100% is the physics as tuned; the game starts at 200%, the way you play it.',...DEV_ALL,()=>DEV_T.all,v=>DEV_T.all=v));
   /* the Plus tune: power and gearing, applied a moment after you let go (the car is rebuilt where it stands) */
   const plusSet=()=>{savePlus();clearTimeout(PLUS.tm);PLUS.tm=setTimeout(()=>{if(PLUS.on[APP.car])spawnRig();if(typeof syncMenu==='function')syncMenu();},400);};
   DEV_ROWS.push(slider($('mDevAll'),'plus','Plus power','How much power the Plus button adds, on top of the build. 115% to start. Power alone adds little top speed where the redline holds a car back (most of them), and only about a third of itself where the air does.',1.05,1.6,

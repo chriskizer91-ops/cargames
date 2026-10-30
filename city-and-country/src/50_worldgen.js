@@ -233,7 +233,7 @@ let TOWN_LIGHTS=null;
 function townLights(){
   if(TOWN_LIGHTS)return TOWN_LIGHTS;const out=[];
   for(const l of TW.lamps)lampLight(l,out);for(const g of TW.signs)signLight(g,out);
-  for(const s of TW.spill)out.push({p:[s.x,2.4,s.z],r:6,c:s.c.map(v=>v*.55)});
+  for(const s of TW.spill)out.push({p:[s.x,2.4,s.z],r:6,c:s.c.map(v=>v*.32)});
   for(const P of SPECIAL)for(const b of P.bld)building(b,null,()=>{},()=>{},out,true);
   return TOWN_LIGHTS=out;}
 /* what's at a point in town: how far past the nearest road's edge (negative on the road) and its sidewalk's width */
@@ -422,7 +422,7 @@ function core(x,z,ctx,o){
   /* the ground: grass, dirt fields, rock on the outcrops and the creek banks; drier toward the salt */
   let grass=sst(.32,.6,fbm(x/30+5,z/30,2,111)+.18);
   {const pi=Math.floor(x/(L/2)),pj=Math.floor(z/(L/2));if(hs(pi,pj,131)<.55*(1-sst(.3,.7,hillK((pi+.5)*L/2,(pj+.5)*L/2))))grass*=.15+.3*vn(x/9,z/9,141);}
-  grass*=1-sst(LAND-950,LAND-120,sd)*.85;grass*=1-pk*.75;
+  grass*=1-sst(LAND-950,LAND-120,sd)*.85;grass*=1-pk*.4;
   let rock=rk;if(CR.dc<9&&CR.dep>.3)rock=Math.max(rock,.35*(1-sst(3,9,CR.dc)));
   grass*=1-rock*.9;
   let code=mud>.5?SF.mud:rk>.55?SF.rock:grass>.5?SF.grass:SF.dirt;
@@ -775,7 +775,7 @@ function townStatic(x0,z0,x1,z1,inC,RB,PB,trees,colBox,colCirc,lights,Rn){
   /* --- the buildings --- */
   for(const q of T.lots){const mx=(q.x0+q.x1)/2,mz=(q.z0+q.z1)/2,own=inC(mx,mz);
     colBox(q.x0,q.z0,q.x1,q.z1,y+q.h);if(!own)continue;
-    const tint=lc(...q.tint),fa=q.style+(q.shops?5:0)+q.seed*.9;
+    const tint=lc(...q.tint),fa=q.style+(q.shops?5:0)+(Math.floor(q.seed*36)+.5)/40;
     const wall=(ax0,az0,ax1,az1,ya,yb,f)=>{/* the four walls as facade, the roof a dark deck with a parapet */
       PB.quad([ax0,ya,az0],[ax0,yb,az0],[ax1,yb,az0],[ax1,ya,az0],tint,MAT.FACADE,f);PB.quad([ax1,ya,az1],[ax1,yb,az1],[ax0,yb,az1],[ax0,ya,az1],tint,MAT.FACADE,f);
       PB.quad([ax0,ya,az1],[ax0,yb,az1],[ax0,yb,az0],[ax0,ya,az0],tint,MAT.FACADE,f);PB.quad([ax1,ya,az0],[ax1,yb,az0],[ax1,yb,az1],[ax1,ya,az1],tint,MAT.FACADE,f);
@@ -901,7 +901,7 @@ function genFar(tx,tz){
   /* downtown's towers, lit, as plain blocks: the skyline from out in the country */
   const LB=new MB(x0,z0);
   for(const q of TW.lots){if(q.h<30)continue;const mx=(q.x0+q.x1)/2,mz=(q.z0+q.z1)/2;if(mx<x0||mx>=x0+FT||mz<z0||mz>=z0+FT)continue;
-    const fa=q.style+(q.shops?5:0)+q.seed*.9,tint=lc(...q.tint);LB.box(q.x0,0,q.z0,q.x1,q.h,q.z1,tint,MAT.FACADE,fa,'b');ymax=Math.max(ymax,q.h+2);}
+    const fa=q.style+(q.shops?5:0)+(Math.floor(q.seed*36)+.5)/40,tint=lc(...q.tint);LB.box(q.x0,0,q.z0,q.x1,q.h,q.z1,tint,MAT.FACADE,fa,'b');ymax=Math.max(ymax,q.h+2);}
   return {tx,tz,ground:{pos:P.subarray(0,v*3),nrm:N.subarray(0,v*3),col:C.subarray(0,v*4),mat:M.subarray(0,v),idx:new Uint16Array(I),tris:I.length/3},marks:LB.n?LB.out():null,ymin,ymax};
 }
 

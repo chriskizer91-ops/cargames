@@ -114,5 +114,5 @@ function buildDevWorld(){
 function syncDevWorld(){
   for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud?'on':'off'],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off']])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
   const S=WORLD.st;$('dNote').textContent=`Made on: ${WORLD.mode}. ${WORLD.chunks.size} chunks and ${WORLD.far.size} far tiles loaded, ${(S.bytes/1048576).toFixed(1)} MB of them on the graphics card. `+
-    `The world is ${WG.HALF*2/1609.34|0} miles square; the garage is in the middle, Route 6 runs straight east and west through it.`;
+    `City Limits' town in the middle, Highway 40 straight through it east and west, country out to about two miles, then the salt flats to the edge, ${WG.HALF*2/1609.34|0} miles across.`;
 }

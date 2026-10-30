@@ -381,7 +381,7 @@ void main(){
       alb=dirtCol(wp);dirtDetail(wp,alb,1.-gw);
       /* the salt flats (City Limits'): pale crust and tan clay in big soft patches, cracked into plates in places */
       if(sw>.004){float big=fbm(wp*.0035),mid=vn(wp*.045),fine=vn(wp*1.7);
-        vec3 sc=mix(vec3(.47,.42,.35),vec3(.70,.67,.61),smoothstep(.32,.78,big*.85+mid*.3))*(.93+.1*fine*near(.6));
+        vec3 sc=mix(vec3(.42,.38,.32),vec3(.60,.585,.55),smoothstep(.32,.78,big*.85+mid*.3))*(.93+.1*fine*near(.6));
         float crack=smoothstep(.3,.62,fbm(wp*.012+4.1))*near(.25);
         if(crack>0.&&uDetail>.3){float e=cellEdge(wp*.52);sc*=1.-(1.-smoothstep(.0,.05,e))*.26*crack;}
         alb=mix(alb,sc,sw);gG*=1.-sw*.85;gw*=1.-sw;rw*=1.-sw;}
@@ -543,8 +543,8 @@ void main(){
       /* a town building's walls (City Limits' facades): floors and bays from where the wall is, so nothing needs
          texture coordinates; brick, concrete, glass, stucco or corrugated metal by its style; a storefront along
          the street where it has shops; at night some of its windows lit. Alpha: style + 5 if it has shops, plus a
-         seed in the fraction */
-      vec3 an=abs(N);float code=floor(em),sd=fract(em)*41.;int style=int(code)-5*(int(code)/5);bool shops=code>4.5;
+         seed (0-35, as (k+.5)/40: interpolation can wobble the last bit, and the hashes must not see it) in the fraction */
+      vec3 an=abs(N);float code=floor(em),sd=floor(fract(em)*40.);int style=int(code)-5*(int(code)/5);bool shops=code>4.5;
       vec3 tint=vC.rgb;em=0.;ground=false;
       if(an.y>.5){alb=vec3(.035);spec=.04;}
       else{
@@ -558,16 +558,16 @@ void main(){
           vec3 shop=hs2>.85?vec3(1.,.55,.85):hs2>.6?vec3(.85,.95,1.):vec3(1.,.72,.42);
           if(v<.35){alb=vec3(.3,.29,.28);}
           else if(v<3.3){if(side<.25){alb=vec3(.04);rough=.4;}
-            else if(open>0.){glass=1.;float shelves=step(.5,fract(v*1.6))*step(v,2.2)*.35;wcol=shop*(.75*(.5+.5*smoothstep(.4,3.2,v))-shelves*.5)*uNight*(.7+.6*hs2);
+            else if(open>0.){glass=1.;float shelves=step(.5,fract(v*1.6))*step(v,2.2)*.35;wcol=shop*(.32*(.5+.5*smoothstep(.4,3.2,v))-shelves*.2)*uNight*(.7+.6*hs2);
               if(abs(fract(uf/1.9)-.5)>.48){glass=0.;alb=vec3(.05);wcol=vec3(0.);}}
-            else{float rib=abs(fract(v*6.)-.5);alb=vec3(.2,.2,.21)*(.7+.3*rib);rough=.5;}}
+            else{float rib=abs(fract(v*6.)-.5)*near(.04);alb=vec3(.12,.12,.13)*(.75+.3*rib);rough=.5;}}
           else if(v<4.4){vec3 sc=.5+.5*cos(6.28*(hs2*1.7+vec3(0.,.33,.67)));
             if(side>.3&&open>0.&&v>3.45&&v<4.3){alb=sc*.3;emc+=sc*.35*(1.2+.8*h12(vec2(hs2,3.)))*uNight;}else alb=vec3(.12,.11,.1);}
           else alb=vec3(.2);}
         else{
           float vv=v-gf,fi=floor(vv/fh),fv=fract(vv/fh)*fh,bi=floor(u/bw),bu=fract(u/bw)*bw,r1=h12(vec2(bi,fi)+sd*13.71),r2=h12(vec2(fi,bi*1.7)+sd*5.3);
           if(style==0){vec2 bk=vec2(u/.25+step(.5,fract(v/.15))*.5,v/.075);vec2 bf=fract(bk);float mort=1.-smoothstep(.06,.12,min(min(bf.x,1.-bf.x)*3.3,min(bf.y,1.-bf.y)));
-            alb=tint*(.85+.2*h12(floor(bk))*near(.08))*(1.-mort*.35*near(.04));
+            alb=tint*(.88+.14*h12(floor(bk))*near(.06))*(1.-mort*.3*near(.02));
             float wx=abs(bu-bw*.5),wy=fv-fh*.5+.15,ww=bw*.27,wh=fh*.3;
             if(wx<ww+.08&&abs(wy)<wh+.08)alb=vec3(.42,.4,.36);if(wx<ww&&abs(wy)<wh)glass=1.;}
           else if(style==1){alb=tint*(.8+.25*nB);float jn=min(abs(fv-.02),abs(bu-.01));alb*=1.-(1.-smoothstep(0.,.03,jn))*.4;
