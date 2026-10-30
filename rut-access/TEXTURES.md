@@ -50,9 +50,7 @@ normal map (`dirt_red_n.png`) for the ones with real relief (gravel, rock, ruts,
 - **Normal maps**, if made: tangent space, OpenGL convention (green up, +Y is "towards the top of the
   picture"), no baked lighting, 1024 × 1024 PNG. Make them from the colour picture's height, not by hand.
 
-A prompt that has worked for this kind of thing, for the first one: *"seamless tileable texture, top-down
-photo of dry red-brown dirt with fine grit and small stones, flat even lighting, no shadows, no highlights,
-photorealistic, 1024x1024"*. Swap the subject for each row.
+`TEXTURE_PROMPTS.md` has a full prompt for every surface, with the rules to give the tool each time.
 
 ## Where to put them
 

@@ -98,4 +98,5 @@ golden hour.
 | `tools/eval_rut.js` | Runs a piece of code inside the booted page and prints what it returns, for checks that need no picture: `node tools/eval_rut.js "return g.GAME.car.p"` |
 | `tools/shot_showdown.js`, `shot_sl3.js`, `shot_dirt_sleeper.js` | Headless screenshots of HD, Showdown and Open World, of Shiftlight 3, and of the original Dirt Sleeper |
 | `TEXTURES.md` | The texture packs to make for the ground: what, what size, how they are read |
+| `TEXTURE_PROMPTS.md` | A ready image-tool prompt for each ground texture, and the rules to give the tool every time |
 | `tools/sheet.py` | Lays screenshots out in a labelled grid |
