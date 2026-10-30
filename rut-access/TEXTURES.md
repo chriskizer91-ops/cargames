@@ -52,12 +52,23 @@ normal map (`dirt_red_n.png`) for the ones with real relief (gravel, rock, ruts,
 
 `TEXTURE_PROMPTS.md` has a full prompt for every surface, with the rules to give the tool each time.
 
-## Where to put them
+## Where to put them, and how they are read
 
-Drop the files in `rut-access/textures/` with the names above. The build will pack whatever is there into
-`src/49_textures.js` (base64) and the land shader will read each surface's picture where it has one and keep
-Showdown's procedural material where it hasn't, so a half-finished set is fine. Mobile reads them at
-512 × 512 (the pack makes that copy); higher tiers read the full 1024.
+Drop the files in `rut-access/textures/` with the names above, then run `python3 tools/pack_textures.py` and
+`./build.sh`. The packer makes each picture tile (its edges are taken from its own middle and faded in over a
+band, narrow across planks, ribs and ruts), evens out any baked-in shading (the slow part of the brightness is
+divided out, harder on the rock, the ruts, the mud and the sheet metal), resizes to 1024, encodes WebP and
+writes `src/49_textures.js`: one layer a surface, with the picture's mean colour in linear light and its scale
+in metres a tile. A surface with no picture gets an empty layer and keeps Showdown's procedural material, so a
+half-finished set is fine. The game decodes them after boot into one texture array (512 a side on Mobile, drawn
+down from the 1024; the full 1024 on the other tiers) and fades them in. In the shader each picture is laid over
+the procedural colour as grain, pulled toward its own colour by the Dev look's Photo colour setting, at two
+scales blended by a slow noise so no tile repeats visibly. Rock is mapped from three axes by its normal; the
+lane's ruts, the strip's rubber, planks, ribs and straw run along their direction.
+
+The set delivered on 30 October 2026 (OpenAI's image tool, 1254 px, no tiling option) is in `textures/`: all
+seventeen, none seamless as made, which the packer handles. They are kept as quality-95 JPEG (about 1 MB each;
+the PNGs the tool made were 4.4 MB each, 72 MB for the set); the packer reads `.png` or `.jpg`.
 
 The puddles, the pond, the creek and the mud pits stay as they are: the water is drawn by the renderer, and the
 mud pit's shine, ruts and clods are the game's own.

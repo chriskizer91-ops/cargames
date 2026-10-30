@@ -13,11 +13,11 @@ const GFX_LEVELS=[
   ['high','High','For a gaming laptop or a desktop: 2048 shadow maps, a 256 probe, all the ground\'s detail, the land drawn further out.'],
   ['ultra','Ultra','For a fast desktop: 3072 shadow maps, 28 fog steps, the render scale up to 1.25, the land drawn to 700 m.']];
 const GFX_Q={
-  mobile:{detail:.6,far:420,lod:[150,290],treeNear:95, probeFar:260,grass:0},
-  low:   {detail:.8,far:460,lod:[170,320],treeNear:110,probeFar:300,grass:0},
-  medium:{detail:1, far:560,lod:[190,360],treeNear:130,probeFar:340,grass:1},
-  high:  {detail:1, far:620,lod:[220,400],treeNear:150,probeFar:340,grass:1},
-  ultra: {detail:1, far:700,lod:[240,440],treeNear:170,probeFar:400,grass:2}};
+  mobile:{detail:.6,far:420,lod:[150,290],treeNear:95, probeFar:260,grass:0,texRes:512, texAniso:2},
+  low:   {detail:.8,far:460,lod:[170,320],treeNear:110,probeFar:300,grass:0,texRes:1024,texAniso:4},
+  medium:{detail:1, far:560,lod:[190,360],treeNear:130,probeFar:340,grass:1,texRes:1024,texAniso:4},
+  high:  {detail:1, far:620,lod:[220,400],treeNear:150,probeFar:340,grass:1,texRes:1024,texAniso:8},
+  ultra: {detail:1, far:700,lod:[240,440],treeNear:170,probeFar:400,grass:2,texRes:1024,texAniso:8}};
 const GFX={level:'high',q:GFX_Q.high,far:620,lod:[220,400],frame:0,fromUrl:false};
 {const Q=new URLSearchParams(location.search);let g=Q.get('quality')||store.get('rut-gfx','');GFX.fromUrl=!!Q.get('quality');
   g={mini:'mobile',phone:'mobile',plus:'mobile',laptop:'high'}[g]||g;

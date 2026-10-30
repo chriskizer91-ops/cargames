@@ -7,12 +7,13 @@
         DEBUG (one of the renderer's buffers instead of the picture: color normal rough vel depth ssr fog lit hist bloom expo probe),
         JS (code run in the page before the frames, with the game as g: e.g. JS="g.SKY.ambUp=[0,0,0]"),
         PAGE=1 (a screenshot of the whole page, menus and readouts included, instead of the picture alone),
-        FILE (another built page to shoot, e.g. an older build kept for comparison)
+        FILE (another built page to shoot, e.g. an older build kept for comparison),
+        WAIT (milliseconds to wait after JS, before driving: time for the ground's pictures to decode)
    e.g.   node tools/shot_rut.js /tmp/shots noon:mobile:clear:day:loop night:mobile:dots:night:strip
    Software rendering: a minute or three a shot. Any page error is printed. */
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
 const [out,...jobs]=process.argv.slice(2);const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','rut-access.html');
-const W=+(process.env.W||960),H=+(process.env.H||540),FRAMES=+(process.env.FRAMES||24),SIM=+(process.env.SIM||4),DEBUG=process.env.DEBUG||'',JS=process.env.JS||'',PAGE=!!process.env.PAGE;
+const W=+(process.env.W||960),H=+(process.env.H||540),FRAMES=+(process.env.FRAMES||24),SIM=+(process.env.SIM||4),DEBUG=process.env.DEBUG||'',JS=process.env.JS||'',PAGE=!!process.env.PAGE,WAIT=+(process.env.WAIT||0);
 fs.mkdirSync(out,{recursive:true});
 (async()=>{
   const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
@@ -29,15 +30,15 @@ fs.mkdirSync(out,{recursive:true});
     const loading=await p.evaluate(()=>document.getElementById('loading').textContent);
     let r={};
     if(await p.evaluate(()=>document.getElementById('loading').hidden)){
-      r=await p.evaluate(async([tod,place,FRAMES,SIM,JS])=>{
+      r=await p.evaluate(async([tod,place,FRAMES,SIM,JS,WAIT])=>{
         window.requestAnimationFrame=()=>0;await new Promise(r=>setTimeout(r,300));
         const g=window.__game,G=g.GAME;G.hold=true;g.closeMenu();G.state='drive';
         g.applyTod(tod);g.APP.lights=tod==='night';g.APP.tod=tod;g.goTo(place);g.APP.cam=0;
-        if(JS)(new Function('g',JS))(g);
-        const dt=1/60;let k=0;while(k*dt<SIM){g.step(dt);k++;if(k%30===0)await new Promise(r=>setTimeout(r,20));}
+        if(JS)(new Function('g',JS))(g);if(WAIT)await new Promise(r=>setTimeout(r,WAIT));
+        const dt=1/60;let k=0;while(k*dt<SIM){g.APP.t+=dt;g.step(dt);k++;if(k%30===0)await new Promise(r=>setTimeout(r,20));}
         /* enough frames for TAA, the exposure and the probe to settle */
-        for(let i=0;i<FRAMES;i++){g.render(dt);if(i%4===3)await new Promise(r=>setTimeout(r,20));}
-        return {snap:g.snap(),place:G.place,tris:g.APP.tris,render:g.R.iw+'x'+g.R.ih+' of '+g.R.W+'x'+g.R.H,lights:g.R.lights.stats.lights,csmOn:g.R.U.uCSMOn,csms:Array.from(g.R.U.uCSMS||[]).map(v=>+v.toFixed(3)),dbg:window.__dbg||null};},[tod,place,FRAMES,SIM,JS]);
+        for(let i=0;i<FRAMES;i++){g.APP.t+=dt;g.render(dt);if(i%4===3)await new Promise(r=>setTimeout(r,20));}
+        return {snap:g.snap(),place:G.place,tris:g.APP.tris,render:g.R.iw+'x'+g.R.ih+' of '+g.R.W+'x'+g.R.H,lights:g.R.lights.stats.lights,csmOn:g.R.U.uCSMOn,csms:Array.from(g.R.U.uCSMS||[]).map(v=>+v.toFixed(3)),dbg:window.__dbg||null};},[tod,place,FRAMES,SIM,JS,WAIT]);
       if(PAGE)await p.screenshot({path:`${out}/${name}.png`,timeout:300000});else fs.writeFileSync(`${out}/${name}.png`,Buffer.from(r.snap.split(',')[1],'base64'));delete r.snap;}
     else{r.loading=loading;fails++;}
     if(errs.length)fails++;

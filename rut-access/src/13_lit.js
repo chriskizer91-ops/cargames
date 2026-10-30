@@ -103,6 +103,10 @@ void main(){vec3 w;
   gl_Position=uVP*vec4(w,1.);}`;
 const DEPTH_FS=`out vec4 o;void main(){o=vec4(0.);}`;
 /* ---------- the materials ---------- */
+/* the packed pictures' means and scales (49_textures' TEXPACK) as a constant table in the shader; a stand-in when there is no pack */
+function texInfoGLSL(){const L=(typeof TEXPACK!=='undefined'&&TEXPACK.layers&&TEXPACK.layers.length)?TEXPACK.layers:null,n=L?L.length:17;
+  const rows=L?L.map(l=>`vec4(${l.m.map(v=>(+v).toFixed(4)).join(',')},${(+l.scale).toFixed(3)})`):Array(17).fill('vec4(.5,.5,.5,2.)');
+  return `const vec4 TEXINFO[${n}]=vec4[${n}](${rows.join(',')});\n`;}
 const MATFN=`
 uniform samplerCube uProbe;uniform float uProbeLod;
 /* the car being drawn */
@@ -147,6 +151,48 @@ float gFP=0.;vec2 gG=vec2(0.);
 /* fades detail of a given size (m) out as pixels grow past it */
 float near(float size){return sat(1.-gFP/size)*uDetail;}
 /* the ranch's red-dirt country (Dirt Sleeper's palette) */
+/* ---------- the ground's photographs (the owner's texture packs: 49_textures, bound by 52_world_gl): one array, a layer a
+   surface, TEXINFO its means (linear) and metres a tile. Each is laid over the procedural colour as grain (the picture
+   divided by its mean), pulled toward the picture's own colour by uTexCol, and faded in by uTexOn. Two scales over
+   each other by a slow noise, so no tile shows twice. The probe (the car's reflections) does without them. ---------- */
+uniform sampler2DArray uTex;uniform float uTexOn,uTexCol;
+#define T_DIRT 0
+#define T_DIRT2 1
+#define T_GRASS 2
+#define T_GRASS2 3
+#define T_TRAIL 4
+#define T_GRAVEL 5
+#define T_ASPHALT 6
+#define T_STRIP 7
+#define T_ROCK 8
+#define T_RUTS 9
+#define T_MUD 10
+#define T_PLAYA 11
+#define T_CLAY 12
+#define T_CONCRETE 13
+#define T_PLANKS 14
+#define T_SHEET 15
+#define T_HAY 16
+vec2 rot2(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(c*p.x-s*p.y,s*p.x+c*p.y);}
+vec3 photoMix(vec3 alb,vec3 t,vec3 m){return mix(alb,mix(alb*(t/max(m,vec3(.02))),t,uTexCol),uTexOn);}
+#ifdef PROBE
+vec3 photoG(vec3 alb,int L,vec2 wp){return alb;}
+vec3 photoG2(vec3 alb,int L,int L2,vec2 wp){return alb;}
+vec3 photoUV(vec3 alb,int L,vec2 uv){return alb;}
+vec3 photoTri(vec3 alb,int L,vec3 P,vec3 N){return alb;}
+#else
+/* one surface on the ground plane */
+vec3 photoG(vec3 alb,int L,vec2 wp){if(uTexOn<=0.)return alb;vec4 I=TEXINFO[L];vec2 uv=wp/I.w;float n=smoothstep(.35,.65,vn(wp*.07));
+  vec3 t=mix(texture(uTex,vec3(uv,float(L))).rgb,texture(uTex,vec3(rot2(uv,2.1)*.73+5.2,float(L))).rgb,n);return photoMix(alb,t,I.rgb);}
+/* two pictures of the same ground (the dirt, the grass), one or the other by a slower noise */
+vec3 photoG2(vec3 alb,int L,int L2,vec2 wp){if(uTexOn<=0.)return alb;vec4 I=TEXINFO[L],I2=TEXINFO[L2];vec2 uv=wp/I.w;float n=smoothstep(.4,.6,fbmS(wp*.045+3.7));
+  vec3 t=mix(texture(uTex,vec3(uv,float(L))).rgb,texture(uTex,vec3(rot2(uv,1.3)*1.11+2.4,float(L2))).rgb,n);return photoMix(alb,t,mix(I.rgb,I2.rgb,n));}
+/* a picture with a direction (ruts, planks, ribs, straw): the caller's uv, in metres */
+vec3 photoUV(vec3 alb,int L,vec2 uv){if(uTexOn<=0.)return alb;vec4 I=TEXINFO[L];return photoMix(alb,texture(uTex,vec3(uv/I.w,float(L))).rgb,I.rgb);}
+/* over 3D rock: from the three axes, weighted by the normal */
+vec3 photoTri(vec3 alb,int L,vec3 P,vec3 N){if(uTexOn<=0.)return alb;vec4 I=TEXINFO[L];vec3 w=pow(abs(N),vec3(4.));w/=w.x+w.y+w.z;float l=float(L);
+  vec3 t=texture(uTex,vec3(P.zy/I.w,l)).rgb*w.x+texture(uTex,vec3(P.xz/I.w,l)).rgb*w.y+texture(uTex,vec3(P.xy/I.w,l)).rgb*w.z;return photoMix(alb,t,I.rgb);}
+#endif
 vec3 dirtCol(vec2 p){float n1=fbmS(p*.09),n3=vn(p*3.1);return mix(vec3(.21,.095,.045),vec3(.36,.2,.105),n1)*(.8+.35*n3);}
 vec3 grassCol(vec2 p){float dry=smoothstep(.3,.78,fbmS(p*.045+7.));float n2=vn(p*.7),n3=vn(p*3.1),n4=vn(p*11.);
   return mix(vec3(.06,.105,.022),vec3(.2,.17,.06),dry)*(.62+.5*n4*n3+.25*n2);}
@@ -191,7 +237,7 @@ vec2 ripplesS(vec2 p){
       if(abs(w)<.12)g+=d/max(r,1e-3)*sin(w*52.)*(1.-t)*(1.-abs(w)/.12)*.25;}}
   return g;}
 `;
-const FS=G.FRAME+G.NOISE+G.PACK+G.LIGHTING+G.SHADE+SKYFN+MATFN+`
+const FS=G.FRAME+G.NOISE+G.PACK+G.LIGHTING+G.SHADE+SKYFN+texInfoGLSL()+MATFN+`
 in vec3 vP;in vec3 vN;in vec4 vC;in float vMat;in vec3 vL;in vec4 vCur;in vec4 vPrev;
 layout(location=0) out vec4 oCol;
 #ifndef PROBE
@@ -273,17 +319,17 @@ void main(){
       /* the ground: weights for grass, rock and mud in the colour, ambient occlusion in its alpha */
       float n2=vn(wp*.7),n3=vn(wp*3.1),n4=vn(wp*11.);
       float gw=smoothstep(.3,.72,vC.r+(n2-.5)*.45),rw=smoothstep(.35,.65,vC.g+(n3-.5)*.3),mw=smoothstep(.25,.6,vC.b+(n2-.5)*.25);
-      alb=dirtCol(wp);dirtDetail(wp,alb,1.-gw);
-      if(gw>.004){vec3 gc=grassCol(wp);vec2 g0=gG;gG=vec2(0.);grassDetail(wp,gc);gG=mix(g0,gG,gw);alb=mix(alb,gc,gw);}
-      if(rw>.004){alb=mix(alb,rockCol(vP),rw);vec3 a=vnd(wp*1.1);gG+=a.yz*1.1*.08*rw*near(.4);}
+      alb=dirtCol(wp);dirtDetail(wp,alb,1.-gw);alb=photoG2(alb,T_DIRT,T_DIRT2,wp);
+      if(gw>.004){vec3 gc=grassCol(wp);vec2 g0=gG;gG=vec2(0.);grassDetail(wp,gc);gG=mix(g0,gG,gw);gc=photoG2(gc,T_GRASS,T_GRASS2,wp);alb=mix(alb,gc,gw);}
+      if(rw>.004){alb=mix(alb,photoTri(rockCol(vP),T_ROCK,vP,N),rw);vec3 a=vnd(wp*1.1);gG+=a.yz*1.1*.08*rw*near(.4);}
       spec=.03;shin=8.;
       if(mw>0.){vec3 md=mix(vec3(.15,.1,.06),vec3(.09,.06,.035),smoothstep(.3,.8,n3))*(.8+.35*n4);pud=smoothstep(.7,.76,fbmS(wp*.28)+mw*.05)*mw;
-        alb=mix(alb,md,mw);spec=mix(spec,.25,mw);shin=30.;gG*=1.-mw*.7;mudCracks(wp,alb,mw*(1.-smoothstep(.55,.85,mw))*.9,spec);}
+        md=photoG(md,T_MUD,wp);alb=mix(alb,md,mw);spec=mix(spec,.25,mw);shin=30.;gG*=1.-mw*.7;mudCracks(wp,alb,mw*(1.-smoothstep(.55,.85,mw))*.9,spec);}
       ao=mix(1.,em,.85);em=0.;
     }
     else if(m==41){
       /* boulders and slabs: relief in 3D, bumped by the derivative of its height */
-      alb=rockCol(vP);spec=.08;shin=16.;ao=mix(1.,em,.8);em=0.;ground=false;
+      alb=photoTri(rockCol(vP),T_ROCK,vP,N);spec=.08;shin=16.;ao=mix(1.,em,.8);em=0.;ground=false;
 #ifndef PROBE
       if(uDetail>.3&&gFP<.15){float hh=rockH(vP);vec3 dpx=dFdx(vP),dpy=dFdy(vP),r1=cross(dpy,N),r2=cross(N,dpx);float det=dot(dpx,r1);
         vec3 gr=sign(det)*(dFdx(hh)*r1+dFdy(hh)*r2);N=normalize(abs(det)*N-gr*1.2);alb*=.88+hh*1.4;}
@@ -293,8 +339,8 @@ void main(){
       /* the drag strip: packed dirt, darker grooves where the tyres run, chalk lines (colour = metres past the line, metres across) */
       float sx=vC.r,d=vC.g,ad=abs(d),n2=vn(vec2(sx,d)*2.5);
       alb=dirtCol(wp)*mix(vec3(1.),vec3(.72,.66,.62),.35+.15*n2);
-      float lane=min(abs(d+4.),abs(d-4.)),groove=exp(-pow(min(abs(lane-.82),abs(lane+.82))/.34,2.))*(.35+.65*(1.-smoothstep(-10.,90.,sx)));alb*=1.-.4*groove;
-      alb=mix(alb,dirtCol(wp*1.3)*1.08,smoothstep(7.,8.8,ad));
+      float lane=min(abs(d+4.),abs(d-4.)),groove=exp(-pow(min(abs(lane-.82),abs(lane+.82))/.34,2.))*(.35+.65*(1.-smoothstep(-10.,90.,sx)));alb*=1.-.4*groove;alb=mix(photoUV(alb,T_TRAIL,vec2(d,sx)),photoUV(alb,T_STRIP,vec2(d,sx)),groove*.85);
+      alb=mix(alb,photoG2(dirtCol(wp*1.3),T_DIRT,T_DIRT2,wp)*1.08,smoothstep(7.,8.8,ad));
       float ch=max(max(1.-step(.16,abs(sx)),1.-step(.16,abs(sx-201.168)))*step(ad,8.2),(1.-step(.07,abs(d)))*step(.45,fract(sx/5.))*step(-6.,sx)*step(sx,250.));
       ch=max(ch,(1.-step(.05,abs(ad-7.9)))*step(-12.,sx)*step(sx,250.));
       vec3 b=vnd(wp*14.);gG+=b.yz*14.*.002*near(.05)*(1.-groove);
@@ -305,25 +351,25 @@ void main(){
       float d=vC.g,ad=abs(d),n2=vn(vec2(vC.r,d)*2.5);alb=dirtCol(wp);
       float rut=exp(-pow((ad-.86)/.3,2.)),crown=1.-smoothstep(.18,.45,ad),verge=smoothstep(1.9,3.3,ad+(n2-.5)*.8);
       dirtDetail(wp,alb,1.-rut*.6);gG*=1.-rut*.5;
-      alb*=1.-.22*rut;float gw=max(crown*.85*smoothstep(.25,.55,vn(vec2(vC.r*.7,d*3.))),verge);
-      if(gw>.01){vec3 gc=grassCol(wp);grassDetail(wp,gc);alb=mix(alb,gc,gw);}spec=.04+.04*rut;shin=8.+10.*rut;
+      alb*=1.-.22*rut;alb=photoUV(alb,T_TRAIL,vec2(d,vC.r));float gw=max(crown*.85*smoothstep(.25,.55,vn(vec2(vC.r*.7,d*3.))),verge);
+      if(gw>.01){vec3 gc=grassCol(wp);grassDetail(wp,gc);gc=photoG2(gc,T_GRASS,T_GRASS2,wp);alb=mix(alb,gc,gw);}spec=.04+.04*rut;shin=8.+10.*rut;
     }
     else if(m==44){
       /* the mud track: churned and wet, ruts with water lying in them */
       float sx=vC.r,d=vC.g,ad=abs(d),n3=vn(vec2(sx*.9,d*2.2)),n4=vn(vec2(sx,d)*7.);
-      vec3 md=mix(vec3(.13,.085,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*n4);
+      vec3 md=mix(vec3(.13,.085,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*n4);md=photoG(md,T_MUD,wp);
       float rut=0.;for(int i=0;i<4;i++){float c=(float(i)-1.5)*1.55+(vn(vec2(sx*.08,float(i)*3.))-.5)*.7;rut=max(rut,exp(-pow((d-c)/.34,2.)));}
       float edge=smoothstep(3.8,4.9,ad+(n3-.5)*1.2),clod=smoothstep(.55,.8,vn(vec2(sx*3.,d*5.)))*(1.-rut);
-      alb=mix(md*(1.+clod*.45),dirtCol(wp)*.85,edge*.6);spec=.3;shin=40.;
+      alb=mix(md*(1.+clod*.45),photoG2(dirtCol(wp),T_DIRT,T_DIRT2,wp)*.85,edge*.6);spec=.3;shin=40.;
       vec3 b=vnd(wp*3.3);gG+=b.yz*3.3*.03*near(.15)*(1.-rut)*(.5+clod);
       pud=rut*smoothstep(.45,.6,fbmS(vec2(sx*.15,d*.6)))*(1.-edge);
       mudCracks(wp,alb,edge*.8,spec);
     }
-    else if(m==45){float j=max(step(fract(wp.x/4.),.012),step(fract(wp.y/4.),.012));alb=vec3(.26,.25,.235)*(.82+.25*vn(wp*2.3)+.1*vn(wp*13.))*(1.-.35*j);spec=.06;shin=20.;
+    else if(m==45){float j=max(step(fract(wp.x/4.),.012),step(fract(wp.y/4.),.012));alb=vec3(.26,.25,.235)*(.82+.25*vn(wp*2.3)+.1*vn(wp*13.))*(1.-.35*j);alb=photoG(alb,T_CONCRETE,wp);spec=.06;shin=20.;
       vec3 b=vnd(wp*24.);gG+=b.yz*24.*.0007*near(.03);alb*=1.-.18*smoothstep(.6,.85,fbmS(wp*.35))*uDetail;}
-    else if(m==46){float g=vn(vec2((vP.x+vP.z)*1.5,vP.y*38.))*.6+vn(vec2((vP.x+vP.z)*.4,vP.y*7.))*.4;alb*=.62+.5*g;spec=.03;ground=false;}
+    else if(m==46){float g=vn(vec2((vP.x+vP.z)*1.5,vP.y*38.))*.6+vn(vec2((vP.x+vP.z)*.4,vP.y*7.))*.4;alb*=.62+.5*g;alb=photoUV(alb,T_PLANKS,vec2(vP.x+vP.z,vP.y));spec=.03;ground=false;}
     else if(m==47){float rib=abs(fract((vP.x+vP.z)*3.6+(em>.5?vP.y*3.6:0.))-.5),st=smoothstep(.55,.85,vn(vec2((vP.x+vP.z)*2.,vP.y*.25)))*.35;
-      alb*=(.86+.22*rib)*(1.-st*.5);alb=mix(alb,vec3(.18,.08,.04),st*.35);spec=em>.5?.15:.5;shin=em>.5?20.:60.;metal=em>.5?.2:.6*(1.-st);em=0.;ground=false;}
+      alb*=(.86+.22*rib*(1.-uTexOn))*(1.-st*.5);alb=mix(alb,vec3(.18,.08,.04),st*.35);alb=photoUV(alb,T_SHEET,vec2((vP.x+vP.z)+(em>.5?vP.y:0.),em>.5?vP.x-vP.z:vP.y));spec=em>.5?.15:.5;shin=em>.5?20.:60.;metal=em>.5?.2:.6*(1.-st);em=0.;ground=false;}
     else if(m==48){
       /* leaves: light comes through them; the crown is darker underneath and deep inside */
       alb*=.6+.55*vn3(vP*2.2);spec=.05;shin=10.;trans=.45;ground=false;
@@ -334,7 +380,7 @@ void main(){
         N=normalize(abs(det)*N-sign(det)*(dFdx(hh)*r1+dFdy(hh)*r2)*sat(1.-gFP/.2)*uDetail);}
 #endif
     }
-    else if(m==49){float st=vn(vec2((vP.x+vP.z)*30.,vP.y*20.))*.6+vn(vec2(atan(vL.z,vL.y)*20.,vP.y*6.))*.4;alb=vec3(.42,.31,.1)*(.6+.6*st);spec=.02;ground=false;}
+    else if(m==49){float st=vn(vec2((vP.x+vP.z)*30.,vP.y*20.))*.6+vn(vec2(atan(vL.z,vL.y)*20.,vP.y*6.))*.4;alb=photoUV(vec3(.42,.31,.1)*(.6+.6*st),T_HAY,vec2(vL.x,atan(vL.z,vL.y)*.75));spec=.02;ground=false;}
     else if(m==50){
       /* the creek and the pond: dark water, the world in it, ripples running downstream (and rain rings) */
       vec2 rp=wp*1.3+vec2(uTime*.3,uTime*.5);vec2 gw=vec2((vn(rp)-.5)*.25+(vn(wp*3.1-uTime*.4)-.5)*.12,(vn(rp+7.)-.5)*.25);
@@ -348,8 +394,8 @@ void main(){
       float d=vC.g,ad=abs(d),hw=em,n1=vn(wp*1.7),n2=vn(wp*9.),n3=vn(wp*31.);
       vec3 gc=mix(vec3(.16,.145,.12),vec3(.27,.245,.205),n1)*(.7+.42*n2)*(.78+.36*n3);float tr=0.;
       if(vC.b<.5){tr=exp(-pow((ad-1.5)/.55,2.));gc=mix(gc,gc*vec3(.8,.78,.76),tr*.85);}
-      gravelDetail(wp,gc);gG*=1.-tr*.6;
-      if(vC.b<.5){float edge=smoothstep(hw-.6,hw+.3,ad+(n1-.5)*.9);gc=mix(gc,mix(dirtCol(wp),grassCol(wp),smoothstep(.25,.7,vn(wp*.35))),edge);}
+      gravelDetail(wp,gc);gG*=1.-tr*.6;gc=photoG(gc,T_GRAVEL,wp);
+      if(vC.b<.5){float edge=smoothstep(hw-.6,hw+.3,ad+(n1-.5)*.9);gc=mix(gc,mix(photoG2(dirtCol(wp),T_DIRT,T_DIRT2,wp),photoG2(grassCol(wp),T_GRASS,T_GRASS2,wp),smoothstep(.25,.7,vn(wp*.35))),edge);}
       alb=gc;spec=.05+.04*tr;shin=14.;em=0.;
     }
     else if(m==54){
@@ -357,18 +403,18 @@ void main(){
          it bends (blue slot), grass beyond, a chequered band at the line; alpha = half width */
       float sx=vC.r,d=vC.g,ad=abs(d),hw=em,n2=vn(wp*7.),n3=vn(wp*41.);
       vec3 ac=vec3(.05,.05,.056)*(.82+.28*n2)*(.88+.22*n3);float rub=exp(-pow(d/2.4,2.));ac*=1.-.2*rub;
-      asphaltDetail(wp,ac,ad,hw);
+      asphaltDetail(wp,ac,ad,hw);ac=photoG(ac,T_ASPHALT,wp);
       ac=mix(ac,vec3(.6,.6,.58),step(hw-.45,ad)*step(ad,hw-.2));
-      if(ad>hw){vec3 kc=mix(vec3(.46,.03,.025),vec3(.64,.63,.6),step(.5,fract(sx/1.6)));ac=mix(grassCol(wp),kc,smoothstep(.35,.45,vC.b)*step(ad,hw+1.5));}
+      if(ad>hw){vec3 kc=mix(vec3(.46,.03,.025),vec3(.64,.63,.6),step(.5,fract(sx/1.6)));ac=mix(photoG2(grassCol(wp),T_GRASS,T_GRASS2,wp),kc,smoothstep(.35,.45,vC.b)*step(ad,hw+1.5));}
       else if(sx<1.6){ac=mix(vec3(.015),vec3(.64),mod(floor(sx/.8)+floor((d+hw)/.8),2.));}
       alb=ac;spec=.3;shin=36.+40.*rub;em=0.;
     }
     else if(m==55){
       /* the home lane: mud in the ruts with water lying in the deep spots, grass on the crown and the verges (blue = rut depth) */
       float sx=vC.r,d=vC.g,ad=abs(d),dep=vC.b,n2=vn(vec2(sx,d)*2.3),n3=vn(vec2(sx*.7,d*3.));
-      vec3 md=mix(vec3(.14,.09,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*vn(vec2(sx,d)*8.));
+      vec3 md=mix(vec3(.14,.09,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*vn(vec2(sx,d)*8.));md=photoUV(md,T_RUTS,vec2(d+1.55,sx));
       float rut=exp(-pow((ad-.82)/.3,2.)),gr=max(1.-smoothstep(.2,.48,ad+(n2-.5)*.22),smoothstep(1.55,2.25,ad+(n2-.5)*.5));
-      vec3 gc=grassCol(wp);grassDetail(wp,gc);gG*=gr;
+      vec3 gc=grassCol(wp);grassDetail(wp,gc);gG*=gr;gc=photoG2(gc,T_GRASS,T_GRASS2,wp);
       alb=mix(md,gc*.92,gr*(.7+.3*n2));spec=.22;shin=36.;
       pud=rut*smoothstep(.15,.19,dep+(n3-.5)*.05);
       em=0.;
@@ -381,9 +427,9 @@ void main(){
       float groove=exp(-pow((d-(kind<.5?-.25*hw:0.))/(hw*.42),2.)),rut=kind>.5?max(exp(-pow((d-1.)/.45,2.)),exp(-pow((d+1.)/.45,2.)))*.6:0.;
       float cushion=smoothstep(hw*.55,hw*.95,kind<.5?d:ad)*(.6+.4*n3);
       c*=1.-.28*groove-.15*rut;c=mix(c,c*1.22+vec3(.025,.018,.01),cushion*.7);
-      dirtDetail(wp,c,(1.-groove*.7)*(.45+.55*cushion));
+      dirtDetail(wp,c,(1.-groove*.7)*(.45+.55*cushion));c=kind<.5?photoG(c,T_CLAY,wp):photoG2(c,T_DIRT,T_DIRT2,wp);
       if(kind<.5&&d<-hw)c=mix(c*.8,vec3(.5,.49,.46),(1.-step(.12,abs(d+hw+.15))));
-      if(kind>.5&&ad>hw){vec3 gc=grassCol(wp);grassDetail(wp,gc);c=mix(c,gc,smoothstep(hw,hw+.8,ad+(n2-.5)*.6));}
+      if(kind>.5&&ad>hw){vec3 gc=grassCol(wp);grassDetail(wp,gc);gc=photoG2(gc,T_GRASS,T_GRASS2,wp);c=mix(c,gc,smoothstep(hw,hw+.8,ad+(n2-.5)*.6));}
       c=mix(c,vec3(.72,.7,.66),(1.-step(.35,abs(sx-.35)))*step(ad,hw)*(1.-.5*smoothstep(.45,.8,vn(vec2(sx,d)*vec2(3.,1.5)))));
       alb=c;spec=.05+.16*groove;shin=10.+36.*groove;em=0.;
     }
@@ -391,8 +437,8 @@ void main(){
       /* the dry lake: pale clay baked into plates, the cracks between them, darker where the cars have run */
       float n1=vn(wp*.04),n2=vn(wp*.6),n3=vn(wp*4.1);
       vec3 c=mix(vec3(.29,.25,.2),vec3(.36,.32,.26),n1)*(.9+.1*n2+.06*n3);
-      float tr=smoothstep(.55,.8,fbmS(wp*.02+3.))*.25;c*=1.-tr;
-      mudCracks(wp*.55,c,.9,spec);vec3 b=vnd(wp*1.3);gG+=b.yz*1.3*.01*near(.15);
+      float tr=smoothstep(.55,.8,fbmS(wp*.02+3.))*.25;c*=1.-tr;c=photoG(c,T_PLAYA,wp);
+      mudCracks(wp*.55,c,.9*(1.-.7*uTexOn),spec);vec3 b=vnd(wp*1.3);gG+=b.yz*1.3*.01*near(.15);
       alb=c;spec=.03;shin=8.;
     }
     /* rain soaks the porous ground dark and puts a sheen with the world in it on the hard ground; low spots fill */

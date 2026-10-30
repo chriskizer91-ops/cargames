@@ -18,7 +18,7 @@ CARS="10_core 11_sl3 12_display 12_gl_mesh 13_lit 14_loft 15_digital_engine 16_e
 # how they drive: the physics, the ground contact, each build's chassis, the Sim level, the robots and the cross-country routes
 DRIVE="40_physics 41_ground 42_chassis 43_sim 44_ai 45_cross"
 # the world: the far country, the country, the ranch, its drawing through the renderer, the dust and mud, the developer panel, the graphics tiers and the display
-WORLD="50_far 50_country 51_ranch 52_world_gl 53_fx 54_dev 55_gfx 55_post"
+WORLD="49_textures 50_far 50_country 51_ranch 52_world_gl 53_fx 54_dev 55_gfx 55_post"
 # the game: the garage's parts, the ratings, the feats, day and night, the game, its HUD, menu, garage, touch and boot
 GAME="56_parts 57_ratings 58_feats 59_daynight 60_game 60_race 61_hud 62_menu 63_garage 63_bay 64_touch 65_boot"
 

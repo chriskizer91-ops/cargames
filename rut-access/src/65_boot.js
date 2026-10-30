@@ -18,7 +18,7 @@
            grid over the whole two-mile map and a margin, 8 m cells */
         R.loadWorld({geo:null,lights:landLights(),info:{lightGrid:{x0:-1700,z0:-1700,size:3400,cell:8}}});
         R.extra.push(LAND,CARHOOK,FXP);
-        landPrograms();FXP.init();displayPrograms();
+        landPrograms();FXP.init();displayPrograms();texLoad();
         computePlaces();mapBitmap();bindTouch();
         spawnCar(rigBuild(APP.car,rigOf(APP.car)),6,4,0);buildMenu();
         $('loading').textContent='Warming up the shaders';
@@ -32,6 +32,6 @@
     GFX,GFX_LEVELS,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,LAND,CARHOOK,FXP,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},M4_ID,landDraw,landDrawDepth,drawTrees,boxVisible,compile,VS_FS,DISP,setDisplay,PIC,get RESO(){return RESO;},PERF,setPerf,SKY,TOD,WX,envNow,
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,
     CROSS_ROUTES,raceLine,looksOf,LADDER,CALLOUT,calloutStep,setAuto,syncRaces,
-    BAY,bayTick,bayView,baySetTab,bayEnter,bayLeave,baySync,bayToggleEngine,TONE,toneApply,settleCar,LOOK,
+    BAY,bayTick,bayView,baySetTab,bayEnter,bayLeave,baySync,bayToggleEngine,TONE,toneApply,settleCar,LOOK,TEX,texLoad,get TEXPACK(){return TEXPACK;},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }

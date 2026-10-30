@@ -65,12 +65,14 @@ function devTag(){
 function devStep(){const i=DEV_STEPS.findIndex(v=>Math.abs(v-DEV_T.all)<.01);DEV_T.all=DEV_STEPS[(i+1)%DEV_STEPS.length];devApply();return DEV_T.all;}
 
 /* ---------- the look: judgment calls about the picture the owner can A/B on the phone (saved on the device) ---------- */
-const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1},LOOK=Object.assign({},LOOK_DEF);
+const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1,tex:1,texcol:.5},LOOK=Object.assign({},LOOK_DEF);
 const LOOK_S=[['sat','Saturation',.6,1.6,'The grade\'s saturation, times the time of day\'s own. ACES, the renderer\'s tone map, leaves colours flatter than Dirt Sleeper\'s did; the day presets add some back.'],
   ['con','Contrast',.8,1.3,'The grade\'s contrast round mid grey.'],
   ['key','Exposure',.5,2,'The auto exposure\'s target brightness, times the time of day\'s own.'],
   ['haze','Haze',0,2,'The light in the air: the volumetric fog\'s ambient and the far land\'s fade into the sky.'],
-  ['detail','Ground detail',0,1,'How much detail is cut into the ground: clods, stones, cracks, grass tufts. The tier sets the default (Mobile 60%).']];
+  ['detail','Ground detail',0,1,'How much detail is cut into the ground: clods, stones, cracks, grass tufts. The tier sets the default (Mobile 60%).'],
+  ['tex','Ground photos',0,1,'How much of the texture packs is laid over the procedural ground: 0 is the ground as Showdown drew it, 100% the pictures in full.'],
+  ['texcol','Photo colour',0,1,'0: only the pictures\' grain, in the game\'s own ground colours. 100%: the pictures\' own colours, as made.']];
 const LOOK_T=[['shadows','Sun shadows','The cascaded shadow maps. Off, the sun casts nothing, and the frame is cheaper.'],['occ','Shade under the cars','The soft occlusion on the ground under each car.']];
 function lookLoad(){try{const d=JSON.parse(store.get('rut-look','{}'))||{};for(const k in LOOK_DEF)if(typeof d[k]==='number')LOOK[k]=d[k];}catch(e){}}
 if(DEV)lookLoad();

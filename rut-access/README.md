@@ -71,10 +71,22 @@ LED matrix.
   owner's call. Showdown's grass reference is gone from `tools/ref`. The ground's detail will come from
   texture packs the owner has made (`TEXTURES.md` says what to make).
 
+**Phase 2 has begun: the owner's texture packs are on the ground.** Seventeen photographs (`textures/`, made
+with an image tool from `TEXTURE_PROMPTS.md`) are packed by `tools/pack_textures.py` into `src/49_textures.js`:
+each is made to tile (its edges taken from its own middle, faded in over a band), its baked-in shading evened
+out so the renderer's light is the only light, and encoded as WebP. At boot they decode in the background into
+one texture array (512 px a side on Mobile, 1024 on the other tiers) while the game runs on its procedural
+ground, then fade in. In the shader each surface's picture is laid over Showdown's procedural colour as grain
+(the picture divided by its mean colour), pulled toward the picture's own colour by a Dev setting, at two
+scales blended by a slow noise so no tile shows twice: dirt and grass each from two pictures by a slower
+noise, rock from three axes by its normal, the lane's ruts, the strip's rubber, planks, ribs and straw along
+their direction. Puddles, the pond, the creek and the mud pits are as they were. The page is 7.7 MB with
+the pictures in it. **Dev: the look** has two new sliders: Ground photos (how much of the pictures) and Photo
+colour (the grain in the game's colours, or the pictures' own colours).
+
 Phase 0, the fork, was Showdown with the title and the saved-settings keys changed (`rut-`).
 
-Next: Phase 2, the land: ground texture packs, trees as they are, water and mud as they are, dust and spray,
-golden hour.
+Next, the rest of Phase 2: the trees as they are but better lit, dust and spray, golden hour; then Phase 3.
 
 ## Layout
 
@@ -84,7 +96,7 @@ golden hour.
 | `rut-access.html` | The whole game in one file (built) |
 | `dist/rut-access.artifact.html` | The same page without its outer tags, for publishing as an artifact |
 | `build.sh` | Builds both: the shell's head, the source modules in order, the shell's tail. Run `./build.sh` after changing anything in `src/` or `shell/` |
-| `src/` | The modules: `10_core` the basics and the HUD's pixel buffer; `11_sl3` Shiftlight 3's renderer, bundled; `12_display` the renderer's GL context and shader compiling; `12_gl_mesh` the mesh builder; `13_lit` the scene shaders (Dirt Sleeper's materials in the renderer's lighting, the sky, the shadow depth pass, the puffs); 14-33 the lofts, the engines and their sound, the seven bodies, their parts, wheels and builds; 40-45 the physics, the ground contact, each build's chassis, the Sim level, the robot drivers and the cross-country routes; `50_far`, `50_country`, `51_ranch` the world; `52_world_gl` the land through the renderer's hooks; `53_fx` the dust, mud and spray; `54_dev` the developer panel (traction, Sim, the look); `55_gfx` the graphics tiers, the weather and the frame's environment; `55_post` the display (clear or LED dots), the HUD's dots, dynamic resolution and the performance readout; 56-65 the garage's parts, the ratings, the feats, day and night (the lamps), the game and its drawing hooks, the races and callouts, the HUD, menu, garage, the model bay in the garage (`63_bay`), touch controls and boot |
+| `src/` | The modules: `10_core` the basics and the HUD's pixel buffer; `11_sl3` Shiftlight 3's renderer, bundled; `12_display` the renderer's GL context and shader compiling; `12_gl_mesh` the mesh builder; `13_lit` the scene shaders (Dirt Sleeper's materials in the renderer's lighting, the sky, the shadow depth pass, the puffs); 14-33 the lofts, the engines and their sound, the seven bodies, their parts, wheels and builds; 40-45 the physics, the ground contact, each build's chassis, the Sim level, the robot drivers and the cross-country routes; `49_textures` the ground's photographs, packed; `50_far`, `50_country`, `51_ranch` the world; `52_world_gl` the land through the renderer's hooks; `53_fx` the dust, mud and spray; `54_dev` the developer panel (traction, Sim, the look); `55_gfx` the graphics tiers, the weather and the frame's environment; `55_post` the display (clear or LED dots), the HUD's dots, dynamic resolution and the performance readout; 56-65 the garage's parts, the ratings, the feats, day and night (the lamps), the game and its drawing hooks, the races and callouts, the HUD, menu, garage, the model bay in the garage (`63_bay`), touch controls and boot |
 | `shell/` | The page's head (title, styles, markup) and tail |
 | `design/ratings.json` | Each factory build's six ground ratings |
 | `lab/digital-engine.html` | The Digital Engine lab: the engine synth and sim every Dirt game uses, and a page to hear them in |
@@ -94,9 +106,11 @@ golden hour.
 | `tools/races.js`, `cross.js`, `ladder.js` | The robot drivers round every course, down every cross-country route, and down the eighth mile: `node tools/races.js par`, `node tools/cross.js`, `node tools/ladder.js` |
 | `tools/showdown_check.js` | The built page in headless Chromium: a whole race on each route with a robot in your seat, then a callout; fails on any page error: `node tools/showdown_check.js` |
 | `tools/check_de.py` | Proves the game's Digital Engine block is byte for byte the lab's: `python3 tools/check_de.py` |
-| `tools/shot_rut.js` | Headless screenshots of this game, drawn frame by frame through its hooks: `node tools/shot_rut.js <out> name:quality:display:tod:place ...`; `DEBUG=` shows one of the renderer's buffers (or `shadow` for the sun's visibility), `PAGE=1` shoots the whole page, `JS=` runs code first, `FILE=` shoots another build |
+| `tools/shot_rut.js` | Headless screenshots of this game, drawn frame by frame through its hooks: `node tools/shot_rut.js <out> name:quality:display:tod:place ...`; `DEBUG=` shows one of the renderer's buffers (or `shadow` for the sun's visibility), `PAGE=1` shoots the whole page, `JS=` runs code first, `FILE=` shoots another build, `WAIT=` gives the ground's pictures time to decode |
+| `tools/pack_textures.py` | Packs `textures/*.png` into `src/49_textures.js`: made seamless, flattened, WebP: `python3 tools/pack_textures.py [--size 1024] [--quality 74] [--preview sheet.png]` |
 | `tools/eval_rut.js` | Runs a piece of code inside the booted page and prints what it returns, for checks that need no picture: `node tools/eval_rut.js "return g.GAME.car.p"` |
 | `tools/shot_showdown.js`, `shot_sl3.js`, `shot_dirt_sleeper.js` | Headless screenshots of HD, Showdown and Open World, of Shiftlight 3, and of the original Dirt Sleeper |
+| `textures/` | The owner's ground photographs, one a surface (see `TEXTURES.md`) |
 | `TEXTURES.md` | The texture packs to make for the ground: what, what size, how they are read |
 | `TEXTURE_PROMPTS.md` | A ready image-tool prompt for each ground texture, and the rules to give the tool every time |
 | `tools/sheet.py` | Lays screenshots out in a labelled grid |

@@ -81,9 +81,33 @@ let P_LAND=null,P_LANDP=null,P_DEPTH=null;
 function landPrograms(){if(P_LAND)return;const S=rutShaders(),G=R.G;
   P_LAND=G.program('land',S.VS,S.FS,DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?{DEBUG_SHADOW:+(DEBUG_VIEW.slice(6)||0)}:{});P_LANDP=G.program('landProbe',S.VS,S.FS,{PROBE:1});P_DEPTH=G.program('landDepth',S.DEPTH_VS,S.DEPTH_FS);}
 const M4_ID=M4.id();
+/* ---------- the ground's photographs (49_textures' TEXPACK, packed by tools/pack_textures.py): one texture array, a layer a
+   surface, decoded after boot while the game runs on its procedural ground, then faded in. Mobile reads them at the
+   tier's texRes (the 1024 picture drawn down), the others at full size. ---------- */
+const TEX={arr:null,t0:0,loading:false,failed:0};
+async function texLoad(){
+  if(TEX.loading||TEX.arr||typeof TEXPACK==='undefined'||!TEXPACK.layers.some(l=>l.has))return;TEX.loading=true;
+  const G=R.G,n=TEXPACK.layers.length,res=Math.min(TEXPACK.size,GFX.q.texRes||1024);
+  const arr=G.texture(res,res,'srgb8',{layers:n,mips:true,wrap:'repeat',aniso:GFX.q.texAniso||4});
+  /* a layer with no picture is flat mid grey: the shader's photo of it changes nothing */
+  const grey=new Uint8Array(res*res*4).fill(128);for(let i=3;i<grey.length;i+=4)grey[i]=255;
+  const put=(i,src)=>{gl.activeTexture(gl.TEXTURE0+15);gl.bindTexture(gl.TEXTURE_2D_ARRAY,arr.t);gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+    gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,i,res,res,1,gl.RGBA,gl.UNSIGNED_BYTE,src);};
+  for(let i=0;i<n;i++){const l=TEXPACK.layers[i];
+    if(!l.has){put(i,grey);continue;}
+    try{const img=new Image();img.src=l.src;await img.decode();let src=img;
+      if(img.width!==res){const c=document.createElement('canvas');c.width=c.height=res;c.getContext('2d').drawImage(img,0,0,res,res);src=c;}
+      put(i,src);}
+    catch(e){console.warn('ground picture '+l.id+': '+(e&&e.message||e));TEX.failed++;put(i,grey);}}
+  gl.activeTexture(gl.TEXTURE0+15);gl.bindTexture(gl.TEXTURE_2D_ARRAY,arr.t);gl.generateMipmap(gl.TEXTURE_2D_ARRAY);gl.bindTexture(gl.TEXTURE_2D_ARRAY,null);
+  TEX.arr=arr;TEX.t0=APP.t;TEX.loading=false;
+}
+/* how far the pictures are in: faded up over a second once they are decoded, times the Dev look's setting */
+const texOn=()=>TEX.arr?clamp((APP.t-TEX.t0)/1.,0,1)*LOOK.tex:0;
 /* what every lit pass starts from: the world's own frame, no car */
 function landUniforms(P){const G=R.G;G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID);G.uni(P,'uInst',0);G.uni(P,'uDetail',GFX.q.detail*LOOK.detail);G.uni(P,'uDrawFar',drawFar());
-  G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);}
+  G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);
+  if(P.u.uTexOn){G.uni(P,'uTexOn',texOn());G.uni(P,'uTexCol',LOOK.texcol);}if(TEX.arr&&P.samplers.uTex!==undefined)G.tex(P,{uTex:TEX.arr});}
 /* the ground tiles at their level of detail (the fine mesh made a little before it's needed, a few a frame, and
    let go well after), the props and the trees inside the planes, out to maxD from e */
 function landDraw(P,planes,e,maxD,build){
