@@ -1,0 +1,17 @@
+{
+  "name": "city-limits",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Night racing in and around a little desert town under a full moon: a career, a garage, challenges and jobs.",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "par": "node tools/par.mjs",
+    "proving": "node tools/proving.js",
+    "drive-check": "node tools/drive_check.mjs",
+    "game-check": "node tools/game_check.mjs /tmp/gc"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright": "^1.63.0"
+  }
+}
