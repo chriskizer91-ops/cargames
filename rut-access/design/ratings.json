@@ -1,0 +1,629 @@
+{
+ "courses": {
+  "circuit": {
+   "name": "Ridgeline Raceway",
+   "kind": "Circuit",
+   "length": 3246
+  },
+  "street": {
+   "name": "Harbor District",
+   "kind": "Street",
+   "length": 4046
+  },
+  "offroad": {
+   "name": "Red Rock Rally-Raid",
+   "kind": "Off-road",
+   "length": 3907
+  }
+ },
+ "cars": [
+  {
+   "id": "stock",
+   "car": "suv",
+   "name": "Stock",
+   "label": "SUV Stock",
+   "stock": true,
+   "hp": 287,
+   "mass": 2180,
+   "drv": "AWD",
+   "latG": 0.74,
+   "dirtLat": 0.52,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.2,
+   "clear": 0.225,
+   "z60": 7.69,
+   "quarter": {
+    "t": 15.85,
+    "mph": 89.2
+   },
+   "topMph": 133,
+   "dirt60": 8.24,
+   "lap": {
+    "circuit": 121.08,
+    "street": 158.48,
+    "offroad": 203.91
+   },
+   "rating": {
+    "circuit": 67.9,
+    "street": 81.6,
+    "offroad": 68.8
+   },
+   "cls": {
+    "circuit": "D",
+    "street": "B",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "sleeper",
+   "car": "suv",
+   "name": "Sleeper",
+   "label": "SUV Sleeper",
+   "stock": false,
+   "hp": 638,
+   "mass": 2090,
+   "drv": "AWD",
+   "latG": 0.9,
+   "dirtLat": 0.48,
+   "brakeG": 1.05,
+   "aero": 0.05,
+   "travel": 0.15,
+   "clear": 0.169,
+   "z60": 4.48,
+   "quarter": {
+    "t": 12.49,
+    "mph": 121.9
+   },
+   "topMph": 184,
+   "dirt60": 6.23,
+   "lap": {
+    "circuit": 101.68,
+    "street": 132.06,
+    "offroad": 229.26
+   },
+   "rating": {
+    "circuit": 80.9,
+    "street": 98,
+    "offroad": 61.2
+   },
+   "cls": {
+    "circuit": "B",
+    "street": "S",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "crawler",
+   "car": "suv",
+   "name": "Rock & Mud",
+   "label": "SUV Rock & Mud",
+   "stock": false,
+   "hp": 1027,
+   "mass": 2480,
+   "drv": "AWD",
+   "latG": 0.63,
+   "dirtLat": 0.71,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.3,
+   "clear": 0.34,
+   "z60": 4.07,
+   "quarter": {
+    "t": 11.74,
+    "mph": 133.7
+   },
+   "topMph": 194,
+   "dirt60": 4.34,
+   "lap": {
+    "circuit": 111.83,
+    "street": 142.42,
+    "offroad": 158.5
+   },
+   "rating": {
+    "circuit": 73.6,
+    "street": 90.8,
+    "offroad": 88.6
+   },
+   "cls": {
+    "circuit": "C",
+    "street": "A",
+    "offroad": "A"
+   }
+  },
+  {
+   "id": "race",
+   "car": "suv",
+   "name": "Race",
+   "label": "SUV Race",
+   "stock": false,
+   "hp": 1216,
+   "mass": 1960,
+   "drv": "AWD",
+   "latG": 1.19,
+   "dirtLat": 0.37,
+   "brakeG": 1.3,
+   "aero": 1,
+   "travel": 0.09,
+   "clear": 0.092,
+   "z60": 2.4,
+   "quarter": {
+    "t": 9.56,
+    "mph": 153.4
+   },
+   "topMph": 154,
+   "dirt60": 8.33,
+   "lap": {
+    "circuit": 84.71,
+    "street": 132.11,
+    "offroad": 286.46
+   },
+   "rating": {
+    "circuit": 97.1,
+    "street": 97.9,
+    "offroad": 49
+   },
+   "cls": {
+    "circuit": "S",
+    "street": "S",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "trail",
+   "car": "trail",
+   "name": "Stock",
+   "label": "4x4 Stock",
+   "stock": true,
+   "hp": 195,
+   "mass": 1620,
+   "drv": "AWD",
+   "latG": 0.66,
+   "dirtLat": 0.64,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.24,
+   "clear": 0.285,
+   "z60": 8.77,
+   "quarter": {
+    "t": 16.78,
+    "mph": 84.3
+   },
+   "topMph": 120,
+   "dirt60": 8.81,
+   "lap": {
+    "circuit": 127.76,
+    "street": 167,
+    "offroad": 183.71
+   },
+   "rating": {
+    "circuit": 64.4,
+    "street": 77.5,
+    "offroad": 76.4
+   },
+   "cls": {
+    "circuit": "D",
+    "street": "C",
+    "offroad": "C"
+   }
+  },
+  {
+   "id": "trailRig",
+   "car": "trail",
+   "name": "Crawler",
+   "label": "4x4 Crawler",
+   "stock": false,
+   "hp": 600,
+   "mass": 1880,
+   "drv": "AWD",
+   "latG": 0.62,
+   "dirtLat": 0.71,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.34,
+   "clear": 0.34,
+   "z60": 4.51,
+   "quarter": {
+    "t": 12.62,
+    "mph": 116.9
+   },
+   "topMph": 165,
+   "dirt60": 5.28,
+   "lap": {
+    "circuit": 115.84,
+    "street": 147.24,
+    "offroad": 157.47
+   },
+   "rating": {
+    "circuit": 71,
+    "street": 87.9,
+    "offroad": 89.2
+   },
+   "cls": {
+    "circuit": "D",
+    "street": "B",
+    "offroad": "A"
+   }
+  },
+  {
+   "id": "coupe",
+   "car": "coupe",
+   "name": "Stock",
+   "label": "Coupe Stock",
+   "stock": true,
+   "hp": 546,
+   "mass": 1560,
+   "drv": "RWD",
+   "latG": 1,
+   "dirtLat": 0.51,
+   "brakeG": 1.05,
+   "aero": 0.15,
+   "travel": 0.14,
+   "clear": 0.115,
+   "z60": 5.43,
+   "quarter": {
+    "t": 13.17,
+    "mph": 124.7
+   },
+   "topMph": 206,
+   "dirt60": 10.55,
+   "lap": {
+    "circuit": 98.67,
+    "street": 140.28,
+    "offroad": 242.02
+   },
+   "rating": {
+    "circuit": 83.4,
+    "street": 92.2,
+    "offroad": 58
+   },
+   "cls": {
+    "circuit": "B",
+    "street": "A",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "coupeGT",
+   "car": "coupe",
+   "name": "GT",
+   "label": "Coupe GT",
+   "stock": false,
+   "hp": 908,
+   "mass": 1340,
+   "drv": "RWD",
+   "latG": 1.31,
+   "dirtLat": 0.39,
+   "brakeG": 1.3,
+   "aero": 1.1,
+   "travel": 0.1,
+   "clear": 0.06,
+   "z60": 3.44,
+   "quarter": {
+    "t": 10.36,
+    "mph": 157.1
+   },
+   "topMph": 185,
+   "dirt60": 14.35,
+   "lap": {
+    "circuit": 82.26,
+    "street": 133.89,
+    "offroad": 278.16
+   },
+   "rating": {
+    "circuit": 100,
+    "street": 96.6,
+    "offroad": 50.5
+   },
+   "cls": {
+    "circuit": "S",
+    "street": "S",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "wagon",
+   "car": "wagon",
+   "name": "Stock",
+   "label": "Wagon Stock",
+   "stock": true,
+   "hp": 359,
+   "mass": 1640,
+   "drv": "AWD",
+   "latG": 0.76,
+   "dirtLat": 0.54,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.17,
+   "clear": 0.17,
+   "z60": 4.96,
+   "quarter": {
+    "t": 13.6,
+    "mph": 107.7
+   },
+   "topMph": 172,
+   "dirt60": 5.97,
+   "lap": {
+    "circuit": 111.7,
+    "street": 144.31,
+    "offroad": 211.12
+   },
+   "rating": {
+    "circuit": 73.6,
+    "street": 89.6,
+    "offroad": 66.5
+   },
+   "cls": {
+    "circuit": "C",
+    "street": "A",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "wagonSleeper",
+   "car": "wagon",
+   "name": "Sleeper",
+   "label": "Wagon Sleeper",
+   "stock": false,
+   "hp": 638,
+   "mass": 1580,
+   "drv": "AWD",
+   "latG": 0.86,
+   "dirtLat": 0.45,
+   "brakeG": 1.05,
+   "aero": 0,
+   "travel": 0.14,
+   "clear": 0.145,
+   "z60": 3.64,
+   "quarter": {
+    "t": 11.33,
+    "mph": 133.7
+   },
+   "topMph": 194,
+   "dirt60": 6.63,
+   "lap": {
+    "circuit": 99.97,
+    "street": 129.37,
+    "offroad": 235.35
+   },
+   "rating": {
+    "circuit": 82.3,
+    "street": 100,
+    "offroad": 59.7
+   },
+   "cls": {
+    "circuit": "B",
+    "street": "S",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "pickup",
+   "car": "pickup",
+   "name": "Stock",
+   "label": "Pickup Stock",
+   "stock": true,
+   "hp": 348,
+   "mass": 2500,
+   "drv": "AWD",
+   "latG": 0.75,
+   "dirtLat": 0.64,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.22,
+   "clear": 0.29,
+   "z60": 6.74,
+   "quarter": {
+    "t": 15.46,
+    "mph": 92.4
+   },
+   "topMph": 132,
+   "dirt60": 6.85,
+   "lap": {
+    "circuit": 119.51,
+    "street": 156.38,
+    "offroad": 187.78
+   },
+   "rating": {
+    "circuit": 68.8,
+    "street": 82.7,
+    "offroad": 74.8
+   },
+   "cls": {
+    "circuit": "D",
+    "street": "B",
+    "offroad": "C"
+   }
+  },
+  {
+   "id": "prerunner",
+   "car": "pickup",
+   "name": "Prerunner",
+   "label": "Pickup Prerunner",
+   "stock": false,
+   "hp": 642,
+   "mass": 2350,
+   "drv": "AWD",
+   "latG": 0.7,
+   "dirtLat": 0.72,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.46,
+   "clear": 0.34,
+   "z60": 5.05,
+   "quarter": {
+    "t": 13.46,
+    "mph": 112.5
+   },
+   "topMph": 161,
+   "dirt60": 5.5,
+   "lap": {
+    "circuit": 112.68,
+    "street": 144.66,
+    "offroad": 140.39
+   },
+   "rating": {
+    "circuit": 73,
+    "street": 89.4,
+    "offroad": 100
+   },
+   "cls": {
+    "circuit": "C",
+    "street": "A",
+    "offroad": "S"
+   }
+  },
+  {
+   "id": "muscle",
+   "car": "muscle",
+   "name": "Stock",
+   "label": "Muscle Stock",
+   "stock": true,
+   "hp": 494,
+   "mass": 1650,
+   "drv": "RWD",
+   "latG": 0.82,
+   "dirtLat": 0.55,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.16,
+   "clear": 0.18,
+   "z60": 5.66,
+   "quarter": {
+    "t": 13.54,
+    "mph": 117.9
+   },
+   "topMph": 124,
+   "dirt60": 10.04,
+   "lap": {
+    "circuit": 107.73,
+    "street": 140.71,
+    "offroad": 221.85
+   },
+   "rating": {
+    "circuit": 76.4,
+    "street": 91.9,
+    "offroad": 63.3
+   },
+   "cls": {
+    "circuit": "C",
+    "street": "A",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "muscleDrag",
+   "car": "muscle",
+   "name": "Drag",
+   "label": "Muscle Drag",
+   "stock": false,
+   "hp": 1081,
+   "mass": 1450,
+   "drv": "RWD",
+   "latG": 0.71,
+   "dirtLat": 0.32,
+   "brakeG": 0.85,
+   "aero": 0,
+   "travel": 0.14,
+   "clear": 0.17,
+   "z60": 3.39,
+   "quarter": {
+    "t": 10.19,
+    "mph": 157.9
+   },
+   "topMph": 223,
+   "dirt60": 15.67,
+   "lap": {
+    "circuit": 102.67,
+    "street": 134.75,
+    "offroad": 265.9
+   },
+   "rating": {
+    "circuit": 80.1,
+    "street": 96,
+    "offroad": 52.8
+   },
+   "cls": {
+    "circuit": "B",
+    "street": "S",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "hatch",
+   "car": "hatch",
+   "name": "Stock",
+   "label": "Hatch Stock",
+   "stock": true,
+   "hp": 277,
+   "mass": 1180,
+   "drv": "AWD",
+   "latG": 0.85,
+   "dirtLat": 0.49,
+   "brakeG": 0.9,
+   "aero": 0,
+   "travel": 0.17,
+   "clear": 0.16,
+   "z60": 4.75,
+   "quarter": {
+    "t": 13.16,
+    "mph": 109.9
+   },
+   "topMph": 154,
+   "dirt60": 6.86,
+   "lap": {
+    "circuit": 107.14,
+    "street": 138.62,
+    "offroad": 211.84
+   },
+   "rating": {
+    "circuit": 76.8,
+    "street": 93.3,
+    "offroad": 66.3
+   },
+   "cls": {
+    "circuit": "C",
+    "street": "A",
+    "offroad": "D"
+   }
+  },
+  {
+   "id": "hatchB",
+   "car": "hatch",
+   "name": "Group B",
+   "label": "Hatch Group B",
+   "stock": false,
+   "hp": 500,
+   "mass": 1050,
+   "drv": "AWD",
+   "latG": 0.76,
+   "dirtLat": 0.79,
+   "brakeG": 1.3,
+   "aero": 0.35,
+   "travel": 0.26,
+   "clear": 0.22,
+   "z60": 3.24,
+   "quarter": {
+    "t": 11.05,
+    "mph": 119.6
+   },
+   "topMph": 120,
+   "dirt60": 4.03,
+   "lap": {
+    "circuit": 103.47,
+    "street": 132.51,
+    "offroad": 140.7
+   },
+   "rating": {
+    "circuit": 79.5,
+    "street": 97.6,
+    "offroad": 99.8
+   },
+   "cls": {
+    "circuit": "C",
+    "street": "S",
+    "offroad": "S"
+   }
+  }
+ ]
+}
