@@ -90,10 +90,10 @@ function csmPass(c,t){
 }
 /* the car into the map: the same pieces and matrices drawWorldCar uses */
 function carShadow(t,u,far){
-  const i=t.bi,b=t.build,T=truck(i),D=T.D,M0=carMatrix(t);let Mb=M0;
+  const i=t.bi,b=t.build,T=far?truckFar(i):truck(i),D=T.D,M0=carMatrix(t);let Mb=M0;
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
   gl.uniformMatrix4fv(u.uM,false,Mb);
-  if(far){const F=truckFar(i);drawMesh(F.body);if(F.hood)drawMesh(F.hood);}else{drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
+  drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);
   /* a machine's rider, sitting up (leaning makes no difference to a shadow this soft) */
   if(T.rider&&!far&&!(t.lean&&t.lean.bail)){drawMesh(T.rider.lo);const P=T.rider.pivot;gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4T(P[0],P[1],P[2])));drawMesh(T.rider.up);gl.uniformMatrix4fv(u.uM,false,Mb);}
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;

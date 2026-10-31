@@ -172,16 +172,18 @@ function syncSimCard(){
   $('mSimHint').textContent=hint;
 }
 /* ---------- races ---------- */
-const RACE_KIND={circuit:'Race',elim:'Elimination',drag:'Drag race',stage:'Time trial'};
+const RACE_KIND={circuit:'Race',elim:'Elimination',drag:'Drag race'};
 function syncRaces(){
   for(const el of $('raDiff').children)el.setAttribute('aria-pressed',String(el.dataset.v===RACE.diff));$('raDiffHint').textContent=RACE_DIFF[RACE.diff].blurb;
   const L=$('raList');L.textContent='';const D=RACE_DIFF[RACE.diff];
   for(const ev of RACE_EVENTS){const el=document.createElement('button');el.type='button';el.className='race';el.innerHTML='<b></b><small></small><i></i>';
     el.querySelector('b').textContent=ev.name;el.querySelector('small').textContent=ev.blurb;
-    const meta=[RACE_KIND[ev.kind],ev.laps?ev.laps+' laps':'',ev.kind==='stage'?'5 rivals\' times':ev.field>2?ev.field+' cars':'1 on 1','wins '+Feats.fmtMoney(Math.round(ev.purse*D.pay/10)*10)].filter(Boolean).join(' · ');
+    const meta=[RACE_KIND[ev.kind],ev.laps?ev.laps+' laps':'',ev.field>2?ev.field+' cars':'1 on 1','wins '+Feats.fmtMoney(Math.round(ev.purse*D.pay/10)*10)].filter(Boolean).join(' · ');
     const b=RACE.best[ev.id+':'+RACE.diff],i=el.querySelector('i');i.textContent=meta;
-    if(b){const em=document.createElement('em');em.textContent='  ·  best: '+ord(b.place).toLowerCase()+(b.time&&ev.kind==='stage'?' in '+fmtLap(b.time):'');i.appendChild(em);}
-    el.addEventListener('click',()=>{closeMenu();startRace(ev.id);});L.appendChild(el);}
+    if(b){const em=document.createElement('em');em.textContent='  ·  best: '+ord(b.place).toLowerCase();i.appendChild(em);}
+    /* (the field takes a moment to line up on a phone: the button says so, painted before the work starts) */
+    el.addEventListener('click',()=>{if(el.dataset.go)return;el.dataset.go='1';i.textContent='Lining up the field\u2026';
+      requestAnimationFrame(()=>setTimeout(()=>{closeMenu();startRace(ev.id);},0));});L.appendChild(el);}
 }
 /* the results, over the game; the race stays paused under them */
 function showResults(){
@@ -190,7 +192,7 @@ function showResults(){
   $('rrPrize').textContent=Feats.fmtMoney(R.prize);
   const T=$('rrList');T.textContent='';R.rows.forEach((r,k)=>{const tr=document.createElement('tr');if(r.me)tr.className='me';tr.innerHTML='<td></td><td><b></b><small></small></td><td></td>';
     tr.children[0].textContent=String(k+1);tr.querySelector('b').textContent=r.name;tr.querySelector('small').textContent=r.car+(r.sub?'  ·  '+r.sub:'');tr.children[2].textContent=r.time;T.appendChild(tr);});
-  $('rrNote').textContent=R.prize?'The prize is in your free play money.':R.place?'No prize for that place this time.':'';
+  $('rrNote').textContent=R.prize?(CAREER.on?'The prize is in your career money.':'The prize is in your free play money.'):R.place?'No prize for that place this time.':'';
   $('rres').hidden=false;setTimeout(()=>$('rrAgain').focus({preventScroll:true}),0);
 }
 function hideResults(){$('rres').hidden=true;raceEnd(null);GAME.state='drive';CAM.cut=true;syncTouch();INPUT.down.clear();}

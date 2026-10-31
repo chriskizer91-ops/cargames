@@ -494,7 +494,7 @@ body.bayfull>.bar{display:none}
     <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free play</span><h1>Redline County <small class="tagw">Wide Open</small></h1></div>
       <div class="wallet"><small id="mMoneyLbl">Free play money</small><b id="mMoney">$0</b></div></div>
     <nav class="tabs" role="tablist" id="mTabs">
-      <button type="button" role="tab" data-t="drive">Drive</button><button type="button" role="tab" data-t="chals">Challenges</button><button type="button" role="tab" data-t="races" hidden>Races</button><button type="button" role="tab" data-t="garage">Garage</button>
+      <button type="button" role="tab" data-t="drive">Drive</button><button type="button" role="tab" data-t="chals">Challenges</button><button type="button" role="tab" data-t="races">Races</button><button type="button" role="tab" data-t="garage">Garage</button>
       <button type="button" role="tab" data-t="cool">Cool stuff</button><button type="button" role="tab" data-t="runs" hidden>Clock runs</button><button type="button" role="tab" data-t="settings">Settings</button><button type="button" role="tab" data-t="dev" id="tabDev" hidden>Dev</button></nav>
     <div class="tab" data-tab="drive">
       <section><h2>Game</h2><div class="cars" id="mModes"></div><p class="hint" id="mModeHint"></p><button class="btn sm" id="mWipe" type="button" hidden style="margin-top:8px">Start the career over</button></section>
@@ -1068,10 +1068,14 @@ class MB{
   constructor(){this.p=[];this.n=[];this.c=[];this.m=[];this.M=null;}
   setM(m){this.M=m;return this;}
   _v(p){if(!this.M)return p;return M4.xform(this.M,p);}
+  /* (the face's normal worked out in place: a car is a few hundred thousand of these, and the little arrays the
+     vector helpers make for each one were a good part of the time it took to build) */
   tri(a,b,c,col,em=0,mat=0){
-    a=this._v(a);b=this._v(b);c=this._v(c);
-    const n=V3.norm(V3.cross(V3.sub(b,a),V3.sub(c,a)));
-    for(const v of [a,b,c]){this.p.push(v[0],v[1],v[2]);this.n.push(n[0],n[1],n[2]);this.c.push(col[0],col[1],col[2],em);this.m.push(mat);}
+    if(this.M){a=M4.xform(this.M,a);b=M4.xform(this.M,b);c=M4.xform(this.M,c);}
+    const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2],
+      cx=uy*vz-uz*vy,cy=uz*vx-ux*vz,cz=ux*vy-uy*vx,l=Math.hypot(cx,cy,cz)||1,nx=cx/l,ny=cy/l,nz=cz/l,r=col[0],g=col[1],bl=col[2];
+    this.p.push(a[0],a[1],a[2],b[0],b[1],b[2],c[0],c[1],c[2]);this.n.push(nx,ny,nz,nx,ny,nz,nx,ny,nz);
+    this.c.push(r,g,bl,em,r,g,bl,em,r,g,bl,em);this.m.push(mat,mat,mat);
   }
   quad(a,b,c,d,col,em,mat){this.tri(a,b,c,col,em,mat);this.tri(a,c,d,col,em,mat);}
   /* quad with a colour per corner (gradients) */
@@ -3482,7 +3486,7 @@ function faceMat(D,u,K,y,gk,yG){
   return MM.GL;
 }
 /* ---------- the builder ---------- */
-/* how coarsely the body's stations are laid (1: as designed; 4: a far-away copy for the other cars in a race) */
+/* how coarsely the body's stations are laid (1: as designed; RACE_LOD, 33_car_mesh: the copy the other cars in a race are drawn from) */
 let BODY_LOD=1;
 function buildSUV(look,build){
   const D=suvDesign(look),G=D.G,L=D.L,X=D.X,dy=D.dy,Q=BODY_LOD;
@@ -3576,17 +3580,24 @@ function buildSUV(look,build){
   const put=(vs,mat,hide)=>{let x=0,y=0,z=0;for(const v of vs){x+=v.p[0]/3;y+=v.p[1]/3;z+=v.p[2]/3;}let w=where(x,y,z);if(w===2&&!hide)w=0;const d=out[w];
     if(w===1&&hole&&x<hole[0]&&x>hole[1]&&Math.abs(z)<hole[2])return;
     for(const v of vs){d.p.push(...v.p);d.n.push(...v.n);d.c.push(...v.c);d.m.push(mat);}};
+  /* (the same for a triangle straight from a builder's flat arrays, the usual case: nothing made for it) */
+  const put9=(P,N,C,o,mat,hide)=>{const o3=o+3,o6=o+6;let x=0,y=0,z=0;x+=P[o]/3;y+=P[o+1]/3;z+=P[o+2]/3;x+=P[o3]/3;y+=P[o3+1]/3;z+=P[o3+2]/3;x+=P[o6]/3;y+=P[o6+1]/3;z+=P[o6+2]/3;
+    let w=where(x,y,z);if(w===2&&!hide)w=0;const d=out[w];
+    if(w===1&&hole&&x<hole[0]&&x>hole[1]&&Math.abs(z)<hole[2])return;
+    const c=o/9*12;d.p.push(P[o],P[o+1],P[o+2],P[o3],P[o3+1],P[o3+2],P[o6],P[o6+1],P[o6+2]);d.n.push(N[o],N[o+1],N[o+2],N[o3],N[o3+1],N[o3+2],N[o6],N[o6+1],N[o6+2]);
+    d.c.push(C[c],C[c+1],C[c+2],C[c+3],C[c+4],C[c+5],C[c+6],C[c+7],C[c+8],C[c+9],C[c+10],C[c+11]);d.m.push(mat,mat,mat);};
   /* a skin triangle that straddles the hood's edge is cut along it, so the hood comes away cleanly */
   const lv=(a,b,t)=>{const n=[0,1,2].map(k=>a.n[k]+(b.n[k]-a.n[k])*t),l=Math.hypot(...n)||1;
     return {p:[0,1,2].map(k=>a.p[k]+(b.p[k]-a.p[k])*t),n:n.map(q=>q/l),c:[0,1,2,3].map(k=>a.c[k]+(b.c[k]-a.c[k])*t)};};
   const clipTo=(vs,f,keep)=>{const o=[];for(let i=0;i<vs.length;i++){const a=vs[i],b=vs[(i+1)%vs.length],fa=f(a)*keep,fb=f(b)*keep;
     if(fa>=0)o.push(a);if((fa>=0)!==(fb>=0))o.push(lv(a,b,fa/(fa-fb)));}return o;};
   const split=(src,hideOk,cut)=>{const P=src.p,N=src.n,C=src.c,Mt=src.m;
-    for(let t=0;t<P.length/9;t++){const vs=[0,1,2].map(k=>({p:[P[t*9+k*3],P[t*9+k*3+1],P[t*9+k*3+2]],n:[N[t*9+k*3],N[t*9+k*3+1],N[t*9+k*3+2]],c:[C[t*12+k*4],C[t*12+k*4+1],C[t*12+k*4+2],C[t*12+k*4+3]]})),mat=Mt[t*3],hide=hideOk(t);
-      if(cut){const uc=D.uC-(vs[0].p[0]+vs[1].p[0]+vs[2].p[0])/3,zc=(vs[0].p[2]+vs[1].p[2]+vs[2].p[2])/3;
-        if(uc>=h0&&uc<=h1){const sg=zc<0?-1:1,c=hz(uc),f=v=>sg*v.p[2]-c,fs=vs.map(f);
-          if(Math.min(...fs)<0&&Math.max(...fs)>0){for(const keep of [1,-1]){const q=clipTo(vs,f,keep);for(let k=1;k<q.length-1;k++)put([q[0],q[k],q[k+1]],mat,hide);}continue;}}}
-      put(vs,mat,hide);}};
+    for(let t=0;t<P.length/9;t++){const o=t*9,mat=Mt[t*3],hide=hideOk(t);
+      if(cut){const uc=D.uC-(P[o]+P[o+3]+P[o+6])/3;
+        if(uc>=h0&&uc<=h1){const zc=(P[o+2]+P[o+5]+P[o+8])/3,sg=zc<0?-1:1,c=hz(uc),f0=sg*P[o+2]-c,f1=sg*P[o+5]-c,f2=sg*P[o+8]-c;
+          if(Math.min(f0,f1,f2)<0&&Math.max(f0,f1,f2)>0){const f=v=>sg*v.p[2]-c,vs=[0,1,2].map(k=>({p:[P[o+k*3],P[o+k*3+1],P[o+k*3+2]],n:[N[o+k*3],N[o+k*3+1],N[o+k*3+2]],c:[C[t*12+k*4],C[t*12+k*4+1],C[t*12+k*4+2],C[t*12+k*4+3]]}));
+            for(const keep of [1,-1]){const q=clipTo(vs,f,keep);for(let k=1;k<q.length-1;k++)put([q[0],q[k],q[k+1]],mat,hide);}continue;}}}
+      put9(P,N,C,o,mat,hide);}};
   /* from the skin only its underside is hidden; from the parts only the wheel wells */
   split(mb,t=>mb.m[t*3]===MAT.METAL&&Math.abs(mb.c[t*12]-MM.UNDER[0][0])<1e-6,true);split(pm,t=>t>=ww0&&t<ww1,false);
   const n=out[0].p.length+out[1].p.length+out[2].p.length;
@@ -5025,12 +5036,18 @@ function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
   const t0=performance.now(),s=buildSUV(b.look,b),w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
   return TRUCK[b.id]={body:s.body,hood:s.hood,hide:s.hide,D:s.D,wheel:w,wheelR:wr,bay:s.bay,engineOut:!!s.bay,
     tris:s.tris+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}
-/* a far-away copy of the body and hood (stations four times coarser), for the other cars in a race */
-function truckFar(i){const T=truck(i);if(T.far)return T.far;
-  /* a machine is built from parts, not lofted: its far copy is itself, without its rider */
-  if(BUILDS[i].machine)return T.far={body:T.body,hood:null,tris:T.body.n/3};BODY_LOD=4;let s;try{s=buildSUV(BUILDS[i].look,BUILDS[i]);}finally{BODY_LOD=1;}
-  if(s.bay&&s.bay.engine&&s.bay.engine.vao)freeMesh(s.bay.engine);if(s.hide&&s.hide.vao)freeMesh(s.hide);
-  return T.far={body:s.body,hood:s.hood,tris:(s.body.n+s.hood.n)/3};}
+/* a coarser copy (the body's stations RACE_LOD times further apart), built on its own: the other cars in a race
+   are drawn from nothing else, near or far, so the full car (several times the building, several times the
+   memory) is never made for them. Its own body, hood and any blower through it; the wheels are everyone's */
+const TRUCKF={},RACE_LOD=3;
+function truckFar(i){const b=BUILDS[i];if(TRUCKF[b.id])return TRUCKF[b.id];
+  /* a machine is built from parts, not lofted: its copy is itself, without its rider */
+  if(b.machine){const T=truck(i);return TRUCKF[b.id]={body:T.body,hood:null,D:T.D,wheel:T.wheel,wheelR:T.wheelR,shared:true,tris:T.tris,ms:0};}
+  const t0=performance.now();BODY_LOD=RACE_LOD;let s;try{s=buildSUV(b.look,b);}finally{BODY_LOD=1;}
+  if(s.hide&&s.hide.vao)freeMesh(s.hide);
+  const w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
+  return TRUCKF[b.id]={body:s.body,hood:s.hood,D:s.D,bay:s.bay,engineOut:!!s.bay,wheel:w,wheelR:wr,
+    tris:(s.body.n+s.hood.n)/3+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}
 /* the engine bay: built the first time this build's hood opens, never with it shut */
 const bayOf=i=>{const T=truck(i);return T.bay||(T.bay=buildBay(BUILDS[i],T.D));};
 /* ---------- matrices ---------- */
@@ -6443,27 +6460,35 @@ SURF_RR.salt=.016;SURF_RR.sand=.07;
    speed at which a tall car would tip over, then braking back from every corner. Then it drives it: aiming a
    little way down the line, gas and brake to hold the speed it wants, round slower cars, and back on the
    course when it goes off. Its skill (about .85 to 1) is how much of its car's grip it dares to use.
+   Far from you a robot needn't be on the physics at all (60_race decides): it rides its line (ride below), at
+   the speeds its plan allows and as fast as its engine pulls out of the slow bits, and goes back on the physics,
+   moving, when you come near. The same traffic rules either way.
    Also here: the cars touching each other, each car's hull against the others' boxes, a shove both ways.
    Nothing here draws.
    ===================================================================================== */
 const AI_G=9.81;
+/* riding the line: how much of a ghost's pace (below) a robot holds until it has been measured (the ones on the
+   physics manage about this round the park's tracks and the boulevard), and the ground under it */
+const PACE0=.93,KG={y:0,n:F3(),surf:''};
 /* the robots' own helpers: stability and traction control and ABS, but no steering helper (they steer for themselves) */
 ASSISTS.ai={id:'ai',name:'Robot',steer:0,esc:.85,tc:1,abs:1,drift:0,auto:1,catchSpin:0};
 /* ---------- the line ---------- */
 class RaceLine{
-  /* path: a makePath path. hw: half the usable width (centre to edge). o: {ds, margin, span, iters, ground(x,z), caps:[[s0,s1,v]]} */
+  /* path: {len, closed, at(s) -> [x, z]}. hw: half the usable width (centre to edge), or (Showdown's cross-country
+     routes) a function of the distance along that gives it there. o: {ds, margin, span, iters, ground(x,z), caps:[[s0,s1,v]]} */
   constructor(path,hw,o={}){
     const L=path.len,closed=!!path.closed,ds0=o.ds||2,n=closed?Math.max(12,Math.round(L/ds0)):Math.max(3,Math.round(L/ds0)+1),ds=closed?L/n:L/(n-1);
-    Object.assign(this,{path,closed,n,ds,len:L,hw,caps:o.caps||[]});
+    const hwA=new Float64Array(n);for(let i=0;i<n;i++)hwA[i]=typeof hw==='function'?hw(Math.min(i*ds,L)):hw;
+    Object.assign(this,{path,closed,n,ds,len:L,hw:typeof hw==='function'?Math.max(...hwA):hw,hwA,caps:o.caps||[]});
     const cx=new Float64Array(n),cz=new Float64Array(n),nx=new Float64Array(n),nz=new Float64Array(n),off=new Float64Array(n);
     const dir=s=>{const w=v=>closed?((v%L)+L)%L:Math.max(0,Math.min(L,v)),a=path.at(w(s-2)),b=path.at(w(s+2)),l=Math.hypot(b[0]-a[0],b[1]-a[1])||1;return [(b[0]-a[0])/l,(b[1]-a[1])/l];};
     for(let i=0;i<n;i++){const s=i*ds,c=path.at(Math.min(s,L)),d=dir(s);cx[i]=c[0];cz[i]=c[1];nx[i]=-d[1];nz[i]=d[0];}
     /* the line: an elastic band pulled tight between the edges (each point to the middle of its neighbours, along its own crosswise line) */
-    const w=Math.max(0,hw-(o.margin??1.6)),m=o.span||Math.max(2,Math.round(8/ds)),idx=i=>closed?((i%n)+n)%n:Math.max(0,Math.min(n-1,i));
+    const wA=hwA.map(h=>Math.max(0,h-(o.margin??1.6))),w=Math.max(...wA),m=o.span||Math.max(2,Math.round(8/ds)),idx=i=>closed?((i%n)+n)%n:Math.max(0,Math.min(n-1,i));
     for(let it=0;it<(o.iters||300);it++)for(let i=0;i<n;i++){
       if(!closed&&(i<2||i>n-3)){off[i]=0;continue;}
       const a=idx(i-m),b=idx(i+m),mx=(cx[a]+nx[a]*off[a]+cx[b]+nx[b]*off[b])/2,mz=(cz[a]+nz[a]*off[a]+cz[b]+nz[b]*off[b])/2,t=(mx-cx[i])*nx[i]+(mz-cz[i])*nz[i];
-      off[i]+=.5*(Math.max(-w,Math.min(w,t))-off[i]);}
+      off[i]+=.5*(Math.max(-wA[i],Math.min(wA[i],t))-off[i]);}
     if(o.flat)off.fill(0);
     const x=new Float64Array(n),z=new Float64Array(n);for(let i=0;i<n;i++){x[i]=cx[i]+nx[i]*off[i];z[i]=cz[i]+nz[i]*off[i];}
     /* curvature of the line (positive turns right), smoothed; the banking that helps (or hurts) in that turn; the ground */
@@ -6473,8 +6498,9 @@ class RaceLine{
       k[i]=Math.atan2(cr,dt)/((la+lb)/2);}
     for(let i=0;i<n;i++){let s=0,c=0;for(let j=-2;j<=2;j++){const t=idx(i+j);s+=k[t];c++;}kk[i]=s/c;}
     const G=o.ground,y=new Float64Array(n),vmax=new Float64Array(n).fill(1e9);
+    /* (the banking only matters in a turn: on the straights the ground across isn't asked for) */
     for(let i=0;i<n;i++){if(!G){surf[i]='asphalt';continue;}const g=G(x[i],z[i]);surf[i]=g.surf;y[i]=g.y;
-      const hl=G(x[i]-nx[i]*1.5,z[i]-nz[i]*1.5).y,hr=G(x[i]+nx[i]*1.5,z[i]+nz[i]*1.5).y;tb[i]=Math.sign(kk[i])*(hl-hr)/3;}
+      if(Math.abs(kk[i])<1/500)continue;const hl=G(x[i]-nx[i]*1.5,z[i]-nz[i]*1.5).y,hr=G(x[i]+nx[i]*1.5,z[i]+nz[i]*1.5).y;tb[i]=Math.sign(kk[i])*(hl-hr)/3;}
     /* over a crest a car goes light at the speed where the ground falls away faster than it can: v = sqrt(g / curvature);
        through water, slowly (unless the course says to fly: o.jumps) */
     if(G){const h=Math.max(1,Math.round(4/ds));for(let i=0;i<n;i++){if(!closed&&(i<h||i>n-1-h))continue;
@@ -6483,6 +6509,8 @@ class RaceLine{
     Object.assign(this,{cx,cz,nx,nz,off,x,z,y,k:kk,tb,surf,vmax,wMax:w});
   }
   idx(i){return this.closed?((i%this.n)+this.n)%this.n:Math.max(0,Math.min(this.n-1,i));}
+  /* the half width at a point of the line */
+  hwAt(i){return this.hwA[this.idx(i)];}
   /* the speeds this car can take it at: for each point, then braking back from every slower bit */
   plan(v,skill=.92){
     const n=this.n,sp=new Float64Array(n),c=v.c,ssf=(c.trackF||1.6)/(2*Math.max(.3,c.hcg)),cache={};
@@ -6508,17 +6536,23 @@ class RaceLine{
     x=this.x[a]+(this.x[b]-this.x[a])*t,z=this.z[a]+(this.z[b]-this.z[a])*t,nx=this.nx[a]+(this.nx[b]-this.nx[a])*t,nz=this.nz[a]+(this.nz[b]-this.nz[a])*t;
     return [x+nx*off,z+nz*off];}
   /* the line's own offset from the centre, and so how far either way a car may move off it */
-  room(s,half){const i=this.idx(Math.round(s/this.ds)),o=this.off[i],e=this.hw-half-.35;return [-e-o,e-o];}
+  room(s,half){const i=this.idx(Math.round(s/this.ds)),o=this.off[i],e=this.hwA[i]-half-.35;return [-e-o,e-o];}
 }
 /* ---------- the driver ---------- */
 class Driver{
   /* car: a Vehicle. line: a RaceLine. o: {skill, name, bias (m off the line it likes), react (s, for the start)} */
   constructor(car,line,o={}){
     this.car=car;this.line=line;this.skill=o.skill??.92;this.name=o.name||'';this.bias=o.bias||0;this.react=o.react??.25;
+    /* effort (Showdown): how hard it's trying, 1 flat out. Below 1 it takes the corners a little slower and never
+       uses all the throttle */
+    this.effort=1;this.thrCap=1;
+    /* riding the line off the physics: kin on, its speed (kv; km the ghost's speed it is riding at), accel(v, surface)
+       for how hard its engine pulls (60_race), its pace, and the ghost measuring it */
+    this.kin=false;this.kv=0;this.km=0;this.accel=null;this.pace=PACE0;this.gh=null;this.held=false;
     /* gs: how much of the grip it reckons the tyres have that they really give, learnt as it goes: running wide
        in a turn takes it down, a clean fast turn puts it back up */
     this.gs=o.gs??.86;this.gsPlan=this.gs;this.spinT=0;this.wrongT=0;
-    this.sp=line.plan(car,this.skill*this.gs);this.i=-1;this.lap=0;this.prog=0;this.avoid=0;this.inp={steer:0,thr:0,brk:0,hb:0,nos:false};
+    this.sp=line.plan(car,this.skill*this.gs*this.effort);this.i=-1;this.lap=0;this.prog=0;this.avoid=0;this.inp={steer:0,thr:0,brk:0,hb:0,nos:false};
     this.stuckT=0;this.offT=0;this.flipT=0;this.go=false;this.goT=0;this.want=0;this.done=false;this.resetReq=false;this.half=car.c.body.W/2;
   }
   /* where the car is along the line: index, distance along (counting laps), how far off it */
@@ -6541,18 +6575,7 @@ class Driver{
     if(this.goT<this.react){this.goT+=dt;inp.brk=1;inp.thr=0;return inp;}
     if(this.done){/* past the flag: slow down and pull off to the side */
       const s=this.s+Math.max(8,v*.7),[tx,tz]=L.at(s,Math.min(L.wMax,4));inp.steer=this._aim(tx,tz);inp.thr=0;inp.brk=v>8?.35:v>.5?.15:1;inp.hb=0;return inp;}
-    /* round the others: a slower car just ahead pulls this one out to pass, on the side with more room; a car
-       alongside pushes it over; and with nowhere to go it holds station behind */
-    let want=this.bias,vCap=1e9;const [lo,hi]=L.room(this.s,this.half);
-    for(const o of others){if(o===this||!o.car)continue;let ds=o.prog-this.prog;
-      if(L.closed){const H=L.len/2;while(ds>H)ds-=L.len;while(ds<-H)ds+=L.len;}
-      const dl=o.lat-this.lat,ov=Math.abs(dl)<this.half+o.half+.7;
-      if(ds>0&&ds<Math.max(14,v*1.3)){const close=Math.max(0,o.car.vf)<v-.5||ds<7;
-        if(ov&&close){const side=o.lat-lo>hi-o.lat?-1:1,gap=this.half+o.half+1.2,
-            tgt=side<0?Math.max(lo,o.lat-gap):Math.min(hi,o.lat+gap);
-          if(Math.abs(tgt-o.lat)<gap-.6)vCap=Math.min(vCap,Math.max(0,o.car.vf)-.3+ds*.25);else want=tgt;}}
-      else if(ds>-6&&ds<=0&&Math.abs(dl)<this.half+o.half+1){want+=dl>0?-1.2:1.2;}}
-    want=Math.max(lo,Math.min(hi,want));this.want+=(want-this.want)*Math.min(1,dt*2.2);
+    const vCap=this._traffic(dt,others,v);
     /* steer at a point down the line */
     const La=Math.max(5,Math.min(40,3+v*.55)),[tx,tz]=L.at(this.s+La,this.want);
     inp.steer=this._aim(tx,tz);
@@ -6568,24 +6591,103 @@ class Driver{
     /* learning the grip: in a turn, heading for the outside edge (where it will be in a second, drifting out the way
        it is) takes it down and brakes; well inside it at speed puts it back up */
     {const i=L.idx(Math.round(this.s/L.ds)),lv=this.latPrev===undefined?0:(this.lat-this.latPrev)/Math.max(dt,1e-3);this.latPrev=this.lat;this.latV=(this.latV||0)+(lv-(this.latV||0))*Math.min(1,dt*6);
-      if(Math.abs(kNow)>1/600&&v>8){const so=kNow>0?-1:1,out=(this.lat+L.off[i])*so,room=L.hw-this.half-out,roomP=room-Math.max(0,this.latV*so)*.9;
+      if(Math.abs(kNow)>1/600&&v>8){const so=kNow>0?-1:1,out=(this.lat+L.off[i])*so,room=L.hwA[i]-this.half-out,roomP=room-Math.max(0,this.latV*so)*.9;
         if(roomP<.5){this.gs=Math.max(.5,this.gs-dt*.05*(1.5-roomP));if(roomP<0){inp.thr=0;inp.brk=Math.max(inp.brk,Math.min(.7,-roomP*.25));}}
         else if(room>1.2&&v>vt-1.5)this.gs=Math.min(1.12,this.gs+dt*.006);}}
     if(Math.abs(t.beta)>.55&&v>5){if(this.spinT<=0)this.gs=Math.max(.45,this.gs-.04);this.spinT=1;}else this.spinT-=dt;
-    if(Math.abs(this.gs-this.gsPlan)>.02){this.gsPlan=this.gs;this.sp=L.plan(t,this.skill*this.gs);}
+    if(Math.abs(this.gs-this.gsPlan)>.02){this.gsPlan=this.gs;this.sp=L.plan(t,this.skill*this.gs*this.effort);}
+    if(this.thrCap<1)inp.thr=Math.min(inp.thr,this.thrCap);
     inp.hb=0;inp.nos=false;
     /* in trouble: stuck, upside down, or a long way off the course */
     if(v<1&&inp.thr>.2)this.stuckT+=dt;else this.stuckT=Math.max(0,this.stuckT-dt*2);
     if(t.M[4]<.35)this.flipT+=dt;else this.flipT=0;
-    if(this.dist>L.hw+14)this.offT+=dt;else this.offT=0;
+    if(this.dist>L.hwAt(this.i)+14)this.offT+=dt;else this.offT=0;
     /* facing back the way it came */
     {const i=L.idx(Math.round(this.s/L.ds)),j=L.idx(i+1),dx=L.x[j]-L.x[i],dz=L.z[j]-L.z[i],fw=(t.M[0]*dx+t.M[6]*dz)/(Math.hypot(dx,dz)||1);if(fw<-.2)this.wrongT+=dt;else this.wrongT=0;}
     if(this.stuckT>3||this.flipT>2.2||this.offT>5||this.wrongT>2.5)this.resetReq=true;
+    this._ghost(dt);
     return inp;
+  }
+  /* round the others: a slower car just ahead pulls this one out to pass, on the side with more room; a car
+     alongside pushes it over; and with nowhere to go it holds station behind. Sets where across it wants to be
+     (this.want, eased), gives back the speed it must hold to (1e9: none) */
+  _traffic(dt,others,v){
+    const L=this.line;let want=this.bias,vCap=1e9;const [lo,hi]=L.room(this.s,this.half);
+    for(const o of others){if(o===this||!o.car)continue;let ds=o.prog-this.prog;
+      if(L.closed){const H=L.len/2;while(ds>H)ds-=L.len;while(ds<-H)ds+=L.len;}
+      const dl=o.lat-this.lat,ov=Math.abs(dl)<this.half+o.half+.7,vo=Math.max(0,o.car.vf);
+      if(ds>0&&ds<Math.max(14,v*1.3)){const close=vo<v-.5||ds<7;
+        if(ov&&close){const side=o.lat-lo>hi-o.lat?-1:1,gap=this.half+o.half+1.2,
+            tgt=side<0?Math.max(lo,o.lat-gap):Math.min(hi,o.lat+gap);
+          if(Math.abs(tgt-o.lat)<gap-.6)vCap=Math.min(vCap,vo-.3+ds*.25);else want=tgt;}}
+      else if(ds>-6&&ds<=0&&Math.abs(dl)<this.half+o.half+1){want+=dl>0?-1.2:1.2;}}
+    want=Math.max(lo,Math.min(hi,want));this.want+=(want-this.want)*Math.min(1,dt*2.2);
+    this.held=vCap<1e9;return vCap;
+  }
+  /* off the physics: along the line at what the plan allows (a little under it, as the physics' robots manage) and
+     as fast as the engine pulls, the same traffic rules, the car set down on the ground where that puts it. Once
+     a frame, instead of drive and the car's steps */
+  ride(dt,others){
+    const L=this.line,inp=this.inp;inp.steer=0;inp.hb=0;inp.nos=false;
+    if(!this.go||this.goT<this.react){if(this.go)this.goT+=dt;inp.thr=0;inp.brk=1;this.kinPose();return inp;}
+    const i=L.idx(Math.round(this.s/L.ds));
+    if(this.done){this.km=Math.max(0,this.km-5*dt);inp.thr=0;inp.brk=.3;}
+    else{const vCap=this._traffic(dt,others,this.kv),km=this.km;this.km=this._kinV(km,i,Math.min(this.sp[i],vCap/this.pace),dt);
+      inp.brk=0;inp.thr=this.km>km?this.thrCap:.15;}
+    this.kv=this.km*this.pace;this.s+=this.kv*dt;
+    if(L.closed){if(this.s>=L.len){this.s-=L.len;this.lap++;}}else this.s=Math.min(this.s,L.len);
+    this.i=L.idx(Math.round(this.s/L.ds));this.prog=this.lap*L.len+this.s;this.lat=this.want;this.dist=0;
+    this.stuckT=this.offT=this.flipT=this.wrongT=0;this.resetReq=false;
+    this.kinPose(dt);return inp;
+  }
+  /* the ghost's speed a step on from v at point i, held to cap: up as hard as the engine pulls there, slower
+     where the going holds it back more than that, but never stopped dead (the ones on the physics scrabble on) */
+  _kinV(v,i,cap,dt){let a=this.accel?this.accel(v,this.line.surf[i]):3;if(a>0)a*=this.thrCap;return v<cap?Math.max(Math.min(cap,1.5),Math.min(cap,v+a*dt)):cap;}
+  /* on the physics, a ghost rides the line from where the car is for fifteen seconds at a time: how far the car
+     got over how far the ghost did is the pace it holds when it rides the line itself (eased in, within reason).
+     Fifteen seconds spent mostly stuck behind someone don't count: that's the traffic, not the car */
+  _ghost(dt){
+    if(this.done||!this.go)return;let g=this.gh;
+    if(!g)g=this.gh={s0:this.prog,s:this.prog,v:Math.max(0,this.car.vf),t:0,held:0};
+    const L=this.line,i=L.idx(Math.round(g.s/L.ds));g.v=this._kinV(g.v,i,this.sp[i],dt);g.s+=g.v*dt;g.t+=dt;if(this.held)g.held+=dt;
+    if(g.t>=15){const dg=g.s-g.s0;if(dg>60&&g.held<4)this.pace+=(Math.max(.45,Math.min(1.15,(this.prog-g.s0)/dg))-this.pace)*.5;this.gh=null;}
+  }
+  /* off the physics: riding at the ghost's speed (km) times its pace */
+  toKin(){const [lo,hi]=this.line.room(this.s,this.half);this.kin=true;this.gh=null;this.kv=Math.max(0,this.car.vf);this.km=this.kv/this.pace;this.want=Math.max(lo,Math.min(hi,this.lat));}
+  /* the car where riding puts it: on the ground, square to it, pointing down the line, the wheels turning */
+  kinPose(dt=0){
+    const t=this.car,L=this.line,[x,z]=L.at(this.s,this.want),[x2,z2]=L.at(this.s+2.5,this.want),g=t.world.groundAt(x,z,KG),n=g.n;
+    let fx=x2-x,fz=z2-z;const fl=Math.hypot(fx,fz)||1;fx/=fl;fz/=fl;
+    /* forward laid on the ground's slope; across it, forward x up */
+    const fy=-(fx*n[0]+fz*n[2])/n[1],l=Math.hypot(fx,fy,fz),ax=fx/l,ay=fy/l,az=fz/l,rx=ay*n[2]-az*n[1],ry=az*n[0]-ax*n[2],rz=ax*n[1]-ay*n[0],M=t.M;
+    M[0]=ax;M[3]=ay;M[6]=az;M[1]=n[0];M[4]=n[1];M[7]=n[2];M[2]=rx;M[5]=ry;M[8]=rz;
+    const h=this.rideH||t.c.hcg;t.p[0]=x+n[0]*h;t.p[1]=g.y+n[1]*h;t.p[2]=z+n[2]*h;
+    t.v[0]=ax*this.kv;t.v[1]=ay*this.kv;t.v[2]=az*this.kv;t.w.fill(0);t.speed=t.vf=this.kv;t.beta=0;
+    for(const w of t.wheels){w.w=this.kv/w.R;w.ang=(w.ang+w.w*dt)%(2*Math.PI);}
+  }
+  /* back on the physics, moving: where riding put it and square to the ground as it was, at its speed, the
+     wheels rolling, the engine in the gear that speed wants and turning with them */
+  toPhysics(){
+    const t=this.car,v=this.kv,pt=t.pt,e=pt.e,M=t.M,q=t.q,TA=2*Math.PI;
+    /* (the orientation back into its quaternion: the physics turns that, not the matrix) */
+    const tr=M[0]+M[4]+M[8];let S;
+    if(tr>0){S=Math.sqrt(tr+1)*2;q[3]=.25*S;q[0]=(M[7]-M[5])/S;q[1]=(M[2]-M[6])/S;q[2]=(M[3]-M[1])/S;}
+    else if(M[0]>M[4]&&M[0]>M[8]){S=Math.sqrt(1+M[0]-M[4]-M[8])*2;q[3]=(M[7]-M[5])/S;q[0]=.25*S;q[1]=(M[1]+M[3])/S;q[2]=(M[2]+M[6])/S;}
+    else if(M[4]>M[8]){S=Math.sqrt(1+M[4]-M[0]-M[8])*2;q[3]=(M[2]-M[6])/S;q[0]=(M[1]+M[3])/S;q[1]=.25*S;q[2]=(M[5]+M[7])/S;}
+    else{S=Math.sqrt(1+M[8]-M[0]-M[4])*2;q[3]=(M[3]-M[1])/S;q[0]=(M[2]+M[6])/S;q[1]=(M[5]+M[7])/S;q[2]=.25*S;}
+    qToM(M,q);t.v[0]=M[0]*v;t.v[1]=M[3]*v;t.v[2]=M[6]*v;t.w.fill(0);
+    for(const w of t.wheels){w.w=v/w.R;w.dig=0;w.FyB=0;w.vt=0;}
+    const R=t.wheels[2].R;let g=1,ratio;
+    if(e.cvt)ratio=e.cvt.lo*e.fd;
+    else{for(;g<e.nG;g++){const rpm=v/R*e.gears[g-1]*e.fd*60/TA;if(rpm<pt.upRpm[g-1]*.95)break;}ratio=e.gears[g-1]*e.fd;}
+    pt.gear=g;pt.shiftT=0;pt.engage=1;pt.locked=v>3;pt.we=Math.max(e.idle*TA/60,Math.min(e.limiterRpm*TA/60,v/R*ratio));
+    this.kin=false;this.i=-1;this.track();this.latPrev=undefined;
   }
   /* the steering for a point: the arc that reaches it, as a share of what the steering can do at this speed */
   _aim(tx,tz){const t=this.car,c=t.c,dx=tx-t.p[0],dz=tz-t.p[2],L2=dx*dx+dz*dz,side=dx*t.M[2]+dz*t.M[8],k=2*side/Math.max(L2,1),ang=Math.atan(c.wb*k),
     lim=Math.min(c.lock,t.tyre.aPk*1.6+c.wb*9/Math.max(t.speed*t.speed,1));return Math.max(-1,Math.min(1,ang/lim));}
+  /* how hard it tries: 1 flat out; .9 about nine-tenths in the corners and seven-tenths of the throttle */
+  setEffort(e){e=Math.max(.5,Math.min(1,e));if(e===this.effort)return;this.effort=e;this.thrCap=e>=1?1:Math.max(.4,1-(1-e)*3);this.sp=this.line.plan(this.car,this.skill*this.gs*this.effort);}
   /* put the car back on the line where it was, pointing down it, stopped */
   resetPose(back=0){const L=this.line,s=Math.max(0,this.s-back),[x,z]=L.at(s,0),[x2,z2]=L.at(s+3,0);this.stuckT=this.offT=this.flipT=0;this.resetReq=false;
     this.wrongT=0;return [x,z,Math.atan2(-(z2-z),x2-x)];}
@@ -8954,10 +9056,10 @@ function csmPass(c,t){
 }
 /* the car into the map: the same pieces and matrices drawWorldCar uses */
 function carShadow(t,u,far){
-  const i=t.bi,b=t.build,T=truck(i),D=T.D,M0=carMatrix(t);let Mb=M0;
+  const i=t.bi,b=t.build,T=far?truckFar(i):truck(i),D=T.D,M0=carMatrix(t);let Mb=M0;
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
   gl.uniformMatrix4fv(u.uM,false,Mb);
-  if(far){const F=truckFar(i);drawMesh(F.body);if(F.hood)drawMesh(F.hood);}else{drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
+  drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);
   /* a machine's rider, sitting up (leaning makes no difference to a shadow this soft) */
   if(T.rider&&!far&&!(t.lean&&t.lean.bail)){drawMesh(T.rider.lo);const P=T.rider.pivot;gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4T(P[0],P[1],P[2])));drawMesh(T.rider.up);gl.uniformMatrix4fv(u.uM,false,Mb);}
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
@@ -10231,8 +10333,10 @@ function placeCar(x,z,yaw){
   for(let i=0;i<120;i++)t.step(DT,SETTLE);
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;PRB.fresh=true;CSM.fresh=true;
 }
-/* the meshes of builds no longer driven are let go (the wheels are shared and stay) */
-function truckEvict(keep){for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine,T.far&&T.far.body,T.far&&T.far.hood,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
+/* the meshes of builds no longer driven or raced are let go (the wheels are shared and stay) */
+function truckEvict(keep){
+  for(const id of Object.keys(TRUCKF)){if(keep.includes(id))continue;const F=TRUCKF[id];if(!F.shared)for(const m of [F.body,F.hood,F.bay&&F.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCKF[id];}
+  for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
 const RECENT=[];
 /* what the Sim level builds the car with: roof loads move its centre of gravity, plus any cargo */
 const simOpts=()=>APP.level==='sim'?{cg:!!SIMDEV.cg,cargo:simVal(SIM_CARGO,SIMSET.cargo)}:null;
@@ -10564,14 +10668,14 @@ function carUniformsW(t,v,dirt){
    shut, a blower through it, the spares, flames from the pipes, and each wheel at its own hub, steered and
    turning. Mud is measured up the car itself, not up the world */
 function drawWorldCar(t,v,dirt,far){
-  const i=t.bi,b=t.build,T=truck(i),D=T.D,u=CUR.u,M0=carMatrix(t);let Mb=M0;
+  const i=t.bi,b=t.build,u=CUR.u,M0=carMatrix(t);let Mb=M0,T=far?truckFar(i):truck(i);
+  /* a phone out of graphics memory for this car's full body draws its coarse copy */
+  if(T.body.oom&&!far){far=true;T=truckFar(i);if(!GAME.oomSaid){GAME.oomSaid=true;say('THE PHONE IS OUT OF GRAPHICS MEMORY: CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
+  const D=T.D;
   carUniformsW(t,v,dirt);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
   gl.uniformMatrix4fv(u.uM,false,Mb);
-  /* a car far off (another car in a race) is drawn from its coarse copy */
-  if(T.body.oom&&!far){far=true;if(!GAME.oomSaid){GAME.oomSaid=true;say('THE PHONE IS OUT OF GRAPHICS MEMORY: CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
-  if(far){const F=truckFar(i);drawMesh(F.body);if(F.hood)drawMesh(F.hood);}
-  else{drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
+  drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);
   if(T.rider&&!far)drawRider(t,T,Mb);
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
@@ -10587,7 +10691,7 @@ function drawWorldCar(t,v,dirt,far){
       const M=M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang)))));
       gl.uniformMatrix4fv(u.uM,false,M);drawMesh(w.front?T.wheel:T.wheelR);}}
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);
-  return far?truckFar(i).tris+T.tris-(T.body.n+(T.hood?T.hood.n:0)+(T.hide?T.hide.n:0))/3:T.tris;
+  return T.tris;
 }
 /* the rider: legs on the pegs, the upper body leaning about the hips; bailed, lying in the dirt beside the machine.
    From the helmet camera only the legs and hands are drawn (Mini Dirt Run Solo's, drawn relative to the origin) */
@@ -10734,133 +10838,183 @@ function askBuy(text,price,yes){
 function closeBuy(){$('mBuy').hidden=true;BUY.yes=null;}
 function buildBuy(){$('mBuyYes').addEventListener('click',()=>{const f=BUY.yes;closeBuy();if(f)f();});$('mBuyNo').addEventListener('click',closeBuy);}
 /* =====================================================================================
-   RACES. Against robot drivers (44_ai) on the same physics as you, in cars rated close to yours for that kind of
-   ground: circuits (the speedway's dirt oval, the short course, the road course, the cone course on the dry lake,
-   the ranch's mud track), last car out on the oval, one on one down the drag strip, and two stages against the
-   clock and five rivals' times (the rally through the Cedar Hills, the climb up Bald Mountain). Places pay.
+   RACES. Against robot drivers (44_ai) on the same physics as you, in factory cars rated close to yours for that
+   kind of ground: the off-road park's three circuits (Speedway 25's banked clay, the short course, the mud
+   track), last car out on the oval, Limits Boulevard round town, once round the city on the Outer Loop, and one
+   on one down the park's drag strip. Places pay, into the career's money or free play's.
    The race runs inside the game's own step: the robots' inputs once a frame, their cars stepped with yours, the
-   cars touching each other. The HUD (61_hud) shows the lights, your place, the lap and the gaps; the results come
-   up over the game at the end.
+   cars touching each other. A robot more than RACE_FAR from you comes off the physics and rides its line (the
+   phone has one car's physics to do instead of six on the long ones); it goes back on, moving, inside RACE_NEAR.
+   The HUD (61_hud) shows the lights, your place, the lap and the gaps; the results come up over the game.
    ===================================================================================== */
 const RACE_DIFF={
-  easy:{name:'Easy',skill:.84,slot:0,pay:.7,stage:1.07,blurb:'The others use about 85% of what their cars can do. You start on the front row.'},
-  medium:{name:'Medium',skill:.9,slot:.5,pay:1,stage:1,blurb:'The others use about 90% of what their cars can do. You start in the middle of the pack.'},
-  hard:{name:'Hard',skill:.96,slot:1,pay:1.4,stage:.96,blurb:'The others use nearly everything their cars have. You start at the back.'}};
+  easy:{name:'Easy',skill:.84,slot:0,pay:.7,blurb:'The others use about 85% of what their cars can do. You start on the front row.'},
+  medium:{name:'Medium',skill:.9,slot:.5,pay:1,blurb:'The others use about 90% of what their cars can do. You start in the middle of the pack.'},
+  hard:{name:'Hard',skill:.96,slot:1,pay:1.4,blurb:'The others use nearly everything their cars have. You start at the back.'}};
 const RACE_EVENTS=[
-  {id:'oval',name:'Speedway 25',kind:'circuit',course:'oval',laps:8,field:6,terrain:'dirt',purse:2600,
-    blurb:'Eight laps of the banked clay oval against five others, from a standing start. Slide it in, get back on the gas early.'},
+  {id:'oval',name:'Speedway 25',kind:'circuit',course:'oval',laps:6,field:6,terrain:'dirt',purse:2600,
+    blurb:'Six laps of the park\'s banked clay oval against five others, from a standing start. Slide it in, get back on the gas early.'},
   {id:'elim',name:'Last Car Out',kind:'elim',course:'oval',laps:5,field:6,terrain:'dirt',purse:3000,
     blurb:'Six on the oval: every time a lap is done, the car in last place is out. Be the one left after five.'},
-  {id:'short',name:'Short Course',kind:'circuit',course:'short',laps:4,field:6,terrain:'dirt',purse:3200,
-    blurb:'Four laps of the short course: two tabletops, the whoops, banked hairpins and the big sweeper.'},
-  {id:'road',name:'Road Course',kind:'circuit',course:'road',laps:3,field:6,terrain:'asphalt',purse:3000,
-    blurb:'Three laps of the paved road course off the county road. Braking points and power.'},
-  {id:'lake',name:'Dry Lake Dash',kind:'circuit',course:'lake',laps:2,field:6,terrain:'gravel',purse:2800,
-    blurb:'Two laps of the cone course out on the dry lake: wide open and flat out, through long sweepers.'},
-  {id:'mud',name:'Mud Bog Dash',kind:'circuit',course:'mud',laps:3,field:4,terrain:'mud',purse:2400,
-    blurb:'Three laps of the ranch\'s mud track against three others. Keep it moving.'},
+  {id:'short',name:'Short Course',kind:'circuit',course:'short',laps:3,field:6,terrain:'dirt',purse:3200,
+    blurb:'Three laps of the park\'s short course: two tabletops, the whoops, banked hairpins and the big sweeper.'},
+  {id:'mud',name:'Mud Track Dash',kind:'circuit',course:'mud',laps:3,field:4,terrain:'mud',purse:2400,
+    blurb:'Three laps of the park\'s mud track against three others: the banked turns, the chicane and the splash. Keep it moving.'},
+  {id:'ring',name:'Boulevard Run',kind:'circuit',course:'ring',laps:2,field:6,terrain:'asphalt',purse:3000,
+    blurb:'Two laps of Limits Boulevard round town, anticlockwise in the outside lanes: four long straights and four long bends under the lamps.'},
+  {id:'enduro',name:'Outer Loop Enduro',kind:'circuit',course:'loop',laps:1,field:6,terrain:'dirt',purse:6000,
+    blurb:'Once round the city on the Outer Loop against five others: fourteen kilometres of dirt, the woods and the fords, the salt\'s edge and the mud by the bog.'},
   {id:'drag',name:'Eighth-Mile Drag',kind:'drag',course:'strip',field:2,terrain:'asphalt',purse:1500,
-    blurb:'One on one down the strip, the tree counting down. Off the gas until it goes green, then go: first past the eighth mile wins.'},
-  {id:'rally',name:'Cedar Hills Rally',kind:'stage',course:'rally',field:6,terrain:'gravel',purse:3400,
-    blurb:'2.6 km of gravel through the hills: crests, hairpins and a ford. Against the clock and five rivals\' times.'},
-  {id:'hill',name:'Summit Hill Climb',kind:'stage',course:'summit',field:6,terrain:'asphalt',purse:3200,
-    blurb:'2.1 km of switchbacks up Bald Mountain to the mast. Against the clock and five rivals\' times.'}];
-/* the rivals' times on the stages, by factory build (tools/races.js par: the robots at 95%, 8 s for each time they had to be put back) */
-const STAGE_PAR={rally:{stock:131.4,sleeper:140.1,crawler:123.4,race:168.1,trail:144.2,trailRig:124.7,coupe:144.3,coupeGT:242.2,wagon:126.8,wagonSleeper:131.8,pickup:139.1,prerunner:121.9,muscle:136.6,muscleDrag:194.4,hatch:130.2,hatchB:118.4},
-  summit:{stock:116.3,sleeper:103.9,crawler:122.9,race:97.7,trail:121.2,trailRig:117.6,coupe:103.5,coupeGT:105.5,wagon:112.9,wagonSleeper:103.7,pickup:130.3,prerunner:110.9,muscle:128.1,muscleDrag:105.8,hatch:130.2,hatchB:101.5}};
-/* where a stage starts and finishes, metres along it (from the end when negative) */
-const RACE_STAGE={rally:[24,-30],summit:[2,-12]};
+    blurb:'One on one down the park\'s dirt strip, the tree counting down. Off the gas until it goes green, then go: first past the eighth mile wins.'}];
 const RACE_NAMES=['J. Hale','R. Ortiz','M. Becker','T. Nakamura','D. Okafor','S. Lindqvist','A. Moreau','K. Brennan','L. Ferreira','P. Novak','C. Walsh','E. Duarte','H. Adeyemi','N. Kowalski'];
 const RACE_PAY=[1,.6,.42,.28,.18,.12];
+/* off the physics further than this from you, back on nearer than this (m) */
+const RACE_FAR=190,RACE_NEAR=140;
 const RACE={on:false,ev:null,diff:'medium',state:'',t:0,clock:0,cars:[],me:null,lines:{},best:{},hold:false,lights:0,msgT:0,res:null};
 try{const s=JSON.parse(store.get('cc-races','{}'))||{};RACE.best=s.best||{};if(RACE_DIFF[s.diff])RACE.diff=s.diff;}catch(e){}
 const raceSave=()=>store.set('cc-races',JSON.stringify({best:RACE.best,diff:RACE.diff}));
 /* ---------- the courses ---------- */
+/* a path for a RaceLine from one of the world's own (its at(s, o) into [x, z]) */
+const racePathOf=T=>{const A={};return {len:T.len,closed:true,at:s=>{T.at(s,A);return [A.x,A.z];}};};
+/* from a list of points, moved across by lane metres (positive right): by distance along them */
+function racePoly(pts,closed,lane=0){
+  const n=pts.length,P=pts.map((p,i)=>{const a=pts[closed?(i-1+n)%n:Math.max(0,i-1)],b=pts[closed?(i+1)%n:Math.min(n-1,i+1)],dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz)||1;return [p[0]-dz/l*lane,p[1]+dx/l*lane];});
+  if(closed)P.push(P[0]);const cum=new Float64Array(P.length);for(let i=1;i<P.length;i++)cum[i]=cum[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);
+  const len=cum[P.length-1];
+  return {len,closed,at:s=>{if(closed){s%=len;if(s<0)s+=len;}else s=Math.max(0,Math.min(len,s));
+    let lo=0,hi=P.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(cum[m]<=s)lo=m;else hi=m;}
+    const t=(s-cum[lo])/Math.max(1e-9,cum[hi]-cum[lo]);return [P[lo][0]+(P[hi][0]-P[lo][0])*t,P[lo][1]+(P[hi][1]-P[lo][1])*t];}};
+}
+/* the ground under a line, straight from the world's functions (one sample, not the four of a grid square); on the
+   Outer Loop, from the Loop's own profile (the same heights, its mud and its fords, at a twentieth of the cost) */
+const RGS={};
+const raceGround=(x,z)=>{WG.sample(x,z,RGS);return {y:RGS.h,surf:WG.SURF[RGS.code]};};
+const loopGround=(x,z)=>{WG.OL.q(x,z,RGS);return {y:RGS.h,surf:RGS.fw>-1e8&&RGS.h<RGS.fw?'water':RGS.mud>.5?'mud':'dirt'};};
 function raceLine(id){
   if(RACE.lines[id])return RACE.lines[id];
-  const W=RANCH.W,C=W.country,F=C.far,g=(x,z)=>W.groundAt(x,z);
-  const D={oval:[F.oval,F.DEF.OV.hw,1.4],short:[F.short,F.DEF.SHORT_HALF,1.4],road:[C.track,C.DEF.TRACK_HALF,1.4],lake:[F.lakeLoop,14,2],mud:[W.mudTrack,5,1.2],
-    rally:[F.rally,F.DEF.ROAD_HALF,1.3],summit:[F.summit,F.DEF.SUMMIT_HALF,1.3]}[id];
-  return RACE.lines[id]=new RaceLine(D[0],D[1],{ground:g,margin:D[2]});
+  const LP=WG.LAPS,R=id==='ring'?(CHALS.find(c=>c.id==='loop')||{}).route:null;
+  /* path, half width, how close to the edge, metres between its points, the ground */
+  const D={oval:[racePathOf(LP[0]),LP[0].hw,1.4,2],short:[racePathOf(LP[1]),LP[1].hw,1.4,2],mud:[racePathOf(LP[2]),LP[2].hw,1.2,2],
+    loop:[racePathOf(LP[3]),LP[3].hw,1.2,3,loopGround],
+    /* the boulevard: the outside carriageway, from the median's edge (70 cm off the middle) to the curb (14 m) */
+    ring:[R&&racePoly(R,true,7.35),6.3,1.2,2]}[id];
+  const L=new RaceLine(D[0],D[1],{ground:D[4]||raceGround,margin:D[2],ds:D[3]});L.key=id;return RACE.lines[id]=L;
 }
 /* the drag strip: a straight line down each lane, to the end of the shutdown */
-function dragLine(lane){const S=RANCH.W.strip,z=S.lanes[lane],k='strip'+lane;
-  return RACE.lines[k]||(RACE.lines[k]=new RaceLine(Ranch.makePath([[S.x0+2,z],[S.x1-4,z]],false),3,{flat:true,ground:(x,z)=>RANCH.W.groundAt(x,z)}));}
-/* ---------- who you race: the factory builds rated nearest yours for this ground ---------- */
-const PRESET_IDS=()=>Object.keys(PRESET_PARTS);
-function raceRating(i,terrain){return (rateBuild(i)||{})[terrain]||0;}
+function dragLine(lane){const S=WG.PKW.ST,z=S.lanes[lane],k='strip'+lane;
+  return RACE.lines[k]||(RACE.lines[k]=new RaceLine(racePoly([[S.x0+2,z],[S.x1-4,z]],false),3,{flat:true,ground:raceGround}));}
+/* ---------- who you race: the factory builds nearest yours on this course ---------- */
+/* how long a build takes round a course, on the sum a robot rides the line by (44_ai's ghost, at nine-tenths): the
+   plan's speeds through the corners, the engine's pull between them, a flying lap. Much nearer what the physics
+   does round a particular track than the ratings' generic courses (on those a stock SUV and a track hypercar
+   rate alike on dirt; round the clay oval the hypercar is a fifth quicker). Kept per course and build. */
+const RACE_EST=new Map();
+function raceEst(L,i,car){
+  const k=L.key+':'+BUILDS[i].id;if(RACE_EST.has(k))return RACE_EST.get(k);
+  const sp=L.plan(car||makeCar(i,RANCH.world,null),.9),acc=raceAccel(i),n=L.n,ds=L.ds;let v=sp[0],t=0;
+  for(let j=0;j<n;j++){const a=acc(v,L.surf[j]),v2=Math.max(1,Math.min(sp[L.idx(j+1)],Math.sqrt(Math.max(0,v*v+2*a*ds))));t+=2*ds/(v+v2);v=v2;}
+  RACE_EST.set(k,t);return t;
+}
 function pickRivals(ev,n){
-  /* (down the strip it's the 0-60 time that matters) */
-  const rate=i=>ev.kind==='drag'?60/Math.max(1,(rateBuild(i).figs||{}).z60||12):raceRating(i,ev.terrain);
-  const mine=rate(rigBuild(APP.car,rigOf(APP.car))),pool=PRESET_IDS().map(id=>{const i=BUILDS.findIndex(b=>b.id===id);return {id,i,r:rate(i)};});
-  /* none hopeless for the ground: at least 45% of the best factory build there */
-  const top=Math.max(...pool.map(p=>p.r)),ok=pool.filter(p=>p.r>=top*.45);
-  ok.sort((a,b)=>Math.abs(a.r-mine)-Math.abs(b.r-mine));
+  /* the cars and trucks (not the quads, carts and big machines) */
+  const pool=[];for(const id in PRESET_PARTS){const i=BUILDS.findIndex(b=>b.id===id);if(i>=0&&!BUILDS[i].machine)pool.push({id,i});}
+  const mi=rigBuild(APP.car,rigOf(APP.car));let mine,rate;
+  /* down the strip it's the 0-60 time; in the mud the ratings' mud course (bogging down is the physics' and the
+     ratings' business, not the ghost's); round anything else, the time round this course */
+  if(ev.kind==='drag')rate=i=>60/Math.max(1,(rateBuild(i).figs||{}).z60||12);
+  else if(ev.terrain==='mud')rate=i=>(rateBuild(i)||{}).mud||0;
+  else{const L=raceLine(ev.course);rate=i=>1/raceEst(L,i);mine=1/raceEst(L,mi,GAME.car);RACE_EST.delete(L.key+':'+BUILDS[mi].id);}
+  if(mine===undefined)mine=rate(mi);
+  for(const p of pool)p.r=rate(p.i);
+  /* none hopeless for the ground (under 45% of the best factory build there, or 60% of yours, whichever is lower: a
+     weak car still gets a field it can race); the nearest yours, slower or quicker */
+  const top=Math.max(...pool.map(p=>p.r)),ok=pool.filter(p=>p.r>=Math.min(top*.45,mine*.6));
+  ok.sort((a,b)=>Math.abs(Math.log(a.r/mine))-Math.abs(Math.log(b.r/mine)));
   const out=[];for(let k=0;k<n;k++)out.push(ok[k%ok.length]);return out;
+}
+/* how hard a build pulls at a speed on a surface (m/s2), for riding the line: 57_ratings' sheet of its engine
+   through its best gear, against what its driven tyres can put down there, the air and rolling. (Not the mud's
+   drag: the physics' robots get through the park's mud far quicker than the ratings' sum says, and the ghost
+   in 44_ai sets the pace on each course anyway.) */
+const RACE_SHEETS=new Map();
+function raceAccel(i){
+  const id=BUILDS[i].id;let S=RACE_SHEETS.get(id);if(!S){S=rateSheet(i);RACE_SHEETS.set(id,S);}
+  const m=S.mass,fwd=S.drv==='FWD',share=S.drv==='AWD'?1:fwd?.5:.55;
+  return (v,surf)=>{const mu=S.drv==='AWD'?(S.muOf(surf,true)+S.muOf(surf,false))/2:S.muOf(surf,fwd),
+    F=Math.min(driveForce(S,Math.max(v,.3),false),mu*share*m*G9),res=S.rr(surf)*m*G9+.5*RHO*S.cdA*v*v;return (F-res)/S._me;};
 }
 /* ---------- starting one ---------- */
 function startRace(id){
   const ev=RACE_EVENTS.find(e=>e.id===id);if(!ev)return;
   if(RACE.on)raceEnd(null);RUN.on=null;LAP.on=false;CHAL.run=null;
   const D=RACE_DIFF[RACE.diff],seed=(Date.now()&0xffff)+1,R=Ranch.rng(seed),names=RACE_NAMES.slice().sort(()=>R()-.5);
-  RACE.ev=ev;RACE.on=true;RACE.state='grid';RACE.t=0;RACE.clock=0;RACE.cars=[];RACE.res=null;RACE.out=[];RACE.msgT=0;RACE.lights=0;RACE.green=false;RACE.foul=false;RACE.rt=null;
+  RACE.ev=ev;RACE.on=true;RACE.state='grid';RACE.t=0;RACE.wait=0;RACE.clock=0;RACE.cars=[];RACE.res=null;RACE.out=[];RACE.msgT=0;RACE.lights=0;RACE.green=false;RACE.foul=false;RACE.rt=null;RACE.elimLap=0;
   const t=GAME.car,me={car:t,name:'You',me:true,half:t.c.body.W/2,done:false,time:0,out:false};RACE.me=me;
   if(ev.kind==='drag'){
-    const S=RANCH.W.strip,rv=pickRivals(ev,1)[0],L0=dragLine(0),L1=dragLine(1);
+    const S=WG.PKW.ST,rv=pickRivals(ev,1)[0],L0=dragLine(0),L1=dragLine(1);
     me.line=L1;me.trk=new Driver(t,L1,{});RACE.cars=[me];
     placeCar(S.start-t.c.body.L/2-.3,S.lanes[1],0);
     const o=raceCar(rv,L0,{skill:D.skill,name:names[0],react:.34-.2*(D.skill-.84)/.12+R()*.08});
-    o.car.place([S.start-o.car.c.body.L/2-.3,RANCH.W.heightAt(S.start,S.lanes[0])+.05,S.lanes[0]],0);raceSettle(o.car);RACE.cars.push(o);
-  }
-  else if(ev.kind==='stage'){
-    const L=raceLine(ev.course),st=RACE_STAGE[ev.course],s0=st[0],s1=L.len+st[1],rv=pickRivals(ev,ev.field-1),par=STAGE_PAR[ev.course];
-    me.line=L;me.trk=new Driver(t,L,{});RACE.cars=[me];RACE.s0=s0;RACE.s1=s1;
-    const [x,z]=L.at(s0,0),[x2,z2]=L.at(s0+3,0);placeCar(x,z,Math.atan2(-(z2-z),x2-x));
-    /* the rivals' times: their build's time at this difficulty, give or take, for the stage's own length */
-    RACE.rivals=rv.map((p,k)=>({name:names[k],bid:p.i,build:BUILDS[p.i].name,car:carName({car:BUILDS[p.i].car}),time:(par[p.id]||130)*D.stage*(.97+R()*.07)}));
+    o.car.place([S.start-o.car.c.body.L/2-.3,RANCH.W.heightAt(S.start,S.lanes[0])+.05,S.lanes[0]],0);raceSettle(o);RACE.cars.push(o);
   }
   else{
-    const L=raceLine(ev.course),n=ev.field,rv=pickRivals(ev,n-1),slot=Math.round(D.slot*(n-1)),lat=Math.min(3.2,L.hw*.42);
+    /* the grid: two abreast behind the line, rows 9.5 m apart, you where the difficulty says */
+    const L=raceLine(ev.course),n=ev.field,rv=pickRivals(ev,n-1),slot=Math.round(D.slot*(n-1));
     me.line=L;me.trk=new Driver(t,L,{});
-    let k=0;const spot=j=>[L.len-10-Math.floor(j/2)*9.5,(j%2?1:-1)*lat];
+    let k=0;const spot=j=>{const s=L.len-10-Math.floor(j/2)*9.5;return [s,(j%2?1:-1)*Math.min(3.2,L.hwAt(Math.round(s/L.ds))*.42)];};
     for(let j=0;j<n;j++){const [s,l]=spot(j),[x,z]=L.at(s,l),[x2,z2]=L.at(s+3,l),yaw=Math.atan2(-(z2-z),x2-x);
       if(j===slot){placeCar(x,z,yaw);RACE.cars.push(me);continue;}
       const p=rv[k],o=raceCar(p,L,{skill:D.skill*(.97+R()*.05),name:names[k],react:.15+R()*.25,bias:(R()-.5)*1.2});k++;
-      o.car.place([x,RANCH.W.heightAt(x,z)+.05,z],yaw);raceSettle(o.car);RACE.cars.push(o);}
+      o.car.place([x,RANCH.W.heightAt(x,z)+.05,z],yaw);raceSettle(o);RACE.cars.push(o);}
   }
   for(const c of RACE.cars)if(!c.me){c.drv.track();}me.trk.track();
+  /* everyone the robots look out for: the other robots, and you (your tracker knows where you are on the course) */
+  RACE.others=RACE.cars.map(q=>q.drv||q.trk);
   truckEvict(RECENT.concat(RACE.cars.map(c=>BUILDS[c.car.bi].id)));
   if(GAME.car.pt.st==='off'){GAME.engineWanted=true;startEngine();}
   RACE.hold=true;CAM.cut=true;PRB.fresh=true;CSM.fresh=true;
   say(ev.name.toUpperCase(),2.6,PAL.gold);
 }
-/* a robot's car: built, its helpers on, its meshes made now rather than mid-race */
-function raceCar(p,L,o){const car=makeCar(p.i,RANCH.world,null);car.setAssists('ai');truck(p.i);truckFar(p.i);
-  const d=new Driver(car,L,o);return {car,drv:d,name:o.name,bi:p.i,half:car.c.body.W/2,done:false,time:0,out:false,dirt:BUILDS[p.i].dirt||0};}
-function raceSettle(car){car.pt.start();const I={steer:0,thr:0,brk:1,hb:0,nos:false};for(let k=0;k<120;k++)car.step(DT,I);car.v.fill(0);car.w.fill(0);}
+/* a robot's car: built, its helpers on (its meshes are made on the grid, one a frame: raceFrame) */
+function raceCar(p,L,o){const car=makeCar(p.i,RANCH.world,null);car.setAssists('ai');
+  const d=new Driver(car,L,o);d.accel=raceAccel(p.i);return {car,drv:d,name:o.name,bi:p.i,half:car.c.body.W/2,done:false,time:0,out:false,dirt:BUILDS[p.i].dirt||0};}
+/* settled on its wheels, held on the brakes; how high it sits is what riding the line sets it down at */
+const RACE_HOLD={steer:0,thr:0,brk:1,hb:0,nos:false};
+function raceSettle(o){const car=o.car;car.pt.start();for(let k=0;k<120;k++)car.step(DT,RACE_HOLD);car.v.fill(0);car.w.fill(0);
+  if(o.drv)o.drv.rideH=car.p[1]-RANCH.W.heightAt(car.p[0],car.p[2]);}
 /* ---------- each frame ---------- */
-/* before the physics: the lights, the robots' inputs */
+/* before the physics: the lights, which robots are on the physics, their inputs */
 function raceFrame(dt){
   const ev=RACE.ev;RACE.t+=dt;
   if(RACE.state==='grid'){
     /* (held on the brake: never long enough to drop into reverse) */
     for(const c of RACE.cars){const v=c.car;v.revT=0;if(v.rev){v.rev=false;v.pt.rev=false;}}
-    /* the lights: a second to settle, then one a second (drag: the tree's ambers half a second apart), then green */
-    const drag=ev.kind==='drag',t0=1.2,step=drag?.5:1,n=3;RACE.lights=Math.max(0,Math.min(n,Math.floor((RACE.t-t0)/step)+1));
+    /* the others' cars drawn up one a frame (a car's meshes are the longest thing a race start does: made all at
+       once, the phone sat frozen on the menu for seconds), and the lights wait for them and the world under you
+       (six seconds at most for the world); then a second to settle, then one a second (drag: the tree's ambers
+       half a second apart), then green */
+    const nb=RACE.cars.find(c=>c.drv&&!c.built);if(nb){truckFar(nb.bi);nb.built=true;}
+    if(!RACE.wait&&!nb){const p=GAME.car.p,c=chunkAt(p[0],p[2]);if(c&&c.H||RACE.t>6)RACE.wait=RACE.t;}
+    const drag=ev.kind==='drag',t0=1.2,step=drag?.5:1,n=3,tl=RACE.wait?RACE.t-RACE.wait:-1;RACE.lights=Math.max(0,Math.min(n,Math.floor((tl-t0)/step)+1));
     if(drag&&RACE.lights>0&&inputThr()>.5&&!RACE.foul){RACE.foul=true;say('YOU JUMPED THE TREE',2,PAL.red);}
-    if(RACE.t>=t0+n*step){RACE.state='race';RACE.green=true;RACE.hold=false;RACE.clock=0;say('GO!',1.4,PAL.green);buzz([40,30,40]);
+    if(tl>=t0+n*step){RACE.state='race';RACE.green=true;RACE.hold=false;RACE.clock=0;say('GO!',1.4,PAL.green);buzz([40,30,40]);
       for(const c of RACE.cars)if(c.drv){c.drv.go=true;}}
   }
   else if(RACE.state==='race'||RACE.state==='flag')RACE.clock+=dt;
-  /* everyone the robots look out for: the other robots, and you (your tracker knows where you are on the course) */
-  const others=RACE.cars.map(q=>q.drv||q.trk);
-  for(const c of RACE.cars){if(!c.drv)continue;if((c.done||c.out)&&!c.drv.done)c.drv.done=true;c.drv.drive(dt,others);}
+  /* off the physics far from you, back on near; not while one would land on another car */
+  const p=GAME.car.p;
+  for(const c of RACE.cars){const d=c.drv;if(!d||RACE.state==='grid')continue;const dx=c.car.p[0]-p[0],dz=c.car.p[2]-p[2],d2=dx*dx+dz*dz;
+    if(d.kin){if(d2<RACE_NEAR*RACE_NEAR&&raceClear(c))d.toPhysics();}
+    else if(d2>RACE_FAR*RACE_FAR)d.toKin();}
+  for(const c of RACE.cars){const d=c.drv;if(!d)continue;if((c.done||c.out)&&!d.done)d.done=true;if(d.kin)d.ride(dt,RACE.others);else d.drive(dt,RACE.others);}
 }
-/* the robots' cars stepped with yours, then everyone touching everyone */
+/* nothing on the physics within a car's length or so of where this one would come back on */
+function raceClear(c){const p=c.car.p;for(const o of RACE.cars){if(o===c||o.drv&&o.drv.kin)continue;const q=o.car.p;if((q[0]-p[0])**2+(q[2]-p[2])**2<64)return false;}return true;}
+/* the robots on the physics stepped with yours, then everyone touching everyone */
 const RACE_CARS=[];
 function raceSub(dt){
   RACE_CARS.length=0;RACE_CARS.push(GAME.car);
-  for(const c of RACE.cars){if(!c.drv||c.gone)continue;c.car.step(dt,c.drv.inp);RACE_CARS.push(c.car);}
+  for(const c of RACE.cars){if(!c.drv||c.drv.kin)continue;c.car.step(dt,c.drv.inp);RACE_CARS.push(c.car);}
   if(RACE_CARS.length>1)carContacts(RACE_CARS);
 }
 /* after the physics: where everyone is, laps, the finish, the robots put back on the course */
@@ -10868,44 +11022,33 @@ function racePost(dt){
   const ev=RACE.ev,me=RACE.me;if(!RACE.on)return;
   /* you: tracked strictly (way off the course, the tracker waits for you where you left it) */
   {const T=me.trk,L=T.line,keep=[T.i,T.lap,T.s,T.prog,T.lat];T.track();
-    if(T.dist>L.hw+12&&keep[0]>=0){[T.i,T.lap,T.s,T.prog,T.lat]=keep;me.offT=(me.offT||0)+dt;
+    if(T.dist>L.hwAt(Math.max(0,T.i))+12&&keep[0]>=0){[T.i,T.lap,T.s,T.prog,T.lat]=keep;me.offT=(me.offT||0)+dt;
       if(me.offT>4&&RACE.state!=='grid'&&!me.done){me.offT=0;raceResetMe();say('BACK ON THE COURSE',1.6,PAL.amber);}}else me.offT=0;}
-  for(const c of RACE.cars){if(!c.drv||c.gone)continue;const d=c.drv;
-    if(d.resetReq&&!c.done){const [x,z,yaw]=d.resetPose(8);c.car.place([x,RANCH.W.heightAt(x,z)+.05,z],yaw);raceSettle(c.car);d.i=-1;d.track();}}
+  for(const c of RACE.cars){const d=c.drv;if(!d||d.kin)continue;
+    if(d.resetReq&&!c.done){const [x,z,yaw]=d.resetPose(8);c.car.place([x,RANCH.W.heightAt(x,z)+.05,z],yaw);raceSettle(c);d.i=-1;d.track();}}
   if(RACE.state==='grid')return;
   if(ev.kind==='drag')return dragPost(dt);
-  if(ev.kind==='stage')return stagePost(dt);
   /* circuits: laps done = line crossings - 1 (the grid is behind the line) */
-  const L=me.trk.line;
   for(const c of RACE.cars){if(c.done||c.out)continue;const T=c.me?c.trk:c.drv,laps=T.lap-1;c.prog=T.prog;c.laps=laps;
     if(c.me&&laps>(c.lastLap??0)){c.lastLap=laps;const lt=RACE.clock-(c.lapT0||0);c.lapT0=RACE.clock;c.best=Math.min(c.best||1e9,lt);
       if(laps<ev.laps)say(laps===ev.laps-1?'FINAL LAP':'LAP '+(laps+1)+' OF '+ev.laps,1.6,laps===ev.laps-1?PAL.gold:PAL.white);}
     if(laps>=ev.laps){c.done=true;c.time=RACE.clock;if(c.me){RACE.state='flag';RACE.flagT=RACE.clock;say('FINISHED '+ord(racePlace(me)),3,PAL.gold);buzz([30,30,30,30,60]);}}}
   /* last car out: when the leader finishes each lap, whoever is last is done */
-  if(ev.kind==='elim'){const live=RACE.cars.filter(c=>!c.out),lead=Math.max(...live.map(c=>c.laps||0));
-    if(lead>(RACE.elimLap||0)&&live.length>1){RACE.elimLap=lead;const last=raceOrder().filter(c=>!c.out).pop();last.out=true;last.time=RACE.clock;RACE.out.push(last);
+  if(ev.kind==='elim'){const live=RACE.cars.filter(c=>!c.out);let lead=0;for(const c of live)lead=Math.max(lead,c.laps||0);
+    if(lead>RACE.elimLap&&live.length>1){RACE.elimLap=lead;const last=raceOrder().filter(c=>!c.out).pop();last.out=true;last.time=RACE.clock;RACE.out.push(last);
       if(last.me){say('YOU\'RE OUT',2.4,PAL.red);RACE.state='flag';RACE.flagT=RACE.clock;}else{say(last.name.toUpperCase()+' IS OUT',1.8,PAL.amber);if(last.drv)last.drv.done=true;}
       if(live.length-1===1){const w=RACE.cars.find(c=>!c.out);w.done=true;w.time=RACE.clock;if(w.me){say('LAST ONE STANDING',3,PAL.gold);RACE.state='flag';RACE.flagT=RACE.clock;}}}}
   /* the flag: once you're done, the others get a little while to finish, then the results */
-  const allDone=RACE.cars.every(c=>c.done||c.out);
-  if(RACE.state==='flag'&&(allDone||RACE.clock-RACE.flagT>(ev.kind==='elim'?3:25)))raceResults();
+  if(RACE.state==='flag'&&(RACE.cars.every(c=>c.done||c.out)||RACE.clock-RACE.flagT>(ev.kind==='elim'?3:25)))raceResults();
 }
 function dragPost(dt){
-  const S=RANCH.W.strip,fin=S.start+S.eighth,me=RACE.me;
+  const S=WG.PKW.ST,fin=S.start+S.eighth,me=RACE.me;
   if(RACE.rt===null&&RACE.green&&inputThr()>.5)RACE.rt=RACE.clock;
   for(const c of RACE.cars){if(c.done)continue;const car=c.car,front=car.p[0]+car.c.body.L/2;
     if(c.leftT===undefined&&front>S.start+.2)c.leftT=RACE.clock;
     if(front>=fin){c.done=true;c.time=RACE.clock;c.mph=car.speed*2.237;c.et=RACE.clock-(c.leftT||0);if(!c.me)c.rt=c.drv.react;else c.rt=RACE.rt??0;}}
   if(me.done&&RACE.state!=='flag'){RACE.state='flag';RACE.flagT=RACE.clock;const won=!RACE.foul&&RACE.cars.every(c=>c.me||!c.done||c.time>me.time);say(RACE.foul?'RED LIGHT':won?'YOU WIN':'BEATEN',2.4,won?PAL.gold:PAL.red);}
   if(RACE.state==='flag'&&(RACE.cars.every(c=>c.done)||RACE.clock-RACE.flagT>6))raceResults();
-}
-function stagePost(dt){
-  const me=RACE.me,L=me.line,s=me.trk.s;
-  /* splits at a third and two thirds, against the quickest rival's pace */
-  const len=RACE.s1-RACE.s0,best=Math.min(...RACE.rivals.map(r=>r.time));
-  for(const f of [1/3,2/3]){const k=f<.5?'sp1':'sp2';if(me[k]===undefined&&s>=RACE.s0+len*f){me[k]=RACE.clock;const dlt=RACE.clock-best*f;say('SPLIT '+(dlt<0?'-':'+')+Math.abs(dlt).toFixed(2),2,dlt<0?PAL.green:PAL.red);}}
-  if(!me.done&&s>=RACE.s1){me.done=true;me.time=RACE.clock;RACE.state='flag';RACE.flagT=RACE.clock;say('STAGE TIME '+fmtLap(me.time),3,PAL.gold);}
-  if(RACE.state==='flag'&&RACE.clock-RACE.flagT>2.5)raceResults();
 }
 const inputThr=()=>Math.max(INPUT.thr,TOUCH.on?TOUCH.thr:0);
 /* the order now: finished ones by time, then the rest by how far round they are */
@@ -10919,18 +11062,17 @@ function raceResetMe(){const T=RACE.me.trk,L=T.line,s=Math.max(0,T.s-4),[x,z]=L.
 /* ---------- the end ---------- */
 function raceResults(){
   const ev=RACE.ev,D=RACE_DIFF[RACE.diff],me=RACE.me;let rows=[],place=0;
-  if(ev.kind==='stage'){const all=RACE.rivals.map(r=>({name:r.name,car:r.car+' '+r.build,time:r.time})).concat(me.done?[{name:'You',car:carLabel(),time:me.time,me:true}]:[]).sort((a,b)=>a.time-b.time);
-    rows=all.map(r=>({name:r.name,car:r.car,time:fmtLap(r.time),me:r.me}));place=me.done?all.findIndex(r=>r.me)+1:0;}
-  else if(ev.kind==='drag'){const o=RACE.cars.find(c=>!c.me),won=!RACE.foul&&me.done&&(!o.done||me.time<o.time);place=won?1:2;
+  if(ev.kind==='drag'){const o=RACE.cars.find(c=>!c.me),won=!RACE.foul&&me.done&&(!o.done||me.time<o.time);place=won?1:2;
     const row=(c,nm,car)=>({name:nm,car,time:c.done?fmtLap(c.time):'—',sub:c.done?`RT ${(c.rt||0).toFixed(3)}  ET ${(c.et||0).toFixed(2)}  ${Math.round(c.mph||0)} MPH`:'',me:c.me});
     rows=[row(me,'You',carLabel()),row(o,o.name,carName({car:BUILDS[o.bi].car})+' '+BUILDS[o.bi].name)];if(!won)rows.reverse();if(RACE.foul)rows[rows.length-1].sub='RED LIGHT';}
   else{const ord2=raceOrder(),lead=ord2[0];place=ord2.indexOf(me)+1;
     rows=ord2.map(c=>({name:c.me?'You':c.name,car:c.me?carLabel():carName({car:BUILDS[c.bi].car})+' '+BUILDS[c.bi].name,me:c.me,
-      time:c.out?'OUT LAP '+((c.laps||0)+1):ev.kind==='elim'?(c.done?'WINNER':'RUNNING'):c.done?(c===lead?fmtLap(c.time):'+'+(c.time-lead.time).toFixed(2)):(ev.laps-(c.laps||0)>1?'+'+(ev.laps-(c.laps||0))+' LAPS':'+1 LAP')}));
+      time:c.out?'OUT LAP '+((c.laps||0)+1):ev.kind==='elim'?(c.done?'WINNER':'RUNNING'):c.done?(c===lead?fmtLap(c.time):'+'+(c.time-lead.time).toFixed(2)):
+        ev.laps===1?(((c.me?c.trk:c.drv).line.len-(c.me?c.trk:c.drv).s)/1000).toFixed(1)+' KM TO GO':ev.laps-(c.laps||0)>1?'+'+(ev.laps-(c.laps||0))+' LAPS':'+1 LAP'}));
     if(me.best&&me.best<1e9)rows.find(r=>r.me).sub='BEST LAP '+fmtLap(me.best);}
   /* the purse: your share for the place, more on harder settings */
   const prize=place>0?Math.round(ev.purse*(RACE_PAY[place-1]||0)*D.pay/10)*10:0;
-  if(prize>0)Feats.award(`${ev.name}: ${ord(place).toLowerCase()} on ${D.name.toLowerCase()}`,prize);
+  if(prize>0)earn(prize);
   const key=ev.id+':'+RACE.diff,b=RACE.best[key];if(place>0&&(!b||place<b.place||place===b.place&&me.time<b.time))RACE.best[key]={place,time:me.time||0,car:carLabel()};raceSave();
   RACE.res={ev,place,prize,rows,diff:D.name};RACE.state='done';
   showResults();
@@ -10942,20 +11084,22 @@ function raceEnd(why){
 }
 /* ---------- drawing the robots' cars ---------- */
 function raceDraw(c){
-  if(!RACE.on)return 0;let tris=0;const F=frustum(c.VPw),e=c.eye;
-  for(const o of RACE.cars){if(o.me||o.gone)continue;const t=o.car,r=t.c.body.L*.6+1,d=Math.hypot(t.p[0]-e[0],t.p[2]-e[2]);
-    if(d>(SKY.night?SKY.draw:GFX.far))continue;if(!boxVisible(F,[t.p[0]-r,t.p[1]-r,t.p[2]-r],[t.p[0]+r,t.p[1]+r,t.p[2]+r]))continue;
-    tris+=drawWorldCar(t,null,o.dirt,d>45);}
+  if(!RACE.on)return 0;let tris=0;const F=frustum(c.VPw),e=c.eye,far=SKY.night?SKY.draw:GFX.far;
+  for(const o of RACE.cars){if(o.me||!o.built)continue;const t=o.car,r=t.c.body.L*.6+1,d=Math.hypot(t.p[0]-e[0],t.p[2]-e[2]);
+    if(d>far)continue;if(!boxVisible(F,[t.p[0]-r,t.p[1]-r,t.p[2]-r],[t.p[0]+r,t.p[1]+r,t.p[2]+r]))continue;
+    tris+=drawWorldCar(t,null,o.dirt,true);}
   return tris;
 }
-const raceCars=()=>RACE.on?RACE.cars.filter(o=>!o.me&&!o.gone).map(o=>o.car):[];
+/* the others' cars that are drawn (for the shadows): the same list all frame */
+const RACE_VIS=[];let RACE_VIS_F=-1;
+function raceCars(){if(RACE_VIS_F!==GFX.frame){RACE_VIS_F=GFX.frame;RACE_VIS.length=0;if(RACE.on)for(const o of RACE.cars)if(!o.me&&o.built)RACE_VIS.push(o.car);}return RACE_VIS;}
 /* ---------- the others' engines: a cheap voice each for the three nearest (the Digital Engine is yours alone) ---------- */
 const RVOX=[];
 function raceSound(c){
   const A=ENG.audio;if(!A||!c)return;const ctx=A.ctx,now=ctx.currentTime;
   if(!RACE.on||GAME.state!=='drive'){for(const v of RVOX)v.g.gain.setTargetAtTime(0,now,.1);return;}
   if(!RVOX.length)for(let k=0;k<3;k++)RVOX.push(raceVox(A));
-  const near=RACE.cars.filter(o=>!o.me&&!o.gone).map(o=>({o,d:Math.hypot(o.car.p[0]-c.eye[0],o.car.p[1]-c.eye[1],o.car.p[2]-c.eye[2])})).sort((a,b)=>a.d-b.d);
+  const near=RACE.cars.filter(o=>!o.me).map(o=>({o,d:Math.hypot(o.car.p[0]-c.eye[0],o.car.p[1]-c.eye[1],o.car.p[2]-c.eye[2])})).sort((a,b)=>a.d-b.d);
   RVOX.forEach((v,k)=>{const q=near[k];if(!q||q.d>160){v.g.gain.setTargetAtTime(0,now,.08);return;}
     const t=q.o.car,cyl=+((String(t.spec.layout||'V8').match(/\d+/)||[8])[0]),f=Math.max(18,t.pt.rpm/60*cyl/2),thr=q.o.drv?q.o.drv.inp.thr:0;
     v.o1.frequency.setTargetAtTime(f,now,.03);v.o2.frequency.setTargetAtTime(f/2,now,.03);v.f.frequency.setTargetAtTime(Math.min(7000,f*2.2+300+thr*1400),now,.05);
@@ -11039,7 +11183,7 @@ function parkDragDone(D){
 }
 /* ---------- on the HUD: the lap clock; the tree; the slip ---------- */
 function drawParkHud(lx,sc){
-  if(RACE.on)return;const P=PARKT,D=P.dr,tch=GAME.touch;let y=7+7*sc+(tch?40:30);
+  const P=PARKT,D=P.dr,tch=GAME.touch;let y=7+7*sc+(tch?40:30);
   if(P.on){const lt=GAME.time-P.t0,b=P.best[parkKey(P.on.id)];
     otxt3(P.on.name.toUpperCase(),lx,y,PAL.dim);otxt5(fmtLive(lt),lx,y+7,GR.volt,1);if(b)otxt3('BEST '+fmtLap(b),lx,y+17,PAL.dim);y+=26;}
   if(P.last&&APP.t-P.lastT<5){otxt3('LAST LAP '+fmtLap(P.last.t)+(P.last.best?'  NEW BEST':''),lx,y,P.last.best?PAL.green:PAL.ink);y+=8;}
@@ -11472,6 +11616,8 @@ void main(){vec3 V=normalize(uCam-vP);float d=length(uCam-vP),f=1.-abs(dot(norma
 let P_BEAM=null,BEAM_MESH=null;const BEAM_BUF=new Float32Array(64*12),CH_MARKS=[];
 let BEAM_H=0,BEAM_N=0,BEAM_RO0=NaN,BEAM_RO2=NaN;
 function chalDraw(cam){
+  /* (none in a race: the columns are the challenges' and the jobs') */
+  if(RACE.on)return 0;
   const r=CHAL.run,K=MK;
   if(K.v!==MARKS_V||K.r!==r||(r&&(K.gi!==r.gi||K.lap!==r.lap||K.ph!==r.phase))||APP.t-MARKS_T>5){
     K.v=MARKS_V;K.r=r;if(r){K.gi=r.gi;K.lap=r.lap;K.ph=r.phase;}MARKS_T=APP.t;CH_MARKS.length=0;chalMarks(CH_MARKS);BEAM_H=NaN;}
@@ -11799,7 +11945,7 @@ function drawHud(c){
   if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
-  drawFeatsHud();drawRaceHud(lx,sc);if(CHAL.run)drawChalHud(lx,sc);else{drawParkHud(lx,sc);drawJobHud(lx,sc);}
+  drawFeatsHud();if(RACE.on)drawRaceHud(lx,sc);else if(CHAL.run)drawChalHud(lx,sc);else{drawParkHud(lx,sc);drawJobHud(lx,sc);}
   if(DEVW.hud)drawWorldStats();
   if(!on){const msg=GAME.touch?'TAP GAS TO START':'PRESS W OR I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-26,GR.steel,1,'c');}
   else if(pt.st==='crank')otxt3('CRANKING',W/2,H-22,PAL.amber,1,'c');
@@ -11818,7 +11964,7 @@ function drawHud(c){
     const al=Math.round(255*clamp(Math.min(m.a*6,(m.k-m.a)*3),0,1)),big=i===GAME.msgs.length-1&&tw5(m.t,1)<W*.8;
     otxt5(m.t,W/2,y,big?GR.steel:GR.steel.map(c=>((c&0xffffff)|(al<<24))>>>0),1,'c');y+=10;}
 }
-/* a race (60_race): the lights, your place, the lap and the time, the gaps; a stage's clock and splits; the drag tree */
+/* a race (60_race): the lights, your place, the lap and the time, the gaps; the drag tree */
 function drawRaceHud(lx,sc){
   if(!RACE.on||!RACE.me)return;
   const ev=RACE.ev,me=RACE.me,tch=GAME.touch,clk=RACE.state==='grid'?0:RACE.clock;let y=7+7*sc+(tch?40:30);
@@ -11828,23 +11974,18 @@ function drawRaceHud(lx,sc){
     for(let k=0;k<n;k++){const px=drag?cx:cx-12+k*12,py=drag?cy-2+k*9:cy,lit=go||k<on;hDisc(px,py,3.6,lit?(go?PAL.green:drag?PAL.amber:PAL.red):pack(40,30,30,255));}
     if(drag){hDisc(cx,cy+25,3.6,go?PAL.green:pack(30,40,30,255));if(RACE.foul)hDisc(cx,cy+33,3.6,PAL.red);}
     if(drag&&RACE.state==='grid'&&inputThr()>.5&&!RACE.foul)otxt3('OFF THE GAS UNTIL GREEN',cx,cy+40,PAL.amber,1,'c');}
-  if(ev.kind==='stage'){const len=RACE.s1-RACE.s0,togo=Math.max(0,RACE.s1-(me.trk.s||RACE.s0));
-    otxt3('STAGE',lx,y,PAL.dim);otxt5(me.done?fmtLap(me.time):fmtLive(clk),lx,y+7,GR.volt,1);
-    otxt3((togo/1000).toFixed(2)+' KM TO GO',lx,y+17,PAL.ink);
-    const best=Math.min(...RACE.rivals.map(r=>r.time));otxt3('TO BEAT '+fmtLap(best),lx,y+25,PAL.dim);void len;return;}
   if(ev.kind==='drag'){otxt5(me.done?fmtLap(me.time):fmtLive(clk),lx,y,GR.volt,1);if(RACE.rt!==null)otxt3('RT '+RACE.rt.toFixed(3),lx,y+10,PAL.ink);return;}
-  const order=raceOrder(),pos=order.indexOf(me)+1,live=RACE.cars.filter(c=>!c.out).length,laps=Math.max(0,Math.min(ev.laps,(me.laps||0)+1));
+  const order=raceOrder(),pos=order.indexOf(me)+1,live=RACE.cars.filter(c=>!c.out).length,laps=Math.max(1,Math.min(ev.laps,(me.laps||0)+1));
   otxt5('P'+pos,lx,y,GR.gold,sc);txt3('/'+(ev.kind==='elim'?live:RACE.cars.length),lx+tw5('P'+pos,sc)+2,y+(sc>1?7:3),PAL.dim);y+=7*sc+3;
   otxt3((me.done?'FINISHED':'LAP '+laps+'/'+ev.laps),lx,y,me.done?PAL.gold:PAL.ink);otxt3(me.done?fmtLap(me.time):fmtLive(clk),lx+44,y,PAL.ink);y+=8;
   /* the gaps to the cars either side, in seconds at your speed */
-  const L=me.trk.line,v=Math.max(8,GAME.car.speed),gap=c=>{let d=(c.prog||0)-(me.prog||0);return d/v;};
+  const v=Math.max(8,GAME.car.speed),gap=c=>((c.prog||0)-(me.prog||0))/v;
   const a=order[pos-2],b=order[pos];
   if(a&&!a.done&&!me.done)otxt3('AHEAD '+Math.abs(gap(a)).toFixed(1),lx,y,PAL.dim),y+=7;
   if(b&&!b.out&&!me.done)otxt3('BEHIND '+Math.abs(gap(b)).toFixed(1),lx,y,PAL.dim),y+=7;
   /* the running order, on a big screen */
   if(!tch&&H>=170){y+=3;for(let k=0;k<order.length;k++){const c=order[k],nm=(c.me?'YOU':c.name.split(' ').pop().toUpperCase()).slice(0,9);
     txt3((k+1)+' '+nm,lx,y,c.me?PAL.gold:c.out?pack(80,70,90):PAL.ink);y+=6;}}
-  void L;
 }
 /* the feat going on now (drifting, in the air, on two wheels, a speed run, a burnout) and the combo with
    its money, its multiplier and how long until it banks */
@@ -12029,16 +12170,18 @@ function syncSimCard(){
   $('mSimHint').textContent=hint;
 }
 /* ---------- races ---------- */
-const RACE_KIND={circuit:'Race',elim:'Elimination',drag:'Drag race',stage:'Time trial'};
+const RACE_KIND={circuit:'Race',elim:'Elimination',drag:'Drag race'};
 function syncRaces(){
   for(const el of $('raDiff').children)el.setAttribute('aria-pressed',String(el.dataset.v===RACE.diff));$('raDiffHint').textContent=RACE_DIFF[RACE.diff].blurb;
   const L=$('raList');L.textContent='';const D=RACE_DIFF[RACE.diff];
   for(const ev of RACE_EVENTS){const el=document.createElement('button');el.type='button';el.className='race';el.innerHTML='<b></b><small></small><i></i>';
     el.querySelector('b').textContent=ev.name;el.querySelector('small').textContent=ev.blurb;
-    const meta=[RACE_KIND[ev.kind],ev.laps?ev.laps+' laps':'',ev.kind==='stage'?'5 rivals\' times':ev.field>2?ev.field+' cars':'1 on 1','wins '+Feats.fmtMoney(Math.round(ev.purse*D.pay/10)*10)].filter(Boolean).join(' · ');
+    const meta=[RACE_KIND[ev.kind],ev.laps?ev.laps+' laps':'',ev.field>2?ev.field+' cars':'1 on 1','wins '+Feats.fmtMoney(Math.round(ev.purse*D.pay/10)*10)].filter(Boolean).join(' · ');
     const b=RACE.best[ev.id+':'+RACE.diff],i=el.querySelector('i');i.textContent=meta;
-    if(b){const em=document.createElement('em');em.textContent='  ·  best: '+ord(b.place).toLowerCase()+(b.time&&ev.kind==='stage'?' in '+fmtLap(b.time):'');i.appendChild(em);}
-    el.addEventListener('click',()=>{closeMenu();startRace(ev.id);});L.appendChild(el);}
+    if(b){const em=document.createElement('em');em.textContent='  ·  best: '+ord(b.place).toLowerCase();i.appendChild(em);}
+    /* (the field takes a moment to line up on a phone: the button says so, painted before the work starts) */
+    el.addEventListener('click',()=>{if(el.dataset.go)return;el.dataset.go='1';i.textContent='Lining up the field\u2026';
+      requestAnimationFrame(()=>setTimeout(()=>{closeMenu();startRace(ev.id);},0));});L.appendChild(el);}
 }
 /* the results, over the game; the race stays paused under them */
 function showResults(){
@@ -12047,7 +12190,7 @@ function showResults(){
   $('rrPrize').textContent=Feats.fmtMoney(R.prize);
   const T=$('rrList');T.textContent='';R.rows.forEach((r,k)=>{const tr=document.createElement('tr');if(r.me)tr.className='me';tr.innerHTML='<td></td><td><b></b><small></small></td><td></td>';
     tr.children[0].textContent=String(k+1);tr.querySelector('b').textContent=r.name;tr.querySelector('small').textContent=r.car+(r.sub?'  ·  '+r.sub:'');tr.children[2].textContent=r.time;T.appendChild(tr);});
-  $('rrNote').textContent=R.prize?'The prize is in your free play money.':R.place?'No prize for that place this time.':'';
+  $('rrNote').textContent=R.prize?(CAREER.on?'The prize is in your career money.':'The prize is in your free play money.'):R.place?'No prize for that place this time.':'';
   $('rres').hidden=false;setTimeout(()=>$('rrAgain').focus({preventScroll:true}),0);
 }
 function hideResults(){$('rres').hidden=true;raceEnd(null);GAME.state='drive';CAM.cut=true;syncTouch();INPUT.down.clear();}
@@ -13448,7 +13591,7 @@ else{
   },30));
   window.__game={showClutchCap,TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DRS,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
     GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},gl,CSM,PRB,SKY,scn:()=>SCN,lit:()=>P_LIT,compile,VS_LIT,FS_LIT,DISP,setDisplay,SC,PT,
-    RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,
+    RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }

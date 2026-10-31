@@ -71,7 +71,7 @@ function parkDragDone(D){
 }
 /* ---------- on the HUD: the lap clock; the tree; the slip ---------- */
 function drawParkHud(lx,sc){
-  if(RACE.on)return;const P=PARKT,D=P.dr,tch=GAME.touch;let y=7+7*sc+(tch?40:30);
+  const P=PARKT,D=P.dr,tch=GAME.touch;let y=7+7*sc+(tch?40:30);
   if(P.on){const lt=GAME.time-P.t0,b=P.best[parkKey(P.on.id)];
     otxt3(P.on.name.toUpperCase(),lx,y,PAL.dim);otxt5(fmtLive(lt),lx,y+7,GR.volt,1);if(b)otxt3('BEST '+fmtLap(b),lx,y+17,PAL.dim);y+=26;}
   if(P.last&&APP.t-P.lastT<5){otxt3('LAST LAP '+fmtLap(P.last.t)+(P.last.best?'  NEW BEST':''),lx,y,P.last.best?PAL.green:PAL.ink);y+=8;}

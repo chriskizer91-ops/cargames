@@ -413,6 +413,8 @@ void main(){vec3 V=normalize(uCam-vP);float d=length(uCam-vP),f=1.-abs(dot(norma
 let P_BEAM=null,BEAM_MESH=null;const BEAM_BUF=new Float32Array(64*12),CH_MARKS=[];
 let BEAM_H=0,BEAM_N=0,BEAM_RO0=NaN,BEAM_RO2=NaN;
 function chalDraw(cam){
+  /* (none in a race: the columns are the challenges' and the jobs') */
+  if(RACE.on)return 0;
   const r=CHAL.run,K=MK;
   if(K.v!==MARKS_V||K.r!==r||(r&&(K.gi!==r.gi||K.lap!==r.lap||K.ph!==r.phase))||APP.t-MARKS_T>5){
     K.v=MARKS_V;K.r=r;if(r){K.gi=r.gi;K.lap=r.lap;K.ph=r.phase;}MARKS_T=APP.t;CH_MARKS.length=0;chalMarks(CH_MARKS);BEAM_H=NaN;}

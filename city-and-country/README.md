@@ -118,6 +118,33 @@ x runs east, z south; downtown is at the origin.
 - **The salt clubs**: 150, 200, 250, 300 and 330 mph ("Wide Open") anywhere on the salt, each paid once. The check is
   one comparison a frame until the car beats the next club's speed.
 
+## Races (round 6: `src/60_race.js`, `src/44_ai.js`)
+
+- **The races**: Speedway 25 (six laps of the park's clay oval), Last Car Out (the oval, last car out every lap),
+  the Short Course, the Mud Track Dash (four cars), the Boulevard Run (two laps of Limits Boulevard, anticlockwise in
+  the outside carriageway, from the median's edge to the curb), the Outer Loop Enduro (once round the city, 14 km)
+  and the Eighth-Mile Drag on the park's strip. Easy, medium and hard: how much of their cars the others use, where
+  you start, how much the places pay. The prize goes into the career's money, or free play's.
+- **Who you race**: the factory cars and trucks (not the machines) whose time round that course is nearest yours,
+  worked out on the robots' own sum (the line's planned speeds through the corners, the engine's pull between them;
+  `raceEst`), not the ratings' generic courses: on those a stock SUV and a track hypercar rate alike on dirt, round
+  the clay oval the hypercar is a fifth quicker. The mud goes by the ratings' mud course, the strip by 0-60.
+- **The drivers** are HD's (an elastic-band line between the edges, the speeds the car can take each bit at, gas and
+  brake to hold them, round slower cars), with Showdown's variable width and effort.
+- **Off the physics far from you**: a robot more than 190 m away rides its line instead of being simulated (at the
+  ghost's speed below, set down on the ground, wheels turning), and goes back on the physics, moving and in the right
+  gear, inside 140 m. Round the oval that is two or three of the five at a time; on the Enduro it is usually all of
+  them but the one or two near you. A robot on the physics costs about as much as your own car; one riding its line
+  about a fiftieth of that.
+- **The ghost**: while a robot is on the physics a ghost rides its line from where it is for fifteen seconds at a time
+  (the plan's speeds, the engine's pull: `_kinV`), and how far the car got over how far the ghost did is the pace it
+  rides at when it's off the physics (fifteen seconds mostly stuck behind someone don't count). Measured that way the
+  riders finish within a few per cent of the same car on the physics (`tools/race_cal.py`).
+- **The cars' meshes**: the others are drawn from one coarser copy each (`truckFar`, the body's stations three times
+  further apart), near or far, built on the grid one a frame while the lights wait; the full car is never made for a
+  rival. The car builder itself got a third quicker on the way (`MB.tri`, the hood split straight from the flat
+  arrays), with every build's meshes checked bit for bit against the old builder's.
+
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
 One night, City Limits': a full moon bright enough to see the country and the salt. The town's ~1,100 lights
@@ -137,7 +164,13 @@ are the shader's own eight lamps, as in Back Forty.
   drag run; no NaNs, no ground steps, the lap clock and the slip.
 - `python3 tools/chal_drive.py [ids|all] [car:preset]`: a robot through each challenge with the game's own run (the
   countdown, gates, laps, trap, mile, the flight); `list` lists them; `pars` gives the numbers for `CH_PARS`.
+- `python3 tools/race_run.py ids [car:preset] [easy|medium|hard]`: whole races with your car driven by a robot of its
+  own through the game's step: the results, how many of the others were on the physics, the cost a frame.
+- `python3 tools/race_cal.py courses builds [laps]`: a robot alone round a course on the physics, then riding the line
+  at the pace its ghost measured: the two times side by side.
 
 ## Next
 
-- Robot racers (HD's drivers and Showdown's cross-country drivers).
+- Showdown's cross-country races on this map's roads and trails, the rivals sizing your car up by its looks, and the
+  strip callouts.
+- The rivals' engines: quiet pre-rendered loops in place of the oscillators.

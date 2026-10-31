@@ -10,12 +10,18 @@ function truck(i){const b=BUILDS[i];if(TRUCK[b.id])return TRUCK[b.id];
   const t0=performance.now(),s=buildSUV(b.look,b),w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
   return TRUCK[b.id]={body:s.body,hood:s.hood,hide:s.hide,D:s.D,wheel:w,wheelR:wr,bay:s.bay,engineOut:!!s.bay,
     tris:s.tris+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}
-/* a far-away copy of the body and hood (stations four times coarser), for the other cars in a race */
-function truckFar(i){const T=truck(i);if(T.far)return T.far;
-  /* a machine is built from parts, not lofted: its far copy is itself, without its rider */
-  if(BUILDS[i].machine)return T.far={body:T.body,hood:null,tris:T.body.n/3};BODY_LOD=4;let s;try{s=buildSUV(BUILDS[i].look,BUILDS[i]);}finally{BODY_LOD=1;}
-  if(s.bay&&s.bay.engine&&s.bay.engine.vao)freeMesh(s.bay.engine);if(s.hide&&s.hide.vao)freeMesh(s.hide);
-  return T.far={body:s.body,hood:s.hood,tris:(s.body.n+s.hood.n)/3};}
+/* a coarser copy (the body's stations RACE_LOD times further apart), built on its own: the other cars in a race
+   are drawn from nothing else, near or far, so the full car (several times the building, several times the
+   memory) is never made for them. Its own body, hood and any blower through it; the wheels are everyone's */
+const TRUCKF={},RACE_LOD=3;
+function truckFar(i){const b=BUILDS[i];if(TRUCKF[b.id])return TRUCKF[b.id];
+  /* a machine is built from parts, not lofted: its copy is itself, without its rider */
+  if(b.machine){const T=truck(i);return TRUCKF[b.id]={body:T.body,hood:null,D:T.D,wheel:T.wheel,wheelR:T.wheelR,shared:true,tris:T.tris,ms:0};}
+  const t0=performance.now();BODY_LOD=RACE_LOD;let s;try{s=buildSUV(b.look,b);}finally{BODY_LOD=1;}
+  if(s.hide&&s.hide.vao)freeMesh(s.hide);
+  const w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
+  return TRUCKF[b.id]={body:s.body,hood:s.hood,D:s.D,bay:s.bay,engineOut:!!s.bay,wheel:w,wheelR:wr,
+    tris:(s.body.n+s.hood.n)/3+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}
 /* the engine bay: built the first time this build's hood opens, never with it shut */
 const bayOf=i=>{const T=truck(i);return T.bay||(T.bay=buildBay(BUILDS[i],T.D));};
 /* ---------- matrices ---------- */

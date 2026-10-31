@@ -223,7 +223,7 @@ function faceMat(D,u,K,y,gk,yG){
   return MM.GL;
 }
 /* ---------- the builder ---------- */
-/* how coarsely the body's stations are laid (1: as designed; 4: a far-away copy for the other cars in a race) */
+/* how coarsely the body's stations are laid (1: as designed; RACE_LOD, 33_car_mesh: the copy the other cars in a race are drawn from) */
 let BODY_LOD=1;
 function buildSUV(look,build){
   const D=suvDesign(look),G=D.G,L=D.L,X=D.X,dy=D.dy,Q=BODY_LOD;
@@ -317,17 +317,24 @@ function buildSUV(look,build){
   const put=(vs,mat,hide)=>{let x=0,y=0,z=0;for(const v of vs){x+=v.p[0]/3;y+=v.p[1]/3;z+=v.p[2]/3;}let w=where(x,y,z);if(w===2&&!hide)w=0;const d=out[w];
     if(w===1&&hole&&x<hole[0]&&x>hole[1]&&Math.abs(z)<hole[2])return;
     for(const v of vs){d.p.push(...v.p);d.n.push(...v.n);d.c.push(...v.c);d.m.push(mat);}};
+  /* (the same for a triangle straight from a builder's flat arrays, the usual case: nothing made for it) */
+  const put9=(P,N,C,o,mat,hide)=>{const o3=o+3,o6=o+6;let x=0,y=0,z=0;x+=P[o]/3;y+=P[o+1]/3;z+=P[o+2]/3;x+=P[o3]/3;y+=P[o3+1]/3;z+=P[o3+2]/3;x+=P[o6]/3;y+=P[o6+1]/3;z+=P[o6+2]/3;
+    let w=where(x,y,z);if(w===2&&!hide)w=0;const d=out[w];
+    if(w===1&&hole&&x<hole[0]&&x>hole[1]&&Math.abs(z)<hole[2])return;
+    const c=o/9*12;d.p.push(P[o],P[o+1],P[o+2],P[o3],P[o3+1],P[o3+2],P[o6],P[o6+1],P[o6+2]);d.n.push(N[o],N[o+1],N[o+2],N[o3],N[o3+1],N[o3+2],N[o6],N[o6+1],N[o6+2]);
+    d.c.push(C[c],C[c+1],C[c+2],C[c+3],C[c+4],C[c+5],C[c+6],C[c+7],C[c+8],C[c+9],C[c+10],C[c+11]);d.m.push(mat,mat,mat);};
   /* a skin triangle that straddles the hood's edge is cut along it, so the hood comes away cleanly */
   const lv=(a,b,t)=>{const n=[0,1,2].map(k=>a.n[k]+(b.n[k]-a.n[k])*t),l=Math.hypot(...n)||1;
     return {p:[0,1,2].map(k=>a.p[k]+(b.p[k]-a.p[k])*t),n:n.map(q=>q/l),c:[0,1,2,3].map(k=>a.c[k]+(b.c[k]-a.c[k])*t)};};
   const clipTo=(vs,f,keep)=>{const o=[];for(let i=0;i<vs.length;i++){const a=vs[i],b=vs[(i+1)%vs.length],fa=f(a)*keep,fb=f(b)*keep;
     if(fa>=0)o.push(a);if((fa>=0)!==(fb>=0))o.push(lv(a,b,fa/(fa-fb)));}return o;};
   const split=(src,hideOk,cut)=>{const P=src.p,N=src.n,C=src.c,Mt=src.m;
-    for(let t=0;t<P.length/9;t++){const vs=[0,1,2].map(k=>({p:[P[t*9+k*3],P[t*9+k*3+1],P[t*9+k*3+2]],n:[N[t*9+k*3],N[t*9+k*3+1],N[t*9+k*3+2]],c:[C[t*12+k*4],C[t*12+k*4+1],C[t*12+k*4+2],C[t*12+k*4+3]]})),mat=Mt[t*3],hide=hideOk(t);
-      if(cut){const uc=D.uC-(vs[0].p[0]+vs[1].p[0]+vs[2].p[0])/3,zc=(vs[0].p[2]+vs[1].p[2]+vs[2].p[2])/3;
-        if(uc>=h0&&uc<=h1){const sg=zc<0?-1:1,c=hz(uc),f=v=>sg*v.p[2]-c,fs=vs.map(f);
-          if(Math.min(...fs)<0&&Math.max(...fs)>0){for(const keep of [1,-1]){const q=clipTo(vs,f,keep);for(let k=1;k<q.length-1;k++)put([q[0],q[k],q[k+1]],mat,hide);}continue;}}}
-      put(vs,mat,hide);}};
+    for(let t=0;t<P.length/9;t++){const o=t*9,mat=Mt[t*3],hide=hideOk(t);
+      if(cut){const uc=D.uC-(P[o]+P[o+3]+P[o+6])/3;
+        if(uc>=h0&&uc<=h1){const zc=(P[o+2]+P[o+5]+P[o+8])/3,sg=zc<0?-1:1,c=hz(uc),f0=sg*P[o+2]-c,f1=sg*P[o+5]-c,f2=sg*P[o+8]-c;
+          if(Math.min(f0,f1,f2)<0&&Math.max(f0,f1,f2)>0){const f=v=>sg*v.p[2]-c,vs=[0,1,2].map(k=>({p:[P[o+k*3],P[o+k*3+1],P[o+k*3+2]],n:[N[o+k*3],N[o+k*3+1],N[o+k*3+2]],c:[C[t*12+k*4],C[t*12+k*4+1],C[t*12+k*4+2],C[t*12+k*4+3]]}));
+            for(const keep of [1,-1]){const q=clipTo(vs,f,keep);for(let k=1;k<q.length-1;k++)put([q[0],q[k],q[k+1]],mat,hide);}continue;}}}
+      put9(P,N,C,o,mat,hide);}};
   /* from the skin only its underside is hidden; from the parts only the wheel wells */
   split(mb,t=>mb.m[t*3]===MAT.METAL&&Math.abs(mb.c[t*12]-MM.UNDER[0][0])<1e-6,true);split(pm,t=>t>=ww0&&t<ww1,false);
   const n=out[0].p.length+out[1].p.length+out[2].p.length;

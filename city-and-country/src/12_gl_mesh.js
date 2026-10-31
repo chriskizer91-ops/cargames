@@ -72,10 +72,14 @@ class MB{
   constructor(){this.p=[];this.n=[];this.c=[];this.m=[];this.M=null;}
   setM(m){this.M=m;return this;}
   _v(p){if(!this.M)return p;return M4.xform(this.M,p);}
+  /* (the face's normal worked out in place: a car is a few hundred thousand of these, and the little arrays the
+     vector helpers make for each one were a good part of the time it took to build) */
   tri(a,b,c,col,em=0,mat=0){
-    a=this._v(a);b=this._v(b);c=this._v(c);
-    const n=V3.norm(V3.cross(V3.sub(b,a),V3.sub(c,a)));
-    for(const v of [a,b,c]){this.p.push(v[0],v[1],v[2]);this.n.push(n[0],n[1],n[2]);this.c.push(col[0],col[1],col[2],em);this.m.push(mat);}
+    if(this.M){a=M4.xform(this.M,a);b=M4.xform(this.M,b);c=M4.xform(this.M,c);}
+    const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2],
+      cx=uy*vz-uz*vy,cy=uz*vx-ux*vz,cz=ux*vy-uy*vx,l=Math.hypot(cx,cy,cz)||1,nx=cx/l,ny=cy/l,nz=cz/l,r=col[0],g=col[1],bl=col[2];
+    this.p.push(a[0],a[1],a[2],b[0],b[1],b[2],c[0],c[1],c[2]);this.n.push(nx,ny,nz,nx,ny,nz,nx,ny,nz);
+    this.c.push(r,g,bl,em,r,g,bl,em,r,g,bl,em);this.m.push(mat,mat,mat);
   }
   quad(a,b,c,d,col,em,mat){this.tri(a,b,c,col,em,mat);this.tri(a,c,d,col,em,mat);}
   /* quad with a colour per corner (gradients) */

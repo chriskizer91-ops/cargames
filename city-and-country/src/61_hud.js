@@ -86,7 +86,7 @@ function drawHud(c){
   if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
-  drawFeatsHud();drawRaceHud(lx,sc);if(CHAL.run)drawChalHud(lx,sc);else{drawParkHud(lx,sc);drawJobHud(lx,sc);}
+  drawFeatsHud();if(RACE.on)drawRaceHud(lx,sc);else if(CHAL.run)drawChalHud(lx,sc);else{drawParkHud(lx,sc);drawJobHud(lx,sc);}
   if(DEVW.hud)drawWorldStats();
   if(!on){const msg=GAME.touch?'TAP GAS TO START':'PRESS W OR I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-26,GR.steel,1,'c');}
   else if(pt.st==='crank')otxt3('CRANKING',W/2,H-22,PAL.amber,1,'c');
@@ -105,7 +105,7 @@ function drawHud(c){
     const al=Math.round(255*clamp(Math.min(m.a*6,(m.k-m.a)*3),0,1)),big=i===GAME.msgs.length-1&&tw5(m.t,1)<W*.8;
     otxt5(m.t,W/2,y,big?GR.steel:GR.steel.map(c=>((c&0xffffff)|(al<<24))>>>0),1,'c');y+=10;}
 }
-/* a race (60_race): the lights, your place, the lap and the time, the gaps; a stage's clock and splits; the drag tree */
+/* a race (60_race): the lights, your place, the lap and the time, the gaps; the drag tree */
 function drawRaceHud(lx,sc){
   if(!RACE.on||!RACE.me)return;
   const ev=RACE.ev,me=RACE.me,tch=GAME.touch,clk=RACE.state==='grid'?0:RACE.clock;let y=7+7*sc+(tch?40:30);
@@ -115,23 +115,18 @@ function drawRaceHud(lx,sc){
     for(let k=0;k<n;k++){const px=drag?cx:cx-12+k*12,py=drag?cy-2+k*9:cy,lit=go||k<on;hDisc(px,py,3.6,lit?(go?PAL.green:drag?PAL.amber:PAL.red):pack(40,30,30,255));}
     if(drag){hDisc(cx,cy+25,3.6,go?PAL.green:pack(30,40,30,255));if(RACE.foul)hDisc(cx,cy+33,3.6,PAL.red);}
     if(drag&&RACE.state==='grid'&&inputThr()>.5&&!RACE.foul)otxt3('OFF THE GAS UNTIL GREEN',cx,cy+40,PAL.amber,1,'c');}
-  if(ev.kind==='stage'){const len=RACE.s1-RACE.s0,togo=Math.max(0,RACE.s1-(me.trk.s||RACE.s0));
-    otxt3('STAGE',lx,y,PAL.dim);otxt5(me.done?fmtLap(me.time):fmtLive(clk),lx,y+7,GR.volt,1);
-    otxt3((togo/1000).toFixed(2)+' KM TO GO',lx,y+17,PAL.ink);
-    const best=Math.min(...RACE.rivals.map(r=>r.time));otxt3('TO BEAT '+fmtLap(best),lx,y+25,PAL.dim);void len;return;}
   if(ev.kind==='drag'){otxt5(me.done?fmtLap(me.time):fmtLive(clk),lx,y,GR.volt,1);if(RACE.rt!==null)otxt3('RT '+RACE.rt.toFixed(3),lx,y+10,PAL.ink);return;}
-  const order=raceOrder(),pos=order.indexOf(me)+1,live=RACE.cars.filter(c=>!c.out).length,laps=Math.max(0,Math.min(ev.laps,(me.laps||0)+1));
+  const order=raceOrder(),pos=order.indexOf(me)+1,live=RACE.cars.filter(c=>!c.out).length,laps=Math.max(1,Math.min(ev.laps,(me.laps||0)+1));
   otxt5('P'+pos,lx,y,GR.gold,sc);txt3('/'+(ev.kind==='elim'?live:RACE.cars.length),lx+tw5('P'+pos,sc)+2,y+(sc>1?7:3),PAL.dim);y+=7*sc+3;
   otxt3((me.done?'FINISHED':'LAP '+laps+'/'+ev.laps),lx,y,me.done?PAL.gold:PAL.ink);otxt3(me.done?fmtLap(me.time):fmtLive(clk),lx+44,y,PAL.ink);y+=8;
   /* the gaps to the cars either side, in seconds at your speed */
-  const L=me.trk.line,v=Math.max(8,GAME.car.speed),gap=c=>{let d=(c.prog||0)-(me.prog||0);return d/v;};
+  const v=Math.max(8,GAME.car.speed),gap=c=>((c.prog||0)-(me.prog||0))/v;
   const a=order[pos-2],b=order[pos];
   if(a&&!a.done&&!me.done)otxt3('AHEAD '+Math.abs(gap(a)).toFixed(1),lx,y,PAL.dim),y+=7;
   if(b&&!b.out&&!me.done)otxt3('BEHIND '+Math.abs(gap(b)).toFixed(1),lx,y,PAL.dim),y+=7;
   /* the running order, on a big screen */
   if(!tch&&H>=170){y+=3;for(let k=0;k<order.length;k++){const c=order[k],nm=(c.me?'YOU':c.name.split(' ').pop().toUpperCase()).slice(0,9);
     txt3((k+1)+' '+nm,lx,y,c.me?PAL.gold:c.out?pack(80,70,90):PAL.ink);y+=6;}}
-  void L;
 }
 /* the feat going on now (drifting, in the air, on two wheels, a speed run, a burnout) and the combo with
    its money, its multiplier and how long until it banks */
