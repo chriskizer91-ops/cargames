@@ -1117,7 +1117,10 @@ function makeMesh(d){
   bufs.push(vbuf(0,d.pos,3),vbuf(1,d.nrm,3),vbuf(2,d.col,4));if(d.mat)bufs.push(vbuf(3,d.mat,1));if(d.uv)bufs.push(vbuf(4,d.uv,2));
   let ib=null,it=0;if(d.idx){ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,d.idx,gl.STATIC_DRAW);it=d.idx instanceof Uint32Array?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT;}
   gl.bindVertexArray(null);
-  return {vao,bufs,ib,it,n:d.idx?d.idx.length:d.pos.length/3,inst:null,ni:0};
+  /* a big mesh (a car's body) on a phone short of graphics memory: the buffers come back empty and the body would
+     simply not be there. Checked only for big meshes (asking the GPU is slow); the car falls back to its coarse copy */
+  let oom=false;if(d.pos.length>60000){const er=gl.getError();if(er===gl.OUT_OF_MEMORY){oom=true;GLC.oom=(GLC.oom||0)+1;}}
+  return {vao,bufs,ib,it,n:d.idx?d.idx.length:d.pos.length/3,inst:null,ni:0,oom};
 }
 /* per-instance data: Float32Array of 12 floats per instance */
 function setInst(mesh,data){
@@ -5356,7 +5359,7 @@ class Powertrain{
   get running(){return this.st==='run'||this.st==='catch';}
   start(){if(this.st==='off'||this.st==='stopping'){this.st='crank';this.t=0;}}
   stop(){if(this.st!=='off')this.st='stopping';}
-  shift(dir){
+  shift(dir){this.limT=0;this.limN=0;
     const e=this.e;if(this.shiftT>0||this.rev||!this.running)return false;
     const to=this.gear+dir;if(to<1||to>e.nG)return false;
     this.shiftTo=to;this.shiftT=e.shiftT;this.engage=0;this.locked=false;this.sinceShift=0;
@@ -5386,11 +5389,15 @@ class Powertrain{
   _autoShift2(brk,holdGear){
     const e=this.e,g=this.gear,rpm=this.rpm,thr=this.thr,top=this.maxG||e.nG;
     /* hold the gear while the wheels are really spinning (the limiter catches the revs) and shift once they hook up;
-       with overdrive off (maxG) it holds out of the top gear */
-    if(this.locked&&g<top&&!(this.dslip>.5)&&(rpm>e.limiterRpm-80||!holdGear&&thr>.05&&rpm>this.shiftAt(g,thr))){this.shift(1);return;}
+       with overdrive off (maxG) it holds out of the top gear. A car with far more power than grip never hooks up:
+       after three hits on the limiter (or half a second on it) it takes the next gear anyway, as a real box does on its
+       output speed (the Rock & Mud used to stutter off the line, banging the limiter in first for two seconds) */
+    if(this.locked&&g<top&&(!(this.dslip>.5)||this.limN>=3||this.limT>.5)&&(rpm>e.limiterRpm-80||!holdGear&&thr>.05&&rpm>this.shiftAt(g,thr))){
+      const spun=this.dslip>.5;this.shift(1);if(spun)this.spinUpT=3;return;}
     /* never down a gear while the driven wheels spin (it only spins them harder), nor within a second of going
        up one unless the engine is lugging: a box that hunts up and down through wheelspin gets nowhere */
-    if(g>this.g0&&!(this.dslip>.2)&&(this.sinceShift>1||rpm<e.idle*1.3)&&(!holdGear||rpm<e.idle*1.6)){
+    /* (and not straight back into the gear it just left because the wheels were spinning in it) */
+    if(g>this.g0&&!(this.dslip>.2)&&!(this.spinUpT>0&&rpm>e.idle*1.3)&&(this.sinceShift>1||rpm<e.idle*1.3)&&(!holdGear||rpm<e.idle*1.6)){
       const after=rpm*e.gears[g-2]/e.gears[g-1],back=this.shiftAt(g-1,thr);
       if(after<back*.9&&after<e.limiterRpm-300&&(rpm<Math.max(e.idle*1.6,back*.55)||thr>.85&&rpm<e.redline*.55||brk>.3&&after<e.redline*.86))this.shift(-1);
     }
@@ -5427,6 +5434,10 @@ class Powertrain{
     let thrE=this.thr,thrSnd=this.thr;const rpm=this.we*60/TAU;
     this.rpm=rpm;
     let dslip=0;for(let k=0;k<drv.length;k++)dslip=Math.max(dslip,W[drv[k]].kap);this.dslip=dslip;
+    /* the engine on its limiter in this gear: how many times it has hit it lately, and how long it has sat there
+       (the race box below gives up holding a gear whose wheels won't stop spinning) */
+    {const on=rpm>e.limiterRpm-60;if(on&&!this.limOn){this.limN=(this.limN||0)+1;this.limQ=0;}this.limOn=on;
+      this.limQ=(this.limQ||0)+dt;if(this.limQ>.5)this.limN=0;this.limT=on?(this.limT||0)+dt:0;if(this.spinUpT>0)this.spinUpT-=dt;}
     const vAbs=Math.abs(vW);
     /* traction control: a torque cap from the grip the driven tyres have, and a multiplier that backs off while they spin */
     this.tcCap=1e9;
@@ -10505,14 +10516,17 @@ function drawWorldCar(t,v,dirt,far){
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
   gl.uniformMatrix4fv(u.uM,false,Mb);
   /* a car far off (another car in a race) is drawn from its coarse copy */
+  if(T.body.oom&&!far){far=true;if(!GAME.oomSaid){GAME.oomSaid=true;say('THE PHONE IS OUT OF GRAPHICS MEMORY: CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
   if(far){const F=truckFar(i);drawMesh(F.body);if(F.hood)drawMesh(F.hood);}
   else{drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
   if(T.rider&&!far)drawRider(t,T,Mb);
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
   if(v&&v.flame>.04&&D.tips)for(const tp of D.tips){
-    const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*v.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
-    gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
+    const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*(v.flameL||.8))*(.85+.3*Math.random()),fr=(tp.r||.04)*(.8+.5*k);
+    /* (a broken number here would put a stray triangle across the screen on some phones) */
+    const Mf=M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr)));if(!Mf.every(Number.isFinite))continue;
+    gl.uniformMatrix4fv(u.uM,false,Mf);drawMesh(flameMesh());}
   for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;gl.uniform1f(u.uMudOff,w.R);
     /* the semi's tandem: two axles of duals where the physics has one */
     const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0];
@@ -12356,6 +12370,11 @@ async function showEngine(on){
   showNewSim(spec);SHOW.sim.start();SHOW.eng=true;SHOW.status='';showSound(1/60);
   if(SHOW.room0===undefined){SHOW.room0=ENG.room;SHOW.listen0=ENG.listener;}ENG.room=SHOW.room;ENG.listener=SHOW.listen;setRoom();engineDuck(false);syncShow();
 }
+/* the lab's drivetrain (15_digital_engine, kept as it is) lets a slipping clutch drive the wheels on past the engine's
+   own speed: with far more torque than grip (the Rock & Mud, Plus) the tyres ran away to thousands of km/h on the
+   drums and the launch stuttered. A slipping clutch can't turn the gearbox faster than the engine: held to it here */
+function showClutchCap(sim){if(sim.mode!=='drive'||sim.clutch!=='slip'||!(sim.gear>0)||!sim.e||!sim.e.gears)return;
+  const G=sim.e.gears[sim.gear-1]*sim.e.fd;if(G>0&&sim.ww*G>sim.we)sim.ww=sim.we/G;}
 function showNewSim(spec){if(PULL.ph)showPullEnd(true);SHOW.bs=showSpec();SHOW.sim=SIM.makeSim(SHOW.bs);SHOW.simSpec=spec;SHOW.cvtR=0;SHOW.peak={hp:0,rpm:0};showMode(SHOW.mode,true);}
 const showRuns=()=>!!(SHOW.eng&&SHOW.sim&&SHOW.sim.st!=='off'&&SHOW.sim.st!=='stopping');
 /* Free rev or Drive (the lab's setMode) */
@@ -12400,7 +12419,7 @@ function showSound(dt){
   let thr=inp.thr;if(!pull&&s.bayGov&&drive&&sim.v>s.bayGov-1.2)thr*=clamp((s.bayGov-sim.v)/1.2,0,1);
   const ii={thr,brk:inp.brk,nos:inp.nos};sim.ctl('horn',SHOW.horn||SHOW.full&&INPUT.down.has('KeyH')?1:0);
   const g0=sim.gear;
-  for(let k=0;k<4;k++){if(s.bayCvt&&drive&&(!pull||PULL.ph==='roll'&&sim.v<PULL.vT*.95))showCvt(s,sim,dt/4);sim.step(dt/4,ii);}
+  for(let k=0;k<4;k++){if(s.bayCvt&&drive&&(!pull||PULL.ph==='roll'&&sim.v<PULL.vT*.95))showCvt(s,sim,dt/4);sim.step(dt/4,ii);showClutchCap(sim);}
   if(PULL.ph&&GFX.frame%3===0)showChart();
   /* bolted to the floor: Trackside stands beside the dyno instead of watching the lab's car drive off down a road */
   if(drive)sim.pos=-3;
@@ -13241,6 +13260,11 @@ async function enableTilt(){TOUCH.tilt0=null;TOUCH.tiltOK=false;try{if(window.De
    ===================================================================================== */
 if(!gl){$('err').style.display='grid';$('loading').hidden=true;}
 else{
+  /* the phone's graphics can restart under it (heat, too little memory, a driver crash): the page keeps nothing it
+     could draw with, so it says so and starts again (the saves are kept) */
+  cv.addEventListener('webglcontextlost',e=>{e.preventDefault();try{saveGame();}catch(_){}const L=$('loading');L.hidden=false;L.textContent='The phone restarted its graphics. Starting again…';
+    setTimeout(()=>location.reload(),2500);},false);
+  cv.addEventListener('webglcontextrestored',()=>location.reload(),false);
   /* dots: a big screen or a high-density phone held sideways gets the fine 960 x 540 grid */
   let r=parseInt(store.get('cc-res',-1),10);if(!(r>=0&&r<RES.length)){const d=devicePixelRatio||1,long=Math.max(innerWidth,innerHeight)*d;r=matchMedia('(pointer: coarse)').matches?(long>=1800?3:long>=1200?2:1):4;}
   LIT_DEFS='#define WORLD\n';SCN_CAP=true;setRes(r);glInit();resize();txtFonts();addEventListener('resize',resize);
@@ -13254,7 +13278,7 @@ else{
       $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
     }catch(e){console.error(e);$('loading').textContent='Something went wrong starting the world: '+e.message;}
   },30));
-  window.__game={TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DRS,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
+  window.__game={showClutchCap,TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DRS,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
     GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},gl,CSM,PRB,SKY,scn:()=>SCN,lit:()=>P_LIT,compile,VS_LIT,FS_LIT,DISP,setDisplay,SC,PT,
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},

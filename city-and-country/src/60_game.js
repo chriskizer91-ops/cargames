@@ -426,14 +426,17 @@ function drawWorldCar(t,v,dirt,far){
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
   gl.uniformMatrix4fv(u.uM,false,Mb);
   /* a car far off (another car in a race) is drawn from its coarse copy */
+  if(T.body.oom&&!far){far=true;if(!GAME.oomSaid){GAME.oomSaid=true;say('THE PHONE IS OUT OF GRAPHICS MEMORY: CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
   if(far){const F=truckFar(i);drawMesh(F.body);if(F.hood)drawMesh(F.hood);}
   else{drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);}
   if(T.rider&&!far)drawRider(t,T,Mb);
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
   if(v&&v.flame>.04&&D.tips)for(const tp of D.tips){
-    const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*v.flameL)*(.85+.3*Math.random()),fr=tp.r*(.8+.5*k);
-    gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr))));drawMesh(flameMesh());}
+    const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*(v.flameL||.8))*(.85+.3*Math.random()),fr=(tp.r||.04)*(.8+.5*k);
+    /* (a broken number here would put a stray triangle across the screen on some phones) */
+    const Mf=M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr)));if(!Mf.every(Number.isFinite))continue;
+    gl.uniformMatrix4fv(u.uM,false,Mf);drawMesh(flameMesh());}
   for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;gl.uniform1f(u.uMudOff,w.R);
     /* the semi's tandem: two axles of duals where the physics has one */
     const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0];

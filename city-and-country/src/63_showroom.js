@@ -346,6 +346,11 @@ async function showEngine(on){
   showNewSim(spec);SHOW.sim.start();SHOW.eng=true;SHOW.status='';showSound(1/60);
   if(SHOW.room0===undefined){SHOW.room0=ENG.room;SHOW.listen0=ENG.listener;}ENG.room=SHOW.room;ENG.listener=SHOW.listen;setRoom();engineDuck(false);syncShow();
 }
+/* the lab's drivetrain (15_digital_engine, kept as it is) lets a slipping clutch drive the wheels on past the engine's
+   own speed: with far more torque than grip (the Rock & Mud, Plus) the tyres ran away to thousands of km/h on the
+   drums and the launch stuttered. A slipping clutch can't turn the gearbox faster than the engine: held to it here */
+function showClutchCap(sim){if(sim.mode!=='drive'||sim.clutch!=='slip'||!(sim.gear>0)||!sim.e||!sim.e.gears)return;
+  const G=sim.e.gears[sim.gear-1]*sim.e.fd;if(G>0&&sim.ww*G>sim.we)sim.ww=sim.we/G;}
 function showNewSim(spec){if(PULL.ph)showPullEnd(true);SHOW.bs=showSpec();SHOW.sim=SIM.makeSim(SHOW.bs);SHOW.simSpec=spec;SHOW.cvtR=0;SHOW.peak={hp:0,rpm:0};showMode(SHOW.mode,true);}
 const showRuns=()=>!!(SHOW.eng&&SHOW.sim&&SHOW.sim.st!=='off'&&SHOW.sim.st!=='stopping');
 /* Free rev or Drive (the lab's setMode) */
@@ -390,7 +395,7 @@ function showSound(dt){
   let thr=inp.thr;if(!pull&&s.bayGov&&drive&&sim.v>s.bayGov-1.2)thr*=clamp((s.bayGov-sim.v)/1.2,0,1);
   const ii={thr,brk:inp.brk,nos:inp.nos};sim.ctl('horn',SHOW.horn||SHOW.full&&INPUT.down.has('KeyH')?1:0);
   const g0=sim.gear;
-  for(let k=0;k<4;k++){if(s.bayCvt&&drive&&(!pull||PULL.ph==='roll'&&sim.v<PULL.vT*.95))showCvt(s,sim,dt/4);sim.step(dt/4,ii);}
+  for(let k=0;k<4;k++){if(s.bayCvt&&drive&&(!pull||PULL.ph==='roll'&&sim.v<PULL.vT*.95))showCvt(s,sim,dt/4);sim.step(dt/4,ii);showClutchCap(sim);}
   if(PULL.ph&&GFX.frame%3===0)showChart();
   /* bolted to the floor: Trackside stands beside the dyno instead of watching the lab's car drive off down a road */
   if(drive)sim.pos=-3;

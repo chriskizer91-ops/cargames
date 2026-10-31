@@ -131,7 +131,10 @@ function makeMesh(d){
   bufs.push(vbuf(0,d.pos,3),vbuf(1,d.nrm,3),vbuf(2,d.col,4));if(d.mat)bufs.push(vbuf(3,d.mat,1));if(d.uv)bufs.push(vbuf(4,d.uv,2));
   let ib=null,it=0;if(d.idx){ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,d.idx,gl.STATIC_DRAW);it=d.idx instanceof Uint32Array?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT;}
   gl.bindVertexArray(null);
-  return {vao,bufs,ib,it,n:d.idx?d.idx.length:d.pos.length/3,inst:null,ni:0};
+  /* a big mesh (a car's body) on a phone short of graphics memory: the buffers come back empty and the body would
+     simply not be there. Checked only for big meshes (asking the GPU is slow); the car falls back to its coarse copy */
+  let oom=false;if(d.pos.length>60000){const er=gl.getError();if(er===gl.OUT_OF_MEMORY){oom=true;GLC.oom=(GLC.oom||0)+1;}}
+  return {vao,bufs,ib,it,n:d.idx?d.idx.length:d.pos.length/3,inst:null,ni:0,oom};
 }
 /* per-instance data: Float32Array of 12 floats per instance */
 function setInst(mesh,data){

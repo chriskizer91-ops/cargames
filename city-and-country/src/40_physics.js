@@ -77,7 +77,7 @@ class Powertrain{
   get running(){return this.st==='run'||this.st==='catch';}
   start(){if(this.st==='off'||this.st==='stopping'){this.st='crank';this.t=0;}}
   stop(){if(this.st!=='off')this.st='stopping';}
-  shift(dir){
+  shift(dir){this.limT=0;this.limN=0;
     const e=this.e;if(this.shiftT>0||this.rev||!this.running)return false;
     const to=this.gear+dir;if(to<1||to>e.nG)return false;
     this.shiftTo=to;this.shiftT=e.shiftT;this.engage=0;this.locked=false;this.sinceShift=0;
@@ -107,11 +107,15 @@ class Powertrain{
   _autoShift2(brk,holdGear){
     const e=this.e,g=this.gear,rpm=this.rpm,thr=this.thr,top=this.maxG||e.nG;
     /* hold the gear while the wheels are really spinning (the limiter catches the revs) and shift once they hook up;
-       with overdrive off (maxG) it holds out of the top gear */
-    if(this.locked&&g<top&&!(this.dslip>.5)&&(rpm>e.limiterRpm-80||!holdGear&&thr>.05&&rpm>this.shiftAt(g,thr))){this.shift(1);return;}
+       with overdrive off (maxG) it holds out of the top gear. A car with far more power than grip never hooks up:
+       after three hits on the limiter (or half a second on it) it takes the next gear anyway, as a real box does on its
+       output speed (the Rock & Mud used to stutter off the line, banging the limiter in first for two seconds) */
+    if(this.locked&&g<top&&(!(this.dslip>.5)||this.limN>=3||this.limT>.5)&&(rpm>e.limiterRpm-80||!holdGear&&thr>.05&&rpm>this.shiftAt(g,thr))){
+      const spun=this.dslip>.5;this.shift(1);if(spun)this.spinUpT=3;return;}
     /* never down a gear while the driven wheels spin (it only spins them harder), nor within a second of going
        up one unless the engine is lugging: a box that hunts up and down through wheelspin gets nowhere */
-    if(g>this.g0&&!(this.dslip>.2)&&(this.sinceShift>1||rpm<e.idle*1.3)&&(!holdGear||rpm<e.idle*1.6)){
+    /* (and not straight back into the gear it just left because the wheels were spinning in it) */
+    if(g>this.g0&&!(this.dslip>.2)&&!(this.spinUpT>0&&rpm>e.idle*1.3)&&(this.sinceShift>1||rpm<e.idle*1.3)&&(!holdGear||rpm<e.idle*1.6)){
       const after=rpm*e.gears[g-2]/e.gears[g-1],back=this.shiftAt(g-1,thr);
       if(after<back*.9&&after<e.limiterRpm-300&&(rpm<Math.max(e.idle*1.6,back*.55)||thr>.85&&rpm<e.redline*.55||brk>.3&&after<e.redline*.86))this.shift(-1);
     }
@@ -148,6 +152,10 @@ class Powertrain{
     let thrE=this.thr,thrSnd=this.thr;const rpm=this.we*60/TAU;
     this.rpm=rpm;
     let dslip=0;for(let k=0;k<drv.length;k++)dslip=Math.max(dslip,W[drv[k]].kap);this.dslip=dslip;
+    /* the engine on its limiter in this gear: how many times it has hit it lately, and how long it has sat there
+       (the race box below gives up holding a gear whose wheels won't stop spinning) */
+    {const on=rpm>e.limiterRpm-60;if(on&&!this.limOn){this.limN=(this.limN||0)+1;this.limQ=0;}this.limOn=on;
+      this.limQ=(this.limQ||0)+dt;if(this.limQ>.5)this.limN=0;this.limT=on?(this.limT||0)+dt:0;if(this.spinUpT>0)this.spinUpT-=dt;}
     const vAbs=Math.abs(vW);
     /* traction control: a torque cap from the grip the driven tyres have, and a multiplier that backs off while they spin */
     this.tcCap=1e9;
