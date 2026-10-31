@@ -172,14 +172,15 @@ function buildJobsUi(){
 }
 /* the HUD's line (60_chal's syncObj and drawJobHud): whose job, what now, the clock */
 function jobHud(){const A=jActive();if(!A)return null;const s=A.s,p=PEOPLE[A.q.who];
-  return {title:A.q.title,who:p.short,col:p.col,pc:p.pc,text:s.text||'',left:s.limit?Math.max(0,s.limit-A.a.t0):null,target:jTarget()};}
+  if(!JOB.hud||JOB.hud.A!==A)JOB.hud={A,title:A.q.title,who:p.short,col:p.col,pc:p.pc,text:s.text||'',left:null,target:jTarget()};
+  JOB.hud.left=s.limit?Math.max(0,s.limit-A.a.t0):null;return JOB.hud;}
 function drawJobHud(lx,sc){
   const j=jobHud();if(!j)return;const t=GAME.car,tch=GAME.touch;let y=7+7*sc+(tch?40:30);
   if(PARKT.on||PARKT.dr.st==='run'||PARKT.dr.st==='tree')y+=30;
   /* (the heading and the step's words wrapped to the HUD's width once, when the step or the screen changes) */
-  const wk=j.title+'|'+j.text+'|'+W;if(!JOB.wrap||JOB.wrap.k!==wk){const lines=[];let line='';
+  if(!JOB.wrap||JOB.wrap.j!==j||JOB.wrap.A!==j.A||JOB.wrap.W!==W){const lines=[];let line='';
     for(const w of j.text.toUpperCase().split(' ')){if(line&&tw3(line+' '+w)>Math.min(W*.42,190)){lines.push(line);line=w;}else line=line?line+' '+w:w;}if(line)lines.push(line);
-    JOB.wrap={k:wk,head:(j.who+' · '+j.title).toUpperCase(),lines};}
+    JOB.wrap={j,A:j.A,W,head:(j.who+' · '+j.title).toUpperCase(),lines};}
   otxt3(JOB.wrap.head,lx,y,j.pc);let yy=y+8;for(const l of JOB.wrap.lines){otxt3(l,lx,yy,PAL.ink);yy+=8;}
   if(j.left!=null)otxt5(Math.floor(j.left/60)+':'+String(Math.floor(j.left%60)).padStart(2,'0'),lx,yy+1,j.left<15?GR.red:GR.volt,1);
   const g=j.target;if(!g||!g.r||CHAL.ask||JOB.near)return;

@@ -863,7 +863,7 @@ const dseg7w=(s,h,th)=>{const w=Math.max(3,Math.round(h*.52)),t=th||Math.max(1,M
    the real font so what is laid out beside them still lines up, and the canvas is redrawn only when the
    words change. The dot font stays (dtxt5 and the rest) for the dev panel's "Dot text" switch.
    ===================================================================================== */
-const TXT={on:store.get('cc-dottext','0')!=='1',q:[],keys:[],last:'',cv:null,cx:null,w:0,h:0,mw:new Map(),cap:{},css:new Map(),ready:false};
+const TXT={on:store.get('cc-dottext','0')!=='1',q:[],prev:[],paintT:0,lx:0,ly:0,lw:0,lW:0,keys:[],last:'',cv:null,cx:null,w:0,h:0,mw:new Map(),cap:{},css:new Map(),ready:false};
 const TXT_F=[['600','"Chakra Petch"'],['600','"Saira Condensed"'],['600','"Saira Condensed"'],['600','"Saira Condensed"'],['700','"Chakra Petch"']];
 /* kind 0 = the 5x7 font, 1 = the 3x5 labels, 2 = the 7-segment digits */
 const tNum=s=>/^[\s\d.,:+\-%$x×\/]*$/i.test(s)&&/\d/.test(s);
@@ -897,8 +897,13 @@ function txtFlush(){
   const x=tCtx();if(!x)return;
   if(!TXT.on){if(TXT.last!==''){x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,TXT.cv.width,TXT.cv.height);TXT.last='';}return;}
   if(TXT.w!==VW||TXT.h!==VH){TXT.cv.width=TXT.w=VW;TXT.cv.height=TXT.h=VH;TXT.last='#';}
-  const Q=TXT.q;if(Q.length>1500)Q.length=0;let key=RECT.x+','+RECT.y+','+RECT.w+','+W+';';for(const t of Q)key+=t.join('|')+';';
-  if(key===TXT.last)return;TXT.last=key;
+  /* the layer is repainted whole, so: compared item by item with what was painted (no key string built every
+     frame), painted at once when the layout changes or an item comes or goes (a message), and at most every 80 ms
+     when only a value moved (the speed, a clock, a fade), so live numbers cost at most a dozen repaints a second */
+  const Q=TXT.q;if(Q.length>1500)Q.length=0;const P=TXT.prev,lay=TXT.last!=='#'&&TXT.lx===RECT.x&&TXT.ly===RECT.y&&TXT.lw===RECT.w&&TXT.lW===W;
+  if(lay&&P.length===Q.length){let same=true;for(let i=0;i<Q.length&&same;i++){const a=Q[i],b=P[i];for(let k=0;k<9;k++)if(a[k]!==b[k]){same=false;break;}}
+    if(same||performance.now()-TXT.paintT<80)return;}
+  TXT.last='p';TXT.lx=RECT.x;TXT.ly=RECT.y;TXT.lw=RECT.w;TXT.lW=W;TXT.prev=Q.slice();TXT.paintT=performance.now();
   x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,VW,VH);
   const cell=tCell(),k=cell*DPR,ox=RECT.x*DPR,oy=RECT.y*DPR;
   x.textBaseline='alphabetic';x.lineJoin='round';
@@ -1131,7 +1136,7 @@ function makeMesh(d){
 function setInst(mesh,data){
   gl.bindVertexArray(mesh.vao);
   if(!mesh.inst){mesh.inst=gl.createBuffer();}
-  gl.bindBuffer(gl.ARRAY_BUFFER,mesh.inst);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,mesh.inst);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STREAM_DRAW);
   for(let k=0;k<3;k++){gl.enableVertexAttribArray(5+k);gl.vertexAttribPointer(5+k,4,gl.FLOAT,false,48,k*16);gl.vertexAttribDivisor(5+k,1);}
   gl.bindVertexArray(null);mesh.ni=data.length/12;
 }
@@ -1441,10 +1446,10 @@ void main(){
      screen once the bloom has spread it) */
   vec3 N=dot(vN,vN)>1e-12?normalize(vN):vec3(0.,1.,0.);vec3 V=normalize(uCam-vP);if(dot(N,V)<0.)N=-N;
   vec3 alb=vC.rgb;float em=vC.a;float spec=.04,shin=12.;vec3 emc=vec3(0.);vec3 add=vec3(0.);
-  float dist=length(vP-uCam);gFP=max(length(dFdx(vP)),length(dFdy(vP)));
+  float dist=length(vP-uCam);vec3 dPx=dFdx(vP),dPy=dFdy(vP);gFP=max(length(dPx),length(dPy));
   /* a car out in the world measures its mud up itself; see-through by dropping pixels (the dot pass averages
      them): dust and spray carry their opacity as a negative glow; trees thin out right in front of the camera */
-  int m=int(vMat+.5);float h=uMudLocal>.5?vL.y+uMudOff:vP.y-uGround;bool dirty=false;vec3 Pw=vP+uOrg;vec2 fwP=fwidth(vP.xz);
+  int m=int(vMat+.5);float h=uMudLocal>.5?vL.y+uMudOff:vP.y-uGround;bool dirty=false;vec3 Pw=vP+uOrg;vec2 fwP=abs(dPx.xz)+abs(dPy.xz);
   if(em<0.){if(h12(gl_FragCoord.xy+fract(uTime*7.3)*91.)>-em)discard;em=0.;}
   if(m==48){if(dist<8.&&h12(gl_FragCoord.xy)>smoothstep(3.,8.,dist))discard;
     /* the crown's edge broken into clumps of leaves: where it turns away from the eye, gaps open between them
@@ -11124,7 +11129,7 @@ function buildChallenges(){
       blurb:'Two laps of the boulevard round town, anticlockwise. Wide, fast, four long bends.',gates:chGates(route,true,190,20),best:'coupeGT',guess:[110,125,150]});}
   {const route=chResample([[-220,0],[182.3,0]],2);
     add({id:'quarter',name:'Downtown Quarter',kind:'drag',tier:1,where:'Highway 40, downtown',route,lane:6,
-      blurb:'A standing quarter mile east down Highway 40 through downtown, under the street lights. Launch it.',gates:[Object.assign(chGates(route,false,500,12)[0],{finish:true})],best:'sleeper',guess:[11,13,16]});}
+      blurb:'A standing quarter mile east down Highway 40 through downtown, under the street lights. Launch it.',gates:[Object.assign(chGates(route,false,500,12)[0],{finish:true,line:true})],best:'sleeper',guess:[11,13,16]});}
   {const route=chSmooth(chResample([[-330,-240],[-120,-240],[-120,-120],[120,-120],[120,120],[240,120],[240,300]],2),5);
     add({id:'dash',name:'Downtown Dash',kind:'sprint',tier:2,where:'Downtown',route,lane:2.4,
       blurb:'Right through the middle of town: six blocks of hard turns from the north side to the south.',gates:chGates(route,false,120,10),best:'coupeGT',guess:[60,70,85]});}
@@ -11166,14 +11171,14 @@ function buildChallenges(){
       blurb:'Two laps of the mud: the banked turns, the chicane and the splash. Tyres matter more than horsepower.',gates:chGates(route,true,130,10),best:'crawler',guess:[150,175,210]});}
   {const S=K.ST,route=chResample([[S.start,S.lanes[0]],[S.start+S.eighth,S.lanes[0]]],2);
     add({id:'eighth',name:'Eighth-Mile Dirt Drag',kind:'drag',tier:1,where:'The drag strip',route,lane:0,
-      blurb:'A standing eighth mile down the park\'s dirt strip, from the lights.',gates:[Object.assign(chGates(route,false,500,12)[0],{finish:true})],best:'muscleDrag',guess:[8,9.5,11.5]});}
+      blurb:'A standing eighth mile down the park\'s dirt strip, from the lights.',gates:[Object.assign(chGates(route,false,500,12)[0],{finish:true,line:true})],best:'muscleDrag',guess:[8,9.5,11.5]});}
   {const L=K.LOT;
     add({id:'pdrift',name:'Paddock Drift',kind:'drift',tier:1,where:'The paddock',unit:'points',better:'high',time:60,zone:{x:(L.x0+L.x1)/2,z:(L.z0+L.z1)/2,r:72},
       blurb:'Sixty seconds on the paddock\'s concrete, round the haulers. Keep it sideways, keep it off the trucks.',start:{x:L.x0+12,z:L.z1-12,yaw:0},route:null,medals:[12000,7000,3000]});}
   /* --- the salt --- */
   {const S=WG.COURSE,route=chResample([[S.x0,0],[S.x0+2800,0]],4),s0=S.t0-S.x0,s1=S.t1-S.x0;
     add({id:'mile',name:'Flying Mile',kind:'mile',tier:3,where:'The salt course',route,lane:0,unit:'speed',better:'high',mile:[s0,s1],
-      blurb:'The middle lane of the salt course, timed flying: get it wound up, then hold it flat through the timed mile between the light towers.',gates:chGates(route,false,1e5,30,[s0,s1]),best:'hyperTrack',guess:[85,70,55]});}
+      blurb:'The middle lane of the salt course, timed flying: get it wound up, then hold it flat through the timed mile between the light towers.',gates:[{x:S.t0,z:0,dx:1,dz:0,r:30,s:s0,line:true},{x:S.t1,z:0,dx:1,dz:0,r:30,s:s1,line:true,finish:true}],best:'hyperTrack',guess:[85,70,55]});}
   {const hx=WG.HWY_X,clear=(R,x,z)=>{for(let i=Math.floor((x-200)/WG.RCELL);i<=Math.floor((x+200)/WG.RCELL);i++)for(let j=Math.floor((z-200)/WG.RCELL);j<=Math.floor((z+200)/WG.RCELL);j++)
         for(const q of WG.rampsIn(i,j))if(q!==R&&Math.hypot(q.mx-x,q.mz-z)<q.rad+10)return false;return true;};
     let R=null;
@@ -11188,23 +11193,23 @@ function buildChallenges(){
   {const S=WG.COURSE,x0=S.x0,MI=S.mi;
     {const z=15,route=chResample([[x0,z],[x0+MI,z]],4);
       add({id:'smile',name:'Standing Mile',kind:'drag',tier:2,where:'The salt course',route,lane:0,
-        blurb:'A mile from a standstill in lane four of the salt course: the clock, and the speed at the line.',gates:[{x:x0+MI,z,dx:1,dz:0,r:16,s:MI,finish:true}],best:'hyperTrack',guess:[30,36,44]});}
+        blurb:'A mile from a standstill in lane four of the salt course: the clock, and the speed at the line.',gates:[{x:x0+MI,z,dx:1,dz:0,r:16,s:MI,finish:true,line:true}],best:'hyperTrack',guess:[30,36,44]});}
     for(const [id,name,mph,z,tier,best,blurb] of [
       ['stop100','0–100–0',100,30,1,'muscleDrag','From a stop to 100 mph and back to a dead stop, as quick as you can, in the outside lane. The clock stops when you do.'],
       ['stop200','0–200–0',200,-30,3,'hyperTrack','Two hundred miles an hour and back to a dead stop. The brakes matter as much as the motor, and so does where you lift.']]){
-      const route=chResample([[x0,z],[x0+MI*5,z]],4);
+      const route=[[x0,z],[x0+MI*5,z]];
       add({id,name,kind:'stop',tier,where:'The salt course',route,lane:0,target:mph/2.23694,blurb,gates:[],best,guess:mph>150?[22,27,34]:[11,13.5,17]});}
     /* the two-way: east through the timed mile in lane two, round the turn (south), back west through it */
-    {const z=-15,R=26,pts=[[x0,z],[S.turn,z]];for(let k=1;k<=24;k++){const a=-Math.PI/2+k/24*Math.PI;pts.push([S.turn+Math.cos(a)*R,z+R+Math.sin(a)*R]);}pts.push([x0,z+2*R]);
+    {const z=-15,R=15,pts=[[x0,z],[S.turn,z]];for(let k=1;k<=24;k++){const a=-Math.PI/2+k/24*Math.PI;pts.push([S.turn+Math.cos(a)*R,z+R+Math.sin(a)*R]);}pts.push([x0,z+2*R]);
       add({id:'mile2',name:'Two-Way Mile',kind:'mile2',tier:3,where:'The salt course',route:chResample(pts,4),lane:0,unit:'speed',better:'high',
         blurb:'Record rules: the timed mile east in lane two, round the turn past mile 2, then the timed mile back west. Your speed is the average of the two runs.',
-        gates:[{x:S.t0,z,r:22,s:1},{x:S.t1,z,r:22,s:2},{x:S.turn+R,z:z+R,r:45,s:3},{x:S.t1,z:0,r:42,s:4},{x:S.t0,z:0,r:42,s:5,finish:true}],best:'hyperTrack',guess:[85,70,52]});}}
+        gates:[{x:S.t0,z,dx:1,dz:0,r:22,s:1,line:true},{x:S.t1,z,dx:1,dz:0,r:22,s:2,line:true},{x:S.turn+R,z:z+R,r:45,s:3},{x:S.t1,z:0,dx:-1,dz:0,r:42,s:4,line:true},{x:S.t0,z:0,dx:-1,dz:0,r:42,s:5,line:true,finish:true}],best:'hyperTrack',guess:[85,70,52]});}}
   /* the slalom: twelve cones in a line, the route weaving round them (a gate beside each, alternate sides) */
   {const S=WG.SLALOM,xe=S.x+(S.n-1)*S.sp,pts=[],gates=[];
     for(let x=S.x-90;x<=xe+70;x+=2){const u=(x-S.x)/S.sp,w=x<S.x?Math.max(0,1-(S.x-x)/40):x>xe?Math.max(0,1-(x-xe)/30):1;pts.push([x,S.z-3.6*Math.cos(Math.PI*u)*w]);}
     for(let k=0;k<S.n;k++)gates.push({x:S.x+k*S.sp,z:S.z+(k%2?3.6:-3.6),dx:1,dz:0,r:3.2,s:k});
     gates.push({x:xe+60,z:S.z,dx:1,dz:0,r:12,s:S.n,finish:true});
-    add({id:'slalom',name:'Salt Slalom',kind:'sprint',tier:2,where:'The salt flats',route:pts,lane:0,
+    add({id:'slalom',name:'Salt Slalom',kind:'sprint',tier:2,where:'The salt flats',route:pts,lane:0,strict:true,
       blurb:'Twelve cones in a line on the open salt: weave through the lit gates, one side of a cone then the other, as fast as you dare.',gates,best:'hatchB',guess:[22,26,32]});}
   /* the Ramp Run: a minute loose among the ramps */
   {const R=WG.RAMPRUN;add({id:'ramprun',name:'Ramp Run',kind:'air',tier:2,where:'The salt flats',unit:'points',better:'high',time:60,start:{x:R.x,z:R.z,yaw:0},route:null,
@@ -11276,27 +11281,33 @@ class ChalRun{
       if(d>4&&air>.3){if(d>this.bestJump)this.bestJump=d;this.msgs.push({t:'jump',d,air,best:d>=this.bestJump});if(this.armT!=null){this.finish(d);return;}}}
     if(this.armT!=null&&!this.fly&&this.t-this.armT>6){this.fail('noair');return;}
     const g=this.next;if(g){const d=Math.hypot(x-g.x,z-g.z);this.gMin=Math.min(this.gMin??1e9,d);
-      if(d<g.r)this.pass(g,car);
-      /* ran wide past a gate (came near it, then through the next one): it counts */
-      else if(c.kind==='sprint'||c.kind==='lap'){const G=c.gates,h=G[this.gi+1]||(c.closed&&this.lap<c.laps?G[0]:null);
+      /* a timing line (the miles, the standing starts' finish): the moment the car crosses it, worked out within the
+         frame, wherever across the course it crosses (a circle's edge would make the timed mile longer or shorter) */
+      if(g.line){const sd=(x-g.x)*g.dx+(z-g.z)*g.dz;
+        if(this.psd!=null&&this.psd<0&&sd>=0&&Math.abs((x-g.x)*g.dz-(z-g.z)*g.dx)<g.r){this.tc=this.t-dt*sd/Math.max(1e-6,sd-this.psd);this.psd=null;this.pass(g,car);}
+        else this.psd=sd;}
+      else if(d<g.r)this.pass(g,car);
+      /* ran wide past a gate (came near it, then through the next one): it counts (not on the slalom) */
+      else if(!c.strict&&(c.kind==='sprint'||c.kind==='lap')){const G=c.gates,h=G[this.gi+1]||(c.closed&&this.lap<c.laps?G[0]:null);
         if(h&&this.gMin<g.r*2.2&&Math.hypot(x-h.x,z-h.z)<h.r){this.pass(g,car);if(this.phase==='run'&&this.next===h)this.pass(h,car);}}}
     if(this.phase==='run'&&this.t>c.limit)this.fail('time');}
   pass(g,car){const c=this.c;this.gMin=null;
     if(c.kind==='trap'){this.finish(car.speed);return;}
     if(c.kind==='jump'){this.armT=this.t;this.gi++;this.msgs.push({t:'ramp'});return;}
-    if(c.kind==='mile'){if(Math.abs(g.s-c.mile[0])<1){this.mileT0=this.t;this.msgs.push({t:'mileIn'});}
-      else if(Math.abs(g.s-c.mile[1])<1){this.finish(1609.344/Math.max(.1,this.t-this.mileT0));return;}}
+    const tc=g.line?this.tc:this.t;
+    if(c.kind==='mile'){if(Math.abs(g.s-c.mile[0])<1){this.mileT0=tc;this.msgs.push({t:'mileIn'});}
+      else if(Math.abs(g.s-c.mile[1])<1){this.finish(1609.344/Math.max(.1,tc-this.mileT0));return;}}
     /* the two-way: into the mile, out of it (run one), the turn, into it, out of it (run two): the average */
     if(c.kind==='mile2'){const s=g.s;
-      if(s===1||s===4){this.mileT0=this.t;this.msgs.push({t:'mileIn'});}
-      else if(s===2){this.v1=1609.344/Math.max(.1,this.t-this.mileT0);this.msgs.push({t:'run1',v:this.v1});}
+      if(s===1||s===4){this.mileT0=tc;this.msgs.push({t:'mileIn'});}
+      else if(s===2){this.v1=1609.344/Math.max(.1,tc-this.mileT0);this.msgs.push({t:'run1',v:this.v1});}
       else if(s===3)this.msgs.push({t:'turned'});
-      else if(s===5){this.v2=1609.344/Math.max(.1,this.t-this.mileT0);this.finish((this.v1+this.v2)/2);return;}
+      else if(s===5){this.v2=1609.344/Math.max(.1,tc-this.mileT0);this.finish((this.v1+this.v2)/2);return;}
       this.gi++;return;}
     this.gi++;
     if(c.kind==='lap'&&this.gi>=c.gates.length){const lt=this.t-this.lapT0;this.lapT0=this.t;
       if(this.lap>=c.laps){this.finish(this.t);return;}this.lap++;this.gi=0;this.msgs.push({t:'lap',lap:this.lap,lt});return;}
-    if(this.gi>=c.gates.length){this.trapV=car.speed;this.finish(c.kind==='jump'?(this.bestJump||null):this.t);return;}
+    if(this.gi>=c.gates.length){this.trapV=car.speed;this.finish(c.kind==='jump'?(this.bestJump||null):tc);return;}
     this.msgs.push({t:'gate',i:this.gi});}
   finish(v){this.phase='done';this.value=v;this.medal=chMedalOf(this.c,v);this.msgs.push({t:'finish',v,medal:this.medal});}
   fail(why){if(this.phase==='done')return;this.phase='done';this.value=null;this.medal=-1;this.failed=why;this.msgs.push({t:'fail',why});}
@@ -11327,7 +11338,7 @@ function chResult(c,value,medal){
   else if(value!=null)pays=Math.round(pay[2]*.05);
   chSave();if(pays)earn(pays);
   return {money:pays,newBest,prev,upgraded:medal>=0&&(prev<0||medal<prev)};}
-function chalReset(){CHAL.run=null;CHAL.ask=null;CHAL.res=null;JOB.near=null;$('cres')&&($('cres').hidden=true);clubSync();}
+function chalReset(){CHAL.run=null;CHAL.ask=null;CHAL.res=null;JOB.near=null;$('cres')&&($('cres').hidden=true);clubSync();MARKS_V++;}
 /* ---------- the salt clubs: top speed anywhere out on the salt, each paid once. The check costs one comparison
    a frame until the car is going faster than the slowest club you aren't in ---------- */
 const CLUBS=[[150,2000,'150 MPH Club'],[200,5000,'200 MPH Club'],[250,10000,'250 MPH Club'],[300,20000,'300 MPH Club'],[330,30000,'Wide Open (330)']];
@@ -11340,12 +11351,12 @@ function clubStep(t){
 /* start one: on its line, facing down it, the countdown */
 function chalStart(c){
   if(!c)return;if(RACE.on)raceEnd('Race abandoned');RUN.on=null;parkReset();closeChalResult(true);
-  placeCar(c.start.x,c.start.z,c.start.yaw);CHAL.run=new ChalRun(c);CHAL.ask=null;say(c.name.toUpperCase(),2.6,PAL.cyan);}
+  placeCar(c.start.x,c.start.z,c.start.yaw);CHAL.run=new ChalRun(c);CHAL.ask=null;say(c.name.toUpperCase(),2.6,PAL.cyan);syncObj();}
 function chalQuit(){if(!CHAL.run)return;CHAL.run=null;say('Challenge quit',1.4);}
 /* each frame while driving: the run, or a start under the wheels */
 function chalStep(dt,t,ev){
   const r=CHAL.run;if(t.speed>=CLUB_NEXT)clubStep(t);
-  if(r){r.update(dt,t,ev);
+  if(r){r.update(dt,t,ev);syncObj();
     for(const m of r.take()){
       if(m.t==='go')say('GO',1.1,PAL.green);
       else if(m.t==='lap')say('LAP '+m.lap+'/'+r.c.laps+'   '+fmtLap(m.lt),1.8,PAL.cyan);
@@ -11362,7 +11373,7 @@ function chalStep(dt,t,ev){
     return;}
   /* the job you're on (60_jobs), and anyone stopped beside with work; stopped in a start's ring: ask */
   jobStep(dt,t);
-  CHAL.ask=null;if(t.speed<6&&!JOB.near)for(const c of CHALS)if(Math.hypot(t.p[0]-c.start.x,t.p[2]-c.start.z)<13){CHAL.ask=c;break;}
+  CHAL.ask=null;if(t.speed<6&&!JOB.near){let bd=1e9;for(const c of CHALS){const d=Math.hypot(t.p[0]-c.start.x,t.p[2]-c.start.z);if(d<(c.where==='The salt course'?7:13)&&d<bd){bd=d;CHAL.ask=c;}}}
   syncObj();
 }
 /* ---------- the result ---------- */
@@ -11387,10 +11398,10 @@ function buildChal(){
 }
 /* the card at the top: someone stopped beside with work for you, or a challenge to start where you've stopped */
 let OBJ_KEY='';
-let OBJ_IDK='';
+const OBJ_ID={st:'',q:null,c:null,ph:'',v:-1};
 function syncObj(){
-  const el=$('obj'),idk=GAME.state+'|'+(JOB.near?JOB.near.q.id:'')+'|'+(CHAL.ask?CHAL.ask.id:'')+'|'+(CHAL.run?CHAL.run.phase:'')+'|'+MARKS_V;
-  if(idk===OBJ_IDK)return;OBJ_IDK=idk;let h='';
+  const el=$('obj'),I=OBJ_ID,q=JOB.near?JOB.near.q:null,ph=CHAL.run?CHAL.run.phase:'';
+  if(I.st===GAME.state&&I.q===q&&I.c===CHAL.ask&&I.ph===ph&&I.v===MARKS_V)return;I.st=GAME.state;I.q=q;I.c=CHAL.ask;I.ph=ph;I.v=MARKS_V;let h='';
   if(GAME.state==='drive'&&!(CHAL.run&&CHAL.run.phase!=='done')){
     const n=JOB.near;
     if(n){const p=PEOPLE[n.who];h+=`<div class="ask job" style="--c:${p.col}"><div><b>${p.name}</b><span>has work for you: ${n.q.title}</span></div><button type="button" id="objGo2">Listen</button></div>`;}
@@ -11418,8 +11429,10 @@ function drawChalHud(lx,sc){
   if(r.phase==='count'||(r.phase==='run'&&r.t<1)){const cx=Math.round(W/2),cy=Math.round(H*(tch?.46:.19)),on=r.lights,go=r.phase==='run';
     hRect(cx-21,cy-8,42,16,pack(4,3,8,190));for(let k=0;k<3;k++)hDisc(cx-12+k*12,cy,3.6,go?PAL.green:k<on?PAL.red:pack(40,30,30,255));}
   otxt3(c.NAME||(c.NAME=c.name.toUpperCase()),lx,y,PAL.cyan);
-  if(c.kind==='drift'){const d=r.drift,tens=v=>NF.format(Math.round(v/10)*10);otxt5(tens(d.total+d.chain),lx,y+7,GR.volt,1);
-    otxt3(Math.max(0,c.time-r.t).toFixed(0)+' S LEFT'+(d.chain>0?'  CHAIN '+tens(d.chain)+' X'+d.mult.toFixed(1):''),lx,y+17,r.inZone?PAL.ink:PAL.amber);return;}
+  /* (the banked total, which changes only when a chain banks, and the live chain in hundreds: a number that moved
+     every frame would repaint the HUD's whole text layer every frame) */
+  if(c.kind==='drift'){const d=r.drift;otxt5(NF.format(d.total),lx,y+7,GR.volt,1);
+    otxt3(Math.max(0,c.time-r.t).toFixed(0)+' S LEFT'+(d.chain>0?'  CHAIN '+NF.format(Math.floor(d.chain/100)*100)+' X'+d.mult.toFixed(1):''),lx,y+17,r.inZone?PAL.ink:PAL.amber);return;}
   if(c.kind==='air'){otxt5(NF.format(r.score||0),lx,y+7,GR.volt,1);
     otxt3(Math.max(0,c.time-r.t).toFixed(0)+' S LEFT'+(r.lastLand!=null&&r.t-r.lastLand<8&&r.mult>=1?'  NEXT X'+Math.min(4,r.mult+.5).toFixed(1)+' FOR '+Math.ceil(8-(r.t-r.lastLand))+' S':''),lx,y+17,PAL.ink);return;}
   if(c.kind==='stop'){otxt5(fmtLive(r.t),lx,y+7,GR.volt,1);otxt3(r.reached!=null?'STOP IT':'TO '+Math.round(c.target*2.23694)+' MPH',lx,y+17,r.reached!=null?PAL.amber:PAL.ink);return;}
@@ -11440,12 +11453,12 @@ function chalMarks(out){
     if(r.c.kind==='drift'){const z=r.c.zone;out.push({kind:'ring',x:z.x,z:z.z,y:markY(z),r:z.r,col:COL_RING,em:.8});}
     return;}
   const tg=jTarget();
-  for(const c of CHALS){const m=chMedal(c.id),job=tg&&tg.chal===c;out.push({kind:'start',x:c.start.x,z:c.start.z,y:markY(c.start),r:c.where==='The salt course'?4:7,col:job?COL_JOB:m===0?COL_GOLDS:COL_CYAN,em:job?2:m===0?1.4:1.6});}
+  for(const c of CHALS){const m=chMedal(c.id),job=tg&&tg.chal===c;const sc=c.where==='The salt course';out.push({kind:'start',x:c.start.x,z:c.start.z,y:markY(c.start),r:sc?4:7,h:sc?30:70,col:job?COL_JOB:m===0?COL_GOLDS:COL_CYAN,em:job?2:m===0?1.4:1.6});}
   jobMarks(out);
 }
 /* what the lights show changes only with a save, a run's gate or lap, a start or an end: the list is made again
-   then (and once a second regardless), not every frame */
-let MARKS_KEY='',MARKS_T=-9;
+   then (and every 5 s regardless, a safety net), not every frame */
+const MK={v:-1,r:undefined,gi:-1,lap:-1,ph:''};let MARKS_T=-9;
 /* drawn as columns of light: an open tube, bright at its edges and its foot, fading upward, added over the
    scene (after the dust, into the colour only). A start is a tall column you can see from a long way off;
    the next gate a shorter one across the road; the drift zone a low ring round its edge. */
@@ -11459,8 +11472,9 @@ void main(){vec3 V=normalize(uCam-vP);float d=length(uCam-vP),f=1.-abs(dot(norma
 let P_BEAM=null,BEAM_MESH=null;const BEAM_BUF=new Float32Array(64*12),CH_MARKS=[];
 let BEAM_H=0,BEAM_N=0,BEAM_RO0=NaN,BEAM_RO2=NaN;
 function chalDraw(cam){
-  const r=CHAL.run,key=MARKS_V+'|'+(r?r.gi+'|'+r.lap+'|'+r.phase:'-');
-  if(key!==MARKS_KEY||APP.t-MARKS_T>1){MARKS_KEY=key;MARKS_T=APP.t;CH_MARKS.length=0;chalMarks(CH_MARKS);BEAM_H=NaN;}
+  const r=CHAL.run,K=MK;
+  if(K.v!==MARKS_V||K.r!==r||(r&&(K.gi!==r.gi||K.lap!==r.lap||K.ph!==r.phase))||APP.t-MARKS_T>5){
+    K.v=MARKS_V;K.r=r;if(r){K.gi=r.gi;K.lap=r.lap;K.ph=r.phase;}MARKS_T=APP.t;CH_MARKS.length=0;chalMarks(CH_MARKS);BEAM_H=NaN;}
   if(!CH_MARKS.length)return 0;
   if(!P_BEAM){P_BEAM=compile(VS_BEAM,FS_BEAM);const N=28,pos=[];
     for(let i=0;i<N;i++){const a0=i/N*TAU,a1=(i+1)/N*TAU,c0=Math.cos(a0),s0=Math.sin(a0),c1=Math.cos(a1),s1=Math.sin(a1);pos.push(c0,0,s0,c1,0,s1,c1,1,s1,c0,0,s0,c1,1,s1,c0,1,s0);}
@@ -11472,11 +11486,11 @@ function chalDraw(cam){
      the instances go up to the GPU only when that, the list or the floating origin changes */
   const e=cam.eye;let n=0,h=0;
   for(let i=0;i<CH_MARKS.length&&n<64;i++){const m=CH_MARKS[i],dd=Math.hypot(m.x-e[0],m.z-e[2]);if(dd>(m.kind==='start'?4000:2500))continue;
-    const near=(m.kind==='start'||m.kind==='person')&&dd<m.r+15;h=(h*31+(i+1)*(near?2:1))|0;m.near=near;n++;}
+    const near=(m.kind==='start'||m.kind==='person')&&dd<m.r+15;h=(h*31+(i+1)*2+(near?1:0))|0;m.near=near;n++;}
   if(!n)return 0;
   if(h!==BEAM_H||n!==BEAM_N||RO[0]!==BEAM_RO0||RO[2]!==BEAM_RO2){BEAM_H=h;BEAM_N=n;BEAM_RO0=RO[0];BEAM_RO2=RO[2];let o=0;
     for(const m of CH_MARKS){if(o>=n*12)break;if(Math.hypot(m.x-e[0],m.z-e[2])>(m.kind==='start'?4000:2500))continue;
-      const H=m.kind==='start'?(m.near?8:70):m.kind==='person'?(m.near?6:46):m.kind==='gate'?22:3.2;
+      const H=m.kind==='start'?(m.near?8:m.h):m.kind==='person'?(m.near?6:46):m.kind==='gate'?22:3.2;
       BEAM_BUF[o]=m.x-RO[0];BEAM_BUF[o+1]=m.y-.5-RO[1];BEAM_BUF[o+2]=m.z-RO[2];BEAM_BUF[o+3]=m.r;
       BEAM_BUF[o+4]=H;BEAM_BUF[o+5]=0;BEAM_BUF[o+6]=m.em;BEAM_BUF[o+7]=0;
       BEAM_BUF[o+8]=m.col[0];BEAM_BUF[o+9]=m.col[1];BEAM_BUF[o+10]=m.col[2];BEAM_BUF[o+11]=m.kind==='ring'?1:H/6;o+=12;}
@@ -11662,14 +11676,15 @@ function buildJobsUi(){
 }
 /* the HUD's line (60_chal's syncObj and drawJobHud): whose job, what now, the clock */
 function jobHud(){const A=jActive();if(!A)return null;const s=A.s,p=PEOPLE[A.q.who];
-  return {title:A.q.title,who:p.short,col:p.col,pc:p.pc,text:s.text||'',left:s.limit?Math.max(0,s.limit-A.a.t0):null,target:jTarget()};}
+  if(!JOB.hud||JOB.hud.A!==A)JOB.hud={A,title:A.q.title,who:p.short,col:p.col,pc:p.pc,text:s.text||'',left:null,target:jTarget()};
+  JOB.hud.left=s.limit?Math.max(0,s.limit-A.a.t0):null;return JOB.hud;}
 function drawJobHud(lx,sc){
   const j=jobHud();if(!j)return;const t=GAME.car,tch=GAME.touch;let y=7+7*sc+(tch?40:30);
   if(PARKT.on||PARKT.dr.st==='run'||PARKT.dr.st==='tree')y+=30;
   /* (the heading and the step's words wrapped to the HUD's width once, when the step or the screen changes) */
-  const wk=j.title+'|'+j.text+'|'+W;if(!JOB.wrap||JOB.wrap.k!==wk){const lines=[];let line='';
+  if(!JOB.wrap||JOB.wrap.j!==j||JOB.wrap.A!==j.A||JOB.wrap.W!==W){const lines=[];let line='';
     for(const w of j.text.toUpperCase().split(' ')){if(line&&tw3(line+' '+w)>Math.min(W*.42,190)){lines.push(line);line=w;}else line=line?line+' '+w:w;}if(line)lines.push(line);
-    JOB.wrap={k:wk,head:(j.who+' · '+j.title).toUpperCase(),lines};}
+    JOB.wrap={j,A:j.A,W,head:(j.who+' · '+j.title).toUpperCase(),lines};}
   otxt3(JOB.wrap.head,lx,y,j.pc);let yy=y+8;for(const l of JOB.wrap.lines){otxt3(l,lx,yy,PAL.ink);yy+=8;}
   if(j.left!=null)otxt5(Math.floor(j.left/60)+':'+String(Math.floor(j.left%60)).padStart(2,'0'),lx,yy+1,j.left<15?GR.red:GR.volt,1);
   const g=j.target;if(!g||!g.r||CHAL.ask||JOB.near)return;
@@ -13206,8 +13221,8 @@ function dlSyncSetup(){
   }
   for(const sec of DL_SETUP)sec.el.hidden=sec.rows.every(r=>r.row.hidden);
   const k=tuneKey(BUILDS[APP.bi]),n=k&&TUNE[k]?Object.keys(TUNE[k]).filter(q=>q!=='tq'&&q!=='idle').length:0;
-  $('dlTuned').textContent=!k?'':n?`Tuned here: ${n} setting${n>1?'s':''} changed from what the parts made. The car drives with this engine; Reset to preset gives the parts' own engine back.`
-    :'As the parts made it. Anything changed here goes with the car onto the road.';
+  {const tx=!k?'':n?`Tuned here: ${n} setting${n>1?'s':''} changed from what the parts made. The car drives with this engine; Reset to preset gives the parts' own engine back.`
+    :'As the parts made it. Anything changed here goes with the car onto the road.';const el=$('dlTuned'),full=tx+(CAREER.on&&tx?' In the career the sheet tunes what you have bolted on: past that, each kit or part shows its price.':'');if(el.textContent!==full)el.textContent=full;}
   thDecorate(o);
 }
 /* a setting changed: the bay's engine follows at once; the car you drive takes it when you let go */
@@ -13344,7 +13359,6 @@ function thDecorate(o){
     if(r.t==='toggle'&&TH_PART[r.k]){const lab=r.row.querySelector('label');if(!lab.dataset.n)lab.dataset.n=lab.textContent;const need=on&&r.el.getAttribute('aria-checked')!=='true'?thNeed(r,1,false):null;
       setTxt(lab,lab.dataset.n+(need&&need.p?' · '+Feats.fmtMoney(need.p):''));}
   }
-  const t=$('dlTuned');if(on&&t&&t.textContent)t.textContent+=' In the career the sheet tunes what you have bolted on: past that, each kit or part shows its price.';
 }
 function buildTuneCareer(){$('dlBuyYes').addEventListener('click',thBuy);$('dlBuyNo').addEventListener('click',()=>{if(TH.ask)thNo();else thClose();});}
 /* =====================================================================================

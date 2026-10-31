@@ -140,7 +140,7 @@ function makeMesh(d){
 function setInst(mesh,data){
   gl.bindVertexArray(mesh.vao);
   if(!mesh.inst){mesh.inst=gl.createBuffer();}
-  gl.bindBuffer(gl.ARRAY_BUFFER,mesh.inst);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER,mesh.inst);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STREAM_DRAW);
   for(let k=0;k<3;k++){gl.enableVertexAttribArray(5+k);gl.vertexAttribPointer(5+k,4,gl.FLOAT,false,48,k*16);gl.vertexAttribDivisor(5+k,1);}
   gl.bindVertexArray(null);mesh.ni=data.length/12;
 }

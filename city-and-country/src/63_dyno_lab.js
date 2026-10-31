@@ -321,8 +321,8 @@ function dlSyncSetup(){
   }
   for(const sec of DL_SETUP)sec.el.hidden=sec.rows.every(r=>r.row.hidden);
   const k=tuneKey(BUILDS[APP.bi]),n=k&&TUNE[k]?Object.keys(TUNE[k]).filter(q=>q!=='tq'&&q!=='idle').length:0;
-  $('dlTuned').textContent=!k?'':n?`Tuned here: ${n} setting${n>1?'s':''} changed from what the parts made. The car drives with this engine; Reset to preset gives the parts' own engine back.`
-    :'As the parts made it. Anything changed here goes with the car onto the road.';
+  {const tx=!k?'':n?`Tuned here: ${n} setting${n>1?'s':''} changed from what the parts made. The car drives with this engine; Reset to preset gives the parts' own engine back.`
+    :'As the parts made it. Anything changed here goes with the car onto the road.';const el=$('dlTuned'),full=tx+(CAREER.on&&tx?' In the career the sheet tunes what you have bolted on: past that, each kit or part shows its price.':'');if(el.textContent!==full)el.textContent=full;}
   thDecorate(o);
 }
 /* a setting changed: the bay's engine follows at once; the car you drive takes it when you let go */

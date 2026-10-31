@@ -97,6 +97,5 @@ function thDecorate(o){
     if(r.t==='toggle'&&TH_PART[r.k]){const lab=r.row.querySelector('label');if(!lab.dataset.n)lab.dataset.n=lab.textContent;const need=on&&r.el.getAttribute('aria-checked')!=='true'?thNeed(r,1,false):null;
       setTxt(lab,lab.dataset.n+(need&&need.p?' · '+Feats.fmtMoney(need.p):''));}
   }
-  const t=$('dlTuned');if(on&&t&&t.textContent)t.textContent+=' In the career the sheet tunes what you have bolted on: past that, each kit or part shows its price.';
 }
 function buildTuneCareer(){$('dlBuyYes').addEventListener('click',thBuy);$('dlBuyNo').addEventListener('click',()=>{if(TH.ask)thNo();else thClose();});}

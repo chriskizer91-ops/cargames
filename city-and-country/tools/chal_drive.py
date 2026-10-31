@@ -42,7 +42,7 @@ for(let f=0;f<FR*(c.limit+15);f++){g.GAME.state='drive';
   const al=Math.atan2((ax*-fz+az*fx)/dl,(ax*fx+az*fz)/dl),cc=t.c,del=Math.atan(2*cc.wb*Math.sin(al)/ld),lim=Math.min(cc.lock,.6);
   let steer=Math.max(-1,Math.min(1,del/lim)),vs=200;
   /* what the bends ahead allow, and the braking to get down to it (6 m/s2) */
-  if(!straight)for(const d of [6,16,30,50,80,120,180,260,360,480,620]){const k=Math.abs(kAt(idx+Math.round(d/ds)));if(k>1e-4){const vk=Math.sqrt(grip/k);vs=Math.min(vs,d<=120?vk+d*.16:Math.sqrt(vk*vk+2*6*d));}}
+  if(!straight)for(const d of [6,16,30,50,80,120,180,260,360,480,620,780,950]){const k=Math.abs(kAt(idx+Math.round(d/ds)));if(k>1e-4){const vk=Math.sqrt(grip/k);vs=Math.min(vs,d<=120?vk+d*.16:Math.sqrt(vk*vk+2*6*d));}}
   if(vcap)vs=Math.min(vs,vcap);if(RB[1])vs=Math.min(vs,RB[1]);
   let thr=v<vs-1?1:v<vs+1?.4:0,brk=v>vs+3?Math.min(.9,(v-vs)/8):0;if(c.kind==='stop'&&r.reached!=null){thr=0;brk=1;}
   g.setTestInput({steer,thr,brk,hb:0,nos:straight});g.step(1/FR);

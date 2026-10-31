@@ -176,7 +176,7 @@ const dseg7w=(s,h,th)=>{const w=Math.max(3,Math.round(h*.52)),t=th||Math.max(1,M
    the real font so what is laid out beside them still lines up, and the canvas is redrawn only when the
    words change. The dot font stays (dtxt5 and the rest) for the dev panel's "Dot text" switch.
    ===================================================================================== */
-const TXT={on:store.get('cc-dottext','0')!=='1',q:[],keys:[],last:'',cv:null,cx:null,w:0,h:0,mw:new Map(),cap:{},css:new Map(),ready:false};
+const TXT={on:store.get('cc-dottext','0')!=='1',q:[],prev:[],paintT:0,lx:0,ly:0,lw:0,lW:0,keys:[],last:'',cv:null,cx:null,w:0,h:0,mw:new Map(),cap:{},css:new Map(),ready:false};
 const TXT_F=[['600','"Chakra Petch"'],['600','"Saira Condensed"'],['600','"Saira Condensed"'],['600','"Saira Condensed"'],['700','"Chakra Petch"']];
 /* kind 0 = the 5x7 font, 1 = the 3x5 labels, 2 = the 7-segment digits */
 const tNum=s=>/^[\s\d.,:+\-%$x×\/]*$/i.test(s)&&/\d/.test(s);
@@ -210,8 +210,13 @@ function txtFlush(){
   const x=tCtx();if(!x)return;
   if(!TXT.on){if(TXT.last!==''){x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,TXT.cv.width,TXT.cv.height);TXT.last='';}return;}
   if(TXT.w!==VW||TXT.h!==VH){TXT.cv.width=TXT.w=VW;TXT.cv.height=TXT.h=VH;TXT.last='#';}
-  const Q=TXT.q;if(Q.length>1500)Q.length=0;let key=RECT.x+','+RECT.y+','+RECT.w+','+W+';';for(const t of Q)key+=t.join('|')+';';
-  if(key===TXT.last)return;TXT.last=key;
+  /* the layer is repainted whole, so: compared item by item with what was painted (no key string built every
+     frame), painted at once when the layout changes or an item comes or goes (a message), and at most every 80 ms
+     when only a value moved (the speed, a clock, a fade), so live numbers cost at most a dozen repaints a second */
+  const Q=TXT.q;if(Q.length>1500)Q.length=0;const P=TXT.prev,lay=TXT.last!=='#'&&TXT.lx===RECT.x&&TXT.ly===RECT.y&&TXT.lw===RECT.w&&TXT.lW===W;
+  if(lay&&P.length===Q.length){let same=true;for(let i=0;i<Q.length&&same;i++){const a=Q[i],b=P[i];for(let k=0;k<9;k++)if(a[k]!==b[k]){same=false;break;}}
+    if(same||performance.now()-TXT.paintT<80)return;}
+  TXT.last='p';TXT.lx=RECT.x;TXT.ly=RECT.y;TXT.lw=RECT.w;TXT.lW=W;TXT.prev=Q.slice();TXT.paintT=performance.now();
   x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,VW,VH);
   const cell=tCell(),k=cell*DPR,ox=RECT.x*DPR,oy=RECT.y*DPR;
   x.textBaseline='alphabetic';x.lineJoin='round';

@@ -294,10 +294,10 @@ void main(){
      screen once the bloom has spread it) */
   vec3 N=dot(vN,vN)>1e-12?normalize(vN):vec3(0.,1.,0.);vec3 V=normalize(uCam-vP);if(dot(N,V)<0.)N=-N;
   vec3 alb=vC.rgb;float em=vC.a;float spec=.04,shin=12.;vec3 emc=vec3(0.);vec3 add=vec3(0.);
-  float dist=length(vP-uCam);gFP=max(length(dFdx(vP)),length(dFdy(vP)));
+  float dist=length(vP-uCam);vec3 dPx=dFdx(vP),dPy=dFdy(vP);gFP=max(length(dPx),length(dPy));
   /* a car out in the world measures its mud up itself; see-through by dropping pixels (the dot pass averages
      them): dust and spray carry their opacity as a negative glow; trees thin out right in front of the camera */
-  int m=int(vMat+.5);float h=uMudLocal>.5?vL.y+uMudOff:vP.y-uGround;bool dirty=false;vec3 Pw=vP+uOrg;vec2 fwP=fwidth(vP.xz);
+  int m=int(vMat+.5);float h=uMudLocal>.5?vL.y+uMudOff:vP.y-uGround;bool dirty=false;vec3 Pw=vP+uOrg;vec2 fwP=abs(dPx.xz)+abs(dPy.xz);
   if(em<0.){if(h12(gl_FragCoord.xy+fract(uTime*7.3)*91.)>-em)discard;em=0.;}
   if(m==48){if(dist<8.&&h12(gl_FragCoord.xy)>smoothstep(3.,8.,dist))discard;
     /* the crown's edge broken into clumps of leaves: where it turns away from the eye, gaps open between them
