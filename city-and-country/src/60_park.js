@@ -83,7 +83,7 @@ function drawParkHud(lx,sc){
   /* the time slip */
   if(D.slip&&APP.t-D.slipT<9){const s=D.slip,b=P.best[parkKey('drag')],f=v=>v===null?'--':v.toFixed(3),rows=[['R/T',f(s.rt)],["60'",f(s.t60)],["330'",f(s.t330)],['1/8',f(s.et)],['MPH',s.mph.toFixed(1)]];
     const w=74,h=12+rows.length*8+(b?8:0),x=tch?Math.round(W/2-w/2):W-w-8,yy=tch?Math.round(H*.2):Math.round(H*.32);
-    hRect(x,yy,w,h,pack(240,236,226,230));otxt3(s.foul?'RED LIGHT':s.best?'NEW BEST':'TIME SLIP',x+w/2,yy+3,s.foul?PAL.red:s.best?PAL.green:pack(40,36,52,255),1,'c');
-    rows.forEach(([k,v],i)=>{txt3(k,x+5,yy+12+i*8,pack(70,64,86,255));txt3(v,x+w-5-tw3(v),yy+12+i*8,pack(20,18,26,255));});
-    if(b)txt3('BEST '+b.toFixed(3),x+5,yy+12+rows.length*8,pack(70,64,86,255));}
+    hRect(x,yy,w,h,pack(4,3,8,200));otxt3(s.foul?'RED LIGHT':s.best?'NEW BEST':'TIME SLIP',x+w/2,yy+3,s.foul?PAL.red:s.best?PAL.green:PAL.amber,1,'c');
+    rows.forEach(([k,v],i)=>{txt3(k,x+5,yy+12+i*8,PAL.dim);txt3(v,x+w-5-tw3(v),yy+12+i*8,PAL.white);});
+    if(b)txt3('BEST '+b.toFixed(3),x+5,yy+12+rows.length*8,PAL.dim);}
 }
