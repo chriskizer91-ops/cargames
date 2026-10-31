@@ -66,7 +66,7 @@ function pickRivals(ev,n){
 /* ---------- starting one ---------- */
 function startRace(id){
   const ev=RACE_EVENTS.find(e=>e.id===id);if(!ev)return;
-  if(RACE.on)raceEnd(null);RUN.on=null;LAP.on=false;
+  if(RACE.on)raceEnd(null);RUN.on=null;LAP.on=false;CHAL.run=null;
   const D=RACE_DIFF[RACE.diff],seed=(Date.now()&0xffff)+1,R=Ranch.rng(seed),names=RACE_NAMES.slice().sort(()=>R()-.5);
   RACE.ev=ev;RACE.on=true;RACE.state='grid';RACE.t=0;RACE.clock=0;RACE.cars=[];RACE.res=null;RACE.out=[];RACE.msgT=0;RACE.lights=0;RACE.green=false;RACE.foul=false;RACE.rt=null;
   const t=GAME.car,me={car:t,name:'You',me:true,half:t.c.body.W/2,done:false,time:0,out:false};RACE.me=me;

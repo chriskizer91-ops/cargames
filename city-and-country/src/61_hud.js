@@ -65,7 +65,7 @@ function drawHud(c){
   otxt3(GAME.place.toUpperCase(),lx,7+7*sc+2,PAL.ink);
   otxt3(LEVELS.find(l=>l[0]===APP.level)[1].toUpperCase()+(APP.level==='kids'?' MODE':APP.level==='sim'?simTag(t):''),lx,7+7*sc+10,
     APP.level==='kids'?PAL.cyan:APP.level==='middle'?PAL.amber:APP.level==='sim'?PAL.red:PAL.dim);
-  otxt5(Feats.fmtMoney(Feats.S.money),lx,7+7*sc+18,GR.green,1);
+  otxt5(Feats.fmtMoney(cash()),lx,7+7*sc+18,GR.green,1);
   /* the developer panel's settings, when they're off the defaults */
   const dt=devTag();if(dt)otxt3(dt,lx,7+7*sc+(tch?38:28),PAL.amber);
   if(APP.bigMap){drawBigMap();return;}
@@ -86,7 +86,7 @@ function drawHud(c){
   if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
-  drawFeatsHud();drawRaceHud(lx,sc);drawParkHud(lx,sc);
+  drawFeatsHud();drawRaceHud(lx,sc);if(CHAL.run)drawChalHud(lx,sc);else{drawParkHud(lx,sc);drawJobHud(lx,sc);}
   if(DEVW.hud)drawWorldStats();
   if(!on){const msg=GAME.touch?'TAP GAS TO START':'PRESS W OR I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-26,GR.steel,1,'c');}
   else if(pt.st==='crank')otxt3('CRANKING',W/2,H-22,PAL.amber,1,'c');

@@ -10,6 +10,8 @@ const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3],[1280,720,4]];
 const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:true,tod:'night',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
+/* the career (60_career): on or not, its save, and free play's cars and rigs kept aside while it's on */
+const CAREER={on:false,d:null,free:null};
 const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'pickup',muscle:'muscle',hatch:'hatch',ev:'ev',wedge:'wedge',hyper:'hyper'};
 for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('cc-game','{}'))||{};
@@ -22,7 +24,8 @@ function cleanRig(car,r){const base=presetRig(CAR_STOCK[car]),out=Object.assign(
   for(const [k] of SLOTS)if(fits(car,out,k,out[k]))out[k]=base[k];
   return fixRig(car,out);}
 const rigOf=car=>RIGS[car]||(RIGS[car]=presetRig(CAR_STOCK[car]));
-const saveGame=()=>store.set('cc-game',JSON.stringify({car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,rigs:RIGS}));
+const saveGame=()=>{if(CAREER.on)careerSync();const F=CAREER.on&&CAREER.free;
+  store.set('cc-game',JSON.stringify({car:F?F.car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,rigs:F?F.rigs:RIGS}));};
 const LEVELS=[['real','Realistic','The car as it is: ABS, the automatic gearbox and, on the cars that have it, the factory traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
   ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.'],
@@ -96,7 +99,7 @@ const RECENT=[];
 /* what the Sim level builds the car with: roof loads move its centre of gravity, plus any cargo */
 const simOpts=()=>APP.level==='sim'?{cg:!!SIMDEV.cg,cargo:simVal(SIM_CARGO,SIMSET.cargo)}:null;
 function spawnCar(i,x,z,yaw){
-  if(RACE.on)raceEnd('Race abandoned');
+  if(RACE.on)raceEnd('Race abandoned');if(CHAL.run&&CHAL.run.phase!=='done')CHAL.run=null;
   const prev=GAME.car,t=makeCar(i,RANCH.world,simOpts(),plusK(BUILDS[i].car),plusG(BUILDS[i].car));t.setAssists(APP.level);devFit(t);
   const b=BUILDS[i];RECENT.unshift(b.id);RECENT.length=Math.min(RECENT.length,3);truckEvict(RECENT);truck(i);
   if(prev&&prev.pt.st!=='off'){t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;}
@@ -114,7 +117,7 @@ function spawnCar(i,x,z,yaw){
 function spawnRig(keepPlace=true){const t=GAME.car;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));}
 const carWhole=t=>{for(const a of [t.p,t.v,t.w,t.q])for(let k=0;k<a.length;k++)if(!Number.isFinite(a[k]))return false;return true;};
 function resetCar(){const t=GAME.car;placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));}
-function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;if(RACE.on)raceEnd('Race abandoned');placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
+function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;CHAL.run=null;if(RACE.on)raceEnd('Race abandoned');placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
 /* overdrive off: the automatic holds out of its top gear (the button on the shifter) */
 const hasOD=e=>e.conv&&!e.cvt&&e.nG>2;
 function setOD(on){const pt=GAME.car.pt;if(!hasOD(pt.e))return false;APP.od=on;pt.maxG=on?pt.e.nG-1:0;if(on&&pt.gear>pt.maxG&&pt.shiftT<=0)pt.shift(-1);return true;}
@@ -204,8 +207,9 @@ let TEST_IN=null;const setTestInput=o=>{TEST_IN=o;};
 function step(dt){
   if(TEST_IN)INPUT.pressed.clear();
   const t=GAME.car,inp=TEST_IN||pollInput(dt),pt=t.pt;
+  if(GAME.state!=='drive'&&OBJ_KEY)syncObj();
   if(inp.menu&&SHOW.full){showFull(false);inp.menu=false;}
-  if(inp.menu){if(GAME.state==='results')hideResults();else GAME.state==='drive'?openMenu(false):closeMenu();}
+  if(inp.menu){if(GAME.state==='jdlg')closeJobDialog();else if(GAME.state==='cres')closeChalResult();else if(GAME.state==='results')hideResults();else GAME.state==='drive'?openMenu(false):closeMenu();}
   let drive=IDLE_IN;
   if(GAME.state==='drive'){
     if(inp.cam){APP.cam=(APP.cam+1)%CAMS.length;CAM.cut=true;saveGame();say(CAMS[APP.cam]+' camera',1.2);}
@@ -236,6 +240,9 @@ function step(dt){
   /* the drag strip's tree (60_park): the car held on its brakes until green (rev it all you like); the gas
      floored before green is a red light */
   if(!RACE.on&&PARKT.dr.st==='tree'){if(drive.thr>.6&&!PARKT.dr.foul){PARKT.dr.foul=true;say('RED LIGHT',1.8,PAL.red);}drive={steer:drive.steer||0,thr:drive.thr||0,brk:1,hb:1,nos:false,park:true};}
+  /* a challenge's countdown (60_chal): held on the brakes until GO; at the result it rolls to a stop */
+  if(CHAL.run&&CHAL.run.phase==='count')drive={steer:drive.steer||0,thr:drive.thr||0,brk:1,hb:1,nos:false,park:true};
+  if(GAME.state==='cres')drive={steer:0,thr:0,brk:.45,hb:0,nos:false,park:true};
   if(RACE.on&&GAME.state!=='drive'){GAME.acc=0;return;}
   /* paused: the car is held exactly as it was (speed and all) until the menu closes; changing it or going
      somewhere places it afresh, and that unfreezes it */
@@ -272,7 +279,7 @@ function step(dt){
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(dt);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);}}
+  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(dt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
 }
 /* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
    gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
@@ -468,7 +475,7 @@ function render(dt){
   tris+=drawWorldCar(t,GAME.voice,GAME.dirt);tris+=raceDraw(c);
   if(!DEVW.off.fx)tris+=fxDraw();tris+=rainDraw(c,dt);
   /* the dust and spray last, blended over the rest (into the colour only, not the normals the passes read) */
-  if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.NONE]);if(!DEVW.off.fx)tris+=fxDrawSoft(c);if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);
+  if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.NONE]);if(!DEVW.off.fx)tris+=fxDrawSoft(c);tris+=chalDraw(c);if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);
   gl.bindVertexArray(null);APP.tris=tris;tq=psT(PS_SCENE,tq);
   /* occlusion and light in the air (laptop), the exposure, then the HUD and the display (55_post) */
   const src=postPasses(c,dt);tq=psT(PS_POST,tq);

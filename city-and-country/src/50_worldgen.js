@@ -958,6 +958,15 @@ function genStatic(cx,cz){
 const CRo={},NOL=[];
 /* where the highway's asphalt stops on the salt, east and west */
 const HWY_X=(()=>{let x=LAND;while(x<LAND+3000&&saltD(x,0)<=HWY_SALT)x+=2;return x-6;})();
+/* Old Hal's camp on the salt (City Limits' Hal): his trailer north of where the asphalt stops, a lamp, his sign;
+   the first spot along from there that no ramp comes near */
+const HAL=(()=>{let at=null;for(let k=0;k<40&&!at;k++){const x=HWY_X+140+k*24,z=-46;let ok=true;
+    for(let i=Math.floor((x-200)/RCELL);i<=Math.floor((x+200)/RCELL)&&ok;i++)for(let j=-1;j<=0&&ok;j++)for(const r of rampsIn(i,j))if(Math.hypot(r.mx-x,r.mz-z)<r.rad+30)ok=false;
+    if(ok)at={x,z};}
+  return Object.assign(at||{x:HWY_X+140,z:-46},{});})();
+SPECIAL.push({pads:[],spurs:[],bld:[{t:'box',b:[HAL.x-7,HAL.z-6,HAL.x+7,HAL.z-1],h:3.1,roof:'flat',col:lc(206,210,214),mat:MAT.SHEET},
+  {t:'box',b:[HAL.x+9,HAL.z-7,HAL.x+14,HAL.z-2],h:2.2,roof:'flat',col:lc(150,120,96),mat:MAT.COL},{t:'lamp',x:HAL.x-9,z:HAL.z+1,h:7},
+  {t:'neon',word:"HAL'S",o:[HAL.x-4.2,HAL.z-.95],rt:[1,0],n:[0,1],px:.26,h0:2.2,col:[.72,.62,1]}],trees:[],name:"Old Hal's",x:HAL.x,z:HAL.z-3,special:1});
 
 /* ---------- a neon word: runs of lit pixels from the 5 x 7 font as glowing quads, on a dark board ----------
    o: its bottom-left corner [x,y,z] (on the face, the board behind it); rt: along the word; n: out of the face */
@@ -1361,7 +1370,7 @@ function roadLines(x0,z0,x1,z1,step){
 /* the places with names on the big map */
 const NAMED=[{name:'City Limits',x:0,z:0},{name:"Deke's Gas",x:470,z:-40,special:1},{name:'The Starlite',x:-470,z:40},{name:'Off-road park',x:(PARK.x0+PARK.x1)/2,z:(PARK.z0+PARK.z1)/2},
   {name:'Speedway 25',x:-2050,z:-820,park:1},{name:'The Outer Loop',x:OLW[0][0],z:OLW[0][1]},{name:'Short course',x:-2600,z:-1000,park:1},{name:'Mud track',x:-2360,z:-1390,park:1},{name:'Drag strip',x:-2650,z:-360,park:1},{name:'Paddock',x:-2310,z:-395,park:1},
-  {name:'The bog',x:BOG.x,z:BOG.z},{name:'The salt flats',x:LAND+700,z:-180},{name:'The salt flats',x:-LAND-700,z:180},{name:'The hills',x:-200,z:-2300}];
+  {name:'The bog',x:BOG.x,z:BOG.z},{name:"Old Hal's",x:HAL.x,z:HAL.z},{name:'The salt flats',x:LAND+700,z:-180},{name:'The salt flats',x:-LAND-700,z:180},{name:'The hills',x:-200,z:-2300}];
 function townsNear(x,z,r){return NAMED.filter(t=>Math.hypot(t.x-x,t.z-z)<r).map(t=>Object.assign({i:0,j:0},t));}
 /* what a place is called */
 function placeAt(x,z){
@@ -1374,7 +1383,7 @@ function placeAt(x,z){
         if(bz!==null&&(bx===null||hwZ(bz)>=hwX(bx)))return STREET_Z[String(bz)];if(bx!==null)return STREET_X[String(bx)];}
       const dz=district(x,z);return {downtown:'Downtown',neon:'Neon Row',residential:'The Heights',industrial:'The Yards',park:'Copper Park',mixed:'City Limits'}[dz]||'City Limits';}
     if(Math.abs(z)<16)return 'Highway 40';return 'Edge of town';}
-  if(Math.hypot(x-470,z+40)<40)return "Deke's Gas";if(Math.hypot(x+470,z-40)<40)return 'The Starlite Diner';
+  if(Math.hypot(x-HAL.x,z-HAL.z)<30)return "Old Hal's";if(Math.hypot(x-470,z+40)<40)return "Deke's Gas";if(Math.hypot(x+470,z-40)<40)return 'The Starlite Diner';
   if(Math.hypot(x-BOG.x,z-BOG.z)<BOG.r+12)return 'The bog';
   if(parkD(x,z)<40||Math.abs(x-PKW.ROADX)<9&&z<-12&&z>-300){const nm=PKW.nameAt(x,z);if(nm)return nm;}
   if(parkD(x,z)<20)return 'Off-road park';
@@ -1389,5 +1398,5 @@ function placeAt(x,z){
 }
 const xExp=z=>1e9;
 return {L,HALF,CH,FT,ROAD_END,SURF,SF,CL,core,sample,baseAt,genGround,genStatic,genFar,roadAt,roadLines,townsNear,placeAt,hillK,offNS,offEW,clsNSz,clsEWx,creekAt,xExp,
-  EDGE,RING,LAND,SALT_Y,HWY_X,PARK,BOG,GARAGE,townD,saltD,parkD,TW,townLights,PKW,PARK_Y,OL,LAPS};
+  EDGE,RING,LAND,SALT_Y,HWY_X,HAL,PARK,BOG,GARAGE,townD,saltD,parkD,TW,townLights,PKW,PARK_Y,OL,LAPS,rampsIn,RCELL};
 }

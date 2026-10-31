@@ -39,7 +39,9 @@ const Feats=(()=>{
   function bank(){
     const c=S.combo;S.combo=null;if(!c)return;const m=mult(c),tot=Math.round(c.pot*m);
     S.money+=tot;S.session+=tot;
-    API.pop((c.n>1?'COMBO x'+m.toFixed(1)+'  ':'')+'BANKED '+fmtMoney(tot),'#5dff7a',true);API.buzz([20,40,20]);
+    /* (in a career the feats pay a share into the career's money: 60_career) */
+    const paid=API.onBank?API.onBank(tot):tot;
+    API.pop((c.n>1?'COMBO x'+m.toFixed(1)+'  ':'')+'BANKED '+fmtMoney(paid),'#5dff7a',true);API.buzz([20,40,20]);
     /* the log keeps the best thing in each banked combo, or the combo itself */
     const top=(S.pendingLog||[]).sort((a,b)=>b.value-a.value)[0];
     const entry={what:c.n>1?`${c.n}-feat combo: ${c.list.slice(0,4).join(', ')}${c.n>4?'…':''}`:top?top.label:'Feat',money:tot,where:API.place(),car:API.carName(),at:Date.now(),kind:c.n>1?'combo':top&&top.kind};

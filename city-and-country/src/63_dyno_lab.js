@@ -279,6 +279,8 @@ const dlBase=()=>(GAME.car&&GAME.car.spec&&GAME.car.spec.src0)||{};
 function dlParams(){const k=tuneKey(BUILDS[APP.bi]);return Object.assign({},SIM.DEFAULTS,dlBase(),k&&TUNE[k]||{});}
 function dlBuildSetup(){
   const box=$('dlSetup');box.textContent='';DL.rows.length=0;
+  const bar=document.createElement('div');bar.className='buybar dlbuy';bar.id='dlBuy';bar.hidden=true;
+  bar.innerHTML='<span id="dlBuyTxt"></span><button class="btn go sm" id="dlBuyYes" type="button">Buy it</button><button class="btn sm" id="dlBuyNo" type="button">Not now</button>';box.appendChild(bar);
   for(const sec of DL_SETUP){
     const s=document.createElement('div');s.className='sheet';
     const h=document.createElement('h3');h.textContent=sec.h;s.appendChild(h);sec.el=s;
@@ -304,6 +306,7 @@ function dlBuildSetup(){
   $('dlCopy').addEventListener('click',()=>{const o=dlParams(),skip=new Set(['id','grp','tag','gears','gearV','orders','axles','imp','ch','name','machine','mass','drv','R','cdA','mu']),out={name:carName({car:APP.car})+' '+rigName(APP.car,rigOf(APP.car))};
     for(const k in o)if(!skip.has(k)&&o[k]!==SIM.DEFAULTS[k]&&o[k]!==undefined&&typeof o[k]!=='object')out[k]=typeof o[k]==='number'?+o[k].toFixed(4):o[k];
     const txt=JSON.stringify(out,null,1),b=$('dlCopy');try{navigator.clipboard.writeText(txt).then(()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy engine spec',1400);},()=>{b.textContent='Copy failed';});}catch(e){b.textContent='Copy failed';}});
+  buildTuneCareer();
 }
 function dlSyncSetup(){
   if(!DL.rows.length||!GAME.car)return;const o=dlParams(),sim=SHOW.sim;
@@ -320,9 +323,12 @@ function dlSyncSetup(){
   const k=tuneKey(BUILDS[APP.bi]),n=k&&TUNE[k]?Object.keys(TUNE[k]).filter(q=>q!=='tq'&&q!=='idle').length:0;
   $('dlTuned').textContent=!k?'':n?`Tuned here: ${n} setting${n>1?'s':''} changed from what the parts made. The car drives with this engine; Reset to preset gives the parts' own engine back.`
     :'As the parts made it. Anything changed here goes with the car onto the road.';
+  thDecorate(o);
 }
 /* a setting changed: the bay's engine follows at once; the car you drive takes it when you let go */
-function dlSetVal(r,v,final){
+/* (the career's gate first, 63_tune_career: past what you own it is only tried, and the buy bar asks) */
+function dlSetVal(r,v,final){const g=thGate(r,v,final);if(g===false)return;dlSetValRaw(r,v,g===true?final:false);}
+function dlSetValRaw(r,v,final){
   const b=BUILDS[APP.bi],k=tuneKey(b);if(!k||!GAME.car)return;
   if(r.sim){if(SHOW.sim)SHOW.sim[r.k]=!!v;dlSyncSetup();return;}
   const base=dlBase(),o={[r.k]:v};
@@ -353,4 +359,4 @@ function dlApply(final){
   DL.tuneT=setTimeout(()=>{DL.tuneT=0;if(APP.bi===i)spawnRig();},final?60:600);
 }
 /* leaving the bay with a tune still to hand over: the car takes it now */
-function dlFlush(){if(DL.raf){cancelAnimationFrame(DL.raf);DL.raf=0;dlApply(true);}if(DL.tuneT){clearTimeout(DL.tuneT);DL.tuneT=0;spawnRig();}saveTune();}
+function dlFlush(){if(TH.ask)thNo();if(DL.raf){cancelAnimationFrame(DL.raf);DL.raf=0;dlApply(true);}if(DL.tuneT){clearTimeout(DL.tuneT);DL.tuneT=0;spawnRig();}saveTune();}

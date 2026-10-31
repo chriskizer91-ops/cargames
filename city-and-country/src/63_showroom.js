@@ -50,7 +50,7 @@ function buildStage(kind,garage){
     for(let i=0;i<NS;i++){const a=i/NS*TAU,cx=Math.cos(a)*13.24*sc,cz=Math.sin(a)*13.24*sc,tx=-Math.sin(a)*.28,tz=Math.cos(a)*.28;
       m.quad([cx-tx,1.25,cz-tz],[cx+tx,1.25,cz+tz],[cx+tx,6.6,cz+tz],[cx-tx,6.6,cz-tz],[.85,.9,1],.7,MAT.EMIT);}
     /* the house name in dots on the wall behind the turntable; in the garage, high on the wall over the parked cars */
-    const word='CITY & COUNTRY',dp=garage?.13:.11,a0=garage?PI:2.52,y0=garage?3.7:2.75,rw=13.2*sc,tw=word.length*6*dp;
+    const word='REDLINE COUNTY',dp=garage?.13:.11,a0=garage?PI:2.52,y0=garage?3.7:2.75,rw=13.2*sc,tw=word.length*6*dp;
     for(let k=0;k<word.length;k++){const g=G5[word[k]];if(!g)continue;for(let r=0;r<7;r++)for(let c=0;c<5;c++)if((g[r]>>(4-c))&1){
       const a=a0+((k*6+c)*dp-tw/2)/rw,y=y0-r*dp,px=Math.cos(a)*rw,pz=Math.sin(a)*rw,h=garage?.047:.04;m.box(px-h,y-h,pz-h,px+h,y+h,pz+h,[1,.24,.32],.55,MAT.EMIT);}}
   }

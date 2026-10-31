@@ -382,7 +382,7 @@ class Vehicle{
     if(this.rev){if(thr>.1&&vb[0]>-.8){this.rev=false;pt.rev=false;this.revT=0;}else{const t=thr;thr=brk;brk=t;}}
     /* brake and gas together at a standstill: the trans-brake */
     if(!this.rev&&Math.abs(vb[0])<.5&&brk>.5&&thr>.3&&pt.running)pt.hold=true;
-    else if(pt.hold){pt.hold=false;if(thr>.3){pt.launchW=pt.we;pt.launching=true;}}
+    else if(pt.hold){pt.hold=false;if(thr>.3){pt.launchW=Math.min(pt.we,(pt.e.limiterRpm-300)*TAU/60);pt.launching=true;}}
     this.thrIn=thr;this.brkIn=brk;this.steer=this._steer(dt,inp.steer||0,vb,wb);
     /* the springs: each wheel finds the ground under it */
     const dn=this._dn;dn[0]=-U[0];dn[1]=-U[1];dn[2]=-U[2];let nContact=0;

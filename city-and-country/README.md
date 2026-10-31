@@ -1,4 +1,7 @@
-# City & Country (working title)
+# Redline County: Wide Open
+
+(Was City & Country while it was being put together.) No city limit, no speed limit: a county with no edge,
+and cars you can tune past anything real.
 
 Back Forty's game with City Limits' town, cars and night. Everything from Back Forty (its cars, machines, garage
 window with the dyno lab and the Tune sheet, the Plus tune, the Sim level, the dev panel, the settings, the phone
@@ -66,6 +69,41 @@ x runs east, z south; downtown is at the origin.
 - **The salt flats**: past about two miles (a rounded square, its edge wandering), flat, hard (the physics'
   `strip` surface) and endless, with City Limits' ramps (kickers, table-tops, mega ramps) in most 360 m cells.
 
+## The career, the challenges and the county's people
+
+- **Two games side by side** (`src/60_career.js`), picked on the Drive tab. **Free play**: every car and every
+  part yours, the money a score, the Tune sheet open all the way. **The career**: a stock SUV and $2,500; the
+  challenges, the people's jobs and a share of the feats (35%) pay real money, which buys parts (the garage marks
+  each with its price; what you buy stays bought) and cars at the dealer. Three cars open only through a job: the
+  electric (Marisol's The Quiet One), the wedge (Vince's Night Runner) and the hypercar (Hal's Two Hundred). Each
+  game keeps its own save: `cc-career` (money, cars, parts, medals, jobs, its own hand tunes) and free play's
+  `cc-game`, `cc-tune`, `cc-fchal`.
+- **Challenges** (`src/60_chal.js`): City Limits' kinds on this map: sprints through gates, laps, standing starts,
+  the speed trap, the flying mile, big air off a mega ramp, and drift zones (City Limits' drift scoring). Town:
+  Limits Loop, Downtown Quarter, Downtown Dash, Neon Row Drift. Out of town: Out to the Salt, the Highway 40 speed
+  trap, Ridge Road, Wash Road, The Bog. The Outer Loop: the North Woods section and the full lap. The park:
+  Speedway 25, the Short Course, the Mud Track, the eighth-mile drag, Paddock Drift. The salt: the Flying Mile and
+  Big Air. A tall column of light marks each start (cyan; gold once you hold the gold; green when a job wants
+  it): stop in it and press Enter or Start, or pick one in the Challenges tab. A countdown on the brakes, then the
+  clock, the next gate lit as a column with an arrow to it, laps and splits; the result screen shows the medal,
+  your best and the pay. Pay by tier as City Limits (gold/silver/bronze 1,600/1,000/600 up to 4,000/2,700/1,700);
+  a better medal pays the difference, a repeat a tenth. Medal times come from robot runs
+  (`tools/chal_drive.py pars`): bronze a little slower than the stock SUV, gold a little slower than the build
+  made for that ground.
+- **The county's people** (`src/60_jobs.js`): City Limits' five (Marisol at the garage on Neon Row, Deke at the gas
+  station, Rosa at the Starlite, Vince on Neon Row, Old Hal, now with a trailer on the salt past the end of the
+  highway) and Bo Tanner at the off-road park's paddock. Eighteen jobs: errands against the clock, finding a
+  lost crate on the Outer Loop, a pie for a couple camped where Ridge Road meets the Loop, medals they want to
+  see, 200 mph on the salt. A column in someone's colour means they have work: stop beside them and listen. One
+  job at a time; the HUD shows it with an arrow to where it wants you.
+- **The Tune sheet in the career: tune within your hardware** (`src/63_tune_career.js`). Always free: the sound and
+  feel (knock, pipe length, crackle, blow-off, horn, launch rpm, the limiter). Free up to what's bolted on, then a
+  kit: displacement (stroker kit, big-bore block), redline (valve springs, billet valvetrain), boost (wastegate
+  and injectors, forged bottom end), turbo size, the nitrous shot, the cam. The part itself: an engine swap,
+  induction, exhaust, intake, anti-lag, straight-cut gears, launch control, diesel, the jake brake. Each slider
+  shows the locked stretch with the next kit and its price; each choice its price; let go past the line and the
+  buy bar asks, Not now puts it back.
+
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
 One night, City Limits': a full moon bright enough to see the country and the salt. The town's ~1,100 lights
@@ -83,9 +121,10 @@ are the shader's own eight lamps, as in Back Forty.
 
 - `python3 tools/park_drive.py oval,short,mud,strip 1 [car] [speed cap m/s]`: a robot lap of each circuit and a
   drag run; no NaNs, no ground steps, the lap clock and the slip.
+- `python3 tools/chal_drive.py [ids|all] [car:preset]`: a robot through each challenge with the game's own run (the
+  countdown, gates, laps, trap, mile, the flight); `list` lists them; `pars` gives the numbers for `CH_PARS`.
 
 ## Next
 
-
-- City Limits' career, challenges and jobs, with the Tune sheet as the shopping list in career.
+- Salt speed challenges.
 - Robot racers (HD's drivers and Showdown's cross-country drivers).

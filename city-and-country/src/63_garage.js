@@ -2,8 +2,10 @@
    THE GARAGE. The car turns in front of you while you change it a part at a time. Up top, its six ratings
    (0 to 50) and the figures behind them; pick one of them as what you're building for, and every part
    shows what it does to all six, with the best one for your pick marked. Parts that don't fit say why.
-   In free play every part is yours; a change goes on the car at once. "Build it for me" tries every part
-   in every slot, twice round, and keeps whatever scores best for what you're building for.
+   In free play every part is yours; a change goes on the car at once. In a career (60_career) a part you
+   don't own shows its price, and picking it asks to buy it first; the cars you don't have are the dealer's.
+   "Build it for me" tries every part in every slot (in a career, every part you own), twice round, and keeps
+   whatever scores best for what you're building for.
    ===================================================================================== */
 const GAR={target:'all',open:null,busy:false,job:0};
 const GUIDE={all:'An all-rounder gives a little everywhere: all-terrain tyres, a small lift, four-wheel drive with a low range.',
@@ -15,14 +17,15 @@ const GUIDE={all:'An all-rounder gives a little everywhere: all-terrain tyres, a
   asphalt:'Tarmac wants sticky tyres, a low stance, big brakes and power. Lift and mud tyres cost you here.'};
 const score=(r,k)=>k==='all'?TERRAINS.reduce((s,[t])=>s+r[t],0)/TERRAINS.length:r[k];
 function buildGarage(){
-  segButtons($('gCars'),CARS.map(([c,n])=>[c,CARD_NAME[c]||n]),car=>{if(car!==APP.car){APP.car=car;GAR.open=null;saveGame();spawnRig();}syncGarage();});
+  segButtons($('gCars'),CARS.map(([c,n])=>[c,CARD_NAME[c]||n]),car=>{if(car!==APP.car){GAR.open=null;pickCar(car);}syncGarage();});
   $('gSuggest').addEventListener('click',suggestBuild);
 }
 /* a change: on the car at once, the car rebuilt where it stands */
 function setPart(slot,val){
   if(GAR.busy)return;const car=APP.car,rig=Object.assign({},rigOf(car),{[slot]:val});
   if(fits(car,rigOf(car),slot,val))return;
-  RIGS[car]=fixRig(car,rig);saveGame();spawnRig();syncGarage();syncMenu();
+  const r=fixRig(car,rig),{cost}=rigCost(car,r),o=slotOptions(car,slot,rigOf(car)).find(q=>q[0]===val);
+  askBuy('Buy and fit: '+(o?o[1]:val),cost,()=>{if(!buyRig(car,r))return;RIGS[car]=r;saveGame();spawnRig();syncGarage();syncMenu();});
 }
 function rateTile(k,name,v,dv){
   const el=document.createElement('button');el.type='button';el.className='rate';el.dataset.k=k;el.setAttribute('aria-pressed',String(GAR.target===k));
@@ -36,11 +39,13 @@ function rateTile(k,name,v,dv){
 }
 function syncGarage(preview){
   const car=APP.car,rig=rigOf(car),r=rateRig(car,rig),p=preview?rateRig(car,preview):null;
-  for(const el of $('gCars').children)el.setAttribute('aria-pressed',String(el.dataset.v===car));
+  for(const el of $('gCars').children){const c=el.dataset.v,n=CARD_NAME[c]||CARS.find(q=>q[0]===c)[1];el.setAttribute('aria-pressed',String(c===car));
+    el.textContent=ownsCar(c)?n:n+(carOpen(c)?' · '+Feats.fmtMoney(DEALER[c].price):' · locked');}
   /* the presets */
   const pr=$('gPresets');pr.textContent='';const cur=rigName(car,rig);
   for(const id of presetsOf(car)){const b=BUILDS.find(q=>q.id===id),el=document.createElement('button');el.type='button';el.className='place';el.textContent=b.name;el.title=b.tag;
-    el.setAttribute('aria-pressed',String(cur===b.name));el.addEventListener('click',()=>{if(GAR.busy)return;RIGS[car]=presetRig(id);saveGame();spawnRig();syncGarage();syncMenu();});pr.appendChild(el);}
+    const pr2=presetRig(id),cost=rigCost(car,pr2).cost;if(cost){const c=document.createElement('span');c.className='cost';c.textContent=Feats.fmtMoney(cost);el.appendChild(c);}
+    el.setAttribute('aria-pressed',String(cur===b.name));el.addEventListener('click',()=>{if(GAR.busy)return;askBuy('Build the '+carName({car})+' as the '+b.name,cost,()=>{if(!buyRig(car,pr2))return;RIGS[car]=pr2;saveGame();spawnRig();syncGarage();syncMenu();});});pr.appendChild(el);}
   /* the ratings: tap one to build for it */
   const R=$('gRatings');R.textContent='';
   R.appendChild(rateTile('all','All-round',score(r,'all'),p?score(p,'all')-score(r,'all'):0));
@@ -73,7 +78,7 @@ function optionList(car,rig,s,opts){
   for(const [v,name,note,price] of opts){
     const why=fits(car,rig,s,v),el=document.createElement('button');el.type='button';el.className='opt';el.disabled=!!why;if(v===rig[s])el.setAttribute('aria-current','true');
     el.innerHTML='<b></b><span class="tag"></span><small></small><div class="dl"></div>';el.querySelector('b').textContent=name;el.querySelector('small').textContent=why||note||'';
-    const tag=el.querySelector('.tag');tag.textContent=price?Feats.fmtMoney(price):'Factory';
+    const tag=el.querySelector('.tag'),own=CAREER.on&&ownsPart(car,s,v,rig);tag.textContent=!price?'Factory':own?'Owned':Feats.fmtMoney(price);
     el.addEventListener('click',()=>setPart(s,v));
     el.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'&&!why)syncGarage(fixRig(car,Object.assign({},rig,{[s]:v})));});
     el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')syncGarage(null);});
@@ -97,7 +102,7 @@ function suggestBuild(){
   let n=0;$('gSuggest').textContent='Trying parts…';
   const next=()=>{const t0=performance.now();
     while(n<order.length&&performance.now()-t0<20){const s=order[n++];
-      for(const [v] of slotOptions(car,s,rig)){if(v===rig[s]||fits(car,rig,s,v))continue;const r2=fixRig(car,Object.assign({},rig,{[s]:v})),sc=score(rateRig(car,r2),k);if(sc>bestS+.2){bestS=sc;rig=r2;}}}
+      for(const [v] of slotOptions(car,s,rig)){if(v===rig[s]||fits(car,rig,s,v)||!ownsPart(car,s,v,rig))continue;const r2=fixRig(car,Object.assign({},rig,{[s]:v})),sc=score(rateRig(car,r2),k);if(sc>bestS+.2){bestS=sc;rig=r2;}}}
     $('gNote').textContent=n<order.length?`${Math.round(n/order.length*100)}%`:'';
     if(n<order.length){setTimeout(next,0);return;}
     GAR.busy=false;RIGS[car]=rig;saveGame();spawnRig();syncGarage();syncMenu();$('gNote').textContent='Done. Every part it chose is on the car.';};

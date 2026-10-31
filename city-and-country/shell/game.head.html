@@ -1,12 +1,12 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>City &amp; Country</title>
+<title>Redline County: Wide Open</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#07070b">
 <!--FONTS-->
 <style>
-/* City & Country (working title): Back Forty's game (Dirt Sleeper HD, Mini Dirt Run Solo and Dirt Sleeper Sim in
+/* Redline County: Wide Open (was City & Country): Back Forty's game (Dirt Sleeper HD, Mini Dirt Run Solo and Dirt Sleeper Sim in
    one, on a renderer after Shiftlight 7) with City Limits' town, cars and night in a world made as you drive.
    From HD: The ranch and the country round it
    on an LED dot matrix, dark-only by design, the menu a lit sign over it. The matrix fills the window; a slim
@@ -117,6 +117,13 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .keys kbd{font:600 9.5px/1 var(--f);color:var(--ink-2);border:1px solid var(--edge);border-radius:4px;padding:2px 5px}
 @media (hover:none){.keys{display:none}}
 .status{color:var(--ink-3);font-size:11.5px}
+/* ---------- the career: the two games, the buy bar, the dealer on the car cards ---------- */
+#mModes{grid-template-columns:repeat(2,minmax(0,1fr))}
+#mModes .card small{white-space:normal}
+.buybar{flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--go);border-radius:12px;background:var(--raised)}
+.buybar span{flex:1 1 220px;font-size:12.5px;color:var(--ink)}
+.card.dealer small{color:var(--go)}.card.locked{opacity:.6}.card.locked small{color:var(--ink-3)}
+.place .cost{color:var(--go);margin-left:6px}
 /* ---------- the garage ---------- */
 .ratings{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 @media (max-width:520px){.ratings{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -186,6 +193,27 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .rtab small{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
 .rtab tr.me td{color:var(--amber)}.rtab tr.me td:first-child{color:var(--amber)}
 .prize{font:700 22px/1 var(--f);color:var(--go);letter-spacing:.04em}
+h1 .tagw{font:600 .42em/1 var(--f);letter-spacing:.24em;color:var(--amber);vertical-align:middle;margin-left:.4em;white-space:nowrap}
+#cres{position:fixed;inset:0;z-index:8;display:grid;place-items:center;overflow-y:auto;background:rgba(7,7,11,.62);padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px}
+#cres .mwrap{width:min(560px,100%);padding-bottom:0}
+.crmid{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:4px 0 2px}
+.crmid b{font:700 28px/1 var(--f);letter-spacing:.14em;text-transform:uppercase}
+.crmid span{font:700 18px/1.1 var(--f);letter-spacing:.06em;color:var(--ink);font-variant-numeric:tabular-nums}
+.crmid small{font:600 11px/1.2 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.crmeds{display:flex;flex-wrap:wrap;gap:6px 16px;font:600 11.5px/1.2 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-variant-numeric:tabular-nums}
+#obj{position:fixed;left:50%;top:max(10px,env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:4;width:min(440px,calc(100% - 24px));display:flex;flex-direction:column;gap:6px;pointer-events:none}
+#obj>div{pointer-events:auto;border:1px solid var(--edge-2);border-radius:10px;background:rgba(10,10,16,.86);padding:8px 10px;font-size:12px;color:var(--ink-2);line-height:1.35}
+#obj b{display:block;font:700 11.5px/1.2 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+#obj .ask{display:flex;align-items:center;gap:10px}#obj .ask>div{flex:1;min-width:0}
+#obj .ask span{font:600 10.5px/1.3 var(--f);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+#obj .ask button{flex:none;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--go);background:var(--go);color:#0b0b10;font:700 12px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+#obj .job{border-left:3px solid var(--c,var(--amber))}#obj .job b{color:var(--c)}
+#jdlg{position:fixed;inset:0;z-index:8;display:grid;place-items:center;overflow-y:auto;background:rgba(7,7,11,.62);padding:max(12px,env(safe-area-inset-top,0px)) 12px 12px}
+#jdlg .mwrap{width:min(560px,100%);padding-bottom:0}
+.jdlines p{margin:0 0 8px;font-size:14.5px;line-height:1.5;color:var(--ink)}
+.jdsteps{margin:0;padding-left:20px;color:var(--ink-2);font-size:12.5px;line-height:1.5}
+.jdpay{margin:0;font:700 13px/1.3 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--go)}
+.race.person{cursor:default;border-left:3px solid var(--c)}.race.person b{color:var(--c)}
 /* ---------- the Sim card ---------- */
 .simcard{border:1px solid rgba(79,227,255,.28);border-radius:12px;padding:12px 14px;background:linear-gradient(180deg,rgba(79,227,255,.06),transparent)}
 .simcard h2{color:var(--cyan)}
@@ -348,6 +376,13 @@ body.bayfull>.bar{display:none}
 #dl .srow input[type=range]{width:100%;accent-color:var(--amber);height:24px}
 #dl .srow.tog{grid-template-columns:1fr auto;align-items:center}
 #dl .srow .why{font-size:11px;color:var(--ink-3);margin:-2px 0 0}
+#dl .dlbuy{position:sticky;top:0;z-index:3;margin:0 0 6px;padding:8px 10px}
+.buybar .btn:disabled{opacity:.45;cursor:default;filter:saturate(.3)}#dl .dlbuy .btn{height:32px}
+#dl .lim{position:relative;height:4px;margin:-1px 0 15px;border-radius:2px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.16) 0 3px,rgba(255,255,255,.04) 3px 7px)}
+#dl .lim i{position:absolute;top:0;bottom:0;background:var(--amber);border-radius:2px;opacity:.8}
+#dl .lim b{position:absolute;top:-2px;bottom:-2px;border-left:2px solid var(--bad)}
+#dl .lim span{position:absolute;left:0;right:0;top:7px;font-size:10.5px;line-height:1.2;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dl .srow.locked .head output{color:var(--bad)}#dl .srow .seg button.price{color:var(--ink-3)}
 #dl .switch{position:relative;width:40px;height:24px;border-radius:999px;border:1px solid var(--line-2);background:var(--raised);cursor:pointer;padding:0}
 #dl .switch::after{content:"";position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;background:var(--ink-3);transition:transform .12s,background .12s}
 #dl .switch[aria-checked="true"]{background:rgba(93,255,122,.18);border-color:rgba(93,255,122,.5)}
@@ -443,12 +478,13 @@ body.bayfull>.bar{display:none}
 </div>
 <div id="menu">
   <div class="mwrap">
-    <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free play</span><h1>City &amp; Country</h1></div>
-      <div class="wallet"><small>Free play money</small><b id="mMoney">$0</b></div></div>
+    <div class="mhead"><div><span class="eyebrow" id="mEyebrow">Free play</span><h1>Redline County <small class="tagw">Wide Open</small></h1></div>
+      <div class="wallet"><small id="mMoneyLbl">Free play money</small><b id="mMoney">$0</b></div></div>
     <nav class="tabs" role="tablist" id="mTabs">
-      <button type="button" role="tab" data-t="drive">Drive</button><button type="button" role="tab" data-t="races" hidden>Races</button><button type="button" role="tab" data-t="garage">Garage</button>
+      <button type="button" role="tab" data-t="drive">Drive</button><button type="button" role="tab" data-t="chals">Challenges</button><button type="button" role="tab" data-t="races" hidden>Races</button><button type="button" role="tab" data-t="garage">Garage</button>
       <button type="button" role="tab" data-t="cool">Cool stuff</button><button type="button" role="tab" data-t="runs" hidden>Clock runs</button><button type="button" role="tab" data-t="settings">Settings</button><button type="button" role="tab" data-t="dev" id="tabDev" hidden>Dev</button></nav>
     <div class="tab" data-tab="drive">
+      <section><h2>Game</h2><div class="cars" id="mModes"></div><p class="hint" id="mModeHint"></p><button class="btn sm" id="mWipe" type="button" hidden style="margin-top:8px">Start the career over</button></section>
       <section><h2>Car</h2><div class="cars" id="mCars"></div><p class="hint" id="mCarHint"></p></section>
       <section><h2>Build</h2><div class="places" id="mPresets"></div></section>
       <section><h2>Driving</h2><div class="seg" id="mLevel" role="group" aria-label="Driving level"></div><p class="hint" id="mLevelHint"></p></section>
@@ -461,6 +497,11 @@ body.bayfull>.bar{display:none}
       <section class="row2"><div><h2>Time of day</h2><div class="seg" id="mTod" role="group" aria-label="Time of day"></div></div>
         <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div></section>
       <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
+    </div>
+    <div class="tab" data-tab="chals" hidden>
+      <section><h2>Medals</h2><p class="hint" style="margin:0" id="chCount"></p></section>
+      <section><h2>The county's people</h2><p class="hint" style="margin:0 0 6px" id="jbCount"></p><p class="hint" style="margin:0 0 10px">A column of light in someone's colour means they have work for you: stop beside them and listen. One job at a time. Three of them open a car at the dealer.</p><div class="runs" id="jbList"></div></section>
+      <section><h2>Challenges</h2><p class="hint" style="margin:0 0 10px" id="chNote">A column of light marks where each one starts. Stop in it and press Enter (or Start), or pick one here to go straight to its line. Gold, silver and bronze pay the first time; a better medal later pays the difference, and a repeat pays a tenth.</p><div class="runs" id="chList"></div></section>
     </div>
     <div class="tab" data-tab="races" hidden>
       <section><h2>How hard</h2><div class="seg" id="raDiff" role="group" aria-label="How hard"></div><p class="hint" id="raDiffHint"></p></section>
@@ -532,7 +573,8 @@ body.bayfull>.bar{display:none}
         <h3>Sim physics: strengths</h3><div class="devrows" id="mDevSimS"></div>
         <div class="devacts"><button class="btn sm" id="mDevSimReset" type="button">Reset Sim physics</button></div></div></section>
     </div>
-    <div class="acts"><button class="btn go" id="mGo" type="button">Start driving</button><button class="btn sm" id="mLeave" type="button" hidden>Leave the race</button></div>
+    <div class="acts"><div class="buybar" id="mBuy" hidden><span id="mBuyTxt"></span><button class="btn go sm" id="mBuyYes" type="button">Buy it</button><button class="btn sm" id="mBuyNo" type="button">Not now</button></div>
+      <button class="btn go" id="mGo" type="button">Start driving</button><button class="btn sm" id="mLeave" type="button" hidden>Leave the race</button></div>
   </div>
 </div>
 <div id="rres" hidden>
@@ -544,6 +586,25 @@ body.bayfull>.bar{display:none}
     <div class="acts"><button class="btn go" id="rrAgain" type="button">Race again</button><button class="btn sm" id="rrDone" type="button">Back to free roam</button></div>
   </div>
 </div>
+<div id="cres" hidden>
+  <div class="mwrap">
+    <div class="mhead"><div><span class="eyebrow" id="crEyebrow">Challenge</span><h1 id="crTitle">Challenge</h1></div>
+      <div class="wallet"><small>Paid</small><b class="prize" id="crPrize"></b></div></div>
+    <div class="crmid"><b id="crMedal">Gold</b><span id="crVal"></span><small id="crBest"></small></div>
+    <div class="crmeds" id="crMeds"></div>
+    <div class="acts"><button class="btn go" id="crAgain" type="button">Try again</button><button class="btn sm" id="crOn" type="button">Drive on</button><button class="btn sm" id="crList" type="button">All challenges</button></div>
+  </div>
+</div>
+<div id="jdlg" hidden>
+  <div class="mwrap">
+    <div class="mhead"><div><span class="eyebrow" id="jdEyebrow">Job</span><h1 id="jdTitle">Job</h1></div></div>
+    <div class="jdlines" id="jdLines"></div>
+    <ol class="jdsteps" id="jdSteps"></ol>
+    <p class="jdpay" id="jdPay"></p><p class="hint" id="jdTip" style="margin:0"></p>
+    <div class="acts"><button class="btn go" id="jdYes" type="button">Take the job</button><button class="btn sm" id="jdNo" type="button">Not now</button></div>
+  </div>
+</div>
+<div id="obj" hidden></div>
 <div id="bay" hidden>
   <div class="btop"><button class="btn sm" id="shBack" type="button">◀ Garage</button><div class="seg" id="shTab" role="group" aria-label="Panel"></div>
     <button class="bpow" id="shEng" type="button" aria-pressed="false"><i></i><span id="shEngLbl">Start engine</span></button></div>

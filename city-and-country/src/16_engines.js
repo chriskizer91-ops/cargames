@@ -98,7 +98,8 @@ const SPECS={};
 const TUNE=(()=>{try{const T=JSON.parse(store.get('cc-tune','{}'))||{};
   for(const k in T){const o=T[k];if(!o||typeof o!=='object'){delete T[k];continue;}for(const q in o)if(typeof o[q]==='number'&&!isFinite(o[q])||o[q]===null)delete o[q];}return T;}catch(e){return {};}})();
 const tuneKey=b=>b&&b.rig&&b.car?b.car+'|'+['engine','power','intake','exhaust','cam','tune','nos','trans','axle'].map(k=>b.rig[k]).join('|'):'';
-const saveTune=()=>store.set('cc-tune',JSON.stringify(TUNE));
+/* (the career keeps its own tune, in its own save: 60_career) */
+const saveTune=()=>{if(CAREER.on&&CAREER.d){CAREER.d.tune=JSON.parse(JSON.stringify(TUNE));careerSave();}else store.set('cc-tune',JSON.stringify(TUNE));};
 const specOf=i=>{const b=BUILDS[i];return SPECS[b.id]||(SPECS[b.id]=engineSpec(b));};
 /* the Plus tune: the same engine with k times the torque at every rev (so k times the power), and the final drive
    g times taller (1: as built), everything else as built. engTq scales with e.tq, so the gearbox, the limiter, the
