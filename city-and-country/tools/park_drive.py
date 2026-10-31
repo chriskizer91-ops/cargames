@@ -2,7 +2,7 @@
 """Drive the off-road park's circuits headless (no drawing), a simple pursuit of each track's centreline at
    what its bends allow, and a run down the drag strip. Checks: no NaNs, the ground ready, no steps in the
    ground under the car, the lap clock and the drag slip working, the jumps flown.
-   python3 tools/park_drive.py [tracks: oval,short,mud,strip] [laps] [car]"""
+   python3 tools/park_drive.py [tracks: oval,short,mud,loop,strip] [laps] [car] [speed cap m/s]"""
 import sys, os, json
 from playwright.sync_api import sync_playwright
 HERE=os.path.dirname(os.path.abspath(__file__)); PAGE='file://'+os.path.join(HERE,'..','city-and-country.html')
@@ -29,15 +29,15 @@ if(id==='strip'){
     else if(D.st==='done')break;
     g.setTestInput(inp);g.step(1/FR);const e=[t.p[0],t.p[1]+3,t.p[2]];g.worldUpdate(e,t);g.setOrigin(e);if(!mon())break;if(f%3===0)await new Promise(r=>setTimeout(r,0));}
   return {id,staged,slip:g.PARKT.dr.slip,st:g.PARKT.dr.st,nan,worst_ground_step_m:+maxStep.toFixed(3),at:maxAt,top_mph:Math.round(top*2.237),ground_not_ready_frames:S.missT-miss0};}
-const T=K.TRACKS.find(q=>q.id===id),P=T.P,L=P.len,A={},N={};let lapsDone=0,lapT=[],steps=0,maxOff=0,firstOff=null,trace=[];
+const T=g.WG.LAPS.find(q=>q.id===id),L=T.len,A={},N={};let lapsDone=0,lapT=[],steps=0,maxOff=0,firstOff=null,trace=[];
 const want=laps;
-for(let f=0;f<FR*60*6;f++){g.GAME.state='drive';
-  const n=K.near(P,t.p[0],t.p[2],N),v=t.speed,ld=Math.max(10,Math.min(32,v*1.0));
-  K.at(P,n.s+ld,A);const tx=A.x,tz=A.z,Fm=g.GAME.car.M,F=[Fm[0],Fm[3],Fm[6]],fl=Math.hypot(F[0],F[2])||1,fx=F[0]/fl,fz=F[2]/fl;
+for(let f=0;f<FR*60*(id==="loop"?16:6);f++){g.GAME.state='drive';
+  const n=T.near(t.p[0],t.p[2],N),v=t.speed,ld=Math.max(10,Math.min(32,v*1.0));
+  T.at(n.s+ld,A);const tx=A.x,tz=A.z,Fm=g.GAME.car.M,F=[Fm[0],Fm[3],Fm[6]],fl=Math.hypot(F[0],F[2])||1,fx=F[0]/fl,fz=F[2]/fl;
   const ax=tx-t.p[0],az=tz-t.p[2],dl=Math.hypot(ax,az)||1,al=Math.atan2((ax*-fz+az*fx)/dl,(ax*fx+az*fz)/dl),c=t.c;
   const del=Math.atan(2*c.wb*Math.sin(al)/ld),lim=Math.min(c.lock,.6);let steer=Math.max(-1,Math.min(1,del/lim));
   /* how fast: what the bends ahead allow on loose ground */
-  let vs=40;for(const d of [5,15,30,50,75]){const k=Math.abs(K.kAvg(P,n.s+d,8));if(k>1e-4)vs=Math.min(vs,Math.sqrt(5.2/k)+d*.18);}
+  let vs=40;for(const d of [5,15,30,50,75]){const k=Math.abs(T.kAvg(n.s+d,8));if(k>1e-4)vs=Math.min(vs,Math.sqrt(5.2/k)+d*.18);}
   if(id==='mud')vs=Math.min(vs,15);if(id==='short')vs=Math.min(vs,24);if(vcap)vs=Math.min(vs,vcap);
   const thr=v<vs-1?1:v<vs+1?.35:0,brk=v>vs+3?Math.min(.8,(v-vs)/8):0;
   g.setTestInput({steer,thr,brk,hb:0,nos:false});g.step(1/FR);

@@ -51,6 +51,18 @@ x runs east, z south; downtown is at the origin.
     line again), the best kept for each car and level. On the strip: stop with the nose on the line in a lane,
     the tree counts down (the car is held on its brakes), then the slip: reaction time, 60 ft, 330 ft, the
     eighth mile and the speed. Flooring it before green is a red light.
+- **The Outer Loop** (`OL` in the generator): a 14 km off-road circuit all the way round the city, out in the
+  country, clockwise on the map from the line on the west side (between the park and town). North past the park,
+  up into the hills, east along them through the creek twice and over Ridge Road, round the rocks, down the east
+  side to run flat out along the edge of the salt and over Highway 40, back west across the south through a set
+  of esses, over Wash Road, through the mud beside the bog, across the little creek's loop twice, over the
+  highway again and home. It crosses the roads at grade. A centripetal Catmull-Rom spline through its waypoints,
+  2 m steps, a 32 m grid for finding the nearest step; its profile is the land's own along it, smoothed, level
+  with each road it crosses, dipped through the fords (water lying level in each), a crest about every
+  kilometre, berms on the bends. Drawn on the ground's triangles like the park's tracks (loose dirt; the shader
+  takes the mud by the bog as kind 1 to 2). Farms, trees and power poles keep off it. A gantry over the line,
+  marker posts with reflectors, chevrons on the tighter bends, red and white posts at the road crossings, depth
+  posts at the fords, a board every kilometre. Its laps are timed with a checkpoint about every kilometre.
 - **The salt flats**: past about two miles (a rounded square, its edge wandering), flat, hard (the physics'
   `strip` surface) and endless, with City Limits' ramps (kickers, table-tops, mega ramps) in most 360 m cells.
 
@@ -74,6 +86,6 @@ are the shader's own eight lamps, as in Back Forty.
 
 ## Next
 
-- The super off-road circuit round the city.
+
 - City Limits' career, challenges and jobs, with the Tune sheet as the shopping list in career.
 - Robot racers (HD's drivers and Showdown's cross-country drivers).

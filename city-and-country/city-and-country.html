@@ -1571,8 +1571,9 @@ void main(){
       em=0.;
     }
     else if(m==56){
-      /* the dirt oval's clay (blue 0) or the short course's loose dirt (blue 1): a dark polished groove where the
-         cars run, loose stuff thrown up to the outside, the line across at the start; alpha = half width */
+      /* the dirt oval's clay (blue 0) or loose dirt (blue 1: the short course, the Outer Loop; past 1, as far as 2,
+         mud: the Loop's stretch by the bog): a dark polished groove where the cars run, loose stuff thrown up to the
+         outside, the line across at the start; alpha = half width */
       float sx=vC.r,d=vC.g,ad=abs(d),hw=em,kind=vC.b,n2=vn(wp*.8),n3=vn(wp*3.7);
       vec3 c=kind<.5?mix(vec3(.25,.11,.055),vec3(.34,.16,.08),n2)*(.84+.26*n3):dirtCol(wp)*(.92+.12*n3);
       float groove=exp(-pow((d-(kind<.5?-.25*hw:0.))/(hw*.42),2.)),rut=kind>.5?max(exp(-pow((d-1.)/.45,2.)),exp(-pow((d+1.)/.45,2.)))*.6:0.;
@@ -1580,10 +1581,14 @@ void main(){
       c*=1.-.28*groove-.15*rut;c=mix(c,c*1.22+vec3(.025,.018,.01),cushion*.7);
       dirtDetail(wp,c,(1.-groove*.7)*(.45+.55*cushion));
       if(kind<.5&&d<-hw)c=mix(c*.8,vec3(.5,.49,.46),(1.-step(.12,abs(d+hw+.15))));
+      /* mud: dark and wet, two ruts with water lying in them */
+      float mk=clamp(kind-1.,0.,1.);
+      if(mk>0.){vec3 md=mix(vec3(.13,.085,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*vn(wp*7.));float r2=exp(-pow((ad-1.6)/.42,2.));
+        c=mix(c,md*(1.-.15*r2),mk*(1.-.5*smoothstep(hw-1.2,hw+.2,ad)));pud=max(pud,mk*r2*smoothstep(.45,.6,fbm(vec2(sx*.15,d*.6))));}
       c=mix(c,vec3(.72,.7,.66),(1.-step(.35,abs(sx-.35)))*step(ad,hw)*(1.-.5*smoothstep(.45,.8,vn(vec2(sx,d)*vec2(3.,1.5)))));
-      alb=c;spec=.05+.16*groove;shin=10.+36.*groove;
+      alb=c;spec=.05+.16*groove;shin=10.+36.*groove;if(mk>0.){spec=mix(spec,.3,mk);shin=mix(shin,40.,mk);}
       /* grass past the edges: the short course's verges; the oval's infield past its apron, its berm past the wall */
-      toGrass(wp,alb,spec,shin,kind>.5?smoothstep(hw,hw+.8,ad+(n2-.5)*.6):max(smoothstep(hw+2.15,hw+2.4,-d),smoothstep(hw+.85,hw+1.,d)));em=0.;
+      {float gt=kind>.5?smoothstep(hw,hw+.8,ad+(n2-.5)*.6):max(smoothstep(hw+2.15,hw+2.4,-d),smoothstep(hw+.85,hw+1.,d));toGrass(wp,alb,spec,shin,gt);pud*=1.-gt;}em=0.;
     }
     else if(m==57){
       /* the dry lake: pale clay baked into plates, the cracks between them, darker where the cars have run */
@@ -6855,7 +6860,7 @@ function townLights(){
   for(const l of TW.lamps)lampLight(l,out);for(const g of TW.signs)signLight(g,out);
   for(const s of TW.spill)out.push({p:[s.x,2.4,s.z],r:6,c:s.c.map(v=>v*.32)});
   for(const P of SPECIAL)for(const b of P.bld)building(b,null,()=>{},()=>{},out,true);
-  for(const f of parkLights())out.push(f);
+  for(const f of parkLights())out.push(f);for(const f of loopLights())out.push(f);
   return TOWN_LIGHTS=out;}
 /* what's at a point in town: how far past the nearest road's edge (negative on the road) and its sidewalk's width */
 const TQ={e:0,side:0,kind:''};
@@ -6894,7 +6899,7 @@ function farmPlan(si,sj){
     let xc,zc,cls,xr,zr;
     if(west){const z=sj*L+L*(.25+.5*R());cls=clsNSz(si,z);if(!cls||cls===6)return null;xr=si*L+offNS(si,z);zc=z;xc=xr+CL[cls].hw+CL[cls].sh+34;}
     else{const x=si*L+L*(.25+.5*R());cls=clsEWx(sj,x);if(!cls)return null;zr=sj*L+offEW(sj,x);xc=x;zc=zr+CL[cls].hw+CL[cls].sh+34;}
-    if(townD(xc,zc)<EDGE+180||saltD(xc,zc)>LAND-160||parkD(xc,zc)<90)return null;
+    if(townD(xc,zc)<EDGE+180||saltD(xc,zc)>LAND-160||parkD(xc,zc)<90||OLR&&OLR.dist(xc,zc)<85)return null;
     const cr={};creekAt(xc,zc,cr);if(cr.dc<40)return null;
     /* yard-local: u away from the road, v along it */
     const W=(u,v)=>west?[xc+u,zc+v]:[xc+v,zc+u],box=(u0,v0,u1,v1)=>{const a=W(u0,v0),b=W(u1,v1);return [Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])];};
@@ -7131,7 +7136,8 @@ SPECIAL.push((()=>{const Lt=PKW.LOT,e=CL[6].hw+CL[6].sh+.05,ox0=Lt.x1-46,oz0=Lt.
    ctx holds the roads near the point (ns: [xc, inv, cls] for each north-south line at this z; ew: [zc, inv,
    cls] for each east-west line at this x), and the pads and spurs of the plans near it. o gets: h, code,
    grass, rock, mud, salt, wet, wl (the water's level), B (the road base), rk. */
-const CR={dep:0,wet:0,dc:1e9},PQO={};
+const CR={dep:0,wet:0,dc:1e9},PQO={},OLO={};
+let OLR=null;
 function core(x,z,ctx,o){
   const td=townD(x,z);
   /* (two short cuts: inside town and out on the salt the land's own shape doesn't matter) */
@@ -7191,6 +7197,9 @@ function core(x,z,ctx,o){
     if(al>0||bog>0){const mn=vn(x/34+3,z/34-7,101);mud=Math.max(sst(.74,.84,mn)*al,bog);}
     if(pad||tk>.5||sk>.5)mud=0;}
   let h=T+(B-T)*corr-ditch*(1-flat)-mud*(Math.hypot(x-BOG.x,z-BOG.z)<BOG.r+6?1.1:.42);
+  /* the Outer Loop: its own height across its width, blended back into the land over 10 m past its edge */
+  const hN=h;let OQ=null;
+  if(OLR&&x>OLR.bb[0]&&x<OLR.bb[2]&&z>OLR.bb[1]&&z<OLR.bb[3]){OQ=OLR.q(x,z,OLO);if(OQ.d<OLR.HW+14)h=h+(OQ.h-h)*(1-sst(OLR.HW+1.5,OLR.HW+12,OQ.d));else OQ=null;}
   /* the ground: grass, dirt fields, rock on the outcrops and the creek banks; drier toward the salt */
   let grass=sst(.32,.6,fbm(x/30+5,z/30,2,111)+.18);
   {const pi=Math.floor(x/(L/2)),pj=Math.floor(z/(L/2));if(hs(pi,pj,131)<.55*(1-sst(.3,.7,hillK((pi+.5)*L/2,(pj+.5)*L/2))))grass*=.15+.3*vn(x/9,z/9,141);}
@@ -7202,14 +7211,17 @@ function core(x,z,ctx,o){
   else if(bCls>=3&&bCls<7&&best<CL[bCls].sh)code=SF.gravel;
   if(best<1.2&&mud<=.5){grass*=.4;}
   if(PQ){if(PQ.code>=0&&best>=0)code=PQ.code;if(PQ.g>0){grass=Math.max(grass,PQ.g);rock*=1-PQ.g;}}
+  if(OQ){const hw=OLR.HW,g=1-sst(hw+5,hw+12,OQ.d);if(best>=0&&OQ.d<hw+.3)code=OQ.mud>.5?SF.mud:SF.dirt;grass=Math.max(grass,g);rock*=1-g;if(OQ.d<hw+3)mud=0;}
   if(pad){code=SF[pad.surf];grass=0;rock=0;}
   if(CR.wet&&!pad&&best>1)code=SF.water;
   if(best<0&&bCls===1&&mud>.5)code=SF.mud;
   /* on the salt: hard and smooth (the physics' "strip"), concrete on the ramps */
   let salt=0;
   if(sk>.55){salt=sk;grass=0;rock=0;if(best>=0||bCls<6)code=ramp>.04?SF.concrete:SF.strip;}else if(sk>0)salt=sk;
-  o.h=h;o.code=code;o.grass=grass;o.rock=rock;o.mud=Math.max(mud,CR.wet?.8:0);o.salt=salt;o.ramp=ramp;o.wet=CR.wet&&!pad&&best>1?1:0;o.wl=h+.5*(CR.dep/1.8);o.B=B;o.rk=rk;o.k=k;
+  o.h=h;o.code=code;o.grass=grass;o.rock=rock;o.mud=Math.max(mud,CR.wet?.8:0);o.salt=salt;o.ramp=ramp;o.wet=CR.wet&&!pad&&best>1?1:0;o.wl=hN+.5*(CR.dep/1.8);o.B=B;o.rk=rk;o.k=k;
   o.tm=0;o.tin=0;
+  if(OQ&&OQ.fw>-1e8&&OQ.d<OLR.HW+3&&h<OQ.fw){o.wet=1;o.wl=OQ.fw;o.code=SF.water;}
+  if(OQ){const hw=OLR.HW;if(OQ.d<hw+1.2+16){o.tm=MAT.CLAY;o.ta=OQ.s;o.tb=OQ.off;o.tc=1+OQ.mud;o.td=hw;o.tin=OQ.d<hw+1.2?1:0;o.tlen=OLR.len;}}
   if(PQ){if(PQ.wl){o.wet=PQ.wet;o.wl=PQ.wl;}if(PQ.tm){o.tm=PQ.tm;o.ta=PQ.ta;o.tb=PQ.tb;o.tc=PQ.tc;o.td=PQ.td;o.tin=PQ.tin;o.tlen=PQ.tlen;}}
   return o;
 }
@@ -7249,6 +7261,82 @@ function pointCtx(x,z){
 }
 const PO={};
 function sample(x,z,o){return core(x,z,pointCtx(x,z),o||PO);}
+
+/* ---------- THE OUTER LOOP: the off-road circuit all the way round the city, out in the country ----------
+   The right way round (clockwise on the map) from the line on the west side: north past the off-road park, up
+   into the hills, east along them over Ridge Road and through the creek twice, down the east side to run flat
+   out along the edge of the salt and over the highway, back west across the south over Wash Road, through the
+   mud beside the bog and across the little creek's loop, over the highway again and home. It crosses the roads
+   at grade and follows the land: its profile is the ground's own, smoothed along it, brought level with each
+   road it crosses and dipped through the fords; crests on some of the fast bits, berms in the bends. Drawn like
+   the park's tracks, on the ground's own triangles, so the physics drives exactly what is drawn. */
+const OLW=[[-1150,-260],[-1220,-760],[-1130,-1200],[-1060,-1560],[-1200,-1840],[-1060,-2060],[-820,-2130],[-450,-2380],[0,-2340],[450,-2150],[640,-1840],
+  [1000,-1790],[1250,-1990],[1800,-1950],[2300,-1250],[2930,-560],[3020,100],[2830,1000],[2150,1350],[1450,1280],[1150,1050],[950,1200],[700,980],[250,760],
+  [-150,670],[-600,860],[-1000,720],[-1250,330]];
+const OL=(()=>{
+  const HW=5;
+  /* centripetal Catmull-Rom through the waypoints (no loops or cusps), then even steps of about 2 m */
+  const n=OLW.length,dense=[];
+  for(let i=0;i<n;i++){const p0=OLW[(i-1+n)%n],p1=OLW[i],p2=OLW[(i+1)%n],p3=OLW[(i+2)%n],tj=(a,b,t)=>t+Math.sqrt(Math.hypot(b[0]-a[0],b[1]-a[1]));
+    const t0=0,t1=tj(p0,p1,t0),t2=tj(p1,p2,t1),t3=tj(p2,p3,t2);
+    for(let k=0;k<80;k++){const t=t1+(t2-t1)*k/80,Lp=(a,b,ta,tb)=>[((tb-t)*a[0]+(t-ta)*b[0])/(tb-ta),((tb-t)*a[1]+(t-ta)*b[1])/(tb-ta)];
+      const A1=Lp(p0,p1,t0,t1),A2=Lp(p1,p2,t1,t2),A3=Lp(p2,p3,t2,t3),B1=Lp(A1,A2,t0,t2),B2=Lp(A2,A3,t1,t3);dense.push(Lp(B1,B2,t1,t2));}}
+  const cum=[0];for(let i=1;i<=dense.length;i++){const a=dense[i-1],b=dense[i%dense.length];cum.push(cum[i-1]+Math.hypot(b[0]-a[0],b[1]-a[1]));}
+  const tot=cum[dense.length],N=Math.round(tot/2),ds=tot/N,X=new Float64Array(N),Z=new Float64Array(N);
+  for(let i=0,j=0;i<N;i++){const s=i*ds;while(cum[j+1]<s)j++;const u=(s-cum[j])/(cum[j+1]-cum[j]),a=dense[j],b=dense[(j+1)%dense.length];X[i]=a[0]+(b[0]-a[0])*u;Z[i]=a[1]+(b[1]-a[1])*u;}
+  const len=N*ds,w=i=>((i%N)+N)%N;
+  /* the way it runs at each step, and how hard it turns (negative left), eased over 10 m either side */
+  const DX=new Float64Array(N),DZ=new Float64Array(N),K0=new Float64Array(N),K=new Float64Array(N);
+  for(let i=0;i<N;i++){const a=w(i-1),b=w(i+1),dx=X[b]-X[a],dz=Z[b]-Z[a],l=Math.hypot(dx,dz)||1;DX[i]=dx/l;DZ[i]=dz/l;}
+  for(let i=0;i<N;i++){const a=w(i-2),b=w(i+2);K0[i]=(DX[a]*DZ[b]-DZ[a]*DX[b])/(4*ds);}
+  for(let i=0;i<N;i++){let t=0;for(let j=-5;j<=5;j++)t+=K0[w(i+j)];K[i]=t/11;}
+  /* a grid of 32 m cells, each listing the steps whose piece passes within reach of it */
+  const GC=32,REACH=HW+44,bb=[1e9,1e9,-1e9,-1e9];for(let i=0;i<N;i++){bb[0]=Math.min(bb[0],X[i]);bb[1]=Math.min(bb[1],Z[i]);bb[2]=Math.max(bb[2],X[i]);bb[3]=Math.max(bb[3],Z[i]);}
+  bb[0]-=REACH;bb[1]-=REACH;bb[2]+=REACH;bb[3]+=REACH;const gw=Math.ceil((bb[2]-bb[0])/GC),gh=Math.ceil((bb[3]-bb[1])/GC),cells=new Array(gw*gh);
+  for(let i=0;i<N;i++){const j=w(i+1),x0=Math.min(X[i],X[j])-REACH,x1=Math.max(X[i],X[j])+REACH,z0=Math.min(Z[i],Z[j])-REACH,z1=Math.max(Z[i],Z[j])+REACH;
+    for(let cz=Math.max(0,Math.floor((z0-bb[1])/GC));cz<=Math.min(gh-1,Math.floor((z1-bb[1])/GC));cz++)for(let cx=Math.max(0,Math.floor((x0-bb[0])/GC));cx<=Math.min(gw-1,Math.floor((x1-bb[0])/GC));cx++){const c=cz*gw+cx;(cells[c]||(cells[c]=[])).push(i);}}
+  /* where (x, z) is on it: s along, off across (positive right), d away; i and t the step and how far along it */
+  function near(x,z,o){o.d=1e9;if(x<bb[0]||x>bb[2]||z<bb[1]||z>bb[3])return o;const L=cells[Math.floor((z-bb[1])/GC)*gw+Math.floor((x-bb[0])/GC)];if(!L)return o;let best=1e18;
+    for(const i of L){const j=w(i+1),ex=X[j]-X[i],ez=Z[j]-Z[i],l2=ex*ex+ez*ez;let t=((x-X[i])*ex+(z-Z[i])*ez)/l2;t=t<0?0:t>1?1:t;const px=X[i]+ex*t,pz=Z[i]+ez*t,d2=(x-px)*(x-px)+(z-pz)*(z-pz);
+      if(d2<best){best=d2;o.i=i;o.t=t;o.s=(i+t)*ds;const l=Math.sqrt(l2);o.dx=ex/l;o.dz=ez/l;o.off=(x-px)*-o.dz+(z-pz)*o.dx;}}
+    o.d=best<1e17?Math.sqrt(best):1e9;return o;}
+  const NQ={},dist=(x,z)=>near(x,z,NQ).d;
+  function at(s,o){s=((s%len)+len)%len;const f=s/ds,i=Math.floor(f)%N,j=w(i+1),t=f-Math.floor(f);o.x=X[i]+(X[j]-X[i])*t;o.z=Z[i]+(Z[j]-Z[i])*t;o.dx=DX[i];o.dz=DZ[i];o.k=K[i];o.i=i;return o;}
+  /* its profile: the land along it, without the creeks, smoothed over about 8 m; level with each road it crosses;
+     down through the fords; crests on some fast straight bits; the mud by the bog a little sunk */
+  const H0=new Float64Array(N),DEP=new Float64Array(N),BR=new Float64Array(N),WR=new Float64Array(N),P=new Float64Array(N),MU=new Float64Array(N),o={};
+  /* (the land every third step, the steps between in proportion) */
+  for(let i=0;i<N;i+=3){const x=X[i],z=Z[i],ctx={plans:[],pads:[],spurs:[],ns:[],ew:[]};nsInfo(nsLines(x-1,x+1),z,ctx.ns);ewInfo(nsLines(z-1,z+1),x,ctx.ew);
+    core(x,z,ctx,o);H0[i]=o.h+CR.dep;DEP[i]=CR.dep;BR[i]=o.B;const r=roadAt(x,z);WR[i]=r?1-sst(2,18,Math.abs(r.d)-r.hw):0;}
+  for(let i=0;i<N;i++){const r=i%3;if(!r)continue;const a=i-r,b=a+3<N?a+3:0;for(const A of [H0,DEP,BR,WR])A[i]=A[a]+(A[b]-A[a])*r/3;}
+  const smooth=(A,sg,rad)=>{const out=new Float64Array(N),wt=[];let tw=0;for(let j=-rad;j<=rad;j++){const v=Math.exp(-j*j/(2*sg*sg));wt.push(v);tw+=v;}
+    for(let i=0;i<N;i++){let t=0;for(let j=-rad;j<=rad;j++)t+=A[w(i+j)]*wt[j+rad];out[i]=t/tw;}return out;};
+  const HS=smooth(H0,4,12),DS2=smooth(DEP,2.5,8),WRs=smooth(WR,2,6);
+  /* the mud: 220 m round the nearest it comes to the bog */
+  let iBog=0,dBog=1e9;for(let i=0;i<N;i++){const d=Math.hypot(X[i]-BOG.x,Z[i]-BOG.z);if(d<dBog){dBog=d;iBog=i;}}
+  for(let i=0;i<N;i++){let di=Math.abs(i-iBog);di=Math.min(di,N-di);MU[i]=1-sst(80,110,di*ds);}
+  /* crests: on straight, fast stretches clear of the roads, the fords and the mud, about one a kilometre */
+  const crests=[];
+  for(let i=0;i<N;i+=5){const s=i*ds;if(s<200||s>len-200||crests.length&&s-crests[crests.length-1]<850)continue;let ok=true;
+    for(let j=-25;j<=25&&ok;j++){const q=w(i+j);if(Math.abs(K[q])>1/450||WR[q]>0||DEP[q]>.05||MU[q]>0)ok=false;}if(ok)crests.push(s);}
+  for(let i=0;i<N;i++){const s=i*ds,wr=WRs[i];let y=HS[i]*(1-wr)+BR[i]*wr-DS2[i]*.9*(1-wr);
+    for(const c of crests){let d=Math.abs(s-c);d=Math.min(d,len-d);if(d<40)y+=1.15*Math.exp(-d*d/(2*8*8));}
+    y+=(vn1(s/13,77)-.5)*.45*(1-wr)*(1-sst(.05,.3,DS2[i]))-.3*MU[i];P[i]=y;}
+  /* the fords: water lying level across each, a hand's depth over the bottom of the dip */
+  const FW=new Float64Array(N).fill(-1e9);
+  for(let i=0;i<N;i++){if(DS2[i]<.25)continue;let lo=1e9;for(let j=-14;j<=14;j++){const q=w(i+j);if(DS2[q]>.25)lo=Math.min(lo,P[q]);}FW[i]=lo+.3;}
+  /* a point's height on it: the profile, banked on the bends (the outside up), ruts in the mud */
+  function q(x,z,o){near(x,z,o);if(o.d>HW+16)return o;const i=o.i,j=w(i+1),t=o.t,k=K[i]+(K[j]-K[i])*t,mu=MU[i]+(MU[j]-MU[i])*t,wr=WR[i]+(WR[j]-WR[i])*t,off=o.off;
+    let y=P[i]+(P[j]-P[i])*t;const out=k<0?1:-1,tb=Math.min(.12,Math.abs(k)*8)*(1-wr),o2=off*out;
+    if(tb>0&&o2>-HW)y+=o2<=HW?tb*(o2+HW):tb*2*HW;
+    if(mu>0){const ao=Math.abs(off);y-=mu*(1-sst(HW-.5,HW+1.5,ao))*(.1*Math.exp(-Math.pow((ao-1.6)/.5,2))+(vn(o.s/3.7,off/2.1,883)-.5)*.16);}
+    o.h=y;o.mud=mu;o.wr=wr;o.fw=Math.min(FW[i],FW[j]);return o;}
+  return {HW,N,ds,len,X,Z,K,P,MU,WR,DEP,FW,crests,bb,near,dist,at,q,kAvg:(s,wd)=>{const i0=Math.round(s/ds),m=Math.max(1,Math.round(wd/ds));let t=0;for(let j=-m;j<=m;j++)t+=K[w(i0+j)];return t/(2*m+1);}};
+})();
+OLR=OL;
+/* every circuit with a lap clock (60_park): the park's three and the Outer Loop */
+const LAPS=[...PKW.TRACKS.map(T=>({id:T.id,name:T.name,hw:T.hw,len:T.P.len,bb:T.P.bb,seg:3,offT:6,near:(x,z,o)=>PKW.near(T.P,x,z,o),at:(s,o)=>PKW.at(T.P,s,o),kAvg:(s,w)=>PKW.kAvg(T.P,s,w)})),
+  {id:'loop',name:'The Outer Loop',hw:OL.HW,len:OL.len,bb:OL.bb,seg:14,offT:12,near:OL.near,at:OL.at,kAvg:OL.kAvg}];
 
 /* ---------- meshes: positions are relative to the chunk's corner ---------- */
 class MB{
@@ -7413,6 +7501,8 @@ function genStatic(cx,cz){
   if(x1>-EDGE-40&&x0<EDGE+40&&z1>-EDGE-40&&z0<EDGE+40)townStatic(x0,z0,x1,z1,inC,RB,PB,trees,colBox,colCirc,lights,R);
   /* --- the off-road park --- */
   if(x1>PARK.x0-80&&x0<PARK.x1+80&&z1>PARK.z0-80&&z0<PARK.z1+80||x1>PKW.ROADX-30&&x0<PKW.ROADX+30&&z1>-60&&z0<-20)parkStatic(x0,z0,x1,z1,inC,PB,colBox,colCirc);
+  /* --- the Outer Loop --- */
+  if(x1>OL.bb[0]&&x0<OL.bb[2]&&z1>OL.bb[1]&&z0<OL.bb[3])loopStatic(x0,z0,x1,z1,inC,PB,colBox,colCirc);
   /* --- buildings, from the plans: meshed by the chunk their middle is in; colliders wherever they reach --- */
   for(const P of ctx.plans){
     for(const b of P.bld){
@@ -7428,7 +7518,7 @@ function genStatic(cx,cz){
     const posAt=k=>{const s=k*sp;
       if(ns){const cl=clsNSz(i,s);if(cl<2||cl===6||(cl===2&&hs(i,segNS(i,s),621)>.4))return null;const c=CL[cl],d=(c.hw+c.sh+c.dw+2)*side,x=i*L+offNS(i,s)+d;return [x,s,cl];}
       const cl=clsEWx(j,s);if(cl<2||cl===6||(cl===2&&hs(segEW(j,s),j,621)>.4))return null;const c=CL[cl],d=(c.hw+c.sh+c.dw+2)*side,z=j*L+offEW(j,s)+d;return [s,z,cl];};
-    const ok=p=>{if(!p)return false;const [x,z]=p;if(townD(x,z)<EDGE+30)return false;
+    const ok=p=>{if(!p)return false;const [x,z]=p;if(townD(x,z)<EDGE+30||OLR.dist(x,z)<OLR.HW+4)return false;
       for(let q=-1;q<=1;q++){const ii=Math.round(x/L)+q;if(ns&&ii===i)continue;const xc=ii*L+offNS(ii,z),cl=clsNSz(ii,z);if(cl&&Math.abs(x-xc)<CL[cl].hw+CL[cl].sh+CL[cl].dw+3)return false;}
       for(let q=-1;q<=1;q++){const jj=Math.round(z/L)+q;if(!ns&&jj===j)continue;const zc=jj*L+offEW(jj,x),cl=clsEWx(jj,x);if(cl&&Math.abs(z-zc)<CL[cl].hw+CL[cl].sh+CL[cl].dw+3)return false;}
       return true;};
@@ -7483,7 +7573,7 @@ function genStatic(cx,cz){
       if(!near)for(const jj of ewL){const zc=jj*L+offEW(jj,x),cl=clsEWx(jj,x);if(cl&&Math.abs(z-zc)<CL[cl].hw+CL[cl].sh+CL[cl].dw+2.5){near=true;break;}}
       if(!near)for(const q of ctx.pads)if(x>q.x0-4&&x<q.x1+4&&z>q.z0-4&&z<q.z1+4){near=true;break;}
       if(!near)for(const s of ctx.spurs){const ax=s.ax==='x';if(ax?(Math.abs(z-s.z0)<5&&x>Math.min(s.x0,s.x1)-3&&x<Math.max(s.x0,s.x1)+3):(Math.abs(x-s.x0)<5&&z>Math.min(s.z0,s.z1)-3&&z<Math.max(s.z0,s.z1)+3)){near=true;break;}}
-      if(near||cr.dc<4.5)continue;
+      if(near||cr.dc<4.5||OLR.dist(x,z)<OLR.HW+5)continue;
       if(Math.hypot(x-BOG.x,z-BOG.z)<BOG.r+8)continue;
       const pine=(k>.45&&r4<.65)||r4<.12;addTree(x,z,pine?3+(r4*10%2|0):(r4*30%3|0),.85+R()*.5);}}
   /* how far its meshes reach (buildings stick out of their chunk, and up): for the culling */
@@ -7694,6 +7784,53 @@ function parkLights(){const out=[];
     else if(kind==='lot'){const d=[ax/l*.5,-1,az/l*.5],dl=Math.hypot(...d);out.push({p:[x+ax/l*.6,ty-.4,z+az/l*.6],r:48,c:[1.5,1.5,1.55],d:d.map(v=>v/dl),cs:Math.cos(1.1)});}
     else out.push({p:[x,y+h+.6,z+1],r:16,c:[3,2.6,2]});}
   return out;}
+/* ---------- the Outer Loop's furniture: the gantry over the line, marker posts with reflectors, chevrons round
+   the bends, striped posts where it crosses a road, depth posts at the fords, a board every kilometre ---------- */
+const OLA={};
+const olSide=(s,off)=>{OL.at(s,OLA);return [OLA.x-OLA.dz*off,OLA.z+OLA.dx*off,OLA.dx,OLA.dz];};
+function loopLights(){const out=[],[x,z]=olSide(0,0),y=sample(x,z,CRo).h;
+  for(const sd of [-1,1]){const [px,pz,dx,dz]=olSide(-3,sd*(OL.HW+1.8));out.push({p:[px-dx*.4,y+7.2,pz-dz*.4],r:26,c:[3.2,3,2.6],d:[-dx*.3,-1,-dz*.3].map(v=>v/Math.hypot(.3,1)),cs:Math.cos(1.1)});}
+  return out;}
+function loopStatic(x0,z0,x1,z1,inC,PB,colBox,colCirc){
+  const O=OL,hw=O.HW,hAt=(x,z)=>sample(x,z,CRo).h,nearC=(x,z,m)=>x>x0-m&&x<x1+m&&z>z0-m&&z<z1+m;
+  const bx=(cx,cy,cz,hx,hy,hz,col,m,em)=>PB.box(cx-hx,cy-hy,cz-hz,cx+hx,cy+hy,cz+hz,col,m||MAT.COL,em);
+  const GREY=lc(70,72,76),WHITE=lc(232,232,228),RED=lc(200,40,30);
+  /* (the steps whose marks could fall in this chunk) */
+  const i0=[];for(let i=0;i<O.N;i+=5){const x=O.X[i],z=O.Z[i];if(nearC(x,z,30))i0.push(i);}if(!i0.length)return;
+  const sIn=s=>{const i=Math.round(s/O.ds)%O.N;return nearC(O.X[i],O.Z[i],30);};
+  /* the line: a gantry over it, its name toward the cars coming up to it, red and green lights */
+  if(sIn(0)){const [cx,cz,dx,dz]=olSide(0,0);
+    for(const sd of [-1,1]){const [x,z]=olSide(0,sd*(hw+1.8)),y=hAt(x,z);if(inC(cx,cz)){PB.bar([x,y-.3,z],[x,y+7.4,z],.24,GREY,MAT.METAL);bx(x-dx*.4,y+7.5,z-dz*.4,.3,.12,.3,[1,.95,.8],MAT.EMIT,1.3);}colCirc(x,z,.4,y+7.4);}
+    if(inC(cx,cz)){const y=hAt(cx,cz),w2=hw+2.1,rt=[-dz,dx],n=[-dx,-dz];
+      PB.quad([cx-rt[0]*w2,y+6.2,cz-rt[1]*w2],[cx+rt[0]*w2,y+6.2,cz+rt[1]*w2],[cx+rt[0]*w2,y+7.2,cz+rt[1]*w2],[cx-rt[0]*w2,y+7.2,cz-rt[1]*w2],lc(30,30,34),MAT.COL);
+      PB.quad([cx-rt[0]*w2+dx*.3,y+6.2,cz-rt[1]*w2+dz*.3],[cx-rt[0]*w2+dx*.3,y+7.2,cz-rt[1]*w2+dz*.3],[cx+rt[0]*w2+dx*.3,y+7.2,cz+rt[1]*w2+dz*.3],[cx+rt[0]*w2+dx*.3,y+6.2,cz+rt[1]*w2+dz*.3],lc(30,30,34),MAT.COL);
+      const px=.12,len=10*6*px-px;neonWord(PB,'OUTER LOOP',[cx-rt[0]*len/2+n[0]*.05,y+6.35,cz-rt[1]*len/2+n[1]*.05],[rt[0],0,rt[1]],[n[0],0,n[1]],px,[.35,1,.5],0,0,null);
+      for(let k=-2;k<=2;k++)bx(cx+rt[0]*(k*.5)+n[0]*.1,y+5.95,cz+rt[1]*(k*.5)+n[1]*.1,.12,.12,.12,k<0?[1,.08,.04]:k>0?[.1,1,.25]:[1,.6,.1],MAT.EMIT,.9);}}
+  /* marker posts every 40 m, one side then the other, an orange reflector on each */
+  for(let s=20;s<O.len;s+=40){if(!sIn(s))continue;const sd=(Math.round(s/40)%2)?1:-1,[x,z]=olSide(s,sd*(hw+2)),i=Math.round(s/O.ds)%O.N;
+    if(O.WR[i]>.2||O.FW[i]>-1e8||!inC(x,z))continue;const y=hAt(x,z);bx(x,y+.55,z,.06,.65,.06,WHITE);bx(x,y+1.05,z,.065,.07,.065,[1,.45,.08],MAT.EMIT,.35);}
+  /* chevrons on the outside of the tighter bends, facing the cars coming */
+  for(let s=0;s<O.len;s+=14){if(!sIn(s))continue;const k=O.kAvg(s,10);if(Math.abs(k)<1/130)continue;const out=-Math.sign(k),[x,z,dx,dz]=olSide(s,out*(hw+3.2));
+    if(!nearC(x,z,1))continue;const y=hAt(x,z);colCirc(x,z,.3,y+1.6);if(!inC(x,z))continue;
+    PB.bar([x,y-.2,z],[x,y+1.1,z],.05,GREY,MAT.METAL);const n=[-dx,-dz],rt=[-dz,dx];
+    PB.quad([x-rt[0]*.45+n[0]*.03,y+1.05,z-rt[1]*.45+n[1]*.03],[x+rt[0]*.45+n[0]*.03,y+1.05,z+rt[1]*.45+n[1]*.03],[x+rt[0]*.45+n[0]*.03,y+1.7,z+rt[1]*.45+n[1]*.03],[x-rt[0]*.45+n[0]*.03,y+1.7,z-rt[1]*.45+n[1]*.03],lc(20,20,22),MAT.COL);
+    const sg=-out;for(const [a,b] of [[-.22,0],[.22,0]]){const u=a*sg;PB.quad([x+rt[0]*(u-.07)+n[0]*.05,y+1.12,z+rt[1]*(u-.07)+n[1]*.05],[x+rt[0]*(u+.07)+n[0]*.05,y+1.12,z+rt[1]*(u+.07)+n[1]*.05],
+      [x+rt[0]*(u+.07+.18*sg)+n[0]*.05,y+1.38,z+rt[1]*(u+.07+.18*sg)+n[1]*.05],[x+rt[0]*(u-.07+.18*sg)+n[0]*.05,y+1.38,z+rt[1]*(u-.07+.18*sg)+n[1]*.05],[1,.8,.1],MAT.EMIT,.35);
+      PB.quad([x+rt[0]*(u-.07+.18*sg)+n[0]*.05,y+1.38,z+rt[1]*(u-.07+.18*sg)+n[1]*.05],[x+rt[0]*(u+.07+.18*sg)+n[0]*.05,y+1.38,z+rt[1]*(u+.07+.18*sg)+n[1]*.05],
+      [x+rt[0]*(u+.07)+n[0]*.05,y+1.64,z+rt[1]*(u+.07)+n[1]*.05],[x+rt[0]*(u-.07)+n[0]*.05,y+1.64,z+rt[1]*(u-.07)+n[1]*.05],[1,.8,.1],MAT.EMIT,.35);void b;}}
+  /* the road crossings: red and white posts either side of the road, both edges of the loop */
+  {let prev=0;for(let i=0;i<O.N;i++){const w=O.WR[i]>.95?1:0;if(w!==prev){const s=i*O.ds+(w?-6:6);
+      if(sIn(s))for(const sd of [-1,1]){const [x,z]=olSide(s,sd*(hw+1.2));if(!nearC(x,z,1))continue;const y=hAt(x,z);colCirc(x,z,.15,y+1.3);
+        if(inC(x,z))for(let b=0;b<4;b++)bx(x,y+.15+b*.3,z,.08,.15,.08,b%2?WHITE:RED);}}
+    prev=w;}}
+  /* the fords: a depth post either side as it goes in */
+  {let prev=false;for(let i=0;i<O.N;i++){const f=O.FW[i]>-1e8;if(f&&!prev){const s=i*O.ds-4;
+      if(sIn(s))for(const sd of [-1,1]){const [x,z]=olSide(s,sd*(hw+1.4));if(!inC(x,z))continue;const y=hAt(x,z);for(let b=0;b<6;b++)bx(x,y+.12+b*.24,z,.05,.12,.05,b%2?lc(20,20,20):WHITE);}}
+    prev=f;}}
+  /* a board every kilometre on the right */
+  for(let km=1;km*1000<O.len;km++){const s=km*1000;if(!sIn(s))continue;const [x,z,dx,dz]=olSide(s,hw+3.5);if(!inC(x,z))continue;const y=hAt(x,z),n=[-dx,-dz],rt=[-dz,dx],w='KM '+km,px=.09,len=w.length*6*px-px;
+    PB.bar([x,y-.2,z],[x,y+1.9,z],.05,GREY,MAT.METAL);neonWord(PB,w,[x-rt[0]*len/2+n[0]*.06,y+1.95,z-rt[1]*len/2+n[1]*.06],[rt[0],0,rt[1]],[n[0],0,n[1]],px,[1,.9,.6],0,0,null);}
+}
 function parkStatic(x0,z0,x1,z1,inC,PB,colBox,colCirc){
   const hAt=(x,z)=>sample(x,z,CRo).h,nearC=(x,z,m)=>x>x0-m&&x<x1+m&&z>z0-m&&z<z1+m;
   const bx=(cx,cy,cz,hx,hy,hz,col,m,em)=>PB.box(cx-hx,cy-hy,cz-hz,cx+hx,cy+hy,cz+hz,col,m||MAT.COL,em);
@@ -7848,7 +7985,7 @@ function roadLines(x0,z0,x1,z1,step){
 }
 /* the places with names on the big map */
 const NAMED=[{name:'City Limits',x:0,z:0},{name:"Deke's Gas",x:470,z:-40,special:1},{name:'The Starlite',x:-470,z:40},{name:'Off-road park',x:(PARK.x0+PARK.x1)/2,z:(PARK.z0+PARK.z1)/2},
-  {name:'Speedway 25',x:-2050,z:-820,park:1},{name:'Short course',x:-2600,z:-1000,park:1},{name:'Mud track',x:-2360,z:-1390,park:1},{name:'Drag strip',x:-2650,z:-360,park:1},{name:'Paddock',x:-2310,z:-395,park:1},
+  {name:'Speedway 25',x:-2050,z:-820,park:1},{name:'The Outer Loop',x:OLW[0][0],z:OLW[0][1]},{name:'Short course',x:-2600,z:-1000,park:1},{name:'Mud track',x:-2360,z:-1390,park:1},{name:'Drag strip',x:-2650,z:-360,park:1},{name:'Paddock',x:-2310,z:-395,park:1},
   {name:'The bog',x:BOG.x,z:BOG.z},{name:'The salt flats',x:LAND+700,z:-180},{name:'The salt flats',x:-LAND-700,z:180},{name:'The hills',x:-200,z:-2300}];
 function townsNear(x,z,r){return NAMED.filter(t=>Math.hypot(t.x-x,t.z-z)<r).map(t=>Object.assign({i:0,j:0},t));}
 /* what a place is called */
@@ -7868,6 +8005,7 @@ function placeAt(x,z){
   if(parkD(x,z)<20)return 'Off-road park';
   const sd=saltD(x,z);if(sd>LAND+SALT_BL*.6)return Math.abs(z)<20&&Math.abs(x)<HWY_X+5?'Highway 40, on the salt':'The salt flats';
   const r=roadAt(x,z);if(r&&Math.abs(r.d)<r.hw+3)return r.name;
+  if(OL.dist(x,z)<OL.HW+8)return 'The Outer Loop';
   const cr={};creekAt(x,z,cr);if(cr.dc<12)return 'The creek';
   const k=hillK(x,z);if(Math.max(Math.abs(x),Math.abs(z))>RIM0-200)return 'Edge of the map';
   const wn=fbm(x/900+2.2,z/900-4.4,2,121);if(wn>.6-.2*k)return k>.5?'Woods in the hills':'The woods';
@@ -7876,7 +8014,7 @@ function placeAt(x,z){
 }
 const xExp=z=>1e9;
 return {L,HALF,CH,FT,ROAD_END,SURF,SF,CL,core,sample,baseAt,genGround,genStatic,genFar,roadAt,roadLines,townsNear,placeAt,hillK,offNS,offEW,clsNSz,clsEWx,creekAt,xExp,
-  EDGE,RING,LAND,SALT_Y,HWY_X,PARK,BOG,GARAGE,townD,saltD,parkD,TW,townLights,PKW,PARK_Y};
+  EDGE,RING,LAND,SALT_Y,HWY_X,PARK,BOG,GARAGE,townD,saltD,parkD,TW,townLights,PKW,PARK_Y,OL,LAPS};
 }
 /* =====================================================================================
    THE OPEN WORLD. Mini Dirt Run Solo's game in a world forty miles square that is made as you drive:
@@ -9931,7 +10069,7 @@ function computePlaces(){
     ['hwyE','Highway 40, heading east',420,4,0],['hwyW','Highway 40, heading west',-420,-4,PI],['gas',"Deke's Gas",470,-32,PI/2],['diner','The Starlite Diner',-470,22,0],
     ['ridge','Ridge Road, into the hills',rz(-420)+1,-420,PI/2],['hills','Up in the hills',rz(-2200)+1,-2200,PI/2],['wash','Wash Road, south',rz(420)-1,420,-PI/2],
     ['bog','The bog',WG.BOG.x+48,WG.BOG.z,PI],['paddock','The off-road park: the paddock',K.ROADX,K.LOT.z1-12,PI/2],['oval','Speedway 25 (the oval)',K.OV.x-14,K.OV.z+K.OV.R-2,0],
-    ['short','The short course',-2690,-840,0],['mud','The mud track',-2412,-1440,0],['strip','The drag strip',K.ST.start-3.2,K.ST.lanes[0],0],
+    ['short','The short course',-2690,-840,0],['loop','The Outer Loop (round the city)',...(()=>{const a={};WG.OL.at(WG.OL.len-24,a);return [a.x,a.z,Math.atan2(-a.dz,a.dx)];})()],['mud','The mud track',-2412,-1440,0],['strip','The drag strip',K.ST.start-3.2,K.ST.lanes[0],0],
     ['saltE','Where the highway ends (east)',hx-200,4,0],['saltW','Where the highway ends (west)',-hx+200,-4,PI],['deep','Deep out on the salt',hx+3000,400,0]];
 }
 /* the name of the place the car is in */
@@ -10613,9 +10751,10 @@ function raceVox(A){const ctx=A.ctx,o1=ctx.createOscillator(),o2=ctx.createOscil
   o1.connect(f);o2.connect(m2);m2.connect(f);f.connect(g);if(p){g.connect(p);p.connect(A.master);}else g.connect(A.master);o1.start();o2.start();return {o1,o2,f,g,p};}
 
 /* =====================================================================================
-   THE PARK'S CLOCKS. Laps on the three circuits (Speedway 25, the short course and the mud track): over the
-   line, past the checkpoints a third and two thirds of the way round, over the line again, and the time is
-   kept, the best for each car and driving level. And runs down the drag strip: roll up to the line in either
+   THE CLOCKS. Laps on the park's three circuits (Speedway 25, the short course and the mud track) and on the
+   Outer Loop round the city: over the line, past every checkpoint in turn (a third and two thirds of the way
+   round in the park, every kilometre or so on the Loop), over the line again, and the time is kept, the best for
+   each car and driving level. And runs down the drag strip: roll up to the line in either
    lane and stop with the nose on it, the tree counts down (three ambers half a second apart, then green), and
    the slip gives the reaction time, the 60 foot, the 330 foot, the eighth mile and the speed through it. The car
    is held on its brakes while the tree counts (60_game); flooring it before the green is a red light: the run is
@@ -10629,26 +10768,27 @@ const parkKey=id=>id+':'+BUILDS[APP.bi].id+':'+APP.level;
 const PK_TREE=1.5,PKN={};
 function parkReset(){PARKT.on=null;PARKT.trk=null;PARKT.s=-1;PARKT.dr.st='';PARKT.dr.still=0;}
 /* the circuit the car is on, if it's on one */
-function parkTrackAt(x,z){const K=WG.PKW;
-  for(const T of K.TRACKS){const b=T.P.bb;if(x<b[0]-30||x>b[2]+30||z<b[1]-30||z>b[3]+30)continue;if(K.near(T.P,x,z,PKN).d<T.hw+5)return T;}
+function parkTrackAt(x,z){
+  for(const T of WG.LAPS){const b=T.bb;if(x<b[0]-30||x>b[2]+30||z<b[1]-30||z>b[3]+30)continue;if(T.near(x,z,PKN).d<T.hw+5)return T;}
   return null;}
 function parkStep(dt,t){
-  if(WG.parkD(t.p[0],t.p[2])>60){if(PARKT.on||PARKT.dr.st)parkReset();return;}
-  parkLaps(dt,t);parkDrag(dt,t);}
+  parkLaps(dt,t);
+  if(WG.parkD(t.p[0],t.p[2])<60)parkDrag(dt,t);else if(PARKT.dr.st){PARKT.dr.st='';PARKT.dr.still=0;}}
 /* ---------- laps ---------- */
 function parkLaps(dt,t){
-  const K=WG.PKW,P=PARKT,T=parkTrackAt(t.p[0],t.p[2]);
-  if(!T){if(P.on&&(P.offT+=dt)>6){say('LAP ABANDONED',1.6);P.on=null;}P.s=-1;P.trk=null;return;}
+  const P=PARKT,T=parkTrackAt(t.p[0],t.p[2]);
+  if(!T){if(P.on&&(P.offT+=dt)>P.on.offT){say('LAP ABANDONED',1.6);P.on=null;}P.s=-1;P.trk=null;return;}
   if(P.trk!==T){P.trk=T;P.s=-1;if(P.on&&P.on!==T)P.on=null;}
-  P.offT=0;const s=K.near(T.P,t.p[0],t.p[2],PKN).s,L=T.P.len,p=P.s;P.s=s;if(p<0)return;
+  P.offT=0;const s=T.near(t.p[0],t.p[2],PKN).s,L=T.len,p=P.s;P.s=s;if(p<0)return;
   if(p>L-40&&s<40){
-    if(P.on===T&&P.cp>=2){const lt=GAME.time-P.t0,k=parkKey(T.id),b=P.best[k],nb=!b||lt<b;
+    if(P.on===T&&P.cp>=T.seg-1){const lt=GAME.time-P.t0,k=parkKey(T.id),b=P.best[k],nb=!b||lt<b;
       if(nb){P.best[k]=lt;parkSave();}P.last={id:T.id,name:T.name,t:lt,best:nb&&!!b};P.lastT=APP.t;
       Feats.timed('lap',`LAP ${fmtLap(lt)}${b&&lt<b?' BEST':''}`,120+Math.max(0,L/14-lt)*6,{s:lt},'lap:'+T.id,lt,`${T.name} lap ${fmtLap(lt)}`);}
     else if(P.on!==T)say(T.name.toUpperCase()+': LAP STARTED',1.8);
     P.on=T;P.t0=GAME.time;P.cp=0;}
   else if(p<40&&s>L-40){if(P.on===T){P.on=null;say('WRONG WAY',1.4,PAL.amber);}}
-  if(P.on===T){if(P.cp===0&&p<L/3&&s>=L/3)P.cp=1;else if(P.cp===1&&p<2*L/3&&s>=2*L/3)P.cp=2;}
+  /* the checkpoints, each in turn */
+  if(P.on===T&&P.cp<T.seg-1){const c=(P.cp+1)*L/T.seg;if(p<c&&s>=c)P.cp++;}
 }
 /* ---------- the drag strip ---------- */
 function parkDrag(dt,t){

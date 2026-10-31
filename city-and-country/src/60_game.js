@@ -63,7 +63,7 @@ function computePlaces(){
     ['hwyE','Highway 40, heading east',420,4,0],['hwyW','Highway 40, heading west',-420,-4,PI],['gas',"Deke's Gas",470,-32,PI/2],['diner','The Starlite Diner',-470,22,0],
     ['ridge','Ridge Road, into the hills',rz(-420)+1,-420,PI/2],['hills','Up in the hills',rz(-2200)+1,-2200,PI/2],['wash','Wash Road, south',rz(420)-1,420,-PI/2],
     ['bog','The bog',WG.BOG.x+48,WG.BOG.z,PI],['paddock','The off-road park: the paddock',K.ROADX,K.LOT.z1-12,PI/2],['oval','Speedway 25 (the oval)',K.OV.x-14,K.OV.z+K.OV.R-2,0],
-    ['short','The short course',-2690,-840,0],['mud','The mud track',-2412,-1440,0],['strip','The drag strip',K.ST.start-3.2,K.ST.lanes[0],0],
+    ['short','The short course',-2690,-840,0],['loop','The Outer Loop (round the city)',...(()=>{const a={};WG.OL.at(WG.OL.len-24,a);return [a.x,a.z,Math.atan2(-a.dz,a.dx)];})()],['mud','The mud track',-2412,-1440,0],['strip','The drag strip',K.ST.start-3.2,K.ST.lanes[0],0],
     ['saltE','Where the highway ends (east)',hx-200,4,0],['saltW','Where the highway ends (west)',-hx+200,-4,PI],['deep','Deep out on the salt',hx+3000,400,0]];
 }
 /* the name of the place the car is in */

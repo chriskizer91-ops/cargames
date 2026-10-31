@@ -493,8 +493,9 @@ void main(){
       em=0.;
     }
     else if(m==56){
-      /* the dirt oval's clay (blue 0) or the short course's loose dirt (blue 1): a dark polished groove where the
-         cars run, loose stuff thrown up to the outside, the line across at the start; alpha = half width */
+      /* the dirt oval's clay (blue 0) or loose dirt (blue 1: the short course, the Outer Loop; past 1, as far as 2,
+         mud: the Loop's stretch by the bog): a dark polished groove where the cars run, loose stuff thrown up to the
+         outside, the line across at the start; alpha = half width */
       float sx=vC.r,d=vC.g,ad=abs(d),hw=em,kind=vC.b,n2=vn(wp*.8),n3=vn(wp*3.7);
       vec3 c=kind<.5?mix(vec3(.25,.11,.055),vec3(.34,.16,.08),n2)*(.84+.26*n3):dirtCol(wp)*(.92+.12*n3);
       float groove=exp(-pow((d-(kind<.5?-.25*hw:0.))/(hw*.42),2.)),rut=kind>.5?max(exp(-pow((d-1.)/.45,2.)),exp(-pow((d+1.)/.45,2.)))*.6:0.;
@@ -502,10 +503,14 @@ void main(){
       c*=1.-.28*groove-.15*rut;c=mix(c,c*1.22+vec3(.025,.018,.01),cushion*.7);
       dirtDetail(wp,c,(1.-groove*.7)*(.45+.55*cushion));
       if(kind<.5&&d<-hw)c=mix(c*.8,vec3(.5,.49,.46),(1.-step(.12,abs(d+hw+.15))));
+      /* mud: dark and wet, two ruts with water lying in them */
+      float mk=clamp(kind-1.,0.,1.);
+      if(mk>0.){vec3 md=mix(vec3(.13,.085,.05),vec3(.075,.05,.03),smoothstep(.3,.8,n3))*(.8+.35*vn(wp*7.));float r2=exp(-pow((ad-1.6)/.42,2.));
+        c=mix(c,md*(1.-.15*r2),mk*(1.-.5*smoothstep(hw-1.2,hw+.2,ad)));pud=max(pud,mk*r2*smoothstep(.45,.6,fbm(vec2(sx*.15,d*.6))));}
       c=mix(c,vec3(.72,.7,.66),(1.-step(.35,abs(sx-.35)))*step(ad,hw)*(1.-.5*smoothstep(.45,.8,vn(vec2(sx,d)*vec2(3.,1.5)))));
-      alb=c;spec=.05+.16*groove;shin=10.+36.*groove;
+      alb=c;spec=.05+.16*groove;shin=10.+36.*groove;if(mk>0.){spec=mix(spec,.3,mk);shin=mix(shin,40.,mk);}
       /* grass past the edges: the short course's verges; the oval's infield past its apron, its berm past the wall */
-      toGrass(wp,alb,spec,shin,kind>.5?smoothstep(hw,hw+.8,ad+(n2-.5)*.6):max(smoothstep(hw+2.15,hw+2.4,-d),smoothstep(hw+.85,hw+1.,d)));em=0.;
+      {float gt=kind>.5?smoothstep(hw,hw+.8,ad+(n2-.5)*.6):max(smoothstep(hw+2.15,hw+2.4,-d),smoothstep(hw+.85,hw+1.,d));toGrass(wp,alb,spec,shin,gt);pud*=1.-gt;}em=0.;
     }
     else if(m==57){
       /* the dry lake: pale clay baked into plates, the cracks between them, darker where the cars have run */

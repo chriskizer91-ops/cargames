@@ -1,7 +1,8 @@
 /* =====================================================================================
-   THE PARK'S CLOCKS. Laps on the three circuits (Speedway 25, the short course and the mud track): over the
-   line, past the checkpoints a third and two thirds of the way round, over the line again, and the time is
-   kept, the best for each car and driving level. And runs down the drag strip: roll up to the line in either
+   THE CLOCKS. Laps on the park's three circuits (Speedway 25, the short course and the mud track) and on the
+   Outer Loop round the city: over the line, past every checkpoint in turn (a third and two thirds of the way
+   round in the park, every kilometre or so on the Loop), over the line again, and the time is kept, the best for
+   each car and driving level. And runs down the drag strip: roll up to the line in either
    lane and stop with the nose on it, the tree counts down (three ambers half a second apart, then green), and
    the slip gives the reaction time, the 60 foot, the 330 foot, the eighth mile and the speed through it. The car
    is held on its brakes while the tree counts (60_game); flooring it before the green is a red light: the run is
@@ -15,26 +16,27 @@ const parkKey=id=>id+':'+BUILDS[APP.bi].id+':'+APP.level;
 const PK_TREE=1.5,PKN={};
 function parkReset(){PARKT.on=null;PARKT.trk=null;PARKT.s=-1;PARKT.dr.st='';PARKT.dr.still=0;}
 /* the circuit the car is on, if it's on one */
-function parkTrackAt(x,z){const K=WG.PKW;
-  for(const T of K.TRACKS){const b=T.P.bb;if(x<b[0]-30||x>b[2]+30||z<b[1]-30||z>b[3]+30)continue;if(K.near(T.P,x,z,PKN).d<T.hw+5)return T;}
+function parkTrackAt(x,z){
+  for(const T of WG.LAPS){const b=T.bb;if(x<b[0]-30||x>b[2]+30||z<b[1]-30||z>b[3]+30)continue;if(T.near(x,z,PKN).d<T.hw+5)return T;}
   return null;}
 function parkStep(dt,t){
-  if(WG.parkD(t.p[0],t.p[2])>60){if(PARKT.on||PARKT.dr.st)parkReset();return;}
-  parkLaps(dt,t);parkDrag(dt,t);}
+  parkLaps(dt,t);
+  if(WG.parkD(t.p[0],t.p[2])<60)parkDrag(dt,t);else if(PARKT.dr.st){PARKT.dr.st='';PARKT.dr.still=0;}}
 /* ---------- laps ---------- */
 function parkLaps(dt,t){
-  const K=WG.PKW,P=PARKT,T=parkTrackAt(t.p[0],t.p[2]);
-  if(!T){if(P.on&&(P.offT+=dt)>6){say('LAP ABANDONED',1.6);P.on=null;}P.s=-1;P.trk=null;return;}
+  const P=PARKT,T=parkTrackAt(t.p[0],t.p[2]);
+  if(!T){if(P.on&&(P.offT+=dt)>P.on.offT){say('LAP ABANDONED',1.6);P.on=null;}P.s=-1;P.trk=null;return;}
   if(P.trk!==T){P.trk=T;P.s=-1;if(P.on&&P.on!==T)P.on=null;}
-  P.offT=0;const s=K.near(T.P,t.p[0],t.p[2],PKN).s,L=T.P.len,p=P.s;P.s=s;if(p<0)return;
+  P.offT=0;const s=T.near(t.p[0],t.p[2],PKN).s,L=T.len,p=P.s;P.s=s;if(p<0)return;
   if(p>L-40&&s<40){
-    if(P.on===T&&P.cp>=2){const lt=GAME.time-P.t0,k=parkKey(T.id),b=P.best[k],nb=!b||lt<b;
+    if(P.on===T&&P.cp>=T.seg-1){const lt=GAME.time-P.t0,k=parkKey(T.id),b=P.best[k],nb=!b||lt<b;
       if(nb){P.best[k]=lt;parkSave();}P.last={id:T.id,name:T.name,t:lt,best:nb&&!!b};P.lastT=APP.t;
       Feats.timed('lap',`LAP ${fmtLap(lt)}${b&&lt<b?' BEST':''}`,120+Math.max(0,L/14-lt)*6,{s:lt},'lap:'+T.id,lt,`${T.name} lap ${fmtLap(lt)}`);}
     else if(P.on!==T)say(T.name.toUpperCase()+': LAP STARTED',1.8);
     P.on=T;P.t0=GAME.time;P.cp=0;}
   else if(p<40&&s>L-40){if(P.on===T){P.on=null;say('WRONG WAY',1.4,PAL.amber);}}
-  if(P.on===T){if(P.cp===0&&p<L/3&&s>=L/3)P.cp=1;else if(P.cp===1&&p<2*L/3&&s>=2*L/3)P.cp=2;}
+  /* the checkpoints, each in turn */
+  if(P.on===T&&P.cp<T.seg-1){const c=(P.cp+1)*L/T.seg;if(p<c&&s>=c)P.cp++;}
 }
 /* ---------- the drag strip ---------- */
 function parkDrag(dt,t){
