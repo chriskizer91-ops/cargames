@@ -146,6 +146,9 @@ uniform float uLiv;uniform float uLights;uniform float uBrake;uniform float uDir
 uniform vec3 uGlow;
 /* positions are drawn relative to a floating origin; uOrg puts the textures back on the world (51_world) */
 uniform vec3 uOrg;
+/* the salt course (50_worldgen COURSE), against the floating origin: where it starts (x), a mile, the black line's
+   half width, where its middle is (z) */
+uniform vec4 uCourse;
 uniform vec4 uSh[8];uniform float uShA[8];uniform int uNSh;uniform float uSpin;
 uniform float uShK[8];uniform float uMudOff;uniform float uMudLocal;
 /* how much fine detail to draw (0 a weak phone .. 1 a laptop) */
@@ -294,7 +297,7 @@ void main(){
   float dist=length(vP-uCam);gFP=max(length(dFdx(vP)),length(dFdy(vP)));
   /* a car out in the world measures its mud up itself; see-through by dropping pixels (the dot pass averages
      them): dust and spray carry their opacity as a negative glow; trees thin out right in front of the camera */
-  int m=int(vMat+.5);float h=uMudLocal>.5?vL.y+uMudOff:vP.y-uGround;bool dirty=false;vec3 Pw=vP+uOrg;
+  int m=int(vMat+.5);float h=uMudLocal>.5?vL.y+uMudOff:vP.y-uGround;bool dirty=false;vec3 Pw=vP+uOrg;vec2 fwP=fwidth(vP.xz);
   if(em<0.){if(h12(gl_FragCoord.xy+fract(uTime*7.3)*91.)>-em)discard;em=0.;}
   if(m==48){if(dist<8.&&h12(gl_FragCoord.xy)>smoothstep(3.,8.,dist))discard;
     /* the crown's edge broken into clumps of leaves: where it turns away from the eye, gaps open between them
@@ -388,7 +391,14 @@ void main(){
         vec3 sc=mix(vec3(.42,.38,.32),vec3(.60,.585,.55),smoothstep(.32,.78,big*.85+mid*.3))*(.93+.1*fine*near(.6));
         float crack=smoothstep(.3,.62,fbm(wp*.012+4.1))*near(.25);
         if(crack>0.&&uDetail>.3){float e=cellEdge(wp*.52);sc*=1.-(1.-smoothstep(.0,.05,e))*.26*crack;}
-        alb=mix(alb,sc,sw);gG*=1.-sw*.85;gw*=1.-sw;rw*=1.-sw;}
+        alb=mix(alb,sc,sw);gG*=1.-sw*.85;gw*=1.-sw;rw*=1.-sw;
+        /* the salt course: Bonneville's black line down the middle, and a bar across the lanes at the start and
+           every mile (each faded to its share of the pixel once it's thinner than one, so it doesn't crawl) */
+        float cx=vP.x-uCourse.x,cz=abs(vP.z-uCourse.w);
+        if(uCourse.y>0.&&cx>-1.&&cz<31.){
+          float wz=fwP.y+1e-3,wx=fwP.x+1e-3,ln=(1.-smoothstep(uCourse.z-wz,uCourse.z+wz,cz))*min(1.,uCourse.z*2./wz);
+          float mq=mod(max(cx,0.),uCourse.y),md=min(mq,uCourse.y-mq),bar=(1.-smoothstep(.3-wx,.3+wx,md))*min(1.,.6/wx);
+          alb=mix(alb,vec3(.035,.032,.03),max(ln,bar)*.92*sw);}}
       if(gw>.004){vec3 gc=grassCol(wp);vec2 g0=gG;gG=vec2(0.);grassDetail(wp,gc);gG=mix(g0,gG,gw);alb=mix(alb,gc,gw);}
       if(rw>.004){alb=mix(alb,rockCol(Pw),rw);vec3 a=vnd(wp*1.1);gG+=a.yz*1.1*.08*rw*near(.4);}
       spec=.03;shin=8.;

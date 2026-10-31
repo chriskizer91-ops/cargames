@@ -310,6 +310,10 @@ function simWarn(dt,t){
 const LAP={on:false,t0:0,cp:0,s:-1,best:{},offT:0};
 try{LAP.best=JSON.parse(store.get('cc-laps','{}'))||{};}catch(e){}
 const fmtLap=t=>Math.floor(t/60)+':'+(t%60).toFixed(2).padStart(5,'0');
+/* (the clocks while they run, in tenths, and distances in steps: any text on the HUD that changes repaints the
+   whole text layer, so text that changed every frame cost a full repaint every frame; the results keep hundredths) */
+const fmtLive=t=>Math.floor(t/60)+':'+(Math.floor(t%60*10)/10).toFixed(1).padStart(4,'0');
+const fmtDist=d=>d<200?Math.round(d/5)*5+' M':d<1000?Math.round(d/10)*10+' M':(d/1000).toFixed(1)+' KM';
 const lapKey=()=>BUILDS[APP.bi].id+':'+APP.level;
 function lapStep(dt,t){return;
   const T=RANCH.W.country.track,n=T.nearest(t.p[0],t.p[2],2);
@@ -397,6 +401,7 @@ function worldUniforms(c){
   gl.uniformMatrix4fv(u.uVP,false,c.VP);gl.uniform3fv(u.uCam,c.eyeR);gl.uniform1f(u.uTime,APP.t);if(u.uFarDrop)gl.uniform4f(u.uFarDrop,0,0,0,0);orgFor(u,RO[0],RO[2]);
   gl.uniform3fv(u.uSunDir,SKY.sun);gl.uniform3fv(u.uSunCol,S.sunCol);gl.uniform3fv(u.uSkyAmb,S.sky);gl.uniform3fv(u.uGndAmb,S.gnd);
   gl.uniform3fv(u.uSkyZen,S.zen);gl.uniform3fv(u.uSkyHor,S.hor);gl.uniform3fv(u.uFogCol,[S.hor[0]*k[0],S.hor[1]*k[1],S.hor[2]*k[2]]);gl.uniform1f(u.uFogD,S.fogD);gl.uniform1f(u.uStage,3);
+  if(u.uCourse)gl.uniform4f(u.uCourse,WG.COURSE.x0-RO[0],WG.COURSE.mi,.11,-RO[2]);
   gl.uniform1i(u.uNL,0);gl.uniform1f(u.uInst,0);gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uDirt,0);gl.uniform1i(u.uNSh,0);
 }
 /* the soft shadows under the cars on the ground: centre, half size, yaw and how dark (fading as a car leaves the ground) */

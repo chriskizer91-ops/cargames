@@ -70,6 +70,7 @@ class Powertrain{
     this.e=e;this.o=o;this.drv=o.drive==='FWD'?DRV_FWD:o.drive==='AWD'?DRV_AWD:DRV_RWD;this.drvAll=this.drv;this.upRpm=optimalShifts(e);
     this.st='off';this.t=0;this.we=0;this.rpm=0;this.gear=1;this.shiftT=0;this.shiftTo=1;this.engage=0;this.locked=false;this.boost=0;
     this.nos=e.nosKw?1:0;this.nosOn=false;this.cutT=0;this.cutFrac=0;this.thr=0;this.thrSnd=0;this.load=0;this.thrPrev=0;
+    this.limT=0;this.limN=0;this.limQ=0;this.limOn=false;this.spinUpT=0;
     this.launching=false;this.launchW=0;this.launchT=0;this.hold=false;this.rev=false;this.revT=0;this.twostep=false;this.tcMul=1;this.tcOn=false;this.etcOn=false;
     this.sinceShift=1;this.shiftGrade=null;this.events=[];this.lopeT=0;this.rpmOut=0;this.Te=0;this.Tdrv=0;this.tcCap=1e9;this.lo=1;this.auto=true;this.partShift=false;this.dslip=0;
     this.snd={};

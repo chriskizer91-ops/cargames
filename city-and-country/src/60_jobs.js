@@ -19,6 +19,9 @@ const PEOPLE={
   bo:{name:'Bo Tanner',short:'Bo',role:'runs the off-road park',x:WG.PKW.LOT.x1-28,z:WG.PKW.LOT.z0+30,col:'#8dff5a'},
   hal:{name:'Old Hal',short:'Hal',role:'has lived out on the salt since 1971',x:WG.HAL.x,z:WG.HAL.z+6,col:'#b9a7ff'}};
 const JOB_NAMES={};
+/* (once: the list to walk each frame, each person's colour packed for the HUD and as floats for the lights) */
+const PEOPLE_LIST=Object.entries(PEOPLE);
+for(const [,p] of PEOPLE_LIST){p.pc=hx(p.col);const v=parseInt(p.col.slice(1),16);p.rgb=[(v>>16&255)/255,(v>>8&255)/255,(v&255)/255];}
 function buildJobs(){
   const O=WG.OL,A={};
   /* the crate: on the Outer Loop up in the hills north-east of town; the camp: where the Loop crosses Ridge Road */
@@ -102,11 +105,13 @@ function buildJobs(){
   ];
 }
 const JOBS=buildJobs();
-const JOB={near:null,msgs:[]};
+const JOB={near:null,msgs:[],memo:null,tmemo:null,wrap:null,partT:0};
 /* the game you're in: the career's jobs, or free play's */
 const jRec=()=>{const d=chRec();if(!d.quests)d.quests={};if(d.active===undefined)d.active=null;return d;};
 const jDone=id=>{const q=jRec().quests[id];return !!(q&&q.done);};
-const jActive=()=>{const a=jRec().active;if(!a)return null;const q=JOBS.find(j=>j.id===a.id);return q?{q,a,s:q.steps[a.step]}:null;};
+/* the job you're on and where it wants you: worked out once per step of it, not on every call */
+const jActive=()=>{const a=jRec().active;if(!a)return null;const M=JOB.memo;if(M&&M.a===a&&M.step===a.step)return M.r;
+  const q=JOBS.find(j=>j.id===a.id),r=q?{q,a,s:q.steps[a.step]}:null;JOB.memo={a,step:a.step,r};JOB.tmemo=null;return r;};
 /* the job someone has for you now */
 const jOffer=who=>JOBS.find(q=>q.who===who&&!jDone(q.id)&&q.needs.every(jDone))||null;
 const jRigKey=()=>JSON.stringify(rigOf(APP.car));
@@ -114,7 +119,8 @@ function jAccept(q){const d=jRec();d.active={id:q.id,step:0,t0:null,bought:d.bou
 function jDrop(){const d=jRec();d.active=null;chSave();}
 function jStartStep(){const A=jActive();if(A)A.a.t0=A.s&&A.s.limit?0:null;}
 /* where the current step wants you */
-function jTarget(){const A=jActive();if(!A)return null;const s=A.s;
+function jTarget(){const A=jActive();if(!A)return null;if(JOB.tmemo&&JOB.tmemo.A===A)return JOB.tmemo.tg;const tg=jTargetOf(A);JOB.tmemo={A,tg};return tg;}
+function jTargetOf(A){const s=A.s;
   if(s.who){const p=PEOPLE[s.who];return {x:p.x,z:p.z,name:p.short,r:11,col:p.col};}
   if(s.t==='goto'||s.t==='deliver')return {x:s.x,z:s.z,name:s.name,r:s.r||10};
   if(s.t==='chal'){const c=CHALS.find(c=>c.id===s.id);return c?{x:c.start.x,z:c.start.z,name:c.name,r:13,chal:c}:null;}
@@ -128,11 +134,11 @@ function jobStep(dt,car){
     let ok=false;const tg=jTarget();
     if(s.t==='talk'||s.t==='deliver'||s.t==='goto'){ok=tg&&Math.hypot(x-tg.x,z-tg.z)<tg.r&&(s.t==='goto'||slow);}
     else if(s.t==='chal')ok=chMedal(s.id)>=0&&chMedal(s.id)<=s.medal;
-    else if(s.t==='part')ok=CAREER.on?(jRec().bought||0)>a.bought:jRigKey()!==a.rig;
+    else if(s.t==='part'){if(CAREER.on)ok=(jRec().bought||0)>a.bought;else if((JOB.partT-=dt)<=0){JOB.partT=.5;ok=jRigKey()!==a.rig;}}
     else if(s.t==='medals')ok=chMedalCount().reduce((p,q)=>p+q,0)>=s.n;
     else if(s.t==='speed')ok=car.speed>=s.v&&WG.saltD(x,z)>WG.LAND+260;
     if(ok)jAdvance();}
-  JOB.near=null;if(slow)for(const [who,p] of Object.entries(PEOPLE)){if(Math.hypot(x-p.x,z-p.z)>11)continue;const o=jOffer(who);
+  JOB.near=null;if(slow)for(const [who,p] of PEOPLE_LIST){if(Math.hypot(x-p.x,z-p.z)>11)continue;const o=jOffer(who);
     if(o&&!(jRec().active&&jRec().active.id===o.id)){JOB.near={who,q:o};break;}}
 }
 function jAdvance(){const A=jActive(),a=A.a,q=A.q;a.step++;
@@ -166,24 +172,27 @@ function buildJobsUi(){
 }
 /* the HUD's line (60_chal's syncObj and drawJobHud): whose job, what now, the clock */
 function jobHud(){const A=jActive();if(!A)return null;const s=A.s,p=PEOPLE[A.q.who];
-  return {title:A.q.title,who:p.short,col:p.col,text:s.text||'',left:s.limit?Math.max(0,s.limit-A.a.t0):null,target:jTarget()};}
+  return {title:A.q.title,who:p.short,col:p.col,pc:p.pc,text:s.text||'',left:s.limit?Math.max(0,s.limit-A.a.t0):null,target:jTarget()};}
 function drawJobHud(lx,sc){
-  const j=jobHud();if(!j)return;const t=GAME.car,tch=GAME.touch,c=hx(j.col);let y=7+7*sc+(tch?40:30);
+  const j=jobHud();if(!j)return;const t=GAME.car,tch=GAME.touch;let y=7+7*sc+(tch?40:30);
   if(PARKT.on||PARKT.dr.st==='run'||PARKT.dr.st==='tree')y+=30;
-  otxt3((j.who+' · '+j.title).toUpperCase(),lx,y,c);
-  const words=j.text.toUpperCase().split(' ');let line='',yy=y+8;for(const w of words){if(tw3(line+' '+w)>Math.min(W*.42,190)&&line){otxt3(line,lx,yy,PAL.ink);yy+=8;line=w;}else line=line?line+' '+w:w;}if(line){otxt3(line,lx,yy,PAL.ink);yy+=8;}
+  /* (the heading and the step's words wrapped to the HUD's width once, when the step or the screen changes) */
+  const wk=j.title+'|'+j.text+'|'+W;if(!JOB.wrap||JOB.wrap.k!==wk){const lines=[];let line='';
+    for(const w of j.text.toUpperCase().split(' ')){if(line&&tw3(line+' '+w)>Math.min(W*.42,190)){lines.push(line);line=w;}else line=line?line+' '+w:w;}if(line)lines.push(line);
+    JOB.wrap={k:wk,head:(j.who+' · '+j.title).toUpperCase(),lines};}
+  otxt3(JOB.wrap.head,lx,y,j.pc);let yy=y+8;for(const l of JOB.wrap.lines){otxt3(l,lx,yy,PAL.ink);yy+=8;}
   if(j.left!=null)otxt5(Math.floor(j.left/60)+':'+String(Math.floor(j.left%60)).padStart(2,'0'),lx,yy+1,j.left<15?GR.red:GR.volt,1);
   const g=j.target;if(!g||!g.r||CHAL.ask||JOB.near)return;
   const d=Math.hypot(g.x-t.p[0],g.z-t.p[2]),F=mcol(t.M,0),hy=Math.atan2(-F[2],F[0]),ty=Math.atan2(-(g.z-t.p[2]),g.x-t.p[0]);let a=ty-hy;while(a>PI)a-=TAU;while(a<-PI)a+=TAU;
   const ax=W/2+(tch?-48:0),ay=tch?50:30,dx=-Math.sin(a),dy=-Math.cos(a);hLine(ax,ay,ax+dx*7,ay+dy*7,PAL.green);hDisc(ax+dx*7,ay+dy*7,1.4,PAL.green);
-  otxt3((d>=1000?(d/1000).toFixed(1)+' KM':Math.round(d)+' M')+' · '+g.name.toUpperCase(),ax,ay+10,PAL.green,1,'c');
+  otxt3(fmtDist(d)+' · '+(g.NAME||(g.NAME=g.name.toUpperCase())),ax,ay+10,PAL.green,1,'c');
 }
 /* the lights: someone with work for you (their colour), where the job wants you (green) */
 function jobMarks(out){
-  const tg=jTarget(),A=jActive(),f=s=>{const v=parseInt(s.slice(1),16);return [(v>>16&255)/255,(v>>8&255)/255,(v&255)/255];};
-  for(const [who,p] of Object.entries(PEOPLE)){const isT=tg&&tg.name===p.short&&!tg.chal,o=jOffer(who),off=o&&!(A&&A.q.id===o.id);
-    if(isT)out.push({kind:'person',x:p.x,z:p.z,r:2.6,col:[.35,1,.45],em:2.2});else if(off)out.push({kind:'person',x:p.x,z:p.z,r:2.6,col:f(p.col),em:1.8});}
-  if(tg&&tg.r&&!tg.chal&&!Object.values(PEOPLE).some(p=>p.short===tg.name))out.push({kind:'person',x:tg.x,z:tg.z,r:3.2,col:[.35,1,.45],em:2.2});
+  const tg=jTarget(),A=jActive();let onP=false;
+  for(const [who,p] of PEOPLE_LIST){const isT=tg&&tg.name===p.short&&!tg.chal,o=jOffer(who),off=o&&!(A&&A.q.id===o.id);if(isT)onP=true;
+    if(isT)out.push({kind:'person',x:p.x,z:p.z,y:markY(p),r:2.6,col:COL_JOB,em:2.2});else if(off)out.push({kind:'person',x:p.x,z:p.z,y:markY(p),r:2.6,col:p.rgb,em:1.8});}
+  if(tg&&tg.r&&!tg.chal&&!onP)out.push({kind:'person',x:tg.x,z:tg.z,y:markY(tg),r:3.2,col:COL_JOB,em:2.2});
 }
 /* the Jobs list in the Challenges tab */
 function syncJobs(){

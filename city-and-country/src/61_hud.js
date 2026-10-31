@@ -92,11 +92,11 @@ function drawHud(c){
   else if(pt.st==='crank')otxt3('CRANKING',W/2,H-22,PAL.amber,1,'c');
   /* a lap under way on the road course */
   if(LAP.on){const lt=GAME.time-LAP.t0,b=LAP.best[lapKey()],y=tch?H-30:H-30;
-    otxt5('LAP '+fmtLap(lt),W/2,y,GR.volt,1,'c');if(b)otxt3('BEST '+fmtLap(b),W/2,y+9,PAL.dim,1,'c');}
+    otxt5('LAP '+fmtLive(lt),W/2,y,GR.volt,1,'c');if(b)otxt3('BEST '+fmtLap(b),W/2,y+9,PAL.dim,1,'c');}
   /* a clock run: the time, how far to go and which way */
   if(RUN.on){const r=RUN.on,el=RUN.armed?GAME.time-RUN.t0:0,d=Math.hypot(r.to[0]-t.p[0],r.to[1]-t.p[2]),y=H-34;
     const F=mcol(t.M,0),hy=Math.atan2(-F[2],F[0]),ty=Math.atan2(-(r.to[1]-t.p[2]),r.to[0]-t.p[0]);let a=ty-hy;while(a>PI)a-=TAU;while(a<-PI)a+=TAU;
-    otxt3(r.name.toUpperCase(),W/2,y-10,PAL.gold,1,'c');otxt5(fmtLap(el),W/2,y,el>r.par?GR.red:GR.volt,1,'c');otxt3(Math.round(d)+' M  PAR '+fmtLap(r.par),W/2,y+9,PAL.dim,1,'c');
+    otxt3(r.name.toUpperCase(),W/2,y-10,PAL.gold,1,'c');otxt5(fmtLive(el),W/2,y,el>r.par?GR.red:GR.volt,1,'c');otxt3(fmtDist(d)+'  PAR '+fmtLap(r.par),W/2,y+9,PAL.dim,1,'c');
     /* an arrow at the top of the screen pointing to the finish */
     const ax=W/2+(tch?-48:0),ay=tch?50:30,dx=-Math.sin(a),dy=-Math.cos(a);hLine(ax,ay,ax+dx*7,ay+dy*7,PAL.gold);hDisc(ax+dx*7,ay+dy*7,1.4,PAL.gold);}
   /* messages */
@@ -116,13 +116,13 @@ function drawRaceHud(lx,sc){
     if(drag){hDisc(cx,cy+25,3.6,go?PAL.green:pack(30,40,30,255));if(RACE.foul)hDisc(cx,cy+33,3.6,PAL.red);}
     if(drag&&RACE.state==='grid'&&inputThr()>.5&&!RACE.foul)otxt3('OFF THE GAS UNTIL GREEN',cx,cy+40,PAL.amber,1,'c');}
   if(ev.kind==='stage'){const len=RACE.s1-RACE.s0,togo=Math.max(0,RACE.s1-(me.trk.s||RACE.s0));
-    otxt3('STAGE',lx,y,PAL.dim);otxt5(fmtLap(me.done?me.time:clk),lx,y+7,GR.volt,1);
+    otxt3('STAGE',lx,y,PAL.dim);otxt5(me.done?fmtLap(me.time):fmtLive(clk),lx,y+7,GR.volt,1);
     otxt3((togo/1000).toFixed(2)+' KM TO GO',lx,y+17,PAL.ink);
     const best=Math.min(...RACE.rivals.map(r=>r.time));otxt3('TO BEAT '+fmtLap(best),lx,y+25,PAL.dim);void len;return;}
-  if(ev.kind==='drag'){otxt5(fmtLap(me.done?me.time:clk),lx,y,GR.volt,1);if(RACE.rt!==null)otxt3('RT '+RACE.rt.toFixed(3),lx,y+10,PAL.ink);return;}
+  if(ev.kind==='drag'){otxt5(me.done?fmtLap(me.time):fmtLive(clk),lx,y,GR.volt,1);if(RACE.rt!==null)otxt3('RT '+RACE.rt.toFixed(3),lx,y+10,PAL.ink);return;}
   const order=raceOrder(),pos=order.indexOf(me)+1,live=RACE.cars.filter(c=>!c.out).length,laps=Math.max(0,Math.min(ev.laps,(me.laps||0)+1));
   otxt5('P'+pos,lx,y,GR.gold,sc);txt3('/'+(ev.kind==='elim'?live:RACE.cars.length),lx+tw5('P'+pos,sc)+2,y+(sc>1?7:3),PAL.dim);y+=7*sc+3;
-  otxt3((me.done?'FINISHED':'LAP '+laps+'/'+ev.laps),lx,y,me.done?PAL.gold:PAL.ink);otxt3(fmtLap(me.done?me.time:clk),lx+44,y,PAL.ink);y+=8;
+  otxt3((me.done?'FINISHED':'LAP '+laps+'/'+ev.laps),lx,y,me.done?PAL.gold:PAL.ink);otxt3(me.done?fmtLap(me.time):fmtLive(clk),lx+44,y,PAL.ink);y+=8;
   /* the gaps to the cars either side, in seconds at your speed */
   const L=me.trk.line,v=Math.max(8,GAME.car.speed),gap=c=>{let d=(c.prog||0)-(me.prog||0);return d/v;};
   const a=order[pos-2],b=order[pos];

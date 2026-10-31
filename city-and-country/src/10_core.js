@@ -10,7 +10,8 @@ const wrapA=a=>{while(a>PI)a-=TAU;while(a<-PI)a+=TAU;return a;};
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,String(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const touchy=matchMedia('(hover: none)').matches;
-const fmt=n=>Math.floor(n).toLocaleString('en-US');
+/* (one formatter, made once: toLocaleString('en-US') builds a new one on every call, and the HUD calls it every frame) */
+const NF=new Intl.NumberFormat('en-US'),fmt=n=>NF.format(Math.floor(n));
 const money=n=>'$'+fmt(Math.round(n));
 const pick=a=>a[(Math.random()*a.length)|0];
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}

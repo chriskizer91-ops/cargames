@@ -73,7 +73,7 @@ function parkDragDone(D){
 function drawParkHud(lx,sc){
   if(RACE.on)return;const P=PARKT,D=P.dr,tch=GAME.touch;let y=7+7*sc+(tch?40:30);
   if(P.on){const lt=GAME.time-P.t0,b=P.best[parkKey(P.on.id)];
-    otxt3(P.on.name.toUpperCase(),lx,y,PAL.dim);otxt5(fmtLap(lt),lx,y+7,GR.volt,1);if(b)otxt3('BEST '+fmtLap(b),lx,y+17,PAL.dim);y+=26;}
+    otxt3(P.on.name.toUpperCase(),lx,y,PAL.dim);otxt5(fmtLive(lt),lx,y+7,GR.volt,1);if(b)otxt3('BEST '+fmtLap(b),lx,y+17,PAL.dim);y+=26;}
   if(P.last&&APP.t-P.lastT<5){otxt3('LAST LAP '+fmtLap(P.last.t)+(P.last.best?'  NEW BEST':''),lx,y,P.last.best?PAL.green:PAL.ink);y+=8;}
   /* the tree: a lane's three ambers, then green (red if it went early) */
   if(D.st==='tree'||(D.st==='run'&&D.t<PK_TREE+1.2)){const cx=Math.round(W/2),cy=Math.round(H*(tch?.32:.24)),go=D.t>=PK_TREE,on=Math.min(3,Math.floor(D.t/.5)+1);
@@ -81,7 +81,7 @@ function drawParkHud(lx,sc){
     for(let k=0;k<3;k++)hDisc(cx,cy-2+k*9,3.6,go||k<on?PAL.amber:pack(40,30,30,255));
     hDisc(cx,cy+25,3.6,go&&!D.foul?PAL.green:pack(30,40,30,255));if(D.foul)hDisc(cx,cy+33,3.6,PAL.red);
     if(!go&&inputThr()>.2&&!D.foul)otxt3('OFF THE GAS UNTIL GREEN',cx,cy+40,PAL.amber,1,'c');}
-  if(D.st==='run'&&D.rt!==null){otxt3('DRAG STRIP',lx,y,PAL.dim);otxt5((D.t-D.tLeave).toFixed(2),lx,y+7,GR.volt,1);otxt3('RT '+D.rt.toFixed(3),lx,y+17,D.foul?PAL.red:PAL.ink);y+=26;}
+  if(D.st==='run'&&D.rt!==null){otxt3('DRAG STRIP',lx,y,PAL.dim);otxt5((D.t-D.tLeave).toFixed(1),lx,y+7,GR.volt,1);otxt3('RT '+D.rt.toFixed(3),lx,y+17,D.foul?PAL.red:PAL.ink);y+=26;}
   /* the time slip */
   if(D.slip&&APP.t-D.slipT<9){const s=D.slip,b=P.best[parkKey('drag')],f=v=>v===null?'--':v.toFixed(3),rows=[['R/T',f(s.rt)],["60'",f(s.t60)],["330'",f(s.t330)],['1/8',f(s.et)],['MPH',s.mph.toFixed(1)]];
     const w=74,h=12+rows.length*8+(b?8:0),x=tch?Math.round(W/2-w/2):W-w-8,yy=tch?Math.round(H*.2):Math.round(H*.32);

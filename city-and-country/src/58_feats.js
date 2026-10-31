@@ -23,7 +23,7 @@ const Feats=(()=>{
   API.load=key=>{KEY=key||KEY;try{const d=JSON.parse(store.get(KEY,'{}'))||{};S.money=+d.money||0;S.log=Array.isArray(d.log)?d.log.slice(0,10):[];S.best=d.best&&typeof d.best==='object'?d.best:{};}catch(e){}};
   API.save=()=>store.set(KEY,JSON.stringify({money:Math.round(S.money),log:S.log,best:S.best}));
   API.clear=()=>{S.money=0;S.session=0;S.log=[];S.best={};API.save();};
-  const fmtMoney=n=>'$'+Math.round(n).toLocaleString('en-US');API.fmtMoney=fmtMoney;
+  const fmtMoney=n=>'$'+NF.format(Math.round(n));API.fmtMoney=fmtMoney;
   /* a best: higher is better unless lower is set */
   function best(k,v,label,lower){const b=S.best[k];if(b&&(lower?v>=b.v:v<=b.v))return false;S.best[k]={v,label,car:API.carName(),at:Date.now()};return !!b;}
   /* ---------- the combo ---------- */

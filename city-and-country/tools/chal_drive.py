@@ -22,14 +22,14 @@ g.chalStart(c);const t=g.GAME.car;t.pt.start();const r=g.CHAL.run,W=g.WORLD,S=W.
 /* let the world load round the start, held on the brakes in the countdown */
 r.cd=1e9;for(let f=0;f<90;f++){g.GAME.state='drive';g.setTestInput({steer:0,thr:0,brk:1,hb:0,nos:false});g.step(1/FR);const e=[t.p[0],t.p[1]+3,t.p[2]];g.worldUpdate(e,t);g.setOrigin(e);if(f%4===0)await new Promise(q=>setTimeout(q,0));}
 r.cd=.5;
-if(c.kind==='drift')return {id,skip:'drift (scored by a person)'};
+if(c.kind==='drift'||c.kind==='air')return {id,skip:c.kind+' (scored by a person)'};
 /* the robot keeps to the challenge's lane (the boulevard's median is on the route's centre line) */
 const P0=c.route,n=P0.length,closed=!!c.closed,ln=c.lane||0,P=P0.map((p,i)=>{const a=P0[Math.max(0,i-1)],b=P0[Math.min(n-1,i+1)],dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz)||1;return [p[0]-dz/l*ln,p[1]+dx/l*ln];}),cum=[0];for(let i=1;i<n;i++)cum.push(cum[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));
 const at=i=>P[closed?((i%n)+n)%n:Math.max(0,Math.min(n-1,i))];
 /* curvature over a span */
 const kAt=i=>{const a=at(i-4),b=at(i),d=at(i+4),ux=b[0]-a[0],uz=b[1]-a[1],vx=d[0]-b[0],vz=d[1]-b[1],la=Math.hypot(ux,uz)||1,lb=Math.hypot(vx,vz)||1;
   const cr=(ux*vz-uz*vx)/(la*lb),ang=Math.asin(Math.max(-1,Math.min(1,cr)));return ang/((la+lb)/2);};
-const ds=cum[1]||2,straight=['drag','trap','mile','jump'].includes(c.kind);
+const ds=cum[1]||2,straight=['drag','trap','mile','jump','stop'].includes(c.kind);
 /* the robot's settings for the ground: how hard it corners (m/s2) and any cap */
 const RB={loop:[5.5],dash:[6],ridge:[5],wash:[4.5],loopN:[4.5,26],loopLap:[4.5,26],bog:[4,14],oval:[5.2],short:[5.2,24],mudtrack:[3.2,15]}[id]||[6.5];
 let idx=0,top=0,nan=0,frames=0,maxOff=0,flips=0,trace=[];
@@ -41,9 +41,10 @@ for(let f=0;f<FR*(c.limit+15);f++){g.GAME.state='drive';
   const M=t.M,F=[M[0],M[3],M[6]],fl=Math.hypot(F[0],F[2])||1,fx=F[0]/fl,fz=F[2]/fl,ax=tg[0]-t.p[0],az=tg[1]-t.p[2],dl=Math.hypot(ax,az)||1;
   const al=Math.atan2((ax*-fz+az*fx)/dl,(ax*fx+az*fz)/dl),cc=t.c,del=Math.atan(2*cc.wb*Math.sin(al)/ld),lim=Math.min(cc.lock,.6);
   let steer=Math.max(-1,Math.min(1,del/lim)),vs=200;
-  if(!straight)for(const d of [6,16,30,50,80,120]){const k=Math.abs(kAt(idx+Math.round(d/ds)));if(k>1e-4)vs=Math.min(vs,Math.sqrt(grip/k)+d*.16);}
+  /* what the bends ahead allow, and the braking to get down to it (6 m/s2) */
+  if(!straight)for(const d of [6,16,30,50,80,120,180,260,360,480,620]){const k=Math.abs(kAt(idx+Math.round(d/ds)));if(k>1e-4){const vk=Math.sqrt(grip/k);vs=Math.min(vs,d<=120?vk+d*.16:Math.sqrt(vk*vk+2*6*d));}}
   if(vcap)vs=Math.min(vs,vcap);if(RB[1])vs=Math.min(vs,RB[1]);
-  const thr=v<vs-1?1:v<vs+1?.4:0,brk=v>vs+3?Math.min(.9,(v-vs)/8):0;
+  let thr=v<vs-1?1:v<vs+1?.4:0,brk=v>vs+3?Math.min(.9,(v-vs)/8):0;if(c.kind==='stop'&&r.reached!=null){thr=0;brk=1;}
   g.setTestInput({steer,thr,brk,hb:0,nos:straight});g.step(1/FR);
   const e=[t.p[0],t.p[1]+3,t.p[2]];g.worldUpdate(e,t);g.setOrigin(e);frames++;
   if(!t.p.every(Number.isFinite)){nan++;break;}top=Math.max(top,t.speed);maxOff=Math.max(maxOff,Math.sqrt(best));

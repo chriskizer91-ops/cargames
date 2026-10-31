@@ -39,7 +39,7 @@ const thBase=()=>dlBase();
 /* how far a ladder's slider goes free with what you own */
 function thLimit(k){const L=TH_LADDER[k](thBase());let hi=L.hi;for(const s of L.steps)if(thOwned(k+'|'+s.id))hi=Math.max(hi,s.hi);return {L,hi};}
 /* what a value needs that you don't have: null, or {n, p, own:[keys]} (p null: no kit takes it that far) */
-function thNeed(r,v){
+function thNeed(r,v,named=true){
   if(!CAREER.on||r.sim||TH_FREE.has(r.k))return null;const b=thBase(),k=r.k;
   if(TH_LADDER[k]){const {L,hi}=thLimit(k);if(v<=hi+1e-6&&v>=L.lo-1e-6)return null;
     if(v<L.lo-1e-6)return {n:'',p:null,why:'Smaller than that is a different engine: the garage\'s Engine slot'};
@@ -47,14 +47,14 @@ function thNeed(r,v){
     return {n:'',p:null,why:L.past||'Past what any kit allows'};}
   if(TH_UP[k]){const i=+v,b0=k==='tsize'?(b.fi&&b.fi!=='none'?b.tsize||0:0):+(b[k]||0);if(i<=b0)return null;let p=0;const own=[];
     for(let j=b0+1;j<=i;j++){if(thOwned(k+'|'+j))continue;p+=TH_UP[k][j]||0;own.push(k+'|'+j);}
-    return p?{n:TH_NAME[k]+': '+thChoice(r,v),p,own}:null;}
+    return p?{n:named?TH_NAME[k]+': '+thChoice(r,v):'',p,own}:null;}
   if(TH_PART[k]){if(String(v)===String(b[k]??(k==='fi'?'none':0))||!TH_PART[k](v))return null;const key=k+'|'+v;if(thOwned(key))return null;
-    return {n:TH_NAME[k]+': '+thChoice(r,v),p:TH_PART[k](v),own:[key]};}
+    return {n:named?TH_NAME[k]+': '+thChoice(r,v):'',p:TH_PART[k](v),own:[key]};}
   return null;}
 const thChoice=(r,v)=>{if(r.t==='toggle')return v?'on':'off';const o=(r.opts?r.opts(dlParams()):[]).find(q=>String(q[0])===String(v));return o?String(o[1]):String(v);};
 /* ---------- the gate on a change (called by dlSetVal): true to go ahead as asked, 'preview' to try it without
    handing it to the car, false to drop it ---------- */
-const TH={ask:null};
+const TH={ask:null,decor:false};
 function thGate(r,v,final){
   if(!CAREER.on||r.sim)return true;const need=thNeed(r,v);
   if(!need){if(TH.ask&&TH.ask.r===r&&final)thClose();return true;}
@@ -74,23 +74,28 @@ function thClose(){$('dlBuy').hidden=true;$('dlBuyYes').hidden=false;$('dlBuyNo'
 function thBuy(){const a=TH.ask;if(!a)return;if(!spend(a.need.p))return;for(const k of a.need.own)thOwn(k);CAREER.d.bought=(CAREER.d.bought||0)+1;careerSave();thClose();dlSetValRaw(a.r,a.v,true);}
 function thNo(){const a=TH.ask;thClose();if(a)dlSetValRaw(a.r,thClamp(a.r,a.v,a.prev),true);}
 /* ---------- the sheet in the career: the locked stretch on each slider, the price on each choice ---------- */
+/* (each piece of the sheet is written only when its text or position actually changes: dlSyncSetup can run every
+   frame while a slider is dragged on a phone, and rewriting unchanged text still costs a layout) */
+const setTxt=(el,t)=>{if(el.textContent!==t)el.textContent=t;},setCss=(el,c)=>{if(el.dataset.css!==c){el.dataset.css=c;el.style.cssText=c;}};
 function thDecorate(o){
   const on=CAREER.on;
+  /* free play: take the career's marks off once, then nothing to do */
+  if(!on&&!TH.decor)return;TH.decor=on;
   for(const r of DL.rows){
-    if(!r.row||r.row.hidden)continue;
-    if(r.t==='range'){let lim=r.row.querySelector('.lim');
-      if(!on||!TH_LADDER[r.k]){if(lim)lim.remove();continue;}
-      if(!lim){lim=document.createElement('div');lim.className='lim';lim.innerHTML='<i></i><b></b><span></span>';r.el.after(lim);}
-      const [mn,mx]=[+r.el.min,+r.el.max],{L,hi}=thLimit(r.k),f=x=>clamp((x-mn)/(mx-mn),0,1)*100;
-      lim.querySelector('i').style.cssText=`left:${f(L.lo)}%;width:${Math.max(0,f(hi)-f(L.lo))}%`;lim.querySelector('b').style.cssText=`left:${f(hi)}%;right:0`;
-      const nx=L.steps.find(s=>!thOwned(r.k+'|'+s.id)&&s.hi>hi);
-      lim.querySelector('span').textContent=hi>=mx-1e-6?'':nx?`To ${r.fmt(nx.hi)}: ${nx.n} · ${Feats.fmtMoney(nx.p)}`:`Locked past ${r.fmt(hi)}`;
+    if(!r.row||r.row.hidden&&on)continue;
+    if(r.t==='range'){
+      if(!on||!TH_LADDER[r.k]){if(r.lim){r.lim.remove();r.lim=null;}r.row.classList.remove('locked');continue;}
+      if(!r.lim){r.lim=document.createElement('div');r.lim.className='lim';r.lim.innerHTML='<i></i><b></b><span></span>';r.el.after(r.lim);r.limI=r.lim.children[0];r.limB=r.lim.children[1];r.limS=r.lim.children[2];}
+      const mn=+r.el.min,mx=+r.el.max,{L,hi}=thLimit(r.k),f=x=>clamp((x-mn)/(mx-mn),0,1)*100;
+      setCss(r.limI,`left:${f(L.lo).toFixed(2)}%;width:${Math.max(0,f(hi)-f(L.lo)).toFixed(2)}%`);setCss(r.limB,`left:${f(hi).toFixed(2)}%;right:0`);
+      const nx=L.steps.find(q=>!thOwned(r.k+'|'+q.id)&&q.hi>hi);
+      setTxt(r.limS,hi>=mx-1e-6?'':nx?`To ${r.fmt(nx.hi)}: ${nx.n} · ${Feats.fmtMoney(nx.p)}`:`Locked past ${r.fmt(hi)}`);
       const cur=+r.el.value;r.row.classList.toggle('locked',cur>hi+1e-6||cur<L.lo-1e-6);continue;}
-    if(r.t==='seg'&&(TH_UP[r.k]||TH_PART[r.k])){for(const btn of r.el.children){if(!btn.dataset.n)btn.dataset.n=btn.textContent;const need=on?thNeed(r,/^\d+$/.test(btn.dataset.v)?+btn.dataset.v:btn.dataset.v):null;
-        btn.textContent=btn.dataset.n+(need&&need.p?' · '+Feats.fmtMoney(need.p):'');btn.classList.toggle('price',!!(need&&need.p));}continue;}
-    if(r.t==='select'&&TH_PART[r.k]){for(const op of r.el.options){if(!op.dataset.n)op.dataset.n=op.textContent;const need=on?thNeed(r,/^\d+$/.test(op.value)?+op.value:op.value):null;op.textContent=op.dataset.n+(need&&need.p?' · '+Feats.fmtMoney(need.p):'');}continue;}
-    if(r.t==='toggle'&&TH_PART[r.k]){const lab=r.row.querySelector('label');if(!lab.dataset.n)lab.dataset.n=lab.textContent;const need=on&&r.el.getAttribute('aria-checked')!=='true'?thNeed(r,1):null;
-      lab.textContent=lab.dataset.n+(need&&need.p?' · '+Feats.fmtMoney(need.p):'');}
+    if(r.t==='seg'&&(TH_UP[r.k]||TH_PART[r.k])){for(const btn of r.el.children){if(!btn.dataset.n)btn.dataset.n=btn.textContent;const need=on?thNeed(r,/^\d+$/.test(btn.dataset.v)?+btn.dataset.v:btn.dataset.v,false):null;
+        setTxt(btn,btn.dataset.n+(need&&need.p?' · '+Feats.fmtMoney(need.p):''));btn.classList.toggle('price',!!(need&&need.p));}continue;}
+    if(r.t==='select'&&TH_PART[r.k]){for(const op of r.el.options){if(!op.dataset.n)op.dataset.n=op.textContent;const need=on?thNeed(r,/^\d+$/.test(op.value)?+op.value:op.value,false):null;setTxt(op,op.dataset.n+(need&&need.p?' · '+Feats.fmtMoney(need.p):''));}continue;}
+    if(r.t==='toggle'&&TH_PART[r.k]){const lab=r.row.querySelector('label');if(!lab.dataset.n)lab.dataset.n=lab.textContent;const need=on&&r.el.getAttribute('aria-checked')!=='true'?thNeed(r,1,false):null;
+      setTxt(lab,lab.dataset.n+(need&&need.p?' · '+Feats.fmtMoney(need.p):''));}
   }
   const t=$('dlTuned');if(on&&t&&t.textContent)t.textContent+=' In the career the sheet tunes what you have bolted on: past that, each kit or part shows its price.';
 }

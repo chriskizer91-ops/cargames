@@ -133,7 +133,7 @@ function makeMesh(d){
   gl.bindVertexArray(null);
   /* a big mesh (a car's body) on a phone short of graphics memory: the buffers come back empty and the body would
      simply not be there. Checked only for big meshes (asking the GPU is slow); the car falls back to its coarse copy */
-  let oom=false;if(d.pos.length>60000){const er=gl.getError();if(er===gl.OUT_OF_MEMORY){oom=true;GLC.oom=(GLC.oom||0)+1;}}
+  let oom=false;if(d.pos.length>60000){for(let k=0,er;k<8&&(er=gl.getError())!==gl.NO_ERROR;k++)if(er===gl.OUT_OF_MEMORY)oom=true;if(oom)GLC.oom=(GLC.oom||0)+1;}
   return {vao,bufs,ib,it,n:d.idx?d.idx.length:d.pos.length/3,inst:null,ni:0,oom};
 }
 /* per-instance data: Float32Array of 12 floats per instance */

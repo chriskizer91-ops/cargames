@@ -928,6 +928,22 @@ function genStatic(cx,cz){
         if(p[1]<SALT_Y+.06&&q[1]<SALT_Y+.06&&s[1]<SALT_Y+.06&&t[1]<SALT_Y+.06)continue;
         const lip=r.kind!=='table'&&Math.abs((a+.5)/nu*r.L-r.Lf-r.T)<1.2,chev=(a+.5)/nu*r.L<r.Lf&&Math.abs(((a+.5)/nu*r.L+Math.abs(-r.hw+2*r.hw*(b+.5)/nv)*.7)%6-3)<.6;
         RB.quad(p,t,s,q,lip?lc(230,180,30):chev?lc(220,210,190):lc(150,146,138),lip||chev?MAT.COL:MAT.CONCRETE,lip?.25:0);}}}
+  /* --- the salt course: its signs (lit words on posts, read by a driver heading east), the timed mile's towers,
+     the turn, and the slalom's cones. Each piece is made by the chunk it stands in --- */
+  if(x1>COURSE.x0-60&&z0<60&&z1>-60){
+    const C=COURSE,sign=(x,word,z,col,px=.16)=>{if(!inC(x,z))return;const y=SALT_Y,len=word.length*6*px-px,a=z-.3,b=z+len+.3;
+      for(const q of [a,b]){PB.bar([x+.25,y-.2,q],[x+.25,y+2.9,q],.08,lc(150,150,156),MAT.METAL);colCirc(x+.25,q,.15,y+2.9);}
+      neonWord(PB,word,[x,y+1.75,z],[0,0,1],[-1,0,0],px,col,0,0,null);};
+    const tower=(x,z)=>{if(!inC(x,z))return;const y=SALT_Y;PB.bar([x,y-.2,z],[x,y+8,z],.12,lc(150,150,156),MAT.METAL);colCirc(x,z,.2,y+8);
+      PB.box(x-.35,y+8,z-.6,x+.35,y+8.7,z+.6,lc(255,250,235),MAT.EMIT,2.2);};
+    sign(C.x0-10,'SALT COURSE',-46,[1,.62,.12]);
+    for(let k=Math.max(1,Math.ceil((x0-C.x0)/C.mi));k<=Math.floor((x1-C.x0)/C.mi);k++){const x=C.x0+k*C.mi;if(rampClear(x,-40,6))sign(x,'MILE '+k,-44,[1,.62,.12]);}
+    for(const x of [C.t0,C.t1]){tower(x,-38);tower(x,38);sign(x-3,'TIMED MILE',-46,[.3,.95,1],.13);}
+    sign(C.turn,'TURN',-44,[1,.25,.2],.22);}
+  {const S=SLALOM;if(x1>S.x-40&&x0<S.x+S.n*S.sp+40&&z1>S.z-20&&z0<S.z+20){
+    for(let k=0;k<S.n;k++){const x=S.x+k*S.sp,z=S.z;if(!inC(x,z))continue;const y=SALT_Y;
+      PB.cyl(x,z,y,y+.05,.32,8,lc(245,110,20),MAT.COL,.72);PB.cyl(x,z,y+.28,y+.4,.21,8,lc(240,240,240),MAT.COL,-1);colCirc(x,z,.3,y+.78);}
+    if(inC(S.x-40,S.z-10))neonWord(PB,'SLALOM',[S.x-40,SALT_Y+.4,S.z-10],[0,0,1],[-1,0,0],.16,[1,.62,.12],0,0,null);}}
   /* --- the trees: woods in the hills, cottonwoods by the creeks, the odd one in a pasture --- */
   function addTree(x,z,v,sc){const y=sample(x,z,CRo).h;if(CRo.code===SF.water||CRo.code===SF.asphalt)return;
     const pine=v>=3&&v<5,palm=v>=5,t=palm?[86,110,52]:pine?[52,74,46]:hs(Math.round(x*3),Math.round(z*3),630)<.5?[70,96,44]:[88,104,50],j1=hs(Math.round(x*7),Math.round(z*7),631),j2=hs(Math.round(x*5),Math.round(z*5),632);
@@ -964,6 +980,17 @@ const HAL=(()=>{let at=null;for(let k=0;k<40&&!at;k++){const x=HWY_X+140+k*24,z=
     for(let i=Math.floor((x-200)/RCELL);i<=Math.floor((x+200)/RCELL)&&ok;i++)for(let j=-1;j<=0&&ok;j++)for(const r of rampsIn(i,j))if(Math.hypot(r.mx-x,r.mz-z)<r.rad+30)ok=false;
     if(ok)at={x,z};}
   return Object.assign(at||{x:HWY_X+140,z:-46},{});})();
+/* the salt course (round 5): east from where the highway runs out, along z = 0, as far as the salt goes. Five lanes
+   at the start line (the ramps keep 40 m clear of z = 0 everywhere, so the lanes are clear all the way), a sign
+   every mile, the timed mile 1,100 m out, the turn for the two-way runs; and a slalom of cones north of it, where
+   no ramp comes near */
+const MI=1609.344,COURSE={x0:HWY_X+40,mi:MI,t0:HWY_X+40+1100,t1:HWY_X+40+1100+MI,turn:HWY_X+40+4600,lanes:[-30,-15,0,15,30]};
+const rampClear=(x,z,m)=>{for(let i=Math.floor((x-220)/RCELL);i<=Math.floor((x+220)/RCELL);i++)for(let j=Math.floor((z-220)/RCELL);j<=Math.floor((z+220)/RCELL);j++)
+  for(const r of rampsIn(i,j))if(Math.hypot(r.mx-x,r.mz-z)<r.rad+m)return false;return true;};
+const SLALOM=(()=>{const n=12,sp=28;for(const z of [-300,-460,-620,300,460])for(let x=COURSE.x0+500;x<COURSE.x0+3500;x+=120){let ok=true;
+    for(let k=-3;k<=n+2&&ok;k++)ok=rampClear(x+k*sp,z,24);if(ok)return {x,z,n,sp};}return {x:COURSE.x0+500,z:-300,n,sp};})();
+/* where the Ramp Run starts: out among the ramps south of the course, on a spot none of them covers */
+const RAMPRUN=(()=>{for(let x=COURSE.x0+300;x<COURSE.x0+3000;x+=60)for(const z of [420,520,620])if(rampClear(x,z,40))return {x,z};return {x:COURSE.x0+300,z:420};})();
 SPECIAL.push({pads:[],spurs:[],bld:[{t:'box',b:[HAL.x-7,HAL.z-6,HAL.x+7,HAL.z-1],h:3.1,roof:'flat',col:lc(206,210,214),mat:MAT.SHEET},
   {t:'box',b:[HAL.x+9,HAL.z-7,HAL.x+14,HAL.z-2],h:2.2,roof:'flat',col:lc(150,120,96),mat:MAT.COL},{t:'lamp',x:HAL.x-9,z:HAL.z+1,h:7},
   {t:'neon',word:"HAL'S",o:[HAL.x-4.2,HAL.z-.95],rt:[1,0],n:[0,1],px:.26,h0:2.2,col:[.72,.62,1]}],trees:[],name:"Old Hal's",x:HAL.x,z:HAL.z-3,special:1});
@@ -1387,7 +1414,7 @@ function placeAt(x,z){
   if(Math.hypot(x-BOG.x,z-BOG.z)<BOG.r+12)return 'The bog';
   if(parkD(x,z)<40||Math.abs(x-PKW.ROADX)<9&&z<-12&&z>-300){const nm=PKW.nameAt(x,z);if(nm)return nm;}
   if(parkD(x,z)<20)return 'Off-road park';
-  const sd=saltD(x,z);if(sd>LAND+SALT_BL*.6)return Math.abs(z)<20&&Math.abs(x)<HWY_X+5?'Highway 40, on the salt':'The salt flats';
+  const sd=saltD(x,z);if(sd>LAND+SALT_BL*.6)return Math.abs(z)<20&&Math.abs(x)<HWY_X+5?'Highway 40, on the salt':x>COURSE.x0-20&&Math.abs(z)<40?'The salt course':'The salt flats';
   const r=roadAt(x,z);if(r&&Math.abs(r.d)<r.hw+3)return r.name;
   if(OL.dist(x,z)<OL.HW+8)return 'The Outer Loop';
   const cr={};creekAt(x,z,cr);if(cr.dc<12)return 'The creek';
@@ -1398,5 +1425,5 @@ function placeAt(x,z){
 }
 const xExp=z=>1e9;
 return {L,HALF,CH,FT,ROAD_END,SURF,SF,CL,core,sample,baseAt,genGround,genStatic,genFar,roadAt,roadLines,townsNear,placeAt,hillK,offNS,offEW,clsNSz,clsEWx,creekAt,xExp,
-  EDGE,RING,LAND,SALT_Y,HWY_X,HAL,PARK,BOG,GARAGE,townD,saltD,parkD,TW,townLights,PKW,PARK_Y,OL,LAPS,rampsIn,RCELL};
+  EDGE,RING,LAND,SALT_Y,HWY_X,HAL,COURSE,SLALOM,RAMPRUN,PARK,BOG,GARAGE,townD,saltD,parkD,TW,townLights,PKW,PARK_Y,OL,LAPS,rampsIn,RCELL};
 }

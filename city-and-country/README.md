@@ -104,6 +104,20 @@ x runs east, z south; downtown is at the origin.
   shows the locked stretch with the next kit and its price; each choice its price; let go past the line and the
   buy bar asks, Not now puts it back.
 
+## The salt course and the salt challenges (round 5)
+
+- **The course** (`src/50_worldgen.js` `COURSE`, `SLALOM`, `RAMPRUN`): east from where Highway 40 runs out on the salt,
+  along z = 0, as far as the salt goes (the ramps keep 40 m clear of that line everywhere). Five lanes at the start
+  line, Bonneville's black line down the middle and a bar across the lanes every mile (drawn by the ground shader,
+  `uCourse`, no geometry), a lit MILE sign every mile, light towers at the timed mile (1,100 m out), a TURN sign for
+  the two-way runs, and a slalom of twelve cones north of the course where no ramp comes near.
+- **The challenges** (`src/60_chal.js`): the Flying Mile (middle lane), the Standing Mile (time, and the speed at the
+  line), 0-100-0 and 0-200-0 (to the speed and back to a dead stop), the Two-Way Mile (record rules: the timed mile
+  east, round the turn, back west; the average), the Salt Slalom, the Ramp Run (a minute among the ramps: every flight
+  scores its distance, back-to-back flights raise the multiplier), and Big Air.
+- **The salt clubs**: 150, 200, 250, 300 and 330 mph ("Wide Open") anywhere on the salt, each paid once. The check is
+  one comparison a frame until the car beats the next club's speed.
+
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
 One night, City Limits': a full moon bright enough to see the country and the salt. The town's ~1,100 lights
@@ -126,5 +140,4 @@ are the shader's own eight lamps, as in Back Forty.
 
 ## Next
 
-- Salt speed challenges.
 - Robot racers (HD's drivers and Showdown's cross-country drivers).

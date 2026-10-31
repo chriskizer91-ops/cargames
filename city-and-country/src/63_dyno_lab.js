@@ -14,7 +14,7 @@ const DLC={well:'#07080b',raised:'#181b23',line:'rgba(214,220,255,.09)',line2:'r
   accent:'#ff3d5a',amber:'#ffb43c',a:'#3fd8ff',b:'#ff5ab4',go:'#5dff7a',blue:'#4c86ff'};
 const DLF={num:'"Saira Condensed","Arial Narrow",sans-serif',disp:'"Chakra Petch","Arial Narrow",sans-serif'};
 const dlA=(hex,a)=>{const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
-const dlFmt=n=>Math.round(n).toLocaleString('en-US');
+const dlFmt=n=>NF.format(Math.round(n));
 const DL={tab:'',cv:{},face:null,faceKey:'',glow:[],crankPh:0,shown:{},ro:{},au:null,lut:null,scopeAmp:0,rows:[],built:false,specKey:'',n:0,tuneT:0,curve:null};
 const DL_TABS=[['sheet','Sheet'],['curve','Engine'],['crank','Firing'],['scope','Sound'],['spec','Spectrum'],['tune','Tune']];
 const DL_CHIPS=[['lim','Limiter','red'],['step','Two-step','amber',e=>e.launch],['tc','TC','green'],['al','Anti-lag','amber',e=>e.antilag],
