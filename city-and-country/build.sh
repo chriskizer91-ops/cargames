@@ -17,7 +17,7 @@ DRIVE="40_physics 41_ground 42_chassis 43_sim 37_newbuilds 44_ai 45_ev"
 # the world: the generator (run in a worker), the chunks round the camera, the world's dev panel and cruise, the dust and mud, the developer panel, the graphics
 WORLD="50_worldgen 51_world 52_world_dev 53_fx 54_dev 55_gfx 55_post"
 # the game: the garage's parts, the ratings, the feats, day and night, the game, its HUD, menu, garage, touch and boot
-GAME="56_parts 57_ratings 58_ccparts 58_feats 59_daynight 60_game 60_race 61_hud 62_menu 63_garage 63_showroom 63_dyno_lab 64_touch 65_boot"
+GAME="56_parts 57_ratings 58_ccparts 58_feats 59_daynight 60_game 60_race 60_park 61_hud 62_menu 63_garage 63_showroom 63_dyno_lab 64_touch 65_boot"
 
 page city-and-country.html game $CARS $DRIVE $WORLD $GAME
 # the artifact host wants the doctype in capitals

@@ -58,11 +58,12 @@ let PLACES=[];
 /* inside Marisol's garage, facing its door (the game starts here) */
 const HOME=[58,95,-PI/2];
 function computePlaces(){
-  const L=WG.L,P=WG.PARK,hx=WG.HWY_X,rz=z=>WG.offNS(0,z);
+  const L=WG.L,P=WG.PARK,K=WG.PKW,hx=WG.HWY_X,rz=z=>WG.offNS(0,z);
   PLACES=[['garage',"Marisol's garage",...HOME],['downtown','Downtown, on Highway 40',-60,4,0],['neon','Neon Row',-180,117,0],['ring','Limits Boulevard',-120,-352,0],
     ['hwyE','Highway 40, heading east',420,4,0],['hwyW','Highway 40, heading west',-420,-4,PI],['gas',"Deke's Gas",470,-32,PI/2],['diner','The Starlite Diner',-470,22,0],
     ['ridge','Ridge Road, into the hills',rz(-420)+1,-420,PI/2],['hills','Up in the hills',rz(-2200)+1,-2200,PI/2],['wash','Wash Road, south',rz(420)-1,420,-PI/2],
-    ['bog','The bog',WG.BOG.x+48,WG.BOG.z,PI],['park','The off-road park ground',(P.x0+P.x1)/2,(P.z0+P.z1)/2,0],
+    ['bog','The bog',WG.BOG.x+48,WG.BOG.z,PI],['paddock','The off-road park: the paddock',K.ROADX,K.LOT.z1-12,PI/2],['oval','Speedway 25 (the oval)',K.OV.x-14,K.OV.z+K.OV.R-2,0],
+    ['short','The short course',-2690,-840,0],['mud','The mud track',-2412,-1440,0],['strip','The drag strip',K.ST.start-3.2,K.ST.lanes[0],0],
     ['saltE','Where the highway ends (east)',hx-200,4,0],['saltW','Where the highway ends (west)',-hx+200,-4,PI],['deep','Deep out on the salt',hx+3000,400,0]];
 }
 /* the name of the place the car is in */
@@ -79,7 +80,7 @@ function placeCar(x,z,yaw){
   /* a fresh place: the first few seconds take the world as fast as it comes (51_world worldDrain) */
   WORLD.rush=APP.t+4;
   GAME.frozen=false;
-  LAP.on=false;LAP.s=-1;Feats.resetCar();
+  LAP.on=false;LAP.s=-1;parkReset();Feats.resetCar();
   const t=GAME.car,y=RANCH.W.heightAt(x,z);
   t.place([x,y+.05,z],yaw);
   for(const w of t.wheels){w.comp=0;w.ang=0;w.w=0;}
@@ -232,6 +233,9 @@ function step(dt){
   }
   /* a race: held on the grid until the lights go green; paused with the menu up (60_race) */
   if(RACE.on&&RACE.hold)drive={steer:0,thr:drive.thr||0,brk:1,hb:1,nos:false};
+  /* the drag strip's tree (60_park): the car held on its brakes until green (rev it all you like); the gas
+     floored before green is a red light */
+  if(!RACE.on&&PARKT.dr.st==='tree'){if(drive.thr>.6&&!PARKT.dr.foul){PARKT.dr.foul=true;say('RED LIGHT',1.8,PAL.red);}drive={steer:drive.steer||0,thr:drive.thr||0,brk:1,hb:1,nos:false,park:true};}
   if(RACE.on&&GAME.state!=='drive'){GAME.acc=0;return;}
   /* paused: the car is held exactly as it was (speed and all) until the menu closes; changing it or going
      somewhere places it afresh, and that unfreezes it */
@@ -268,7 +272,7 @@ function step(dt){
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(dt);else{lapStep(dt,t);runStep(dt,t);}}
+  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(dt);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);}}
 }
 /* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
    gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
@@ -333,6 +337,8 @@ const springTo=(x,v,t,w,dt)=>{const a=2*dt*w,b=dt*dt*w*w,n=(x*(1+a)+dt*v+b*t)/(1
 function camUpdate(dt){
   const t=GAME.car,M=t.M,F=mcol(M,0),U=mcol(M,1),sp=t.speed,mode=CAMS[APP.cam],cut=CAM.cut,lift=liftOf(t),D=carD(t),kl=Math.sqrt(D.L/4.92);CAM.cut=false;
   CAM.shake=Math.max(0,CAM.shake-dt*3);
+  /* (a fixed view from somewhere else, for the tools: {eye, at, fov}) */
+  if(CAM.over){const o=CAM.over;return {eye:o.eye.slice(),fwd:norm2(sub2(o.at,o.eye)),up:[0,1,0],fov:o.fov||1};}
   const body=(x,y,z)=>add(t.p,mvec(M,[x-t.cg[0],y-t.cg[1],z]));let eye,fwd,up=[0,1,0],fov=1.02;
   if(APP.orbit){
     /* the garage: round and round the car, a little above it */

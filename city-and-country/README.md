@@ -33,16 +33,33 @@ x runs east, z south; downtown is at the origin.
   (gravel), Wash Road south (dirt), the others blacktop, gravel or dirt a stretch at a time. Farms, creeks, woods,
   hills to the north, rolling ground, drier toward the salt. Deke's Gas east of town and the Starlite Diner west,
   on the highway. The bog south of town. Marisol's garage downtown, where the game starts.
-- **The off-road park's ground**: kept clear and level west of town, north of the highway (`PARK`), for the
-  tracks to come.
+- **The off-road park** (`PKW` in the generator, the clocks in `src/60_park.js`), west of town, north of the
+  highway, in by Park Road from Highway 40 under a lit gate:
+  - **Speedway 25**: HD's banked clay oval, half a mile round (14 degrees in the turns, 5 on the straights), a
+    concrete wall and catch fence, a grandstand with a press box, eight light towers, haulers in the infield.
+  - **The short course**: HD's, 1.8 km of loose dirt: two tabletops, the whoops, berms in the turns, a crest
+    and the big sweeper home; a start gantry, tyre walls round the turns, flags.
+  - **The mud track**: a 770 m loop sunk in the ground, the right way round, banked turns, a chicane and a
+    splash of standing water; an arch with its name, round bales round the turns.
+  - **The drag strip**: HD's eighth mile of packed dirt, two lanes, the tree, timing boards, fences, light poles,
+    a little grandstand, bales at the end of the shutdown.
+  - **The paddock**: a lot with haulers, the park office and its sign; a gravel lane north between the tracks.
+  - Each track is a path of lines and arcs; the banking, berms, jumps and whoops are the ground's own heights,
+    and the track's surface is drawn on the ground's own triangles (`genGround`), its look fading to grass at
+    the edge where the ground's grass takes over, so the physics drives exactly what's drawn.
+  - Laps are timed on the three circuits (over the line, past checkpoints at a third and two thirds, over the
+    line again), the best kept for each car and level. On the strip: stop with the nose on the line in a lane,
+    the tree counts down (the car is held on its brakes), then the slip: reaction time, 60 ft, 330 ft, the
+    eighth mile and the speed. Flooring it before green is a red light.
 - **The salt flats**: past about two miles (a rounded square, its edge wandering), flat, hard (the physics'
   `strip` surface) and endless, with City Limits' ramps (kickers, table-tops, mega ramps) in most 360 m cells.
 
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
 One night, City Limits': a full moon bright enough to see the country and the salt. The town's ~1,100 lights
-(street lamps, the boulevard's twin lamps, neon, shopfronts, the gas station, the diner, the garage) are put into
-a grid of 8 m cells once (1.6 km square), each cell listing the lights that reach it, and the lit shader lights each
+(street lamps, the boulevard's twin lamps, neon, shopfronts, the gas station, the diner, the garage) and the off-road
+park's towers and poles are put into a grid of 8 m cells once (3.8 by 2.4 km, town and park), each cell listing the
+lights that reach it, and the lit shader lights each
 pixel from its cell's list (City Limits' cluster grid). The headlights and the farms' yard lights nearest the car
 are the shader's own eight lamps, as in Back Forty.
 
@@ -52,8 +69,11 @@ are the shader's own eight lamps, as in Back Forty.
 - `python3 tools/drive_check.py hwyE 70`: town to the end of the highway on the salt; no NaNs, no ground steps.
 - `python3 tools/boot_check.py`, `tools/shot.py`, the rest of Back Forty's tools still apply.
 
+- `python3 tools/park_drive.py oval,short,mud,strip 1 [car] [speed cap m/s]`: a robot lap of each circuit and a
+  drag run; no NaNs, no ground steps, the lap clock and the slip.
+
 ## Next
 
-- The off-road park (dirt oval, short course, mud track, drag strip) and the super off-road circuit round the city.
+- The super off-road circuit round the city.
 - City Limits' career, challenges and jobs, with the Tune sheet as the shopping list in career.
 - Robot racers (HD's drivers and Showdown's cross-country drivers).

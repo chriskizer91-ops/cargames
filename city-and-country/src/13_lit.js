@@ -201,8 +201,8 @@ vec3 shade(vec3 P,vec3 N,vec3 V,vec3 alb,float spec,float sh){
      ground (59_daynight), each cell with its own list, so a street can have hundreds of lights for the price of
      the few that reach this pixel. Lights: position (relative to the origin) and reach, colour, spot direction
      and the cosine of its edge (-2: every way) */
-  if(uLGOn>.5){vec3 Pg=P-vec3(uLG.x,0.,uLG.y);ivec2 cc=ivec2(floor(Pg.xz*uLG.z));int gw=int(uLG.w);
-    if(cc.x>=0&&cc.y>=0&&cc.x<gw&&cc.y<gw){uvec2 g=texelFetch(uLGrid,cc,0).xy;
+  if(uLGOn>.5){vec3 Pg=P-vec3(uLG.x,0.,uLG.y);ivec2 cc=ivec2(floor(Pg.xz*uLG.z)),gs=textureSize(uLGrid,0);
+    if(cc.x>=0&&cc.y>=0&&cc.x<gs.x&&cc.y<gs.y){uvec2 g=texelFetch(uLGrid,cc,0).xy;
       for(uint q=0u;q<g.y;q++){uint e=g.x+q;int li=int(texelFetch(uLList,ivec2(int(e&1023u),int(e>>10u)),0).r)*3;
         vec4 A=texelFetch(uLTex,ivec2(li&1023,li>>10),0);vec3 L=A.xyz-Pg;float d2=dot(L,L),r=A.w;if(d2>r*r)continue;
         vec4 Dd=texelFetch(uLTex,ivec2((li+2)&1023,(li+2)>>10),0);float d=sqrt(d2);L/=d;float k=1.-d/r;k*=k;
@@ -256,6 +256,10 @@ void grassDetail(vec2 p,inout vec3 alb){
   float f1=near(.3),f2=near(.05);if(f1<=0.)return;
   vec3 a=vnd(p*vec2(3.1,2.2)),b=vnd(p*vec2(13.,9.)+2.);gG+=(a.yz*vec2(3.1,2.2)*.025+b.yz*vec2(13.,9.)*.006*f2)*f1;
   alb*=.82+.36*mix(.5,b.x,f2)*(.7+.6*a.x);}
+/* the ground's grass over a track's own look, by t (the park's tracks fade to it at their edges, and the ground
+   past them is grass: the same sums as the ground's, so the edge of the track's triangles never shows) */
+void toGrass(vec2 wp,inout vec3 alb,inout float spec,inout float shin,float t){
+  if(t<=.004)return;vec3 gc=grassCol(wp);vec2 g0=gG;gG=vec2(0.);grassDetail(wp,gc);gG=mix(g0,gG,t);alb=mix(alb,gc,t);spec=mix(spec,.03,t);shin=mix(shin,8.,t);}
 /* rock: relief and cracks, in 3D for the boulders' sides (returns a height for the derivative bump) */
 float rockH(vec3 P){float h=fbm3(P*1.3)*.12+vn3(P*5.1)*.03*near(.08);
   if(uDetail>.6){float e=cellEdge(P.xz*.9+P.y*.4);h-=(1.-smoothstep(0.,.06,e))*.025*near(.06);}
@@ -410,6 +414,8 @@ void main(){
       ch=max(ch,(1.-step(.05,abs(ad-7.9)))*step(-12.,sx)*step(sx,250.));
       vec3 b=vnd(wp*14.);gG+=b.yz*14.*.002*near(.05)*(1.-groove);
       alb=mix(alb,vec3(.7,.68,.63),ch*(1.-.6*smoothstep(.4,.8,fbm(vec2(sx,d)*vec2(.6,2.)))));spec=.04+.1*groove;shin=8.+30.*groove;
+      /* past the shoulders and the ends: grass */
+      toGrass(wp,alb,spec,shin,max(smoothstep(10.,10.7,ad+(n2-.5)*.4),max(smoothstep(-45.4,-46.,sx),smoothstep(299.4,300.,sx))));em=0.;
     }
     else if(m==43){
       /* a two-track: packed ruts, a grassy crown, grass closing in at the verges */
@@ -429,6 +435,7 @@ void main(){
       vec3 b=vnd(wp*3.3);gG+=b.yz*3.3*.03*near(.15)*(1.-rut)*(.5+clod);
       pud=rut*smoothstep(.45,.6,fbm(vec2(sx*.15,d*.6)))*(1.-edge);
       mudCracks(wp,alb,edge*.8,spec);
+      {float gt=smoothstep(5.5,6.3,ad+(n3-.5)*.6);toGrass(wp,alb,spec,shin,gt);pud*=1.-gt;}em=0.;
     }
     else if(m==45){float j=max(step(fract(wp.x/4.),.012),step(fract(wp.y/4.),.012));alb=vec3(.26,.25,.235)*(.82+.25*vn(wp*2.3)+.1*vn(wp*13.))*(1.-.35*j);spec=.06;shin=20.;
       vec3 b=vnd(wp*24.);gG+=b.yz*24.*.0007*near(.03);alb*=1.-.18*smoothstep(.6,.85,fbm(wp*.35))*uDetail;}
@@ -495,9 +502,10 @@ void main(){
       c*=1.-.28*groove-.15*rut;c=mix(c,c*1.22+vec3(.025,.018,.01),cushion*.7);
       dirtDetail(wp,c,(1.-groove*.7)*(.45+.55*cushion));
       if(kind<.5&&d<-hw)c=mix(c*.8,vec3(.5,.49,.46),(1.-step(.12,abs(d+hw+.15))));
-      if(kind>.5&&ad>hw){vec3 gc=grassCol(wp);grassDetail(wp,gc);c=mix(c,gc,smoothstep(hw,hw+.8,ad+(n2-.5)*.6));}
       c=mix(c,vec3(.72,.7,.66),(1.-step(.35,abs(sx-.35)))*step(ad,hw)*(1.-.5*smoothstep(.45,.8,vn(vec2(sx,d)*vec2(3.,1.5)))));
-      alb=c;spec=.05+.16*groove;shin=10.+36.*groove;em=0.;
+      alb=c;spec=.05+.16*groove;shin=10.+36.*groove;
+      /* grass past the edges: the short course's verges; the oval's infield past its apron, its berm past the wall */
+      toGrass(wp,alb,spec,shin,kind>.5?smoothstep(hw,hw+.8,ad+(n2-.5)*.6):max(smoothstep(hw+2.15,hw+2.4,-d),smoothstep(hw+.85,hw+1.,d)));em=0.;
     }
     else if(m==57){
       /* the dry lake: pale clay baked into plates, the cracks between them, darker where the cars have run */

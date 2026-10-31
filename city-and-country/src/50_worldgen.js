@@ -16,7 +16,7 @@ function WORLDGEN(SEED){
 'use strict';
 SEED=SEED|0;
 const L=1609.344,MILES=20,HALF=MILES*L,CH=128,ROAD_END=HALF-1000,RIM0=HALF-760,RIM1=HALF-60;
-const MAT={COL:0,EMIT:15,METAL:16,TERRAIN:40,ROCK:41,TRAIL:43,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,GRAVEL:53,ROAD:58,FACADE:60,SIGNAL:61};
+const MAT={COL:0,EMIT:15,METAL:16,TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CLAY:56,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,GRAVEL:53,ROAD:58,FACADE:60,SIGNAL:61};
 const SURF=['grass','dirt','strip','trail','rock','mud','concrete','water','gravel','asphalt','ruts'];
 const SF={};SURF.forEach((n,i)=>SF[n]=i);
 const sst=(a,b,x)=>{let t=(x-a)/(b-a);t=t<0?0:t>1?1:t;return t*t*(3-2*t);};
@@ -104,7 +104,7 @@ const CL=[null,
   {hw:3.9,draw:3.9,sh:1.1,ditch:.7,dw:6,blend:20,name:'Blacktop'},
   null,null,
   {hw:12.6,draw:12.6,sh:1.6,ditch:1.1,dw:9,blend:44,name:'Highway 40'}];
-const SPUR={hw:2.6,draw:3.4,sh:0,ditch:0,dw:2,blend:9,name:'Driveway'};
+const SPUR={hw:2.6,draw:3.4,sh:0,ditch:0,dw:2,blend:9,name:'Driveway'},PROAD={hw:3.9,draw:3.9,sh:1,ditch:.4,dw:4,blend:12,name:'Park Road'};
 const LINE_NAME=(ns,i,z)=>ns?(i===0?(z<0?'Ridge Road':'Wash Road'):i<0?'West Line Road':'East Line Road'):(i===0?'Highway 40':i<0?'North Line Road':'South Line Road');
 
 /* ---------- the town (City Limits' plan, made once) ----------
@@ -235,6 +235,7 @@ function townLights(){
   for(const l of TW.lamps)lampLight(l,out);for(const g of TW.signs)signLight(g,out);
   for(const s of TW.spill)out.push({p:[s.x,2.4,s.z],r:6,c:s.c.map(v=>v*.32)});
   for(const P of SPECIAL)for(const b of P.bld)building(b,null,()=>{},()=>{},out,true);
+  for(const f of parkLights())out.push(f);
   return TOWN_LIGHTS=out;}
 /* what's at a point in town: how far past the nearest road's edge (negative on the road) and its sidewalk's width */
 const TQ={e:0,side:0,kind:''};
@@ -357,11 +358,160 @@ function rampAt(x,z){let h=0;const fx=x/RCELL,fz=z/RCELL,ci=Math.floor(fx),cj=Ma
 const PARK_Y=(()=>{const x=(PARK.x0+PARK.x1)/2,z=(PARK.z0+PARK.z1)/2,k=hillK(x,z);
   return (fbm(x/3300+1.7,z/3300+4.1,2,21)-.5)*2*(14+60*k)+(fbm(x/700+3.3,z/700-8.2,2,31)-.5)*2*(2.5+15*k)*.55;})();
 
+/* ---------- THE OFF-ROAD PARK: four tracks round a paddock, on the level ground west of town ----------
+   Speedway 25 (HD's banked clay oval, half a mile round), the short course (HD's: two tabletops, the whoops,
+   berms in the turns and the big sweeper home), the mud track (a long loop sunk in the ground, banked turns,
+   a chicane and a splash), and an eighth-mile dirt drag strip with a tree. The paddock and its lot are on
+   the park road in from the highway; a gravel lane runs north from the lot between the tracks.
+   Each track is a path of straight lines and arcs (an arc's angle 0 points south (+z), PI/2 east (+x), as in
+   HD), so where a point sits on it (metres along, metres across, positive to the right) is worked out
+   exactly. The banking, berms, jumps and whoops are the ground's own heights, and the track's surface is
+   drawn on the ground's own triangles (genGround), so the physics drives exactly what is drawn. */
+const PKW=(()=>{
+  const PI=Math.PI;
+  /* a path from its pieces: their lengths, where each starts along it, how hard each turns (negative left) */
+  function mkPath(prims,closed){let s=0;const bb=[1e9,1e9,-1e9,-1e9],ext=(x,z)=>{bb[0]=Math.min(bb[0],x);bb[1]=Math.min(bb[1],z);bb[2]=Math.max(bb[2],x);bb[3]=Math.max(bb[3],z);};
+    for(const p of prims){p.s0=s;
+      if(p.t==='L'){p.len=Math.hypot(p.x1-p.x0,p.z1-p.z0);p.ux=(p.x1-p.x0)/p.len;p.uz=(p.z1-p.z0)/p.len;p.k=0;ext(p.x0,p.z0);ext(p.x1,p.z1);}
+      else{p.sg=p.a1>p.a0?1:-1;p.span=Math.abs(p.a1-p.a0);p.len=p.span*p.R;p.k=-p.sg/p.R;for(let i=0;i<=24;i++){const a=p.a0+(p.a1-p.a0)*i/24;ext(p.cx+p.R*Math.sin(a),p.cz+p.R*Math.cos(a));}}
+      s+=p.len;}
+    return {prims,len:s,closed,bb};}
+  /* a path laid out by steering: ['L', metres] straight on, ['A', radius, degrees] round (positive left) */
+  function steer(x,z,dx,dz,cmds){const out=[];
+    for(const c of cmds){
+      if(c[0]==='L'){const x1=x+dx*c[1],z1=z+dz*c[1];out.push({t:'L',x0:x,z0:z,x1,z1});x=x1;z=z1;continue;}
+      const R=c[1],th=c[2]*PI/180,sg=th>0?1:-1,cx=x+(sg>0?dz:-dz)*R,cz=z+(sg>0?-dx:dx)*R,a0=Math.atan2(x-cx,z-cz),a1=a0+th;
+      out.push({t:'A',cx,cz,R,a0,a1});x=cx+R*Math.sin(a1);z=cz+R*Math.cos(a1);dx=sg*Math.cos(a1);dz=-sg*Math.sin(a1);}
+    return {prims:out,x,z,dx,dz};}
+  /* where (x, z) is on a path: s along, off across (positive right), d away, the way it runs, how hard it turns */
+  function near(P,x,z,o){let best=1e18;
+    for(const p of P.prims){let px,pz,dx,dz,sl;
+      if(p.t==='L'){let t=(x-p.x0)*p.ux+(z-p.z0)*p.uz;t=t<0?0:t>p.len?p.len:t;px=p.x0+p.ux*t;pz=p.z0+p.uz*t;dx=p.ux;dz=p.uz;sl=t;}
+      else{const a=Math.atan2(x-p.cx,z-p.cz);let u=((a-p.a0)*p.sg)%(2*PI);if(u<0)u+=2*PI;if(u>p.span)u=u-p.span<2*PI-u?p.span:0;
+        const A=p.a0+p.sg*u;px=p.cx+p.R*Math.sin(A);pz=p.cz+p.R*Math.cos(A);dx=p.sg*Math.cos(A);dz=-p.sg*Math.sin(A);sl=u*p.R;}
+      const d2=(x-px)*(x-px)+(z-pz)*(z-pz);if(d2<best){best=d2;o.s=p.s0+sl;o.dx=dx;o.dz=dz;o.off=(x-px)*-dz+(z-pz)*dx;o.k=p.k;}}
+    o.d=Math.sqrt(best);return o;}
+  /* the point s along a path, and the way it runs there */
+  function at(P,s,o){const L=P.len;if(P.closed){s%=L;if(s<0)s+=L;}else s=Math.max(0,Math.min(L,s));
+    let p=P.prims[P.prims.length-1];for(const q of P.prims)if(s<q.s0+q.len){p=q;break;}const u=s-p.s0;
+    if(p.t==='L'){o.x=p.x0+p.ux*u;o.z=p.z0+p.uz*u;o.dx=p.ux;o.dz=p.uz;}
+    else{const A=p.a0+p.sg*u/p.R;o.x=p.cx+p.R*Math.sin(A);o.z=p.cz+p.R*Math.cos(A);o.dx=p.sg*Math.cos(A);o.dz=-p.sg*Math.sin(A);}
+    o.k=p.k;return o;}
+  /* how hard it turns at s, averaged over +-w metres (so the banking eases in and out) */
+  function kAvg(P,s,w){let t=0;const L=P.len,sh=P.closed?[-L,0,L]:[0];
+    for(const p of P.prims){if(!p.k)continue;for(const o of sh){const a=Math.max(s-w,p.s0+o),b=Math.min(s+w,p.s0+o+p.len);if(b>a)t+=p.k*(b-a);}}return t/(2*w);}
+
+  /* ---- Speedway 25: HD's oval, counter-clockwise on the map from the middle of the front (south) straight ---- */
+  const OV={x:-2050,z:-820,half:100,R:64,hw:8};
+  const oval=mkPath([{t:'L',x0:OV.x,z0:OV.z+OV.R,x1:OV.x+OV.half,z1:OV.z+OV.R},{t:'A',cx:OV.x+OV.half,cz:OV.z,R:OV.R,a0:0,a1:PI},
+    {t:'L',x0:OV.x+OV.half,z0:OV.z-OV.R,x1:OV.x-OV.half,z1:OV.z-OV.R},{t:'A',cx:OV.x-OV.half,cz:OV.z,R:OV.R,a0:PI,a1:2*PI},
+    {t:'L',x0:OV.x-OV.half,z0:OV.z+OV.R,x1:OV.x,z1:OV.z+OV.R}],true);
+  /* ---- the short course: HD's, moved here. The start straight east, a banked 180 left, the whoops back west, a
+     right hairpin, the second jump east, another banked 180, the long run west and the big sweeper home ---- */
+  const SH_HW=6;
+  const short=mkPath([{t:'L',x0:-2700,z0:-840,x1:-2450,z1:-840},{t:'A',cx:-2450,cz:-900,R:60,a0:0,a1:PI},{t:'L',x0:-2450,z0:-960,x1:-2570,z1:-960},
+    {t:'A',cx:-2570,cz:-1010,R:50,a0:0,a1:-PI},{t:'L',x0:-2570,z0:-1060,x1:-2420,z1:-1060},{t:'A',cx:-2420,cz:-1110,R:50,a0:0,a1:PI},
+    {t:'L',x0:-2420,z0:-1160,x1:-2700,z1:-1160},{t:'A',cx:-2700,cz:-1000,R:160,a0:PI,a1:2*PI}],true);
+  const NQ={};const sAt=(P,x,z)=>near(P,x,z,NQ).s;
+  const JUMPS=[{s:sAt(short,-2570,-840),h:1.7,up:11,top:12,down:13},{s:sAt(short,-2495,-1060),h:1.5,up:10,top:10,down:12}];
+  const WHOOP=[sAt(short,-2465,-960),sAt(short,-2535,-960)],CREST=sAt(short,-2560,-1160);
+  /* ---- the mud track: a long loop the right way round (clockwise on the map), the north straight first,
+     a chicane in the back straight and a splash before the last turn ---- */
+  const MUD_HW=5;
+  const mud=(()=>{const T=steer(-2400,-1440,1,0,[['L',150],['A',50,-180],['L',30],['A',40,45],['A',40,-90],['A',40,45],['L',76.9],['A',50,-180]]);
+    T.prims.push({t:'L',x0:T.x,z0:T.z,x1:-2400,z1:-1440});return mkPath(T.prims,true);})();
+  const SPLASH=[mud.prims[6].s0+12,mud.prims[6].s0+60];
+  /* ---- the drag strip: east from the line, two lanes, the eighth mile and a long shutdown ---- */
+  const ST={x0:-2826,start:-2780,x1:-2480,z:-360,half:9,lanes:[-364,-356],eighth:201.168,quarter:402.336};
+  /* ---- the paddock's lot, the park road in from the highway, the lane north between the tracks ---- */
+  const LOT={x0:-2390,z0:-420,x1:-2230,z1:-310},ROADX=-2310,LANEX=-2300,LANEZ=-1290;
+  const TRACKS=[{id:'oval',name:'Speedway 25',P:oval,hw:OV.hw,kind:'circuit'},{id:'short',name:'The short course',P:short,hw:SH_HW,kind:'circuit'},
+    {id:'mud',name:'The mud track',P:mud,hw:MUD_HW,kind:'circuit'}];
+  /* the bounds each one shapes the ground within */
+  const grow=(b,m)=>[b[0]-m,b[1]-m,b[2]+m,b[3]+m],OVB=grow(oval.bb,44),SHB=grow(short.bb,30),MUB=grow(mud.bb,26),STB=[ST.x0-30,ST.z-44,ST.x1+30,ST.z+44];
+  const inB=(b,x,z)=>x>b[0]&&x<b[2]&&z>b[1]&&z<b[3];
+
+  /* the heights across them, over the park's level */
+  function ovalLift(s,off){const hw=OV.hw,k=kAvg(oval,s,18),th=(5+9*sst(1/260,1/90,Math.abs(k)))*PI/180,t=Math.tan(th),top=t*2*hw;
+    if(off<=-hw)return 0;if(off<=hw)return t*(off+hw);if(off<=hw+3)return top;return top*(1-sst(hw+3,hw+14,off));}
+  function table(u,J){const a=J.top/2;if(u<-a-J.up||u>a+J.down)return 0;if(u<-a)return J.h*Math.pow((u+a+J.up)/J.up,1.25);if(u<=a)return J.h;return J.h*(1-sst(a,a+J.down,u));}
+  function shortLift(s,off){const hw=SH_HW,k=kAvg(short,s,10),out=-Math.sign(k)||1,o=off*out,t=Math.min(.22,Math.abs(k)*14),across=1-sst(hw+.5,hw+4,Math.abs(off));
+    let y=0;if(o>-hw)y+=o<=hw?t*(o+hw):t*2*hw*(1-sst(hw+1,hw+9,o));
+    for(const J of JUMPS)y+=table(s-J.s,J)*across;
+    if(s>WHOOP[0]&&s<WHOOP[1])y+=.32*(.5-.5*Math.cos((s-WHOOP[0])/8*2*PI))*sst(WHOOP[0],WHOOP[0]+6,s)*sst(WHOOP[1],WHOOP[1]-6,s)*across;
+    y+=1.3*Math.exp(-Math.pow((s-CREST)/14,2))*across;
+    return y;}
+  function splashK(s){return sst(SPLASH[0],SPLASH[0]+12,s)*(1-sst(SPLASH[1]-12,SPLASH[1],s));}
+  function mudLift(s,off){const hw=MUD_HW,ao=Math.abs(off),k=kAvg(mud,s,12),out=-Math.sign(k)||1,o=off*out,t=Math.min(.1,Math.abs(k)*5);
+    const inT=1-sst(hw-.6,hw+1.4,ao);
+    let y=-.4*inT;
+    if(t>0&&o>-hw)y+=o<=hw?t*(o+hw):t*2*hw*(1-sst(hw+1,hw+7,o));
+    /* mud pushed up into a lip along both sides, lumps along the bed, the splash's dip */
+    y+=.42*Math.exp(-Math.pow((ao-hw-1.7)/1.2,2));
+    y+=(vn(s/4.3,off/2.9,881)-.5)*.3*inT;
+    y-=.6*splashK(s)*(1-sst(hw-1.5,hw+1,ao));
+    return y;}
+
+  /* what the park makes of a point: its height over the park's level (lift), how smooth the ground must be
+     (sm), the surface (code, or -1), how grassy (g, or -1), standing water, and the track it is drawn as:
+     tm (its material), ta..td (along, across, kind, half width), tin (inside the drawn edge) */
+  function q(x,z,o){
+    o.lift=0;o.sm=0;o.code=-1;o.g=-1;o.wet=0;o.wl=0;o.tm=0;o.ta=0;o.tb=0;o.tc=0;o.td=0;o.tin=0;o.tlen=0;
+    if(inB(OVB,x,z)){near(oval,x,z,NQ);const hw=OV.hw,d=NQ.d,off=NQ.off,inf=Math.hypot(Math.max(0,Math.abs(x-OV.x)-OV.half),z-OV.z)<OV.R;
+      if(inf)o.g=1;if(d>hw+40)return o;
+      o.g=inf?1:1-sst(hw+12,hw+30,d);if(d<hw+16)o.lift=ovalLift(NQ.s,off);o.sm=1-sst(hw+16,hw+24,d);
+      o.code=off>-hw-2.2&&off<hw+.6?SF.strip:SF.grass;
+      if(off>-hw-2.4-16&&off<hw+.9+16){o.tm=MAT.CLAY;o.ta=NQ.s;o.tb=off;o.tc=0;o.td=hw;o.tin=off>-hw-2.4&&off<hw+.9?1:0;o.tlen=oval.len;}
+      return o;}
+    if(inB(SHB,x,z)){near(short,x,z,NQ);const hw=SH_HW,d=NQ.d;if(d>hw+26)return o;
+      o.g=1-sst(hw+12,hw+24,d);if(d<hw+11)o.lift=shortLift(NQ.s,NQ.off);o.sm=1-sst(hw+11,hw+17,d);
+      o.code=d<hw+.3?SF.dirt:SF.grass;
+      if(d<hw+1.2+16){o.tm=MAT.CLAY;o.ta=NQ.s;o.tb=NQ.off;o.tc=1;o.td=hw;o.tin=d<hw+1.2?1:0;o.tlen=short.len;}
+      return o;}
+    if(inB(MUB,x,z)){near(mud,x,z,NQ);const hw=MUD_HW,d=NQ.d;if(d>hw+22)return o;
+      o.g=1-sst(hw+10,hw+20,d);if(d<hw+10)o.lift=mudLift(NQ.s,NQ.off);o.sm=1-sst(hw+10,hw+14,d);
+      const sp=splashK(NQ.s);
+      o.code=d<hw?(sp>.5&&d<hw-1.2?SF.water:SF.mud):d<hw+1.4?SF.dirt:SF.grass;
+      if(sp>0&&d<hw+.6){o.wet=d<hw-.8&&sp>.2?1:0;o.wl=PARK_Y-.4-.6+.34;}
+      if(d<6.4+16){o.tm=MAT.MUDTRACK;o.ta=NQ.s;o.tb=NQ.off;o.tc=0;o.td=hw;o.tin=d<6.4?1:0;o.tlen=mud.len;}
+      return o;}
+    if(inB(STB,x,z)){const dz=z-ST.z,ad=Math.abs(dz),ex=Math.max(ST.x0-x,0,x-ST.x1);
+      o.g=1-sst(ST.half+10,ST.half+26,Math.hypot(ex,Math.max(0,ad-ST.half)));o.sm=1-sst(4,12,Math.hypot(ex,Math.max(0,ad-ST.half-2)));
+      if(ex<=0&&ad<ST.half+.5)o.code=SF.strip;else if(ex<=0&&ad<ST.half+2)o.code=SF.dirt;
+      if(ex<16&&ad<10.8+16){o.tm=MAT.STRIP;o.ta=x-ST.start;o.tb=dz;o.tc=0;o.td=ST.half;o.tin=ex<=.6&&ad<10.8?1:0;o.tlen=0;}
+      return o;}
+    return o;}
+  /* nothing of the park's within reach (for its trees) */
+  function clear(x,z){
+    for(const T of TRACKS){const b=T.P.bb;if(x>b[0]-60&&x<b[2]+60&&z>b[1]-60&&z<b[3]+60&&near(T.P,x,z,NQ).d<T.hw+36)return false;}
+    if(x>ST.x0-30&&x<ST.x1+30&&Math.abs(z-ST.z)<ST.half+30)return false;
+    if(x>LOT.x0-25&&x<LOT.x1+25&&z>LOT.z0-25&&z<LOT.z1+25)return false;
+    if(Math.abs(x-ROADX)<14&&z>LOT.z1-5||Math.abs(x-LANEX)<12&&z<LOT.z0+5&&z>LANEZ-12)return false;
+    if(x>OV.x-OV.half-OV.R-40&&x<OV.x+OV.half+OV.R+40&&z>OV.z-OV.R-40&&z<OV.z+OV.R+50)return false;
+    return true;}
+  /* what a spot in the park is called */
+  function nameAt(x,z){
+    for(const T of TRACKS){const b=T.P.bb;if(x<b[0]-T.hw-30||x>b[2]+T.hw-0+30||z<b[1]-T.hw-30||z>b[3]+T.hw+30)continue;if(near(T.P,x,z,NQ).d<T.hw+25)return T.name;}
+    if(x>ST.x0-20&&x<ST.x1+20&&Math.abs(z-ST.z)<ST.half+16)return 'The drag strip';
+    if(x>LOT.x0-6&&x<LOT.x1+6&&z>LOT.z0-6&&z<LOT.z1+6)return 'The paddock';
+    if(Math.abs(x-ROADX)<9&&z>LOT.z1&&z<-12)return 'Park Road';
+    if(Math.abs(x-LANEX)<7&&z<LOT.z0&&z>LANEZ-4)return 'The paddock lane';
+    return null;}
+  return {OV,oval,short,mud,ST,LOT,ROADX,LANEX,LANEZ,SH_HW,MUD_HW,JUMPS,WHOOP,CREST,SPLASH,TRACKS,near,at,kAvg,q,nameAt,clear};
+})();
+/* the paddock as a place: its lot, the park road in from the highway, the lane north, the office */
+SPECIAL.push((()=>{const Lt=PKW.LOT,e=CL[6].hw+CL[6].sh+.05,ox0=Lt.x1-46,oz0=Lt.z0+8;
+  return {pads:[{x0:Lt.x0,z0:Lt.z0,x1:Lt.x1,z1:Lt.z1,surf:'concrete',bl:10}],
+    spurs:[{x0:PKW.ROADX,z0:-e,x1:PKW.ROADX,z1:Lt.z1+.3,ax:'z',cl:3,c:PROAD},{x0:PKW.LANEX,z0:PKW.LANEZ,x1:PKW.LANEX,z1:Lt.z0-.3,ax:'z'}],
+    bld:[{t:'box',b:[ox0,oz0,ox0+36,oz0+16],h:5.6,roof:'flat',col:lc(200,196,186),mat:MAT.SHEET},
+      {t:'neon',word:'OFF-ROAD PARK',o:[ox0+3,oz0+16.25],rt:[1,0],n:[0,1],px:.18,h0:3.3,col:[1,.55,.1]},{t:'neon',word:'ENTRIES',o:[ox0+28,oz0+16.25],rt:[1,0],n:[0,1],px:.08,h0:2.2,col:[.3,.95,1]}],
+    trees:[],name:'The paddock',x:(Lt.x0+Lt.x1)/2,z:(Lt.z0+Lt.z1)/2,special:1};})());
+
 /* ---------- one point of the world ----------
    ctx holds the roads near the point (ns: [xc, inv, cls] for each north-south line at this z; ew: [zc, inv,
    cls] for each east-west line at this x), and the pads and spurs of the plans near it. o gets: h, code,
    grass, rock, mud, salt, wet, wl (the water's level), B (the road base), rk. */
-const CR={dep:0,wet:0,dc:1e9};
+const CR={dep:0,wet:0,dc:1e9},PQO={};
 function core(x,z,ctx,o){
   const td=townD(x,z);
   /* (two short cuts: inside town and out on the salt the land's own shape doesn't matter) */
@@ -372,11 +522,11 @@ function core(x,z,ctx,o){
     else if(dz==='park'){code=SF.grass;grass=1;}
     else if(dz==='residential'){grass=Math.max(.6,sst(.32,.6,fbm(x/30+5,z/30,2,111)+.18));code=grass>.35?SF.grass:SF.dirt;}
     else code=SF.concrete;
-    o.h=tq.e<0?0:.12;o.code=code;o.grass=grass;o.rock=0;o.mud=0;o.salt=0;o.ramp=0;o.wet=0;o.wl=o.h;o.B=0;o.rk=0;o.k=0;return o;}
+    o.h=tq.e<0?0:.12;o.code=code;o.grass=grass;o.rock=0;o.mud=0;o.salt=0;o.ramp=0;o.wet=0;o.wl=o.h;o.B=0;o.rk=0;o.k=0;o.tm=0;o.tin=0;return o;}
   const sd=saltD(x,z);
   if(sd>LAND+SALT_BL){const ramp=rampAt(x,z);let code=ramp>.04?SF.concrete:SF.strip,h=SALT_Y+ramp;
     const ew=ctx.ew;for(let q=0;q<ew.length;q+=3){const cl=ew[q+2];if(cl&&Math.abs(z-ew[q])*ew[q+1]<CL[cl].hw){code=SF.asphalt;h=SALT_Y;}}
-    o.h=h+rimAt(x,z);o.code=code;o.grass=0;o.rock=0;o.mud=0;o.salt=1;o.ramp=ramp;o.wet=0;o.wl=o.h;o.B=SALT_Y;o.rk=0;o.k=0;return o;}
+    o.h=h+rimAt(x,z);o.code=code;o.grass=0;o.rock=0;o.mud=0;o.salt=1;o.ramp=ramp;o.wet=0;o.wl=o.h;o.B=SALT_Y;o.rk=0;o.k=0;o.tm=0;o.tin=0;return o;}
   const k=hillK(x,z,td,sd),rim=rimAt(x,z);
   const tk=1-sst(EDGE+10,EDGE+230,td),sk=sst(LAND,LAND+SALT_BL,sd),pk=1-sst(30,170,parkD(x,z));
   const big=(fbm(x/3300+1.7,z/3300+4.1,2,21)-.5)*2*(14+60*k);
@@ -388,8 +538,10 @@ function core(x,z,ctx,o){
   const out=rk>0?rk*(4+7*vn(x/41,z/41,71)):0;
   creekAt(x,z,CR,td,sd);
   let T=big+med+det*(1-pk*.85)+out+rim-CR.dep;
-  /* the park's level ground; the town's flat streets and raised blocks; the salt, flat but for its ramps */
-  if(pk>0){T=T+(PARK_Y+det*.12-T)*pk;B=B+(PARK_Y-B)*pk;}
+  /* the park's level ground and its tracks' banking, berms and jumps (smooth where they run); the town's flat
+     streets and raised blocks; the salt, flat but for its ramps */
+  let PQ=null;
+  if(pk>0){PQ=PKW.q(x,z,PQO);T=T+(PARK_Y+PQ.lift+det*.12*(1-PQ.sm)-T)*pk;B=B+(PARK_Y-B)*pk;}
   if(tk>0){T=T*(1-tk);B=B*(1-tk);}
   let ramp=0;if(sk>.98){ramp=rampAt(x,z);}
   if(sk>0){T=T+(SALT_Y+ramp-T)*sk;B=B+(SALT_Y-B)*sk;}
@@ -408,7 +560,7 @@ function core(x,z,ctx,o){
   for(let q=0;q<ew.length;q+=3){const cl=ew[q+2];if(!cl)continue;const dd=Math.abs(z-ew[q])*ew[q+1];if(dd<80)roadC(dd,CL[cl],cl);}
   for(const s of ctx.spurs){const dd=s.ax==='x'?(x<Math.min(s.x0,s.x1)?Math.hypot(x-Math.min(s.x0,s.x1),z-s.z0):x>Math.max(s.x0,s.x1)?Math.hypot(x-Math.max(s.x0,s.x1),z-s.z0):Math.abs(z-s.z0))
     :(z<Math.min(s.z0,s.z1)?Math.hypot(z-Math.min(s.z0,s.z1),x-s.x0):z>Math.max(s.z0,s.z1)?Math.hypot(z-Math.max(s.z0,s.z1),x-s.x0):Math.abs(x-s.x0));
-    if(dd<40)roadC(dd,SPUR,7);}
+    if(dd<40)roadC(dd,s.c||SPUR,s.cl===3?3:7);}
   let pad=null;
   for(const p of ctx.pads){const dx=Math.max(p.x0-x,0,x-p.x1),dz=Math.max(p.z0-z,0,z-p.z1),dp=Math.hypot(dx,dz);if(dp>p.bl+3)continue;
     const f=1-sst(0,1.5,dp);if(f>flat)flat=f;const cr=1-sst(2,2+p.bl,dp);if(cr>corr)corr=cr;if(dp<=0)pad=p;}
@@ -429,6 +581,7 @@ function core(x,z,ctx,o){
   if(best<0)code=bCls===7||bCls===2?SF.gravel:bCls>=3?SF.asphalt:SF.trail;
   else if(bCls>=3&&bCls<7&&best<CL[bCls].sh)code=SF.gravel;
   if(best<1.2&&mud<=.5){grass*=.4;}
+  if(PQ){if(PQ.code>=0&&best>=0)code=PQ.code;if(PQ.g>0){grass=Math.max(grass,PQ.g);rock*=1-PQ.g;}}
   if(pad){code=SF[pad.surf];grass=0;rock=0;}
   if(CR.wet&&!pad&&best>1)code=SF.water;
   if(best<0&&bCls===1&&mud>.5)code=SF.mud;
@@ -436,6 +589,8 @@ function core(x,z,ctx,o){
   let salt=0;
   if(sk>.55){salt=sk;grass=0;rock=0;if(best>=0||bCls<6)code=ramp>.04?SF.concrete:SF.strip;}else if(sk>0)salt=sk;
   o.h=h;o.code=code;o.grass=grass;o.rock=rock;o.mud=Math.max(mud,CR.wet?.8:0);o.salt=salt;o.ramp=ramp;o.wet=CR.wet&&!pad&&best>1?1:0;o.wl=h+.5*(CR.dep/1.8);o.B=B;o.rk=rk;o.k=k;
+  o.tm=0;o.tin=0;
+  if(PQ){if(PQ.wl){o.wet=PQ.wet;o.wl=PQ.wl;}if(PQ.tm){o.tm=PQ.tm;o.ta=PQ.ta;o.tb=PQ.tb;o.tc=PQ.tc;o.td=PQ.td;o.tin=PQ.tin;o.tlen=PQ.tlen;}}
   return o;
 }
 /* the road base alone (where a road's surface is): the same sums as core without the detail */
@@ -518,10 +673,13 @@ function genGround(cx,cz,lod){
   const st=2<<lod,n=CH/st+1,nb=n+2,x0=cx*CH,z0=cz*CH,ctx=boxCtx(x0-st,z0-st,x0+CH+st,z0+CH+st);
   const nsL=nsLines(x0,x0+CH),ewL=nsLines(z0,z0+CH),ewI=[];
   const Hb=new Float64Array(nb*nb),code=new Uint8Array(n*n),Wt=new Float32Array(n*n*4),wet=new Uint8Array(n*n),wl=new Float32Array(n*n),o={};
+  /* the park's tracks: which one each point is drawn as, and its along, across, kind and half width there */
+  const TM=new Uint8Array(n*n),TA=new Float32Array(n*n*4),TIN=new Uint8Array(n*n),TL=new Float32Array(n*n);let anyT=false;
   for(let i=0;i<nb;i++)ewI.push(ewInfo(ewL,x0+(i-1)*st,[]));
   for(let j=0;j<nb;j++){const z=z0+(j-1)*st;nsInfo(nsL,z,ctx.ns);
     for(let i=0;i<nb;i++){const x=x0+(i-1)*st;ctx.ew=ewI[i];core(x,z,ctx,o);Hb[j*nb+i]=o.h;
-      if(i>0&&j>0&&i<=n&&j<=n){const k=(j-1)*n+(i-1);code[k]=o.code;Wt[k*4]=o.grass;Wt[k*4+1]=o.rock;Wt[k*4+2]=o.salt>.02?-o.salt:o.mud;wet[k]=o.wet;wl[k]=o.wl;}}}
+      if(i>0&&j>0&&i<=n&&j<=n){const k=(j-1)*n+(i-1);code[k]=o.code;Wt[k*4]=o.grass;Wt[k*4+1]=o.rock;Wt[k*4+2]=o.salt>.02?-o.salt:o.mud;wet[k]=o.wet;wl[k]=o.wl;
+        if(o.tm){TM[k]=o.tm;TA[k*4]=o.ta;TA[k*4+1]=o.tb;TA[k*4+2]=o.tc;TA[k*4+3]=o.td;TIN[k]=o.tin;TL[k]=o.tlen;anyT=true;}}}}
   /* normals, slope rock and hollows */
   const nrm=new Float32Array(n*n*3);
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){const b=(j+1)*nb+(i+1),k=j*n+i,hx=Hb[b-1]-Hb[b+1],hz=Hb[b-nb]-Hb[b+nb],ny=2*st,l=Math.hypot(hx,ny,hz);
@@ -529,11 +687,22 @@ function genGround(cx,cz,lod){
     const slope=Math.sqrt(Math.max(0,1-(ny/l)*(ny/l)))/Math.max(ny/l,.05),rs=sst(.6,1.05,slope)*(Wt[k*4+2]<0?0:1);if(rs>Wt[k*4+1]){Wt[k*4+1]=rs;Wt[k*4]*=1-rs*.8;}
     const curv=(Hb[b-1]+Hb[b+1]+Hb[b-nb]+Hb[b+nb])/4-Hb[b];Wt[k*4+3]=Math.max(.55,Math.min(1,1-curv*.35*2/st));}
   /* the mesh, with skirts hanging from its edges so a neighbour of other detail never shows a crack */
-  const drop=[1.5,2.5,5][lod],nv=n*n+4*n*2,P=new Float32Array(nv*3),N=new Float32Array(nv*3),C=new Float32Array(nv*4),M=new Float32Array(nv).fill(MAT.TERRAIN),I=[];
+  /* a square of the grid is drawn as a track (its own four corners, the track's material) if any corner is
+     inside the track's drawn edge: the track's look fades to grass before that edge, and the ground past it
+     is grass, so the squares' steps never show */
+  const isT=(p,q,r,s)=>anyT&&(TIN[p]|TIN[q]|TIN[r]|TIN[s])&&TM[p]&&TM[p]===TM[q]&&TM[p]===TM[r]&&TM[p]===TM[s];
+  let nT=0;if(anyT)for(let j=0;j<n-1;j++)for(let i=0;i<n-1;i++){const p=j*n+i;if(isT(p,p+1,p+n,p+n+1))nT++;}
+  const drop=[1.5,2.5,5][lod],nv=n*n+4*n*2+nT*4,P=new Float32Array(nv*3),N=new Float32Array(nv*3),C=new Float32Array(nv*4),M=new Float32Array(nv).fill(MAT.TERRAIN),I=[];
   let v=0;const put=(i,j,dy)=>{const k=j*n+i;P[v*3]=i*st;P[v*3+1]=Hb[(j+1)*nb+i+1]-dy;P[v*3+2]=j*st;N[v*3]=nrm[k*3];N[v*3+1]=nrm[k*3+1];N[v*3+2]=nrm[k*3+2];
     C[v*4]=Wt[k*4];C[v*4+1]=Wt[k*4+1];C[v*4+2]=Wt[k*4+2];C[v*4+3]=Wt[k*4+3];return v++;};
   for(let j=0;j<n;j++)for(let i=0;i<n;i++)put(i,j,0);
-  for(let j=0;j<n-1;j++)for(let i=0;i<n-1;i++){const p=j*n+i,q=p+1,r=p+n,s=r+1;I.push(p,s,q,p,r,s);}
+  /* a track's corner: the same point and normal as the ground's; along (unwrapped round the lap), across, kind, half width */
+  const putT=(k,sx)=>{for(let c=0;c<3;c++){P[v*3+c]=P[k*3+c];N[v*3+c]=N[k*3+c];}C[v*4]=sx;C[v*4+1]=TA[k*4+1];C[v*4+2]=TA[k*4+2];C[v*4+3]=TA[k*4+3];M[v]=TM[k];return v++;};
+  for(let j=0;j<n-1;j++)for(let i=0;i<n-1;i++){const p=j*n+i,q=p+1,r=p+n,s=r+1;
+    if(!isT(p,q,r,s)){I.push(p,s,q,p,r,s);continue;}
+    const ks=[p,q,r,s],sx=ks.map(k=>TA[k*4]),L=TL[p];
+    if(L>0&&Math.max(...sx)-Math.min(...sx)>L/2)for(let a=0;a<4;a++)if(sx[a]>L/2)sx[a]-=L;
+    const a=putT(p,sx[0]),b=putT(q,sx[1]),c=putT(r,sx[2]),d=putT(s,sx[3]);I.push(a,d,b,a,c,d);}
   const edge=(list,flip)=>{for(let e=0;e<list.length-1;e++){const [ia,ja]=list[e],[ib,jb]=list[e+1],a=ja*n+ia,b=jb*n+ib,c=put(ia,ja,drop),d=put(ib,jb,drop);if(flip)I.push(a,c,b,b,c,d);else I.push(a,b,c,b,d,c);}};
   const top=[],bot=[],lef=[],rig=[];for(let a=0;a<n;a++){top.push([a,0]);bot.push([a,n-1]);lef.push([0,a]);rig.push([n-1,a]);}
   edge(top,false);edge(bot,true);edge(lef,true);edge(rig,false);
@@ -547,7 +716,7 @@ function genGround(cx,cz,lod){
     if(wb.n)water=wb.out();}
   /* the map tile: 4 m a pixel from the fine grids, 8 m from the coarse */
   const tn=lod<2?32:16,tile=new Uint32Array(tn*tn),ts=CH/tn;
-  for(let j=0;j<tn;j++)for(let i=0;i<tn;i++){const gi=Math.min(n-1,Math.round((i+.5)*ts/st)),gj=Math.min(n-1,Math.round((j+.5)*ts/st)),k=gj*n+gi,c=MAPC[code[k]]||MAPC[1],
+  for(let j=0;j<tn;j++)for(let i=0;i<tn;i++){const gi=Math.min(n-1,Math.round((i+.5)*ts/st)),gj=Math.min(n-1,Math.round((j+.5)*ts/st)),k=gj*n+gi,c=TIN[k]?(TM[k]===MAT.CLAY?(TA[k*4+2]>.5?[132,88,52]:[156,82,46]):TM[k]===MAT.MUDTRACK?[64,44,26]:[160,120,80]):MAPC[code[k]]||MAPC[1],
     sh=.62+.5*Math.max(0,Math.min(1,nrm[k*3]*.6-nrm[k*3+2]*.5+nrm[k*3+1]*.5)),hh=Math.max(.75,Math.min(1.25,.8+Hb[(gj+1)*nb+gi+1]/160));tile[j*tn+i]=pk(c[0]*sh*hh,c[1]*sh*hh,c[2]*sh*hh);}
   const res={cx,cz,lod,ground,water,tile,tn,ymin:1e9,ymax:-1e9};
   for(let k=0;k<n*n;k++){const h=Hb[((k/n|0)+1)*nb+k%n+1];if(h<res.ymin)res.ymin=h;if(h>res.ymax)res.ymax=h;}
@@ -614,7 +783,7 @@ function genStatic(cx,cz){
   /* the driveways */
   for(const s of ctx.spurs){const ax=s.ax==='x',a0=ax?Math.min(s.x0,s.x1):Math.min(s.z0,s.z1),a1=ax?Math.max(s.x0,s.x1):Math.max(s.z0,s.z1),len=a1-a0,nseg=Math.max(1,Math.ceil(len/ST));
     for(let k=0;k<nseg;k++){const p=a0+len*k/nseg,q=a0+len*(k+1)/nseg,m=(p+q)/2,xm=ax?m:s.x0,zm=ax?s.z0:m;if(!inC(xm,zm))continue;
-      if(ax)ribbon(p,q,s.z0,s.z0,p,q,SPUR,2,[0,1],[0,1]);else ribbon(s.x0,s.x0,p,q,p,q,SPUR,2,[1,0],[1,0]);}}
+      const c=s.c||SPUR,cl=s.cl===3?3:2;if(ax)ribbon(p,q,s.z0,s.z0,p,q,c,cl,[0,1],[0,1]);else ribbon(s.x0,s.x0,p,q,p,q,c,cl,[1,0],[1,0]);}}
   /* --- the pads: concrete or gravel laid over their ground --- */
   for(const p of ctx.pads){const a=Math.max(p.x0,x0),b=Math.max(p.z0,z0),c=Math.min(p.x1,x1),d=Math.min(p.z1,z1);if(a>=c||b>=d)continue;
     const nx=Math.max(1,Math.ceil((c-a)/4)),nz=Math.max(1,Math.ceil((d-b)/4)),idx=[],mat=p.surf==='concrete'?MAT.CONCRETE:MAT.GRAVEL;
@@ -622,6 +791,8 @@ function genStatic(cx,cz){
     for(let j=0;j<nz;j++)for(let i=0;i<nx;i++)RB.I.push(idx[j][i],idx[j+1][i],idx[j+1][i+1],idx[j][i],idx[j+1][i+1],idx[j][i+1]);}
   /* --- the town --- */
   if(x1>-EDGE-40&&x0<EDGE+40&&z1>-EDGE-40&&z0<EDGE+40)townStatic(x0,z0,x1,z1,inC,RB,PB,trees,colBox,colCirc,lights,R);
+  /* --- the off-road park --- */
+  if(x1>PARK.x0-80&&x0<PARK.x1+80&&z1>PARK.z0-80&&z0<PARK.z1+80||x1>PKW.ROADX-30&&x0<PKW.ROADX+30&&z1>-60&&z0<-20)parkStatic(x0,z0,x1,z1,inC,PB,colBox,colCirc);
   /* --- buildings, from the plans: meshed by the chunk their middle is in; colliders wherever they reach --- */
   for(const P of ctx.plans){
     for(const b of P.bld){
@@ -682,7 +853,7 @@ function genStatic(cx,cz){
     for(let j=0;j<n;j++)for(let i=0;i<n;i++){
       const r1=R(),r2=R(),r3=R(),r4=R();
       const x=Math.min(x1-.9,Math.max(x0+.9,x0+(i+.15+r1*.7)*G)),z=Math.min(z1-.9,Math.max(z0+.9,z0+(j+.15+r2*.7)*G));
-      if(townD(x,z)<EDGE+60||parkD(x,z)<40)continue;const sd=saltD(x,z);if(sd>LAND-60)continue;
+      if(townD(x,z)<EDGE+60)continue;const pd=parkD(x,z);if(pd<40&&(r3>.05||!PKW.clear(x,z)))continue;const sd=saltD(x,z);if(sd>LAND-60)continue;
       const k=hillK(x,z),wn=fbm(x/900+2.2,z/900-4.4,2,121),woods=sst(.56-.2*k,.66-.2*k,wn)*.55*(1-sst(LAND-900,LAND-300,sd));
       creekAt(x,z,cr);let p=Math.max(woods,cr.dc>5&&cr.dc<24?.3:0,.012*(1-sst(LAND-900,LAND-200,sd)));
       if(p<.02&&r3>.02)continue;if(r3>p)continue;
@@ -880,6 +1051,131 @@ function building(b,B,colBox,colCirc,lights,own){
     B.box(a+.4,y+h-.25,c+2,d-.4,y+h-.15,c+3,[1,1,.95],MAT.EMIT,1.2);B.box(a+.4,y+h-.25,e-4,d-.4,y+h-.15,e-3,[1,1,.95],MAT.EMIT,1.2);return;}
 }
 
+/* ---------- the park's furniture: the oval's wall and catch fence, the grandstands, the light towers, the
+   short course's gantry and tyre walls, the mud track's bales, the strip's tree, boards and fences, the
+   paddock's haulers and poles, the gate on the park road. Long things are drawn a piece at a time by the
+   chunk each piece's middle is in; colliders go to every chunk they reach. Lights are in parkLights. ---------- */
+const PKA={};
+const pkSide=(P,s,off)=>{PKW.at(P,s,PKA);return [PKA.x-PKA.dz*off,PKA.z+PKA.dx*off,PKA.dx,PKA.dz];};
+/* where the park's light towers and poles stand: [x, z, height, aim x, aim z, kind] */
+const PK_POLES=(()=>{const out=[],O=PKW.oval,S=PKW.short,M=PKW.mud,T=PKW.ST,Lt=PKW.LOT;
+  for(let i=0;i<8;i++){const [x,z,dx,dz]=pkSide(O,i/8*O.len+O.len/16,PKW.OV.hw+12);out.push([x,z,18,dz,-dx,'tower']);}
+  for(let i=0;i<7;i++){const s=i/7*S.len+30,k=PKW.kAvg(S,s,10),o=(k<0?-1:1)*(PKW.SH_HW+15),[x,z,dx,dz]=pkSide(S,s,o),sg=o>0?1:-1;out.push([x,z,16,dz*sg,-dx*sg,'tower']);}
+  for(let i=0;i<5;i++){const s=i/5*M.len+20,k=PKW.kAvg(M,s,12),o=(k<0?-1:1)*(PKW.MUD_HW+9),[x,z,dx,dz]=pkSide(M,s,o),sg=o>0?1:-1;out.push([x,z,13,dz*sg,-dx*sg,'tower']);}
+  for(const sd of [-1,1])for(let x=T.x0+20;x<T.x1;x+=45)out.push([x,T.z+sd*(T.half+6),12,0,-sd,'pole']);
+  for(const [x,z] of [[Lt.x0+2,Lt.z0+2],[Lt.x1-2,Lt.z0+2],[Lt.x0+2,Lt.z1-2],[Lt.x1-2,Lt.z1-2],[(Lt.x0+Lt.x1)/2,Lt.z0+2],[(Lt.x0+Lt.x1)/2,Lt.z1-2],[Lt.x0+2,(Lt.z0+Lt.z1)/2],[Lt.x1-2,(Lt.z0+Lt.z1)/2]])
+    out.push([x,z,12,(Lt.x0+Lt.x1)/2-x,(Lt.z0+Lt.z1)/2-z,'lot']);
+  for(const sd of [-1,1])out.push([PKW.ROADX+sd*7.5,-40,7,0,1,'gate']);
+  return out;})();
+function parkLights(){const out=[];
+  for(const [x,z,h,ax,az,kind] of PK_POLES){const y=sample(x,z,CRo).h,l=Math.hypot(ax,az)||1,ty=y+h+.3;
+    if(kind==='tower'){const d=[ax/l*.7,-.72,az/l*.7],dl=Math.hypot(...d);out.push({p:[x+ax/l*.8,ty-.5,z+az/l*.8],r:h>17?110:88,c:[3.8,3.7,3.4],d:d.map(v=>v/dl),cs:Math.cos(1.05)});}
+    else if(kind==='pole'){const d=[0,-1,az*.55],dl=Math.hypot(...d);out.push({p:[x,ty-.4,z+az*.5],r:46,c:[3.6,3.5,3.2],d:d.map(v=>v/dl),cs:Math.cos(1.05)});}
+    else if(kind==='lot'){const d=[ax/l*.5,-1,az/l*.5],dl=Math.hypot(...d);out.push({p:[x+ax/l*.6,ty-.4,z+az/l*.6],r:48,c:[1.5,1.5,1.55],d:d.map(v=>v/dl),cs:Math.cos(1.1)});}
+    else out.push({p:[x,y+h+.6,z+1],r:16,c:[3,2.6,2]});}
+  return out;}
+function parkStatic(x0,z0,x1,z1,inC,PB,colBox,colCirc){
+  const hAt=(x,z)=>sample(x,z,CRo).h,nearC=(x,z,m)=>x>x0-m&&x<x1+m&&z>z0-m&&z<z1+m;
+  const bx=(cx,cy,cz,hx,hy,hz,col,m,em)=>PB.box(cx-hx,cy-hy,cz-hz,cx+hx,cy+hy,cz+hz,col,m||MAT.COL,em);
+  const Y=PARK_Y,GREY=lc(70,72,76),WHITE=lc(230,230,226),RED=lc(200,40,30);
+  /* a wall along a path at an offset: drawn 2 m at a time (h tall, t thick, outward), colliders every .9 m */
+  const wallAlong=(P,off,h,t,col,mat,s0,s1,cable)=>{let prev=null;
+    for(let s=s0;s<=s1+.01;s+=2){const [x,z,dx,dz]=pkSide(P,s,off),cur={x,z,dx,dz,y:null};
+      if(prev){const mx=(prev.x+x)/2,mz=(prev.z+z)/2;
+        if(inC(mx,mz)){if(prev.y===null)prev.y=hAt(prev.x,prev.z);cur.y=hAt(x,z);const a=prev,b=cur,sg=off>0?1:-1;
+          const oa=[-a.dz*t*sg,a.dx*t*sg],ob=[-b.dz*t*sg,b.dx*t*sg];
+          const A0=[a.x,a.y-.3,a.z],A1=[a.x,a.y+h,a.z],B0=[b.x,b.y-.3,b.z],B1=[b.x,b.y+h,b.z],A2=[a.x+oa[0],a.y+h,a.z+oa[1]],B2=[b.x+ob[0],b.y+h,b.z+ob[1]],A3=[a.x+oa[0],a.y-.3,a.z+oa[1]],B3=[b.x+ob[0],b.y-.3,b.z+ob[1]];
+          if(sg>0){PB.quad(A0,A1,B1,B0,col,mat);PB.quad(A1,A2,B2,B1,col,mat);PB.quad(A3,B3,B2,A2,col,mat);}
+          else{PB.quad(A0,B0,B1,A1,col,mat);PB.quad(A1,B1,B2,A2,col,mat);PB.quad(A3,A2,B2,B3,col,mat);}
+          if(cable){for(const hh of [1.9,2.7,3.5])PB.bar([a.x+oa[0]*.5,a.y+hh,a.z+oa[1]*.5],[b.x+ob[0]*.5,b.y+hh,b.z+ob[1]*.5],.016,GREY,MAT.METAL);
+            if(Math.round(s)%8===0)PB.bar([b.x+ob[0]*.5,b.y+h,b.z+ob[1]*.5],[b.x+ob[0]*.5,b.y+3.8,b.z+ob[1]*.5],.05,GREY,MAT.METAL);}}}
+      prev=cur;}
+    for(let s=s0;s<=s1;s+=.9){const [x,z]=pkSide(P,s,off+(off>0?.2:-.2));if(nearC(x,z,2))colCirc(x,z,.5,hAt(x,z)+h);}};
+  /* a neon word on a board on two posts, facing n (rt along it as the reader sees it), its middle at (cx, cz) */
+  const board=(word,cx,cz,y,rt,n,px,col)=>{const len=word.length*6*px-px,o=[cx-rt[0]*len/2,y,cz-rt[1]*len/2];
+    for(const e of [-1,1]){const px2=cx+rt[0]*(len/2+.4)*e,pz2=cz+rt[1]*(len/2+.4)*e;PB.bar([px2-n[0]*.1,y-6,pz2-n[1]*.1],[px2-n[0]*.1,y+7*px+.3,pz2-n[1]*.1],.09,GREY,MAT.METAL);}
+    neonWord(PB,word,o,[rt[0],0,rt[1]],[n[0],0,n[1]],px,col,0,0,null);};
+  /* ---- Speedway 25 ---- */
+  {const O=PKW.oval,OV=PKW.OV,hw=OV.hw;
+    if(nearC(OV.x,OV.z,OV.half+OV.R+70)){
+      wallAlong(O,hw+.9,1.1,.35,lc(206,206,200),MAT.CONCRETE,0,O.len,true);
+      /* the grandstand behind the front straight, facing the track, a roof over the top rows, the press box */
+      const z0=OV.z+OV.R+hw+16,ga=OV.x-85,gb=OV.x+85;
+      if(inC(OV.x,z0+8)){
+        for(let r=0;r<10;r++){bx(OV.x,Y+.4+r*.55,z0+2+r*1.1,85,.07,.5,lc(176,160,140),MAT.WOOD);bx(OV.x,Y+.2+r*.55,z0+2.4+r*1.1,85,.22+r*.28,.06,lc(120,122,128),MAT.METAL);}
+        bx(OV.x,Y+3.1,z0+13.6,86,3.1,.25,lc(120,122,128),MAT.SHEET);
+        for(const x of [ga+6,OV.x-28,OV.x+28,gb-6])bx(x,Y+4.4,z0+12.8,.18,4.4,.18,lc(90,92,98),MAT.METAL);
+        bx(OV.x,Y+8.9,z0+9,87,.15,5.5,RED);bx(OV.x,Y+8.75,z0+9,87,.04,5.5,WHITE);
+        bx(OV.x,Y+10.6,z0+12,9,1.6,2.2,lc(220,220,214),MAT.SHEET);bx(OV.x,Y+10.8,z0+9.75,8.6,.7,.04,lc(26,32,40));
+        const px=.3,len=11*6*px-px;neonWord(PB,'SPEEDWAY 25',[OV.x+len/2,Y+9.15,z0+3.4],[-1,0,0],[0,0,-1],px,[1,.3,.16],0,0,null);}
+      colBox(ga,z0+1.4,gb,z0+14,Y+6.4);
+      /* the flag stand at the line */
+      {const x=OV.x,z=OV.z+OV.R+hw+3.5;if(inC(x,z)){const y=hAt(x,z);bx(x,y+2.4,z,1.2,.06,1.2,lc(200,200,204),MAT.METAL);
+        for(const [a,b] of [[-1,-1],[-1,1],[1,-1],[1,1]])bx(x+a*1.1,y+1.2,z+b*1.1,.06,1.2,.06,lc(200,200,204),MAT.METAL);}
+        colCirc(x,z,1.5,Y+4);}
+      /* haulers parked in the infield */
+      for(let i=0;i<4;i++){const x=OV.x-60+i*40,z=OV.z,col=[[200,40,30],[30,80,170],[230,230,226],[40,140,70]][i];
+        if(inC(x,z)){const y=hAt(x,z);bx(x,y+2.1,z,7,1.7,1.25,lc(...col),MAT.SHEET);bx(x+8.6,y+1.8,z,1.6,1.4,1.2,lc(40,42,46),MAT.METAL);
+          bx(x+9.9,y+2.2,z,.3,.5,1,lc(20,24,30),MAT.COL,0);}
+        colBox(x-7.2,z-1.4,x+10.3,z+1.4,Y+3.9);}}}
+  /* ---- the short course: a start gantry, tyre walls round the outside of its turns, flags ---- */
+  {const P=PKW.short,hw=PKW.SH_HW,b=P.bb;
+    if(x1>b[0]-40&&x0<b[2]+40&&z1>b[1]-40&&z0<b[3]+40){
+      {const [cx,cz]=pkSide(P,0,0);
+        for(const sd of [-1,1]){const [x,z]=pkSide(P,0,sd*(hw+1.6)),y=hAt(x,z);if(inC(cx,cz))PB.bar([x,y-.3,z],[x,y+6.6,z],.2,GREY,MAT.METAL);colCirc(x,z,.35,y+6.6);}
+        if(inC(cx,cz)){const y=hAt(cx,cz);bx(cx,y+6.4,cz,.4,.4,hw+1.9,lc(40,40,44));for(let k=-2;k<=2;k++)bx(cx-.45,y+6.4,cz+k*.9,.05,.15,.15,[1,.08,.04],MAT.EMIT,1.4);
+          const px=.22,len=12*6*px-px;neonWord(PB,'SHORT COURSE',[cx-.45,y+6.95,cz-len/2],[0,0,1],[-1,0,0],px,[.3,.9,1],0,0,null);}}
+      for(let s=0;s<P.len;s+=.8){const k=PKW.kAvg(P,s,10);if(Math.abs(k)<1/75)continue;const out=-Math.sign(k),[x,z]=pkSide(P,s,out*(hw+10));
+        if(!nearC(x,z,1))continue;const y=hAt(x,z);
+        if(inC(x,z)){PB.cyl(x,z,y-.05,y+.78,.36,8,lc(22,22,24),MAT.COL,0);PB.cyl(x,z,y+.5,y+.58,.365,8,(s/2.4|0)%2?WHITE:RED,MAT.COL,-1);}
+        colCirc(x,z,.42,y+.8);}
+      for(let s=20;s<P.len;s+=45){const [x,z]=pkSide(P,s,(s/45|0)%2?hw+3:-hw-3);if(!inC(x,z))continue;const y=hAt(x,z);
+        PB.bar([x,y-.2,z],[x,y+2.6,z],.03,lc(220,220,220),MAT.METAL);bx(x+.4,y+2.35,z,.4,.25,.02,(s/45|0)%3?lc(255,110,26):lc(40,120,230));}}}
+  /* ---- the mud track: an arch over the line with its name, round bales round the outside of the turns ---- */
+  {const P=PKW.mud,hw=PKW.MUD_HW,b=P.bb;
+    if(x1>b[0]-40&&x0<b[2]+40&&z1>b[1]-40&&z0<b[3]+40){
+      {const [cx,cz]=pkSide(P,0,0);
+        for(const sd of [-1,1]){const [x,z]=pkSide(P,0,sd*(hw+2.2)),y=hAt(x,z);if(inC(cx,cz))PB.bar([x,y-.3,z],[x,y+5.6,z],.22,lc(110,84,58),MAT.WOOD);colCirc(x,z,.35,y+5.6);}
+        if(inC(cx,cz)){const y=hAt(cx,cz);bx(cx,y+5.3,cz,.3,.5,hw+2.6,lc(96,74,52),MAT.WOOD);
+          const px=.26,len=7*6*px-px;neonWord(PB,'MUD BOG',[cx-.32,y+5.9,cz-len/2],[0,0,1],[-1,0,0],px,[1,.62,.12],0,0,null);}}
+      for(let s=0;s<P.len;s+=1.6){const k=PKW.kAvg(P,s,12);if(Math.abs(k)<1/70)continue;const out=-Math.sign(k),[x,z]=pkSide(P,s,out*(hw+3.4));
+        if(!nearC(x,z,1))continue;const y=hAt(x,z);if(inC(x,z))PB.cyl(x,z,y-.1,y+1.15,.72,9,lc(186,156,92),MAT.COL,0);colCirc(x,z,.75,y+1.15);}}}
+  /* ---- the drag strip (HD's): the tree between the lanes behind the line, boards at the finish, fences,
+     light poles, a little grandstand, bales at the end of the shutdown ---- */
+  {const T=PKW.ST;
+    if(x1>T.x0-40&&x0<T.x1+40&&z1>T.z-40&&z0<T.z+40){const y=Y;
+      {const tx=T.start-1.6,tz=T.z;if(inC(tx,tz)){PB.bar([tx,y,tz],[tx,y+2.6,tz],.07,lc(40,40,44),MAT.METAL);bx(tx,y+2.75,tz,.12,.85,.32,lc(16,16,18));
+        for(let lane=0;lane<2;lane++)for(let k=0;k<7;k++){const c=k<2?[1,1,.9]:k<5?[1,.6,.1]:k===5?[.2,1,.3]:[1,.1,.08];bx(tx-.14,y+3.45-k*.24,tz+(lane?.17:-.17),.03,.07,.07,c.map(v=>v*.35),MAT.EMIT,.025);}}
+        colCirc(tx,tz,.25,y+4);}
+      for(const lane of [0,1]){const z=lane?T.z+T.half+2.5:T.z-T.half-2.5,fx=T.start+T.eighth;
+        if(inC(fx,z)){bx(fx,y+2.2,z,.12,2.2,.12,lc(50,50,54),MAT.METAL);bx(fx,y+4.6,z,.2,.7,1.6,lc(18,18,20));bx(fx-.21,y+4.6,z,.02,.4,1.3,[1,.25,.1],MAT.EMIT,.35);}
+        if(inC(T.start-.5,z))bx(T.start-.5,y+.6,z,.1,.6,.1,WHITE);colCirc(fx,z,.3,y+4.4);}
+      for(const sd of [-1,1]){const z=T.z+sd*(T.half+4);
+        for(let x=T.x0+4;x<T.x1-4;x+=3){if(!inC(x+1.5,z))continue;bx(x,y+.6,z,.07,.6,.07,lc(140,112,86),MAT.WOOD);bx(x+1.5,y+.95,z,1.5,.06,.03,lc(168,134,100),MAT.WOOD);bx(x+1.5,y+.5,z,1.5,.06,.03,lc(168,134,100),MAT.WOOD);}
+        colBox(T.x0+3,z-.2,T.x1-3,z+.2,y+1.2);}
+      {const gx=T.start+90,gz=T.z+T.half+9;if(inC(gx,gz+2)){for(let r=0;r<5;r++){bx(gx,y+.35+r*.45,gz+r*.8,26,.07,.4,lc(176,150,116),MAT.WOOD);bx(gx,y+.18+r*.45,gz+.3+r*.8,26,.2+r*.22,.05,lc(120,100,80),MAT.WOOD);}
+        const px=.24,len=10*6*px-px;board('DRAG STRIP',gx,gz+4.6,y+3.2,[-1,0],[0,-1],px,[1,.85,.2]);}
+        colBox(gx-26,gz-.5,gx+26,gz+4.5,y+3);}
+      for(let k=0;k<9;k++){const z=T.z-8+k*2,x=T.x1+6+(k&1)*.6;if(inC(x,z))bx(x,y+.55,z,.6,.55,.95,lc(196,166,98));colCirc(x,z,1,y+1.1);}}}
+  /* ---- the light towers and poles ---- */
+  for(const [x,z,h,ax,az,kind] of PK_POLES){if(!nearC(x,z,2))continue;const y=hAt(x,z),l=Math.hypot(ax,az)||1,ux=ax/l,uz=az/l;
+    colCirc(x,z,kind==='tower'?.45:.25,y+h);if(!inC(x,z))continue;
+    if(kind==='gate'){continue;}
+    PB.bar([x,y-.5,z],[x,y+h,z],kind==='tower'?.26:.14,GREY,MAT.METAL);
+    if(kind==='tower'){bx(x,y+h+.3,z,1.6,.5,1.6,lc(60,62,66),MAT.METAL);bx(x+ux*.9,y+h,z+uz*.9,1.2,.25,1.2,[1,.97,.9],MAT.EMIT,1.6);}
+    else{bx(x+ux*.4,y+h-.1,z+uz*.4,.5,.12,.5,[1,.98,.92],MAT.EMIT,1.4);}}
+  /* ---- the paddock: haulers in rows in the lot; the gate over the park road by the highway ---- */
+  {const Lt=PKW.LOT;
+    if(x1>Lt.x0-10&&x0<Lt.x1+10&&z1>Lt.z0-10&&z0<Lt.z1+10){const R=rng(4711),cols=[[200,40,30],[30,80,170],[230,230,226],[40,140,70],[240,170,30],[30,30,34],[120,60,150]];
+      for(let row=0;row<2;row++)for(const i of [0,1,4,5]){if(R()<.25)continue;const x=Lt.x0+20+i*24,z=Lt.z0+44+row*36,col=cols[Math.floor(R()*cols.length)],tl=5+R()*3;
+        if(inC(x,z)){bx(x,Y+1.9,z,1.25,1.6,tl,lc(...col),MAT.SHEET);bx(x,Y+1.6,z+tl+1.7,1.2,1.3,1.5,lc(40,42,46),MAT.METAL);bx(x,Y+2.1,z+tl+3.25,1,.45,.05,lc(20,24,30),MAT.COL,0);}
+        colBox(x-1.4,z-tl-.2,x+1.4,z+tl+3.3,Y+3.6);}}
+    const gx=PKW.ROADX,gz=-40;
+    if(x1>gx-20&&x0<gx+20&&z1>gz-10&&z0<gz+10){const y=hAt(gx,gz);
+      for(const sd of [-1,1]){const x=gx+sd*7.5;if(inC(gx,gz)){PB.bar([x,y-.3,gz],[x,y+7.4,gz],.3,lc(110,84,58),MAT.WOOD);bx(x,y+7.7,gz+.6,.3,.12,.25,[1,.9,.7],MAT.EMIT,1.2);}colCirc(x,gz,.4,y+7.4);}
+      if(inC(gx,gz)){bx(gx,y+6.8,gz,8.2,.9,.3,lc(96,74,52),MAT.WOOD);const px=.15,len=13*6*px-px;neonWord(PB,'OFF-ROAD PARK',[gx-len/2,y+6.25,gz+.32],[1,0,0],[0,0,1],px,[1,.55,.1],0,0,null);}}}
+}
+
 /* ---------- a far tile: 512 m, every 32 m, the land only (and downtown's towers, seen from out of town) ---------- */
 const FT=512;
 function genFar(tx,tz){
@@ -932,6 +1228,7 @@ function roadLines(x0,z0,x1,z1,step){
 }
 /* the places with names on the big map */
 const NAMED=[{name:'City Limits',x:0,z:0},{name:"Deke's Gas",x:470,z:-40,special:1},{name:'The Starlite',x:-470,z:40},{name:'Off-road park',x:(PARK.x0+PARK.x1)/2,z:(PARK.z0+PARK.z1)/2},
+  {name:'Speedway 25',x:-2050,z:-820,park:1},{name:'Short course',x:-2600,z:-1000,park:1},{name:'Mud track',x:-2360,z:-1390,park:1},{name:'Drag strip',x:-2650,z:-360,park:1},{name:'Paddock',x:-2310,z:-395,park:1},
   {name:'The bog',x:BOG.x,z:BOG.z},{name:'The salt flats',x:LAND+700,z:-180},{name:'The salt flats',x:-LAND-700,z:180},{name:'The hills',x:-200,z:-2300}];
 function townsNear(x,z,r){return NAMED.filter(t=>Math.hypot(t.x-x,t.z-z)<r).map(t=>Object.assign({i:0,j:0},t));}
 /* what a place is called */
@@ -947,6 +1244,7 @@ function placeAt(x,z){
     if(Math.abs(z)<16)return 'Highway 40';return 'Edge of town';}
   if(Math.hypot(x-470,z+40)<40)return "Deke's Gas";if(Math.hypot(x+470,z-40)<40)return 'The Starlite Diner';
   if(Math.hypot(x-BOG.x,z-BOG.z)<BOG.r+12)return 'The bog';
+  if(parkD(x,z)<40||Math.abs(x-PKW.ROADX)<9&&z<-12&&z>-300){const nm=PKW.nameAt(x,z);if(nm)return nm;}
   if(parkD(x,z)<20)return 'Off-road park';
   const sd=saltD(x,z);if(sd>LAND+SALT_BL*.6)return Math.abs(z)<20&&Math.abs(x)<HWY_X+5?'Highway 40, on the salt':'The salt flats';
   const r=roadAt(x,z);if(r&&Math.abs(r.d)<r.hw+3)return r.name;
@@ -958,5 +1256,5 @@ function placeAt(x,z){
 }
 const xExp=z=>1e9;
 return {L,HALF,CH,FT,ROAD_END,SURF,SF,CL,core,sample,baseAt,genGround,genStatic,genFar,roadAt,roadLines,townsNear,placeAt,hillK,offNS,offEW,clsNSz,clsEWx,creekAt,xExp,
-  EDGE,RING,LAND,SALT_Y,HWY_X,PARK,BOG,GARAGE,townD,saltD,parkD,TW,townLights};
+  EDGE,RING,LAND,SALT_Y,HWY_X,PARK,BOG,GARAGE,townD,saltD,parkD,TW,townLights,PKW,PARK_Y};
 }

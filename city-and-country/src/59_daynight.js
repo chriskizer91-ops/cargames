@@ -17,10 +17,10 @@ function applyTod(id){const T=TOD[id]||TOD.night;Object.assign(SKY,{sun:T.sun,su
 const LP=new Float32Array(32),LC=new Float32Array(32),LD=new Float32Array(32),LN={n:0};
 
 /* ---------- the light grid ----------
-   The town's lights never change, so the grid is made once, over the town and the highway's lit stretch
-   (1.6 km square, 8 m cells): each light's position (from the grid's corner), reach, colour and spot; each
-   cell's start and count in one list, the brightest few first if more than the cap reach it */
-const LG={tex:null,grid:null,list:null,on:false,built:false,x0:-800,z0:-800,gw:200,n:0,entries:0,maxN:0,ms:0,CELL:8,MAXPER:24};
+   The town's lights never change, so the grid is made once, over the town, the highway's lit stretch and
+   the off-road park (3.8 by 2.4 km, 8 m cells): each light's position (from the grid's corner), reach, colour
+   and spot; each cell's start and count in one list, the brightest few first if more than the cap reach it */
+const LG={tex:null,grid:null,list:null,on:false,built:false,x0:-3000,z0:-1600,gw:475,gh:300,n:0,entries:0,maxN:0,ms:0,CELL:8,MAXPER:24};
 function lgTex(t,w,h,ifmt,fmt,type,data){gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,ifmt,w,h,0,fmt,type,data);
   for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);}
 function lgInit(){
@@ -28,21 +28,21 @@ function lgInit(){
   lgTex(LG.tex,1,1,gl.RGBA32F,gl.RGBA,gl.FLOAT,new Float32Array(4));lgTex(LG.grid,1,1,gl.RG32UI,gl.RG_INTEGER,gl.UNSIGNED_INT,new Uint32Array(2));lgTex(LG.list,1,1,gl.R32UI,gl.RED_INTEGER,gl.UNSIGNED_INT,new Uint32Array(1));
 }
 function lgBuild(){
-  LG.built=true;const t0=performance.now(),C=LG.CELL,gw=LG.gw,x0=LG.x0,z0=LG.z0,L=WG.townLights(),n=L.length;
-  const rows=Math.max(1,Math.ceil(n*3/1024)),rec=new Float32Array(1024*rows*4),cells=new Array(gw*gw);
+  LG.built=true;const t0=performance.now(),C=LG.CELL,gw=LG.gw,gh=LG.gh,x0=LG.x0,z0=LG.z0,L=WG.townLights(),n=L.length;
+  const rows=Math.max(1,Math.ceil(n*3/1024)),rec=new Float32Array(1024*rows*4),cells=new Array(gw*gh);
   L.forEach((f,i)=>{const o=i*12,I=f.c[0]+f.c[1]+f.c[2];
     rec[o]=f.p[0]-x0;rec[o+1]=f.p[1];rec[o+2]=f.p[2]-z0;rec[o+3]=f.r;rec[o+4]=f.c[0];rec[o+5]=f.c[1];rec[o+6]=f.c[2];
     if(f.d){rec[o+8]=f.d[0];rec[o+9]=f.d[1];rec[o+10]=f.d[2];rec[o+11]=f.cs;}else{rec[o+9]=-1;rec[o+11]=-2;}
-    const r=f.r,i0=Math.max(0,Math.floor((f.p[0]-r-x0)/C)),i1=Math.min(gw-1,Math.floor((f.p[0]+r-x0)/C)),j0=Math.max(0,Math.floor((f.p[2]-r-z0)/C)),j1=Math.min(gw-1,Math.floor((f.p[2]+r-z0)/C));
+    const r=f.r,i0=Math.max(0,Math.floor((f.p[0]-r-x0)/C)),i1=Math.min(gw-1,Math.floor((f.p[0]+r-x0)/C)),j0=Math.max(0,Math.floor((f.p[2]-r-z0)/C)),j1=Math.min(gh-1,Math.floor((f.p[2]+r-z0)/C));
     for(let j=j0;j<=j1;j++)for(let k=i0;k<=i1;k++){const cx=x0+(k+.5)*C,cz=z0+(j+.5)*C,dx=Math.max(0,Math.abs(cx-f.p[0])-C/2),dz=Math.max(0,Math.abs(cz-f.p[2])-C/2),d2=dx*dx+dz*dz;
       if(d2>r*r)continue;const ci=j*gw+k;(cells[ci]||(cells[ci]=[])).push(i,I/(d2+4));}});
   let total=0,maxN=0;const MP=LG.MAXPER;
   for(let c=0;c<cells.length;c++){const a=cells[c];if(!a)continue;let m=a.length/2;
     if(m>MP){const idx=[];for(let q=0;q<m;q++)idx.push(q);idx.sort((p,q)=>a[q*2+1]-a[p*2+1]);const b=[];for(let q=0;q<MP;q++)b.push(a[idx[q]*2],0);cells[c]=b;m=MP;}
     total+=m;if(m>maxN)maxN=m;}
-  const lrows=Math.max(1,Math.ceil(total/1024)),list=new Uint32Array(1024*lrows),grid=new Uint32Array(gw*gw*2);let o=0;
+  const lrows=Math.max(1,Math.ceil(total/1024)),list=new Uint32Array(1024*lrows),grid=new Uint32Array(gw*gh*2);let o=0;
   for(let c=0;c<cells.length;c++){const a=cells[c];grid[c*2]=o;if(!a)continue;const m=a.length/2;grid[c*2+1]=m;for(let q=0;q<m;q++)list[o++]=a[q*2];}
-  lgInit();lgTex(LG.tex,1024,rows,gl.RGBA32F,gl.RGBA,gl.FLOAT,rec);lgTex(LG.grid,gw,gw,gl.RG32UI,gl.RG_INTEGER,gl.UNSIGNED_INT,grid);lgTex(LG.list,1024,lrows,gl.R32UI,gl.RED_INTEGER,gl.UNSIGNED_INT,list);
+  lgInit();lgTex(LG.tex,1024,rows,gl.RGBA32F,gl.RGBA,gl.FLOAT,rec);lgTex(LG.grid,gw,gh,gl.RG32UI,gl.RG_INTEGER,gl.UNSIGNED_INT,grid);lgTex(LG.list,1024,lrows,gl.R32UI,gl.RED_INTEGER,gl.UNSIGNED_INT,list);
   gl.activeTexture(gl.TEXTURE0);
   Object.assign(LG,{n,entries:total,maxN,on:n>0,ms:performance.now()-t0});
 }
