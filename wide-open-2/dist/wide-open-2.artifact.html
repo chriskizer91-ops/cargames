@@ -10870,7 +10870,10 @@ function tuneSwap(T){for(const k of Object.keys(TUNE))delete TUNE[k];Object.assi
 /* the career's cars, rigs and current car, from the game's */
 function careerSync(){if(!CAREER.on||!CAREER.d)return;for(const car of Object.keys(CAREER.d.cars))if(RIGS[car])CAREER.d.cars[car].rig=Object.assign({},RIGS[car]);
   if(CAREER.d.cars[APP.car])CAREER.d.current=APP.car;careerSave();}
-function careerWipe(){store.set('wo2-career','null');if(CAREER.on){CAREER.d=null;CAREER.on=false;let T={};try{T=JSON.parse(store.get('wo2-tune','{}'))||{};}catch(e){}tuneSwap(T);setMode('career');}}
+function careerWipe(){store.set('wo2-career','null');if(CAREER.on){const F=CAREER.free;CAREER.d=null;CAREER.on=false;
+  /* free play's cars and rigs back first, so the fresh career sets those aside again (not the old career's in their place) */
+  for(const k of Object.keys(RIGS))delete RIGS[k];if(F){Object.assign(RIGS,F.rigs);APP.car=F.car;}CAREER.free=null;
+  let T={};try{T=JSON.parse(store.get('wo2-tune','{}'))||{};}catch(e){}tuneSwap(T);setMode('career');}}
 /* ---------- the buy bar under the menu: what, how much, yes or no ---------- */
 const BUY={yes:null};
 function askBuy(text,price,yes){
