@@ -30,6 +30,14 @@ const Q=process.env.QUALITY||'high',FRAMES=+(process.env.FRAMES||120),scenes=pro
       /* the world's meshes arrive from the worker between frames: let them */
       for(let i=0;i<12;i++){g.APP.t+=dt;g.step(dt);g.render(dt);await wait(60);}
       if(sc==='menu'){g.openMenu(false);}
+      /* the GPU is slow here (software): finishing it outside the timed part keeps the GPU's wait out of the
+         JavaScript numbers (on a real GPU that wait lands at the frame's end, in the browser's hands) */
+      const fin=WebGL2RenderingContext.prototype.finish.bind(gl);
+      const inp=f=>{if(sc!=='menu')g.setTestInput({steer:Math.sin(f/30)*.2,thr:.5,brk:0,hb:0,nos:false});};
+      /* the garbage first, with nothing wrapped (the counting wrappers below make garbage of their own) */
+      let heapUp=0,gcs=0,last=performance.memory.usedJSHeapSize;
+      for(let f=0;f<FRAMES;f++){g.APP.t+=dt;inp(f);g.step(dt);g.render(dt);fin();
+        const h=performance.memory.usedJSHeapSize;if(h>=last)heapUp+=h-last;else gcs++;last=h;}
       /* count the GL calls */
       const C={};const n=k=>{C[k]=(C[k]||0)+1;};
       const prog=new Map();let cur='?';const wrap=(name,fn)=>{const o=gl[name];gl[name]=function(){fn.apply(this,arguments);return o.apply(this,arguments);};};
@@ -46,11 +54,10 @@ const Q=process.env.QUALITY||'high',FRAMES=+(process.env.FRAMES||120),scenes=pro
       const T={shadow:0,probe:0,render:0,frame:0};
       const sp=R.shadowPass.bind(R),pp=R.probePass.bind(R);R.shadowPass=S=>{const t=performance.now();sp(S);T.shadow+=performance.now()-t;};R.probePass=S=>{const t=performance.now();pp(S);T.probe+=performance.now()-t;};
       const rr=R.render.bind(R);R.render=S=>{const t=performance.now();rr(S);T.render+=performance.now()-t;};
-      const ps=new Float32Array(10);let heapUp=0,gcs=0,last=performance.memory.usedJSHeapSize;
+      const ps=new Float32Array(10);
       g.PS.avg.fill(0);
-      for(let f=0;f<FRAMES;f++){const t0=performance.now();g.APP.t+=dt;if(sc!=='menu')g.setTestInput({steer:Math.sin(f/30)*.2,thr:.5,brk:0,hb:0,nos:false});g.step(dt);g.render(dt);T.frame+=performance.now()-t0;
-        for(let i=0;i<10;i++)ps[i]+=g.PS.cur[i];g.PS.cur.fill(0);
-        const h=performance.memory.usedJSHeapSize;if(h>=last)heapUp+=h-last;else gcs++;last=h;}
+      for(let f=0;f<FRAMES;f++){const t0=performance.now();g.APP.t+=dt;inp(f);g.step(dt);g.render(dt);T.frame+=performance.now()-t0;
+        for(let i=0;i<10;i++)ps[i]+=g.PS.cur[i];g.PS.cur.fill(0);fin();}
       for(const k in C)C[k]=+(C[k]/FRAMES).toFixed(1);
       const per={};for(const k in draws)per[k]={draws:+(draws[k]/FRAMES).toFixed(1),ktris:+(tri[k]/FRAMES/1000).toFixed(1),uniforms:+((uni[k]||0)/FRAMES).toFixed(1)};
       const psn=['phys','world','shadow','probe','scene','post','hud','sound','trees','send'],js={};for(let i=0;i<10;i++)if(ps[i]>0)js[psn[i]]=+(ps[i]/FRAMES).toFixed(2);
@@ -60,7 +67,7 @@ const Q=process.env.QUALITY||'high',FRAMES=+(process.env.FRAMES||120),scenes=pro
     },[sc,FRAMES]);
     out[sc]=r;
     if(!process.env.JSON){console.log(`\n== ${sc}  (${r.render}, ${r.state})`);
-      const C=r.calls;console.log(`  GL per frame: draws ${C.draw||0} (instanced ${C.drawInst||0}) · programs ${C.useProgram||0} · textures bound ${C.bindTexture||0} · framebuffers ${C.bindFramebuffer||0} · VAOs ${C.bindVertexArray||0} · uniforms ${C.uniform||0} · texImage2D ${C.texImage2D||0} · bufferSubData ${C.bufferSubData||0} · mipmaps ${C.generateMipmap||0} · getParameter ${C.getParameter||0}`);
+      const C=r.calls;console.log(`  GL per frame: draws ${C.draw||0} (instanced ${C.drawInst||0}) · programs ${C.useProgram||0} · textures bound ${C.bindTexture||0} · framebuffers ${C.bindFramebuffer||0} · VAOs ${C.bindVertexArray||0} · uniforms ${C.uniform||0} · texImage2D ${C.texImage2D||0} · texSubImage2D ${C.texSubImage2D||0} · bufferSubData ${C.bufferSubData||0} · mipmaps ${C.generateMipmap||0} · getParameter ${C.getParameter||0}`);
       const rows=Object.entries(r.perProgram).sort((a,b)=>b[1].draws-a[1].draws).map(([k,v])=>`${k} ${v.draws}d/${v.ktris}kt/${v.uniforms}u`);console.log('  per program: '+rows.join(' · '));
       const J=r.jsMs;console.log(`  JS ms per frame: whole ${J.frame} · renderer ${J.renderer} (shadow ${J.shadow}, probe ${J.probe}) · game: ${Object.entries(J.game).map(([k,v])=>k+' '+v).join(', ')}`);
       console.log(`  garbage: ${r.garbageKBperFrame} KB per frame, a collection every ${r.gcPerFrame>0?(1/r.gcPerFrame).toFixed(0):'∞'} frames`);}

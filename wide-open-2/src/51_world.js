@@ -274,26 +274,29 @@ function worldInit(){
    probe: the reflection probe's cheap version, without the far tiles */
 function drawWorld(cam,maxD,probe){
   const W=WORLD,u=CUR.u,F=frustum(cam.VPw),e=cam.eye,near=Math.min(W.near,maxD||W.near),propD=Math.min(W.propD,maxD||W.propD);let tris=0,holes=0;
+  /* what is in sight this frame (each chunk's level of detail and its distance), before anything is drawn */
+  const vis=[];
+  for(const c of W.chunks.values()){const g=probe?(c.g[2]||c.g[1]||c.g[0]):bestG(c);const d=boxDist(e,c.mn,c.mx);
+    if(!g){if(d<W.near*.6)holes++;continue;}
+    if(d>near||!boxVisible(F,c.mn,c.mx))continue;c.vd=d;c.vg=g;vis.push(c);}
+  /* what stands up is drawn before what lies flat (the trees, the buildings and poles, the roads, then the ground
+     and the far tiles): the depth test picks the same winner whatever the order, but this way the GPU shades the
+     ground only where a tree, a building or a road is not in front of it, instead of shading it and then painting
+     over it. The roads lie on the ground like paint (the polygon offset), so they never tie with it */
   gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
+  const tt=DEVW.off.trees?0:drawTreesW(cam,F,probe?Math.min(propD,160):propD,probe);
+  let tp=0;for(const c of vis)if(c.st&&c.st.props&&c.vd<propD+40){atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tp+=c.st.props.tris;}
+  gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-1.5,-3);
+  let tr=0;for(const c of vis)if(c.st&&c.st.roads&&c.vd<near-20){atM(u,c.x0,0,c.z0);drawMesh(c.st.roads);tr+=c.st.roads.tris;}
+  gl.disable(gl.POLYGON_OFFSET_FILL);
+  for(const c of vis){const g=c.vg;atM(u,c.x0,0,c.z0);drawMesh(g.m);tris+=g.m.tris;if(g.w){drawMesh(g.w);tris+=g.w.tris;}}
   /* far tiles: pushed down a little where the chunks are, so the chunks always win */
   if(W.farR>0&&!probe&&!DEVW.off.far&&(!maxD||maxD>W.near)){if(u.uFarDrop)gl.uniform4f(u.uFarDrop,1,W.near-90,W.near+30,14);
     for(const t of W.far.values()){if(!t.m)continue;if(boxDist(e,t.mn,t.mx)>W.farR||!boxVisible(F,t.mn,t.mx))continue;atM(u,t.x0,0,t.z0);drawMesh(t.m);tris+=t.m.tris;if(t.marks){drawMesh(t.marks);tris+=t.marks.tris;}}
     if(u.uFarDrop)gl.uniform4f(u.uFarDrop,0,0,0,0);}
-  const vis=[];
-  for(const c of W.chunks.values()){const g=probe?(c.g[2]||c.g[1]||c.g[0]):bestG(c);const d=boxDist(e,c.mn,c.mx);
-    if(!g){if(d<W.near*.6)holes++;continue;}
-    if(d>near||!boxVisible(F,c.mn,c.mx))continue;atM(u,c.x0,0,c.z0);drawMesh(g.m);tris+=g.m.tris;if(g.w){drawMesh(g.w);tris+=g.w.tris;}c.vd=d;vis.push(c);}
-  const tg=tris;
-  /* the roads lie on the ground like paint */
-  gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-1.5,-3);
-  for(const c of vis)if(c.st&&c.st.roads&&c.vd<near-20){atM(u,c.x0,0,c.z0);drawMesh(c.st.roads);tris+=c.st.roads.tris;}
-  gl.disable(gl.POLYGON_OFFSET_FILL);
-  const tr=tris;
-  for(const c of vis)if(c.st&&c.st.props&&c.vd<propD+40){atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
   gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
-  const tt=DEVW.off.trees?0:drawTreesW(cam,F,probe?Math.min(propD,160):propD,probe);
-  if(!probe){W.st.holes=holes;RANCH.stat={ground:tg,roads:tr-tg,props:tris-tr,trees:tt};}
-  return tris+tt;
+  if(!probe){W.st.holes=holes;RANCH.stat={ground:tris,roads:tr,props:tp,trees:tt};}
+  return tris+tr+tp+tt;
 }
 /* the trees: three broadleaf shapes and two pines, each near (full) and far (one lump), drawn instanced */
 const TREES={shapes:null,buf:null,cnt:null};

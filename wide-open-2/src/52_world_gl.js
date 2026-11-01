@@ -52,7 +52,9 @@ function worldGL(){
   R.loadWorld({geo:null,lights:[],info:{lightGrid:{x0:-8,z0:-8,size:16,cell:8}}});
   R.U.uStudio=0;
   lgBuild();
-  R.extra.push(LAND,CARHOOK,FXP,GLASSHOOK);
+  /* (your car before the land: it is the nearest thing in the picture, so the ground behind it is never shaded
+     only to be painted over; the depth test picks the same winner either way) */
+  R.extra.push(CARHOOK,LAND,FXP,GLASSHOOK);
   landPrograms();FXP.init();displayPrograms();
   const sp=R.shadowPass.bind(R);
   R.shadowPass=function(S){if(!this.shadowAll)return sp(S);this.shadowAll=false;const n=this.frameN;
