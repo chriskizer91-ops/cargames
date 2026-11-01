@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The engine's sound, measured offline: the car's own physics on Route 6 at full throttle from rest (and at 30%
+"""The engine's sound, measured offline: the car's own physics on Highway 40 at full throttle from rest (and at 30%
    gas), its synth params rendered through the Digital Engine DSP heard as Dirt Sleeper HD heard it (5 m, the
    chase camera's distance clamp) and as the model bay does (the lab's Behind spot, 3 m), then through the body
    settings' filters. Prints level, the share of energy under 250 Hz and the spectral centroid.
@@ -11,7 +11,7 @@ car=sys.argv[1] if len(sys.argv)>1 else ''
 JS=r"""async (car)=>{
 const g=__game,TAU=Math.PI*2,makeDSP=g.makeDSP,SIM=g.SIM,BODY=g.BODY;g.GAME.hold=true;
 if(car){g.APP.car=car;g.spawnRig(false);}
-g.goTo('r6e');const t=g.GAME.car;t.pt.start();
+g.goTo('hwyE');const t=g.GAME.car;t.pt.start();
 const SR=48000,FR=60,N=SR/FR;
 /* drive: record the synth params each frame (the physics at its own fixed step inside step()) */
 function drive(thr,secs){g.placeCar(t.p[0]<0?70:t.p[0],1.85,0);t.pt.st='run';t.pt.we=t.pt.e.idle*TAU/60;const out=[],ev=[];

@@ -46,7 +46,8 @@ button{font:inherit;color:inherit}
 .chip:hover{border-color:var(--edge-2)}
 .stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
 @media (max-width:640px){.stat{display:none}}
-body.touch #res,body.touch .stat{display:none}
+/* on a phone the bar is just Menu (as in Rut Access): the graphics level is in Settings, not a chip a thumb can catch mid-drive */
+body.touch #res,body.touch #gfx,body.touch .stat{display:none}
 
 /* ---------- the touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:4}
@@ -80,7 +81,8 @@ body.touch #res,body.touch .stat{display:none}
 @media (max-height:380px){.pedal.gas{height:46vh}.pedal.brk{height:30vh}#tHb{height:40px}.tside .tb{height:30px}}
 
 /* ---------- the menu ---------- */
-#menu{position:fixed;inset:0;z-index:8;display:grid;place-items:start center;overflow-y:auto;background:rgba(7,7,11,.55);
+/* (one column the screen's width: left to size itself, the column took the panel's 560 or 880 px and ran off a phone held upright) */
+#menu{position:fixed;inset:0;z-index:8;display:grid;grid-template-columns:minmax(0,1fr);place-items:start center;overflow-y:auto;background:rgba(7,7,11,.55);
   padding:max(48px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 #menu.garage{background:linear-gradient(to right,rgba(7,7,11,.9) 0,rgba(7,7,11,.9) min(560px,100%),rgba(7,7,11,.15) min(640px,100%));place-items:start start}
 .mwrap{width:min(880px,100%);display:flex;flex-direction:column;gap:14px;background:rgba(14,14,21,.95);border:1px solid var(--edge);border-radius:16px;padding:16px 18px 0;
@@ -12920,7 +12922,13 @@ function placeCar(x,z,yaw){
   if(pt.st!=='off')pt.st='run';
   for(let i=0;i<120;i++)t.step(DT,SETTLE);
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;PRB.fresh=true;CSM.fresh=true;
+  if(GAME.state!=='drive')settleCar();
 }
+/* with the game paused (the menu, boot, a screen over the game) the physics waits, so a car placed then settles onto its
+   springs here and now: a second and a half with the handbrake on and nothing else touched (not the brake pedal: held
+   at a standstill for half a second, that is how the physics engages reverse) */
+const SETTLE_IN={steer:0,thr:0,brk:0,hb:1,nos:false};
+function settleCar(){const t=GAME.car;for(let k=0;k<360;k++)t.step(DT,SETTLE_IN);t.takeEvents();GAME.acc=0;}
 /* the meshes of builds no longer driven or raced are let go (the wheels are shared and stay) */
 function truckEvict(keep){
   for(const id of Object.keys(TRUCKF)){if(keep.includes(id))continue;const F=TRUCKF[id];if(!F.shared)for(const m of [F.body,F.hood,F.bay&&F.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCKF[id];}
@@ -12970,9 +12978,13 @@ function evVoice(car,dt,on){const v=GAME.voice,a=ENG.audio;if(!a)return;
   if(on){if(!v.ev){v.ev=evSound(a.ctx);v.ev.out.connect(a.eng);}if(car)v.ev.update(car,dt,GAME.state);if(v.port&&!v.evZ){v.port.post({t:'sleep',v:true});v.evZ=true;}}
   else{if(v.ev)v.ev.out.gain.setTargetAtTime(0,a.ctx.currentTime,.05);if(v.port&&v.evZ){v.port.post({t:'sleep',v:false});v.evZ=false;}}}
 /* what the synth hears: the lab's 'behind' listener, from wherever the chase camera is */
-function soundUpdate(c){
+function soundUpdate(c,dt=1/60){
   const v=GAME.voice;if(!ENG.audio||!v.port)return;const t=GAME.car,M=t.M,F=mcol(M,0),mode=CAMS[APP.cam],D=carD(t);
-  const isEV=!!t.spec.ev;evVoice(t,1/60,isEV);if(isEV){t.pt.takeEvents();return;}
+  /* paused: the physics waits, but the engine settles to idle in the sound rather than droning where it was caught
+     (the electric motor winds down to a stop) */
+  const isEV=!!t.spec.ev,paused=GAME.state!=='drive';
+  if(paused){const to=isEV?0:t.pt.e.idle;GAME.pRpm=GAME.pRpm===undefined?(isEV?t.pt.rpm:t.pt.rpmOut):GAME.pRpm+(to-GAME.pRpm)*Math.min(1,dt*3);}else GAME.pRpm=undefined;
+  evVoice(isEV&&paused?{pt:{st:t.pt.st,rpm:GAME.pRpm,load:0,Te:0},speed:0}:t,1/60,isEV);if(isEV){t.pt.takeEvents();return;}
   const ex=add(t.p,mvec(M,[-(D.L/2-.15)-t.cg[0],.4-t.cg[1],0])),dist=len(sub2(c.eye,ex)),right=norm2([-c.fwd[2],0,c.fwd[0]]),toCam=norm2(sub2(c.eye,t.p));
   /* the camera sits 7 to 11 m back; the synth hears it from no further than the lab's own 'behind' spot plus a little, so it sounds like the lab */
   let geo={dist:clamp(dist,1.5,5),pan:clamp(-dot2(norm2(sub2(t.p,c.eye)),right)*.9,-1,1),rear:clamp(.5-.5*dot2(toCam,F),0,1)*.6+.4};
@@ -12982,6 +12994,7 @@ function soundUpdate(c){
   /* the room follows where the car is, once it has been there a second */
   const rm=roomNow();if(rm!==ENG.room){ENG.roomT=(ENG.roomT||0)+1/60;if(ENG.roomT>1){ENG.roomT=0;ENG.room=rm;swapRoom();}}else ENG.roomT=0;
   const ep=t.pt.soundParams(0,t.speed,geo);ep.horn=GAME.state==='drive'&&keyOn('horn')?1:0;ep.jake=t.pt.jakeOn?3:0;
+  if(paused){if(t.pt.running)ep.rpm=GAME.pRpm;ep.load=0;ep.cutFrac=0;ep.boost=0;ep.nos=0;ep.speed=0;ep.twostep=0;ep.antilag=0;ep.jake=0;}
   /* the pitch test (V): the synth hears the engine turning slower than it is; the physics and the tach don't change */
   if(ENG.pitch!==1)ep.rpm*=ENG.pitch;
   for(const e of t.pt.takeEvents())v.port.post({t:'ev',ev:e});
@@ -13070,13 +13083,12 @@ function step(dt){
   /* the drag strip's tree (60_park): the car held on its brakes until green (rev it all you like); the gas
      floored before green is a red light */
   if(!RACE.on&&PARKT.dr.st==='tree'){if(drive.thr>.6&&!PARKT.dr.foul){PARKT.dr.foul=true;say('RED LIGHT',1.8,PAL.red);}drive={steer:drive.steer||0,thr:drive.thr||0,brk:1,hb:1,nos:false,park:true};}
-  /* a challenge's countdown (60_chal): held on the brakes until GO; at the result it rolls to a stop */
+  /* a challenge's countdown (60_chal): held on the brakes until GO */
   if(CHAL.run&&CHAL.run.phase==='count')drive={steer:drive.steer||0,thr:drive.thr||0,brk:1,hb:1,nos:false,park:true};
-  if(GAME.state==='cres')drive={steer:0,thr:0,brk:.45,hb:0,nos:false,park:true};
-  if(RACE.on&&GAME.state!=='drive'){GAME.acc=0;return;}
-  /* paused: the car is held exactly as it was (speed and all) until the menu closes; changing it or going
-     somewhere places it afresh, and that unfreezes it */
-  if(GAME.state==='menu'&&GAME.frozen){GAME.acc=0;return;}
+  /* paused (the menu, boot, a race's results, a challenge's result card, someone's job dialog): the physics waits, the
+     car held exactly as it was (speed and all) until the game carries on; a car placed meanwhile has settled (settleCar).
+     Only the dust finishes falling */
+  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);return;}
   /* a machine's rider leans; a rider who has bailed lets go of everything */
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
@@ -13361,7 +13373,7 @@ function frame(ts){
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
   perfBegin();
-  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last);raceSound(CAM.last);}psT(PS_SOUND,ts0);drsStep(dt);}catch(e){console.error(e);}
+  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last,dt);raceSound(CAM.last);}psT(PS_SOUND,ts0);drsStep(dt);}catch(e){console.error(e);}
   perfEnd(dt);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps · '+WORLD.chunks.size+' chunks';}
 }
@@ -13425,7 +13437,10 @@ function tuneSwap(T){for(const k of Object.keys(TUNE))delete TUNE[k];Object.assi
 /* the career's cars, rigs and current car, from the game's */
 function careerSync(){if(!CAREER.on||!CAREER.d)return;for(const car of Object.keys(CAREER.d.cars))if(RIGS[car])CAREER.d.cars[car].rig=Object.assign({},RIGS[car]);
   if(CAREER.d.cars[APP.car])CAREER.d.current=APP.car;careerSave();}
-function careerWipe(){store.set('wo2-career','null');if(CAREER.on){CAREER.d=null;CAREER.on=false;let T={};try{T=JSON.parse(store.get('wo2-tune','{}'))||{};}catch(e){}tuneSwap(T);setMode('career');}}
+function careerWipe(){store.set('wo2-career','null');if(CAREER.on){const F=CAREER.free;CAREER.d=null;CAREER.on=false;
+  /* free play's cars and rigs back first, so the fresh career sets those aside again (not the old career's in their place) */
+  for(const k of Object.keys(RIGS))delete RIGS[k];if(F){Object.assign(RIGS,F.rigs);APP.car=F.car;}CAREER.free=null;
+  let T={};try{T=JSON.parse(store.get('wo2-tune','{}'))||{};}catch(e){}tuneSwap(T);setMode('career');}}
 /* ---------- the buy bar under the menu: what, how much, yes or no ---------- */
 const BUY={yes:null};
 function askBuy(text,price,yes){
@@ -14627,10 +14642,12 @@ function openMenu(first){
   if(GAME.state==='drive'){GAME.frozen=true;engineDuck(true);}
   APP.title=!!first;
   GAME.state='menu';$('menu').hidden=false;inputRelease();syncTouch();
-  $('mGo').textContent=first?'Start driving':RACE.on?'Back to the race':'Back to driving';$('mEyebrow').textContent=RACE.on?'Paused: '+RACE.ev.name:first?(CAREER.on?'Career':'Free play: every car and part is yours'):(CAREER.on?'Career · paused':'Paused');
+  $('mGo').textContent=first?'Start driving':RACE.on?'Back to the race':'Back to driving';$('mEyebrow').textContent=menuEyebrow();
   $('mLeave').hidden=!RACE.on&&!(CHAL.run&&CHAL.run.phase!=='done');$('mLeave').textContent=RACE.on?'Leave the race':'Quit the challenge';
   showTab(MENU.tab);syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
 }
+/* the line over the menu: which game you're in, and paused or not (kept right when the game is switched under it) */
+const menuEyebrow=()=>RACE.on?'Paused: '+RACE.ev.name:APP.title?(CAREER.on?'Career':'Free play: every car and part is yours'):(CAREER.on?'Career · paused':'Paused');
 /* every key, pedal and stick let go: a release the menu swallowed must not leave the gas on */
 /* the engine fades out while the game is paused and back in after */
 function engineDuck(on){const a=ENG.audio;if(a&&a.eng)a.eng.gain.setTargetAtTime(on?0:1,a.ctx.currentTime,on?.08:.15);}
@@ -14711,7 +14728,7 @@ function syncModes(){
     el.querySelector('small').textContent=c?(d?`${Feats.fmtMoney(d.money)} · ${med} medal${med===1?'':'s'} · ${jobs} job${jobs===1?'':'s'} done`:`A stock SUV and ${Feats.fmtMoney(START_CASH)}`):'Every car and every part';}
   $('mModeHint').textContent=CAREER.on?`The career: a stock SUV and ${Feats.fmtMoney(START_CASH)} to start. Challenges pay for medals, the town's people pay for jobs, and feats pay a share. The money buys parts and cars: tap one you don't have and it tells you the price.`:
     'Free play: every car and every part is yours, and the money is just a score. The career is kept as you left it.';
-  $('mWipe').hidden=!CAREER.on;
+  $('mWipe').hidden=!CAREER.on;if(GAME.state==='menu')$('mEyebrow').textContent=menuEyebrow();
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
 function buildMenu(){

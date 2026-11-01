@@ -36,7 +36,8 @@ button{font:inherit;color:inherit}
 .chip:hover{border-color:var(--edge-2)}
 .stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
 @media (max-width:640px){.stat{display:none}}
-body.touch #res,body.touch .stat{display:none}
+/* on a phone the bar is just Menu (as in Rut Access): the graphics level is in Settings, not a chip a thumb can catch mid-drive */
+body.touch #res,body.touch #gfx,body.touch .stat{display:none}
 
 /* ---------- the touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:4}
@@ -70,7 +71,8 @@ body.touch #res,body.touch .stat{display:none}
 @media (max-height:380px){.pedal.gas{height:46vh}.pedal.brk{height:30vh}#tHb{height:40px}.tside .tb{height:30px}}
 
 /* ---------- the menu ---------- */
-#menu{position:fixed;inset:0;z-index:8;display:grid;place-items:start center;overflow-y:auto;background:rgba(7,7,11,.55);
+/* (one column the screen's width: left to size itself, the column took the panel's 560 or 880 px and ran off a phone held upright) */
+#menu{position:fixed;inset:0;z-index:8;display:grid;grid-template-columns:minmax(0,1fr);place-items:start center;overflow-y:auto;background:rgba(7,7,11,.55);
   padding:max(48px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 #menu.garage{background:linear-gradient(to right,rgba(7,7,11,.9) 0,rgba(7,7,11,.9) min(560px,100%),rgba(7,7,11,.15) min(640px,100%));place-items:start start}
 .mwrap{width:min(880px,100%);display:flex;flex-direction:column;gap:14px;background:rgba(14,14,21,.95);border:1px solid var(--edge);border-radius:16px;padding:16px 18px 0;
