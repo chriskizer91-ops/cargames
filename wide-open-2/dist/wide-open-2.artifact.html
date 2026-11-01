@@ -4021,16 +4021,29 @@ class MB{
 }
 function vbuf(loc,data,size,div=0){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
   gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,size,gl.FLOAT,false,0,0);if(div)gl.vertexAttribDivisor(loc,div);return b;}
-function makeMesh(d){
+/* the upload. A big mesh (a car's body) is checked for GL_OUT_OF_MEMORY afterwards: the buffers came back empty
+   and the body would simply not be there. It happens on a phone short of graphics memory, and on a laptop when the
+   browser's own upload buffers are full while its GPU process is busy (every car in the shed goes up in one burst
+   at the boot, another tab may hold the GPU). So the data is kept and the upload tried again a moment later, up to
+   six times, from drawMesh; only then does a car stay coarse (60_game, 63_showroom). The error flag is cleared
+   first: an error left by an earlier call would otherwise be blamed on this mesh */
+function meshUpload(m,d){
+  const big=d.pos.length>60000;
+  if(big)for(let k=0;k<8&&gl.getError()!==gl.NO_ERROR;k++);
   const vao=gl.createVertexArray();gl.bindVertexArray(vao);const bufs=[];
   bufs.push(vbuf(0,d.pos,3),vbuf(1,d.nrm,3),vbuf(2,d.col,4));if(d.mat)bufs.push(vbuf(3,d.mat,1));if(d.uv)bufs.push(vbuf(4,d.uv,2));
   let ib=null,it=0;if(d.idx){ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,d.idx,gl.STATIC_DRAW);it=d.idx instanceof Uint32Array?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT;}
   gl.bindVertexArray(null);
-  /* a big mesh (a car's body) on a phone short of graphics memory: the buffers come back empty and the body would
-     simply not be there. Checked only for big meshes (asking the GPU is slow); the car falls back to its coarse copy */
-  let oom=false;if(d.pos.length>60000){for(let k=0,er;k<8&&(er=gl.getError())!==gl.NO_ERROR;k++)if(er===gl.OUT_OF_MEMORY)oom=true;if(oom)GLC.oom=(GLC.oom||0)+1;}
-  return {vao,bufs,ib,it,n:d.idx?d.idx.length:d.pos.length/3,inst:null,ni:0,oom};
+  let oom=false;if(big){for(let k=0,er;k<8&&(er=gl.getError())!==gl.NO_ERROR;k++)if(er===gl.OUT_OF_MEMORY)oom=true;}
+  m.vao=vao;m.bufs=bufs;m.ib=ib;m.it=it;m.n=d.idx?d.idx.length:d.pos.length/3;if(m.inst===undefined)m.inst=null;m.ni=0;m.oom=oom;
+  if(oom){GLC.oom=(GLC.oom||0)+1;m.src=d;m.tries=(m.tries||0)+1;m.retryT=performance.now()+400*m.tries;}else delete m.src;
+  return m;
 }
+function makeMesh(d){return meshUpload({},d);}
+/* a mesh whose upload was refused, tried again when its moment comes (the old buffers let go first); true once it is there */
+function meshRetry(m){if(!m.oom)return true;if(!m.src||m.tries>=6||performance.now()<m.retryT)return false;
+  gl.deleteVertexArray(m.vao);for(const b of m.bufs)gl.deleteBuffer(b);if(m.ib)gl.deleteBuffer(m.ib);if(m.inst){gl.deleteBuffer(m.inst);m.inst=null;}
+  meshUpload(m,m.src);return !m.oom;}
 /* per-instance data: Float32Array of 12 floats per instance */
 function setInst(mesh,data){
   gl.bindVertexArray(mesh.vao);
@@ -4041,12 +4054,13 @@ function setInst(mesh,data){
 }
 /* draw calls this frame (the performance overlay, 52_world_dev) */
 const GLC={n:0};
-function drawMesh(m){GLC.n++;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElements(gl.TRIANGLES,m.n,m.it,0);else gl.drawArrays(gl.TRIANGLES,0,m.n);}
+/* (true when drawn; false for a mesh whose upload is still refused, so a caller can draw something else) */
+function drawMesh(m){if(m.oom&&!meshRetry(m))return false;GLC.n++;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElements(gl.TRIANGLES,m.n,m.it,0);else gl.drawArrays(gl.TRIANGLES,0,m.n);return true;}
 /* point a shape's instance attributes at one of the instance lists' own buffers (no upload) */
 function instBind(mesh,buf,n){gl.bindVertexArray(mesh.vao);gl.bindBuffer(gl.ARRAY_BUFFER,buf);
   for(let k=0;k<3;k++){gl.enableVertexAttribArray(5+k);gl.vertexAttribPointer(5+k,4,gl.FLOAT,false,48,k*16);gl.vertexAttribDivisor(5+k,1);}
   gl.bindVertexArray(null);mesh.ni=n;}
-function drawMeshI(m){if(!m.ni)return;GLC.n++;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElementsInstanced(gl.TRIANGLES,m.n,m.it,0,m.ni);else gl.drawArraysInstanced(gl.TRIANGLES,0,m.n,m.ni);}
+function drawMeshI(m){if(!m.ni)return;if(m.oom&&!meshRetry(m))return;GLC.n++;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElementsInstanced(gl.TRIANGLES,m.n,m.it,0,m.ni);else gl.drawArraysInstanced(gl.TRIANGLES,0,m.n,m.ni);}
 function freeMesh(m){if(!m)return;gl.deleteVertexArray(m.vao);for(const b of m.bufs)gl.deleteBuffer(b);if(m.ib)gl.deleteBuffer(m.ib);if(m.inst)gl.deleteBuffer(m.inst);}
 
 /* =====================================================================================
@@ -11738,7 +11752,7 @@ function drawWorldStats(){
     `MS EACH  2M ${av(0)}  4M ${av(1)}  8M ${av(2)}  ITEMS ${S.sn?(S.sms/S.sn).toFixed(1):'-'}  FAR ${S.fn?(S.fms/S.fn).toFixed(1):'-'}`,
     `WORST  2M ${S.mx[0].toFixed(0)} MS  ITEMS ${S.smx.toFixed(0)} MS  MAKER BUSY ${Math.min(999,S.genRate/10).toFixed(0)}%`,
     `GPU ${(S.bytes/1048576).toFixed(1)} MB  ${Math.round(APP.tris/1000)}K TRIS  ${APP.fps.toFixed(0)} FPS`,
-    (()=>{const P=perfStats();return P?`FRAME ${P.avg.toFixed(1)} MS  1% LOW ${(1000/P.low1).toFixed(0)} FPS  JS ${P.js.toFixed(1)} MS  DRAWS ${PERF.draws}`:'';})(),
+    (()=>{const P=perfStats();return P?`FRAME ${P.avg.toFixed(1)} MS  1% LOW ${(1000/P.low1).toFixed(0)} FPS  JS ${P.js.toFixed(1)} MS  DRAWS ${PERF.draws}${GLC.oom?'  UPLOADS REFUSED '+GLC.oom:''}`:'';})(),
     ...rperfRows(),`HUD ${BW}X${BH}  ORIGIN ${RO[0]},${RO[2]} (${WORLD.steps||0} STEPS)  LIGHT GRID ${LG.n} LIGHTS, ${LG.ms.toFixed(0)} MS TO MAKE`,
     `PASSES OFF: ${Object.keys(DEVW.off).filter(k=>DEVW.off[k]).join(' ').toUpperCase()||'NONE'}`,
     `HOLES ${S.holes}  GROUND NOT READY ${S.missT} FRAMES  UPLOAD ${(PERF.up||0).toFixed(1)} MS/FRAME`,
@@ -13592,7 +13606,7 @@ function carUniformsW(t,v,dirt){
 function drawWorldCar(t,v,dirt,far,depth){
   const i=t.bi,b=t.build,u=CUR.u,M0=carMatrix(t);let Mb=M0,T=far?truckFar(i):truck(i);
   /* a phone out of graphics memory for this car's full body draws its coarse copy */
-  if(T.body.oom&&!far){far=true;T=truckFar(i);if(!GAME.oomSaid){GAME.oomSaid=true;say('THE PHONE IS OUT OF GRAPHICS MEMORY: CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
+  if(T.body.oom&&!far&&!meshRetry(T.body)){far=true;const spent=T.body.tries>=6;T=truckFar(i);if(spent&&!GAME.oomSaid){GAME.oomSaid=true;say('OUT OF GRAPHICS MEMORY: THIS CAR IS DRAWN COARSE. CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
   const D=T.D,pm=depth?null:(t.drawPrev||(t.drawPrev={}));
   if(pm&&(pm.ro0!==RO[0]||pm.ro2!==RO[2])){const dx=RO[0]-(pm.ro0??RO[0]),dz=RO[2]-(pm.ro2??RO[2]);
     for(const k in pm){const q=pm[k];const M=q&&(q.length===16?q:q.M0);if(M){M[12]-=dx;M[14]-=dz;}}pm.ro0=RO[0];pm.ro2=RO[2];}
@@ -15466,7 +15480,7 @@ function drawShowCar(i,Mc,hoodA,live,far,dirt,du){
   if(far){const F=truckFar(i);drawMesh(F.body);if(F.hood)drawMesh(F.hood);tris=F.tris;}
   else if(b.machine){drawMesh(T.body);if(T.rider){drawMesh(T.rider.lo);const P=T.rider.pivot;gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4T(P[0],P[1],P[2])));drawMesh(T.rider.up);}}
   else{
-    drawMesh(T.body);
+    if(!drawMesh(T.body))drawMesh(truckFar(i).body);
     const ha=sstep(0,1,hoodA);let Mh=Mb,bt=0;
     const engM=BY=>{const p=BY.pivot,a=live?-SHOW.roll*3:0;return a?M4.mul(Mb,M4.mul(M4T(p[0],p[1],p[2]),M4.mul(BY.trans?M4RZ(a):M4RX(a),M4T(-p[0],-p[1],-p[2])))):Mb;};
     if(ha>0){const [hx,hy]=D.hood.hinge;Mh=M4.mul(Mb,M4.mul(M4T(hx,hy,0),M4.mul(M4RZ(ha*1.0),M4T(-hx,-hy,0))));
@@ -16536,7 +16550,7 @@ else{
   },30));
   window.__game={showClutchCap,TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
     GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,rutShaders,get RESO(){return RESO;},SKY,TOD,compile,setDisplay,PIC,LOOK,LAND,CARHOOK,FXP,STUDIO,GLASSHOOK,envNow,lgBuild,lgPlace,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},rperfRows,carLights,yardLights,worldFar,viewCut,FX,
-    RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,
+    RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,GLC,makeMesh,drawMesh,meshRetry,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }

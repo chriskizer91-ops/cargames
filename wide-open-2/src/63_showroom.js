@@ -176,7 +176,7 @@ function drawShowCar(i,Mc,hoodA,live,far,dirt,du){
   if(far){const F=truckFar(i);drawMesh(F.body);if(F.hood)drawMesh(F.hood);tris=F.tris;}
   else if(b.machine){drawMesh(T.body);if(T.rider){drawMesh(T.rider.lo);const P=T.rider.pivot;gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4T(P[0],P[1],P[2])));drawMesh(T.rider.up);}}
   else{
-    drawMesh(T.body);
+    if(!drawMesh(T.body))drawMesh(truckFar(i).body);
     const ha=sstep(0,1,hoodA);let Mh=Mb,bt=0;
     const engM=BY=>{const p=BY.pivot,a=live?-SHOW.roll*3:0;return a?M4.mul(Mb,M4.mul(M4T(p[0],p[1],p[2]),M4.mul(BY.trans?M4RZ(a):M4RX(a),M4T(-p[0],-p[1],-p[2])))):Mb;};
     if(ha>0){const [hx,hy]=D.hood.hinge;Mh=M4.mul(Mb,M4.mul(M4T(hx,hy,0),M4.mul(M4RZ(ha*1.0),M4T(-hx,-hy,0))));

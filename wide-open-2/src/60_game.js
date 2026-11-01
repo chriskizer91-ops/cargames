@@ -432,7 +432,7 @@ function carUniformsW(t,v,dirt){
 function drawWorldCar(t,v,dirt,far,depth){
   const i=t.bi,b=t.build,u=CUR.u,M0=carMatrix(t);let Mb=M0,T=far?truckFar(i):truck(i);
   /* a phone out of graphics memory for this car's full body draws its coarse copy */
-  if(T.body.oom&&!far){far=true;T=truckFar(i);if(!GAME.oomSaid){GAME.oomSaid=true;say('THE PHONE IS OUT OF GRAPHICS MEMORY: CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
+  if(T.body.oom&&!far&&!meshRetry(T.body)){far=true;const spent=T.body.tries>=6;T=truckFar(i);if(spent&&!GAME.oomSaid){GAME.oomSaid=true;say('OUT OF GRAPHICS MEMORY: THIS CAR IS DRAWN COARSE. CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
   const D=T.D,pm=depth?null:(t.drawPrev||(t.drawPrev={}));
   if(pm&&(pm.ro0!==RO[0]||pm.ro2!==RO[2])){const dx=RO[0]-(pm.ro0??RO[0]),dz=RO[2]-(pm.ro2??RO[2]);
     for(const k in pm){const q=pm[k];const M=q&&(q.length===16?q:q.M0);if(M){M[12]-=dx;M[14]-=dz;}}pm.ro0=RO[0];pm.ro2=RO[2];}

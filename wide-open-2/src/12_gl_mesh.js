@@ -79,16 +79,29 @@ class MB{
 }
 function vbuf(loc,data,size,div=0){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
   gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,size,gl.FLOAT,false,0,0);if(div)gl.vertexAttribDivisor(loc,div);return b;}
-function makeMesh(d){
+/* the upload. A big mesh (a car's body) is checked for GL_OUT_OF_MEMORY afterwards: the buffers came back empty
+   and the body would simply not be there. It happens on a phone short of graphics memory, and on a laptop when the
+   browser's own upload buffers are full while its GPU process is busy (every car in the shed goes up in one burst
+   at the boot, another tab may hold the GPU). So the data is kept and the upload tried again a moment later, up to
+   six times, from drawMesh; only then does a car stay coarse (60_game, 63_showroom). The error flag is cleared
+   first: an error left by an earlier call would otherwise be blamed on this mesh */
+function meshUpload(m,d){
+  const big=d.pos.length>60000;
+  if(big)for(let k=0;k<8&&gl.getError()!==gl.NO_ERROR;k++);
   const vao=gl.createVertexArray();gl.bindVertexArray(vao);const bufs=[];
   bufs.push(vbuf(0,d.pos,3),vbuf(1,d.nrm,3),vbuf(2,d.col,4));if(d.mat)bufs.push(vbuf(3,d.mat,1));if(d.uv)bufs.push(vbuf(4,d.uv,2));
   let ib=null,it=0;if(d.idx){ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,d.idx,gl.STATIC_DRAW);it=d.idx instanceof Uint32Array?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT;}
   gl.bindVertexArray(null);
-  /* a big mesh (a car's body) on a phone short of graphics memory: the buffers come back empty and the body would
-     simply not be there. Checked only for big meshes (asking the GPU is slow); the car falls back to its coarse copy */
-  let oom=false;if(d.pos.length>60000){for(let k=0,er;k<8&&(er=gl.getError())!==gl.NO_ERROR;k++)if(er===gl.OUT_OF_MEMORY)oom=true;if(oom)GLC.oom=(GLC.oom||0)+1;}
-  return {vao,bufs,ib,it,n:d.idx?d.idx.length:d.pos.length/3,inst:null,ni:0,oom};
+  let oom=false;if(big){for(let k=0,er;k<8&&(er=gl.getError())!==gl.NO_ERROR;k++)if(er===gl.OUT_OF_MEMORY)oom=true;}
+  m.vao=vao;m.bufs=bufs;m.ib=ib;m.it=it;m.n=d.idx?d.idx.length:d.pos.length/3;if(m.inst===undefined)m.inst=null;m.ni=0;m.oom=oom;
+  if(oom){GLC.oom=(GLC.oom||0)+1;m.src=d;m.tries=(m.tries||0)+1;m.retryT=performance.now()+400*m.tries;}else delete m.src;
+  return m;
 }
+function makeMesh(d){return meshUpload({},d);}
+/* a mesh whose upload was refused, tried again when its moment comes (the old buffers let go first); true once it is there */
+function meshRetry(m){if(!m.oom)return true;if(!m.src||m.tries>=6||performance.now()<m.retryT)return false;
+  gl.deleteVertexArray(m.vao);for(const b of m.bufs)gl.deleteBuffer(b);if(m.ib)gl.deleteBuffer(m.ib);if(m.inst){gl.deleteBuffer(m.inst);m.inst=null;}
+  meshUpload(m,m.src);return !m.oom;}
 /* per-instance data: Float32Array of 12 floats per instance */
 function setInst(mesh,data){
   gl.bindVertexArray(mesh.vao);
@@ -99,11 +112,12 @@ function setInst(mesh,data){
 }
 /* draw calls this frame (the performance overlay, 52_world_dev) */
 const GLC={n:0};
-function drawMesh(m){GLC.n++;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElements(gl.TRIANGLES,m.n,m.it,0);else gl.drawArrays(gl.TRIANGLES,0,m.n);}
+/* (true when drawn; false for a mesh whose upload is still refused, so a caller can draw something else) */
+function drawMesh(m){if(m.oom&&!meshRetry(m))return false;GLC.n++;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElements(gl.TRIANGLES,m.n,m.it,0);else gl.drawArrays(gl.TRIANGLES,0,m.n);return true;}
 /* point a shape's instance attributes at one of the instance lists' own buffers (no upload) */
 function instBind(mesh,buf,n){gl.bindVertexArray(mesh.vao);gl.bindBuffer(gl.ARRAY_BUFFER,buf);
   for(let k=0;k<3;k++){gl.enableVertexAttribArray(5+k);gl.vertexAttribPointer(5+k,4,gl.FLOAT,false,48,k*16);gl.vertexAttribDivisor(5+k,1);}
   gl.bindVertexArray(null);mesh.ni=n;}
-function drawMeshI(m){if(!m.ni)return;GLC.n++;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElementsInstanced(gl.TRIANGLES,m.n,m.it,0,m.ni);else gl.drawArraysInstanced(gl.TRIANGLES,0,m.n,m.ni);}
+function drawMeshI(m){if(!m.ni)return;if(m.oom&&!meshRetry(m))return;GLC.n++;gl.bindVertexArray(m.vao);if(m.ib)gl.drawElementsInstanced(gl.TRIANGLES,m.n,m.it,0,m.ni);else gl.drawArraysInstanced(gl.TRIANGLES,0,m.n,m.ni);}
 function freeMesh(m){if(!m)return;gl.deleteVertexArray(m.vao);for(const b of m.bufs)gl.deleteBuffer(b);if(m.ib)gl.deleteBuffer(m.ib);if(m.inst)gl.deleteBuffer(m.inst);}
 
