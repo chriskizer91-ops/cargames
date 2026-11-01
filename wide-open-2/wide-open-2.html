@@ -51,13 +51,14 @@ body.touch #res,body.touch #gfx,body.touch .stat{display:none}
 
 /* ---------- the touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:4}
+#perf{position:fixed;left:92px;top:90px;margin:0;padding:5px 8px;border-radius:7px;background:rgba(7,7,11,.62);color:var(--cyan);font:500 9.5px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none;z-index:6}
 #steerZone{position:absolute;left:0;bottom:0;width:46vw;height:72vh;pointer-events:auto;touch-action:none}
 #steerZone[data-mode="tilt"],#steerZone[data-mode="buttons"]{pointer-events:none}
 #steerTrack{position:absolute;left:24vw;bottom:max(34px,calc(env(safe-area-inset-bottom,0px) + 26px));width:0;height:0}
 #steerTrack::before{content:"";position:absolute;left:-120px;width:240px;top:-2px;height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
 #steerKnob{position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;border:2px solid rgba(79,227,255,.7);background:rgba(17,17,25,.55);transition:transform .05s linear}
 #steerZone.on #steerKnob{background:rgba(79,227,255,.25)}
-#steerHint{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));font:600 9.5px/1 var(--f);letter-spacing:.18em;color:var(--ink-3)}
+#steerHint{position:absolute;left:24vw;transform:translateX(-50%);bottom:max(66px,calc(env(safe-area-inset-bottom,0px) + 58px));font:600 9.5px/1 var(--f);letter-spacing:.18em;color:var(--ink-3);white-space:nowrap;pointer-events:none}
 #steerZone[data-mode="buttons"] #steerTrack,#steerZone[data-mode="buttons"] #steerHint{display:none}
 #steerBtns{position:absolute;left:max(14px,env(safe-area-inset-left,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;pointer-events:auto}
 .tb{border:1px solid var(--edge-2);background:rgba(17,17,25,.55);color:var(--ink);touch-action:none;cursor:pointer;backdrop-filter:blur(2px);
@@ -119,6 +120,7 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .place:hover,.place:focus-visible{color:var(--ink);border-color:var(--edge-2)}
 .place[aria-pressed="true"]{color:var(--ink);border-color:var(--amber)}
 .row2{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-start}
+.row2>div{min-width:0;max-width:100%}
 .vol{display:inline-flex;align-items:center;gap:8px;height:34px;font:600 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
 .vol input{width:130px;accent-color:var(--amber)}
 .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;bottom:0;margin:0 -18px;padding:12px 18px 14px;background:linear-gradient(to top,rgba(14,14,21,1) 75%,rgba(14,14,21,0));border-radius:0 0 16px 16px}
@@ -481,6 +483,7 @@ body.bayfull>.bar{display:none}
   <span class="rot" id="rot">Turn your phone sideways</span>
   <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="gfx" type="button">Gfx Plus</button><button class="chip" id="res" type="button">Dots 960×540</button><button class="chip" id="menuBtn" type="button">Menu</button></div>
 </div>
+<pre id="perf" hidden></pre>
 <div id="touch" hidden>
   <div id="steerZone" data-mode="slide"><div id="steerTrack"><b id="steerKnob"></b></div><span id="steerHint">SLIDE TO STEER</span>
     <div id="steerBtns" hidden><button class="tb big" id="tLeft" type="button" aria-label="Steer left">◀</button><button class="tb big" id="tRight" type="button" aria-label="Steer right">▶</button></div></div>
@@ -566,7 +569,7 @@ body.bayfull>.bar{display:none}
     </div>
     <div class="tab" data-tab="dev" hidden>
     <section class="dev"><h2>The open world</h2><p class="hint" style="margin:0 0 10px">The town, the country and the salt, made in 128 m chunks round you as you drive and let go behind you. Cruise holds the road you're on (its right-hand lane) so you can watch the world come in. Brake to stop it.</p>
-        <div class="row2"><div><h2 class="sub">World numbers on screen (F)</h2><div class="seg" id="dHud" role="group" aria-label="World numbers"></div></div>
+        <div class="row2"><div><h2 class="sub">Numbers on screen (F)</h2><div class="seg" id="dHud" role="group" aria-label="World numbers"></div></div>
           <div><h2 class="sub">View distance</h2><div class="seg" id="dView" role="group" aria-label="View distance"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Made on</h2><div class="seg" id="dGen" role="group" aria-label="Made on"></div></div>
           <div><h2 class="sub">Cruise (Y)</h2><div class="seg" id="dCruise" role="group" aria-label="Cruise"></div></div></div>
@@ -593,6 +596,12 @@ body.bayfull>.bar{display:none}
       <div class="devrows" id="mDevLookS"></div>
       <div id="mDevLookT" style="margin-top:10px"></div>
       <p style="margin-top:10px"><button class="btn sm" id="mDevLookReset" type="button">Back to the tuned look</button></p>
+    </section>
+    <section class="dev" id="mDevBudget" hidden><h2>Developer: the phone's budgets</h2>
+      <p class="hint" style="margin:0 0 10px" id="mDevBudgetNote">What the world and the cars hand the renderer on the Mobile tier, to trim on the phone while the performance readout (F, or Numbers on screen: Readout, above) shows the frame time. The other tiers always draw everything. Saved on this device.</p>
+      <div class="devrows" id="mDevBudgetS"></div>
+      <div id="mDevBudgetT" style="margin-top:10px"></div>
+      <p style="margin-top:10px"><button class="btn sm" id="mDevBudgetReset" type="button">Back to the shipped budgets</button></p>
     </section>
     </div>
     <div class="acts"><div class="buybar" id="mBuy" hidden><span id="mBuyTxt"></span><button class="btn go sm" id="mBuyYes" type="button">Buy it</button><button class="btn sm" id="mBuyNo" type="button">Not now</button></div>
@@ -688,7 +697,7 @@ body.bayfull>.bar{display:none}
     </div>
   </div>
 </div>
-<div id="loading">Lighting up the town</div>
+<div id="loading">Starting the renderer</div>
 <div id="err">This needs WebGL2, which this browser has turned off.</div>
 <script>
 (()=>{
@@ -11382,7 +11391,7 @@ function drawTreeList(L,u,far){let tris=0;gl.uniform1f(u.uInst,1);
   for(let v=0;v<L.cnt.length;v++)for(let l=0;l<2;l++){const n=L.cnt[v][l];if(!n)continue;const m=TREES.shapes[v][far?1:l];instBind(m,L.gb[v][l],n);drawMeshI(m);tris+=m.tris*n;}
   gl.uniform1f(u.uInst,0);return tris;}
 function drawTreesW(cam,F,maxD,probe){
-  TREE_NEAR=GFX.q.treeNear;
+  TREE_NEAR=GFX.q.treeNear;if(GFX.level==='mobile')maxD=Math.min(maxD,BUDGET.treeD);
   /* the probe looks every way from the car, so its list has no frustum and serves all six faces; at its few
      pixels a face every tree is its single lump */
   return probe?drawTreeList(treeList('p',cam.eye,maxD,null,true),CUR.u,true):drawTreeList(treeList('v',cam.eye,maxD,F,false),CUR.u,false);
@@ -11448,15 +11457,38 @@ function landUniforms(P){texUniforms(P);R.G.uni(P,'uGlowK',LOOK.glow);const G=R.
   G.uni(P,'uDetail',GFX.q.detail*LOOK.detail);G.uni(P,'uDrawFar',worldFar());
   G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);G.uni(P,'uGlow',[0,0,0]);
   G.uni(P,'uCourse',[WG.COURSE.x0-RO[0],WG.COURSE.mi,.11,-RO[2]]);G.uni(P,'uOrg',[0,0,0]);}
+/* ---------- the phone's budgets: what the world and the cars hand each pass on the Mobile tier, and nothing else
+   (the other tiers draw everything, always: the laptop's picture is never traded for speed). Each is a Dev control
+   (54_dev's BUDGET_S), saved on the device as wo2-budget; the defaults are what ships. None of them can be measured
+   on the Pixel 7a's Mali-G710 from here, so they start where the picture doesn't change and the owner trims:
+   scale: the render scale's ceiling (dynamic resolution works under it; TAA rebuilds the rest)
+   shadowD: how far out the buildings, poles and trees are drawn into the sun's (moon's) cascades
+   treeD: how far the trees are drawn (the far ones are a single lump each)
+   treeNear: how near a tree is drawn in full
+   probeEvery: the reflection probe's face drawn every this many frames (six faces make the cube)
+   farCSM: the far cascade drawn every this many frames
+   fx: dust, clods and spray alive at once
+   carLod: your car into the middle and far cascades as its coarse copy (its shadow there is a few texels across) ---------- */
+const BUDGET_DEF={scale:.75,shadowD:320,treeD:340,treeNear:70,probeEvery:3,farCSM:4,fx:220,carLod:1},BUDGET=Object.assign({},BUDGET_DEF);
+const budgetOn=()=>GFX.level==='mobile';
+try{const d=JSON.parse(store.get('wo2-budget','{}'))||{};for(const k in BUDGET_DEF)if(typeof d[k]==='number')BUDGET[k]=d[k];}catch(e){}
+const budgetSave=()=>store.set('wo2-budget',JSON.stringify(BUDGET));
+/* the budgets that live in the renderer's own settings and the world's: set when the renderer starts and when a
+   control moves */
+function budgetApply(){if(!R||!budgetOn())return;const Q=R.Q;Q.probeEvery=Math.max(1,Math.round(BUDGET.probeEvery));Q.farCSM=Math.max(2,Math.round(BUDGET.farCSM/2)*2);
+  if(RESO){RESO.max=Math.min(QMAX0||Q.maxScale,BUDGET.scale);if(RESO.scale>RESO.max)RESO.scale=RESO.max;}GFX.q.treeNear=BUDGET.treeNear;FX_CAP.mobile=Math.round(BUDGET.fx);}
+let QMAX0=0;
 /* the renderer's hook for the land */
-const LAND={c:null,dt:1/60,tris:0,
+const LAND={c:null,dt:1/60,tris:0,skip0:false,
   prepare(R,S){if(!LOOK.shadows||DEVW.off.shadows)R.U.uCSMOn=0;},
   /* the sun's cascades and the headlights' map: the buildings, poles and trees inside the map's frustum (the ground
      itself casts nothing, as before: the county's hills are gentle and the town is flat) */
   shadow(R,Pd,VP,kind,k){if(!this.c)return;const G=R.G;useLit(P_DEPTH);const u=CUR.u;G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uM',M4_ID);G.uni(P_DEPTH,'uInst',0);G.uni(P_DEPTH,'uTime',APP.t);
     gl.disable(gl.CULL_FACE);
     const F=frustum(toWorld(VP)),hl=kind==='hl',e=hl?[R.hlPos[0]+RO[0],R.hlPos[1]+RO[1],R.hlPos[2]+RO[2]]:this.c.eye;
-    worldShadow(u,F,e,hl?90:320,hl?'hl':'c'+k,!hl&&k>=1);G.use(Pd);},
+    /* (the origin-step frame's second cascade pass: the near cascade and the headlights' map are already drawn) */
+    if(this.skip0&&(hl||k===0)){G.use(Pd);return;}
+    worldShadow(u,F,e,hl?90:budgetOn()?BUDGET.shadowD:320,hl?'hl':'c'+k,!hl&&k>=1);G.use(Pd);},
   opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);CUR=litOf(P);
     const c=this.c;if(!c)return;
     let tris=drawWorld({eye:c.eye,VPw:toWorld(U.uVP)},SKY.night?SKY.draw:0);
@@ -11474,20 +11506,31 @@ const GLASSHOOK={c:null,
 function worldGL(){
   R.loadWorld({geo:null,lights:[],info:{lightGrid:{x0:-8,z0:-8,size:16,cell:8}}});
   R.U.uStudio=0;
-  lgBuild();
+  /* (the town's lights go into the grid after the opening screen is up: 65_boot) */
   R.extra.push(LAND,CARHOOK,FXP,GLASSHOOK);
   landPrograms();FXP.init();displayPrograms();
   const sp=R.shadowPass.bind(R);
+  /* a 1 x 1 depth target the second pass's near cascade and headlight map go to: nothing is drawn into it */
+  let dummy=null;
   R.shadowPass=function(S){if(!this.shadowAll)return sp(S);this.shadowAll=false;const n=this.frameN;
-    /* the near cascade every frame; the middle one on odd frames, the far one every second or fourth: both, once */
-    this.frameN=n|1;sp(S);this.frameN=(n&~3)+2;sp(S);this.frameN=n;};
+    /* the near cascade every frame; the middle one on odd frames, the far one every second or fourth: both, once.
+       The second pass would draw the near cascade and the headlights' map over again: their targets are swapped for
+       a scrap one and the hooks draw nothing into them, so the frame the origin steps costs one cascade more than a
+       frame where the middle one is due, not three */
+    this.frameN=n|1;sp(S);
+    if(!dummy)dummy=this.G.target([],this.G.texture(1,1,'depth24'));
+    const f0=this.csmFB[0],fh=this.hlFB;this.csmFB[0]=dummy;this.hlFB=dummy;LAND.skip0=CARHOOK.skip0=true;
+    try{this.frameN=(n&~3)+2;sp(S);}finally{this.csmFB[0]=f0;this.hlFB=fh;LAND.skip0=CARHOOK.skip0=false;this.frameN=n;}};
+  QMAX0=R.Q.maxScale;budgetApply();
 }
 /* ---------- the open world's side of the developer's panel (Mini Dirt Run Open World's): the world's own numbers,
    how far it's drawn, worker or not, and a cruise control that holds the road (for the long straight runs).
    The handling and Sim switches are HD's own (54_dev). ---------- */
-const DEVW={hud:false,view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{}};
+const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{}};
 try{const d=JSON.parse(store.get('wo2-devworld','{}'))||{};for(const k of Object.keys(DEVW))if(d[k]!==undefined)DEVW[k]=d[k];}catch(e){}
 DEVW.cruise='off';if(DEVW.gen==='main')WORLD.forceLocal=true;
+/* (the numbers on screen: off, the small readout, or everything; a save from before had on or off) */
+if(DEVW.hud===true)DEVW.hud='full';if(!['off','perf','full'].includes(DEVW.hud))DEVW.hud='off';
 const saveDev=()=>store.set('wo2-devworld',JSON.stringify(Object.assign({},DEVW,{cruise:'off'})));
 /* cruise: locks onto the road you're on, keeps to its right-hand lane, and holds the set speed or what the bends ahead allow */
 const CRUISE={on:false,line:null};
@@ -11574,6 +11617,7 @@ function drawWorldStats(){
     (()=>{const P=perfStats();return P?`FRAME ${P.avg.toFixed(1)} MS  1% LOW ${(1000/P.low1).toFixed(0)} FPS  JS ${P.js.toFixed(1)} MS  DRAWS ${PERF.draws}`:'';})(),
     ...rperfRows(),`HUD ${BW}X${BH}  ORIGIN ${RO[0]},${RO[2]} (${WORLD.steps||0} STEPS)  LIGHT GRID ${LG.n} LIGHTS, ${LG.ms.toFixed(0)} MS TO MAKE`,
     `PASSES OFF: ${Object.keys(DEVW.off).filter(k=>DEVW.off[k]).join(' ').toUpperCase()||'NONE'}`,
+    `BOOT MS: RENDERER ${BOOT.renderer||'-'}  WORLD ${BOOT.world||'-'}  CAR ${BOOT.car||'-'}  SHADERS ${BOOT.shaders||'-'} (+${BOOT.built||0} CARS)  LIGHTS ${BOOT.lights||'-'}  PHOTOS ${BOOT.photos||'-'}`,
     `HOLES ${S.holes}  GROUND NOT READY ${S.missT} FRAMES  UPLOAD ${(PERF.up||0).toFixed(1)} MS/FRAME`,
     `CHUNK WAIT ${(S.lat||0).toFixed(0)} MS (WORST ${(S.latMx||0).toFixed(0)})`,
     `${(Math.hypot(t.p[0],t.p[2])/1609.34).toFixed(2)} MI FROM THE GARAGE  TRIP ${(S.odo/1609.34).toFixed(1)} MI  TOP ${Math.round(S.top*2.237)} MPH`,...psRows()];
@@ -11584,7 +11628,7 @@ function drawWorldStats(){
   drawPerfGraph(x0-2,y+2,Math.min(240,bw),40);
 }
 function buildDevWorld(){
-  segButtons($('dHud'),[['off','Off'],['on','On']],v=>{DEVW.hud=v==='on';saveDev();});
+  segButtons($('dHud'),[['off','Off'],['perf','Readout'],['full','Everything']],v=>{DEVW.hud=v;saveDev();});
   segButtons($('dView'),[['near','Near'],['normal','Normal'],['far','Far']],v=>{DEVW.view=v;saveDev();});
   segButtons($('dText'),[['smooth','Smooth'],['dots','Dots']],v=>{setDotText(v==='dots');syncDevWorld();});
   segButtons($('dGen'),[['worker','Worker'],['main','Main thread']],v=>{DEVW.gen=v;saveDev();if(v==='main'){WORLD.forceLocal=true;workerDown();}else{WORLD.forceLocal=false;WORLD.mode='starting';}syncDevWorld();});
@@ -11596,7 +11640,7 @@ function buildDevWorld(){
   $('dReset').addEventListener('click',()=>{const S=WORLD.st;S.n=[0,0,0];S.ms=[0,0,0];S.mx=[0,0,0];S.sn=0;S.sms=0;S.smx=0;S.fn=0;S.fms=0;S.missT=0;S.odo=0;S.top=0;syncDevWorld();});
 }
 function syncDevWorld(){
-  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud?'on':'off'],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off']])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
+  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off']])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
   const S=WORLD.st;$('dNote').textContent=`Made on: ${WORLD.mode}. ${WORLD.chunks.size} chunks and ${WORLD.far.size} far tiles loaded, ${(S.bytes/1048576).toFixed(1)} MB of them on the graphics card. `+
     `City Limits' town in the middle, Highway 40 straight through it east and west, country out to about two miles, then the salt flats to the edge, ${WG.HALF*2/1609.34|0} miles across.`;
 }
@@ -11744,6 +11788,15 @@ const LOOK_S=[['sat','Saturation',.6,1.6,'The grade\'s saturation, times the tim
   ['rain','Rain',0,1.5,'How heavy the rain looks under the Sim level\'s Rain and Downpour: the falling streaks and the splashes (the drops on the lens from the hood camera).'],
   ['beam','Challenge columns',.3,2.5,'The columns of light over the challenges\' starts and gates, by day and by night.']];
 const LOOK_T=[['shadows','Sun shadows','The cascaded shadow maps (the moon\'s at night). Off, the sun casts nothing, and the frame is cheaper.'],['occ','Shade under the cars','The soft occlusion on the ground under each car.']];
+/* the phone's budgets (52_world_gl's BUDGET, Mobile only): id, label, min, max, note, how it reads */
+const BUDGET_S=[['scale','Render scale ceiling',.5,1,'The most of the screen\'s pixels the frame is drawn at before TAA rebuilds the rest; dynamic resolution works under it to hold the beat. 75% ships.',v=>Math.round(v*100)+'%'],
+  ['shadowD','Shadow distance',120,400,'How far out buildings, poles and trees are drawn into the sun\'s (the moon\'s) shadow maps. 320 m ships.',v=>Math.round(v)+' m'],
+  ['treeD','Tree distance',150,400,'How far the trees are drawn (past the full ones, a single lump each). 340 m ships.',v=>Math.round(v)+' m'],
+  ['treeNear','Full trees within',30,110,'How near a tree is drawn with its whole crown and trunk. 70 m ships.',v=>Math.round(v)+' m'],
+  ['probeEvery','Reflections: a face every',1,6,'The reflection probe at the car is six faces; one is drawn every this many frames. 3 ships.',v=>Math.round(v)+' frames'],
+  ['farCSM','Far shadows every',2,8,'The far shadow cascade is drawn every this many frames (the near one every frame, the middle one every second). 4 ships.',v=>Math.max(2,Math.round(v/2)*2)+' frames'],
+  ['fx','Dust and spray at once',60,360,'How many puffs, clods and drops of spray can be alive at once. 220 ships.',v=>String(Math.round(v))]];
+const BUDGET_T=[['carLod','Your car\'s coarse copy in the far shadows','Your car into the middle and far shadow cascades as its coarser copy (its shadow there is a few texels across); the near cascade always has the full car.']];
 /* the ground, surface by surface: id, label, where it is */
 const DEV_GROUND=[['asphalt','Tarmac','The race track and its kerbs.'],['concrete','Concrete','The shop pad, the store apron and the paddock.'],
   ['strip','Drag strip','The prepped dirt of the eighth mile.'],['dirt','Dirt','The yard, the ranch roads and the burnout pad.'],
@@ -11868,6 +11921,16 @@ function buildDev(){
     const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
     inp.addEventListener('change',()=>{LOOK[k]=inp.checked?1:0;lookSave();});el.sync=()=>{inp.checked=!!LOOK[k];};$('mDevLookT').appendChild(el);DEV_ROWS.push(el);}
   $('mDevLookReset').addEventListener('click',()=>{Object.assign(LOOK,LOOK_DEF);lookSave();syncDev();});
+  /* the phone's budgets */
+  $('mDevBudget').hidden=false;
+  if(GFX.level!=='mobile')$('mDevBudgetNote').textContent+=' This device is on '+GFX_LEVELS.find(l=>l[0]===GFX.level)[1]+': they do nothing here.';
+  for(const [k,n,lo,hi,note,fm] of BUDGET_S){const el=document.createElement('div');el.className='devrow';el.innerHTML='<label></label><output></output><input type="range"><small></small>';
+    const inp=el.querySelector('input'),lb=el.querySelector('label');lb.textContent=n;lb.htmlFor=inp.id='devb_'+k;inp.min=lo;inp.max=hi;inp.step=hi>20?1:hi>2?.5:.01;el.querySelector('small').textContent=note;
+    inp.addEventListener('input',()=>{BUDGET[k]=+inp.value;budgetSave();budgetApply();el.sync();});el.sync=()=>{inp.value=BUDGET[k];el.querySelector('output').textContent=fm(BUDGET[k]);};$('mDevBudgetS').appendChild(el);DEV_ROWS.push(el);}
+  for(const [k,n,note] of BUDGET_T){const el=document.createElement('label');el.className='devchk';el.innerHTML='<input type="checkbox"><span><b></b><small></small></span>';
+    const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
+    inp.addEventListener('change',()=>{BUDGET[k]=inp.checked?1:0;budgetSave();});el.sync=()=>{inp.checked=!!BUDGET[k];};$('mDevBudgetT').appendChild(el);DEV_ROWS.push(el);}
+  $('mDevBudgetReset').addEventListener('click',()=>{Object.assign(BUDGET,BUDGET_DEF);budgetSave();budgetApply();syncDev();});
 }
 /* a Sim piece changed: the car reads it now (the roof load rebuilds the car where it stands) */
 function simDevApply(rebuild){store.set('wo2-simdev',JSON.stringify(SIMDEV));if(rebuild&&APP.level==='sim')spawnRig();else if(GAME.car)GAME.car.applySim();syncDev();}
@@ -12065,6 +12128,22 @@ function rperfRows(){if(!R)return [];const f=x=>x.toFixed(1);
   return [`RENDER ${R.iw}X${R.ih} OF ${R.W}X${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1].toUpperCase()}  ${DISP.mode==='dots'?'DOTS '+PIC.dots[0]+'X'+PIC.dots[1]:'CLEAR'}`,
     `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS':'NOT REPORTED'}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
     `CHIP ${String(R.gpuName).toUpperCase().slice(0,52)}${R.software?' (SOFTWARE)':''}`];}
+/* ---------- the performance readout (F, or the Dev tab's Numbers on screen: Readout): small, under the HUD's name
+   block, in Rut Access's style: frames a second against the beat, the frame's time and its worst, the CPU's share, the
+   GPU's time where the browser reports it, the render size, triangles, chunks and lights ---------- */
+const PRO={t0:0};
+function perfReadout(){
+  const el=$('perf');if(!el)return;const on=DEVW.hud==='perf'&&GAME.state==='drive';if(el.hidden===on)el.hidden=!on;if(!on||!R)return;
+  const now=performance.now();if(now-PRO.t0<500)return;PRO.t0=now;
+  /* (placed each time: the touch buttons it keeps clear of arrive with the first touch, after the layout) */
+  el.style.left=Math.max(GAME.touch?92:8,RECT.x+RECT.w*.012)+'px';el.style.top=(RECT.y+RECT.h*.31)+'px';
+  const n=Math.min(PERF.n,30);if(!n)return;let s=0,w=0,js=0;for(let k=0;k<n;k++){const i=(PERF.i-1-k+240)%240;s+=PERF.ft[i];w=Math.max(w,PERF.ft[i]);js+=PERF.js[i];}
+  const f=x=>x.toFixed(1),g=RPERF.ms;
+  el.textContent=[`${Math.round(1000*n/s)} FPS   beat ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} (${RESO?RESO.hz:'-'} Hz)   frame ${f(s/n)} ms   worst ${f(w)}`,
+    `CPU ${f(js/n)} ms   GPU ${g>0?f(g)+' ms':'not reported'}`,
+    `render ${R.iw}×${R.ih} of ${R.W}×${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1]}${DISP.mode==='dots'?'  dots':''}`,
+    `${Math.round(APP.tris/1000)}k tris   ${WORLD.chunks.size} chunks   lights ${R.lights?R.lights.stats.lights:0} + ${APP.dynN||0}`].join('\n');
+}
 /* =====================================================================================
    THE GARAGE'S PARTS. A rig is one of the seven cars with a choice in every slot: the engine and what
    is bolted to it, the gearbox and axles, the tyres, the suspension, the body kit, the wheels and the
@@ -13195,7 +13274,7 @@ function step(dt){
     if(inp.od)say(setOD(!APP.od)?(APP.od?'Overdrive off':'Overdrive on'):pt.e.cvt?'No overdrive on a belt drive':'No overdrive button on a manual',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
-    if(inp.stats){DEVW.hud=!DEVW.hud;saveDev();}
+    if(inp.stats){DEVW.hud=DEVW.hud==='off'?'perf':DEVW.hud==='perf'?'full':'off';saveDev();say(DEVW.hud==='off'?'Numbers off':DEVW.hud==='perf'?'Performance readout':'Every number',1.2);}
     if(inp.cruise)toggleCruise();
     if(inp.pitch){ENG.pitch=ENG.pitch===1?.9:ENG.pitch===.9?.8:1;saveEng();syncSound();say('ENGINE PITCH '+Math.round(ENG.pitch*100)+'%'+(ENG.pitch===1?' (TRUE)':''),1.8);}
     if(inp.trac&&DEV)say('Traction '+pct(devStep()),1.4);
@@ -13434,11 +13513,11 @@ function drawRider(t,T,Mb,setM){
 }
 /* the renderer's hook for the cars: yours and a race's others into the shadow maps (yours not into its own
    headlights'), into the scene. The race's own drawing (60_race's raceDraw) culls and picks the coarse copies */
-const CARHOOK={c:null,
-  shadow(R,Pd,VP,kind,k){const c=this.c;if(!c||showActive())return;const G=R.G,F=frustum(toWorld(VP));let used=false;
+const CARHOOK={c:null,skip0:false,
+  shadow(R,Pd,VP,kind,k){const c=this.c;if(!c||showActive()||this.skip0&&(kind==='hl'||k===0))return;const G=R.G,F=frustum(toWorld(VP));let used=false;
     const one=(t,far)=>{const r=t.c.body.L*.6+1;if(!boxVisible(F,[t.p[0]-r,t.p[1]-r,t.p[2]-r],[t.p[0]+r,t.p[1]+r,t.p[2]+r]))return;
       if(!used){used=true;useLit(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);gl.disable(gl.CULL_FACE);}drawWorldCar(t,null,0,far,true);};
-    if(kind!=='hl')one(GAME.car,false);
+    if(kind!=='hl')one(GAME.car,k>=1&&budgetOn()&&BUDGET.carLod>.5);
     for(const o of raceCars())one(o,true);
     if(used)G.use(Pd);},
   opaque(R,U,texs){const c=this.c;if(!c||showActive())return;const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);CUR=litOf(P);
@@ -13466,7 +13545,7 @@ function render(dt){
   /* the lamps: yours, the yard lights nearest you, and at night the others' headlights */
   const L={dyn:[],headlights:null};carLights(t,L);
   const others=raceCars();if(SKY.lightsOn&&others.length)rivalLights(L,others,c.eye);
-  yardLights(L,t.p,14);
+  yardLights(L,t.p,14);APP.dynN=L.dyn.length;
   const occ=[occOf(t)];for(const o of others){if(occ.length>=8)break;occ.push(occOf(o));}
   /* the HUD first: the LED display lights its dots as part of the picture */
   drawHud(c);hudUpload();tq=psT(PS_HUD,tq);
@@ -13485,7 +13564,8 @@ function setRes(i,keep){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/h
 function layout(){const vw=innerWidth,vh=innerHeight;
   /* the bay's window fills the whole screen, the car behind the lab's instruments: its dots take the window's shape */
   if(SHOW.full){bayFill(vw,vh);return;}if(BAYGRID.on){BAYGRID.on=false;setRes(APP.res,true);}
-  let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};}
+  let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};
+}
 /* the same dot pitch the 16:9 picture would have had, over the whole window */
 const BAYGRID={on:false,key:''};
 function bayFill(vw,vh){const [dw,dh,hs]=RES[APP.res];let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}const pitch=w/dw;
@@ -13508,7 +13588,7 @@ function frame(ts){
   /* (a test can hold the loop still and draw frames itself) */
   perfBegin();
   if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last,dt);raceSound(CAM.last);}psT(PS_SOUND,ts0);drsStep(dt);}catch(e){console.error(e);}
-  perfEnd(dt);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
+  perfEnd(dt);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);perfReadout();
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps · '+WORLD.chunks.size+' chunks';}
 }
 /* =====================================================================================
@@ -13518,8 +13598,9 @@ function frame(ts){
    dealer (three of them only once someone in town has vouched for you), and the Plus tune is a paid job at
    Marisol's. Each car keeps one rig; what you have bought stays bought, so going back to it is free.
    Free play: as it always was, every car and every part yours, the money a score.
-   The game's RIGS and APP.car hold whichever mode is on: free play's are kept in cc-game as before, the
-   career's in cc-career (with its money, medals, bests, jobs). cc-mode says which one you were in.
+   The game's RIGS and APP.car hold whichever mode is on: free play's are kept in wo2-game as before, the
+   career's in wo2-career (with its money, medals, bests, jobs), its feats in wo2-cfeats. wo2-mode says which one
+   you were in.
    ===================================================================================== */
 const START_CASH=2500,FEAT_SHARE=.35,PLUS_PRICE=6000;
 /* the dealer: price, and the job that opens it (60_jobs) */
@@ -13574,7 +13655,10 @@ function careerSync(){if(!CAREER.on||!CAREER.d)return;for(const car of Object.ke
 function careerWipe(){store.set('wo2-career','null');if(CAREER.on){const F=CAREER.free;CAREER.d=null;CAREER.on=false;
   /* free play's cars and rigs back first, so the fresh career sets those aside again (not the old career's in their place) */
   for(const k of Object.keys(RIGS))delete RIGS[k];if(F){Object.assign(RIGS,F.rigs);APP.car=F.car;}CAREER.free=null;
-  let T={};try{T=JSON.parse(store.get('wo2-tune','{}'))||{};}catch(e){}tuneSwap(T);setMode('career');}}
+  let T={};try{T=JSON.parse(store.get('wo2-tune','{}'))||{};}catch(e){}tuneSwap(T);setMode('career');
+  /* the old career's Cool stuff goes with it (its log of feats and their money); its bests are kept, as records of
+     what was done in this game rather than this career's: the owner's call, either way */
+  {const S=Feats.S,best=S&&S.best;Feats.clear();if(best&&Feats.S){Feats.S.best=best;if(Feats.save)Feats.save();}}}}
 /* ---------- the buy bar under the menu: what, how much, yes or no ---------- */
 const BUY={yes:null};
 function askBuy(text,price,yes){
@@ -13974,18 +14058,20 @@ const CH_MEDALS=[['gold','Gold','#ffd23f'],['silver','Silver','#c8d0dc'],['bronz
 /* first-time pay for gold, silver, bronze by tier; a better medal later pays the difference, a repeat a tenth */
 const CH_PAY={1:[1600,1000,600],2:[2600,1700,1000],3:[4000,2700,1700]};
 const CH_KINDS={sprint:'Sprint',lap:'Laps',drag:'Standing start',trap:'Speed trap',mile:'Flying mile',jump:'Big air',drift:'Drift zone',stop:'To speed and stop',mile2:'Two-way mile',air:'Ramp run'};
-/* the robots' results (s, m/s or m): the stock SUV and the build made for that ground (tools/chal_drive.py pars, Oct 31).
+/* the robots' results (s, m/s or m): the stock SUV and the build made for that ground (tools/chal_drive.py pars, run
+   again on 1 November on Wide Open 2: the physics is Wide Open's, unchanged, so these were already out of step there).
    e: estimated where the robot couldn't finish in the fast build (its stock time x .88; the slalom x .79, where
    grip is all of it; the two-way mile from the hypercar's one-way flying mile). The Outer Loop's robots ran
-   capped at 26 m/s on its dirt (it flew off the S-bend in the woods uncapped); the full lap is the round-3 robot lap. */
+   capped at 26 m/s on its dirt (it flew off the S-bend in the woods uncapped). Where the build's robot ran slower
+   than the stock SUV's (Downtown Dash, North Woods) its number is kept as run: the medals take the stock SUV's then */
 const CH_PARS={
-  loop:{stock:169.52,best:137.18},quarter:{stock:15.32,best:9.35},eighth:{stock:9.55,best:6.58},dash:{stock:61.4,best:58.85},salt:{stock:59.73,best:38.37},
-  bog:{stock:18.8,best:14.5},oval:{stock:110.23,best:102.82},short:{stock:179.72,best:169.43},
-  mudtrack:{stock:165.78,best:145.9,e:1},ridge:{stock:73.68,best:64.8,e:1},wash:{stock:114,best:100.3,e:1},
-  loopN:{stock:84.13,best:80.27},loopLap:{stock:657.9,best:579,e:1},
-  smile:{stock:40.12,best:22.88},stop100:{stock:26.98,best:9.7},stop200:{stock:0,best:22.55},
-  mile2:{stock:55.12,best:90,e:1},slalom:{stock:41.03,best:32.4,e:1},
-  trap:{stock:50.42,best:88.84},mile:{stock:54.4,best:92.94},jump:{stock:94.52,best:182.31}};
+  loop:{stock:169.8,best:143.72},quarter:{stock:15.51,best:8.59},eighth:{stock:9.93,best:6.77},dash:{stock:61.78,best:66.98},salt:{stock:59.7,best:37.82},
+  bog:{stock:18.78,best:14.6},oval:{stock:109.62,best:102.15},short:{stock:180.7,best:159.02,e:1},
+  mudtrack:{stock:166.18,best:117.1},ridge:{stock:74.27,best:53.42},wash:{stock:114.08,best:69.5},
+  loopN:{stock:84.3,best:85.28},loopLap:{stock:566.47,best:498.49,e:1},
+  smile:{stock:40.47,best:23.08},stop100:{stock:27,best:9.72},stop200:{stock:0,best:22.63},
+  mile2:{stock:55.2,best:90.2,e:1},slalom:{stock:41.03,best:32.4,e:1},
+  trap:{stock:50.44,best:89.42},mile:{stock:54.39,best:93.14},jump:{stock:94.52,best:182.31}};
 /* (each mark's ground height is kept on what it marks: the start, the gate, the person) */
 const markY=s=>s.y??(s.y=WG.sample(s.x,s.z,{}).h);
 /* ---------- polylines ([x, z]) ---------- */
@@ -14706,7 +14792,7 @@ function drawHud(c){
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
   drawFeatsHud();if(RACE.on)drawRaceHud(lx,sc);else if(CHAL.run)drawChalHud(lx,sc);else{drawParkHud(lx,sc);drawJobHud(lx,sc);}
-  if(DEVW.hud)drawWorldStats();
+  if(DEVW.hud==='full')drawWorldStats();
   if(!on){const msg=GAME.touch?'TAP GAS TO START':'PRESS W OR I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-26,GR.steel,1,'c');}
   else if(pt.st==='crank')otxt3('CRANKING',W/2,H-22,PAL.amber,1,'c');
   /* a lap under way on the road course */
@@ -14787,7 +14873,7 @@ const menuEyebrow=()=>RACE.on?'Paused: '+RACE.ev.name:APP.title?(CAREER.on?'Care
 /* every key, pedal and stick let go: a release the menu swallowed must not leave the gas on */
 /* the engine fades out while the game is paused and back in after */
 function engineDuck(on){const a=ENG.audio;if(a&&a.eng)a.eng.gain.setTargetAtTime(on?0:1,a.ctx.currentTime,on?.08:.15);}
-function inputRelease(){INPUT.down.clear();INPUT.pressed.clear();INPUT.thr=0;INPUT.brk=0;INPUT.steer=0;INPUT.kick=false;INPUT.wWas=false;
+function inputRelease(){touchLetGo();INPUT.down.clear();INPUT.pressed.clear();INPUT.thr=0;INPUT.brk=0;INPUT.steer=0;INPUT.kick=false;INPUT.wWas=false;
   TOUCH.thr=0;TOUCH.brk=0;TOUCH.hb=0;TOUCH.steer=0;TOUCH.steerActive=false;CRUISE.on=false;CRUISE.line=null;}
 function closeMenu(){
   showLeave();APP.title=false;$('menu').classList.remove('garage');
@@ -14798,6 +14884,9 @@ function closeMenu(){
 function showTab(id){
   closeBuy();
   if(MENU.tab!==id)$('menu').scrollTop=0;MENU.tab=id;for(const b of $('mTabs').children)b.setAttribute('aria-selected',String(b.dataset.t===id));
+  /* (the tab row scrolls sideways on a phone: a tab the game picks, Dev say, is brought into it) */
+  {const row=$('mTabs'),b=[...row.children].find(q=>q.dataset.t===id);if(b){const r=row.getBoundingClientRect(),q=b.getBoundingClientRect();
+    if(q.left<r.left)row.scrollLeft-=r.left-q.left+14;else if(q.right>r.right)row.scrollLeft+=q.right-r.right+14;}}
   for(const el of document.querySelectorAll('#menu .tab'))el.hidden=el.dataset.tab!==id;
   /* in the garage the car turns in front of you */
   /* the garage, and the opening screen, are the showroom: the menu stands to the left of it */
@@ -14907,7 +14996,9 @@ function buildMenu(){
   $('mLeave').addEventListener('click',()=>{if(RACE.on)raceEnd('Race abandoned');else chalQuit();$('mLeave').hidden=true;closeMenu();});
   $('rrAgain').addEventListener('click',()=>{const id=RACE.ev.id;hideResults();startRace(id);});
   $('rrDone').addEventListener('click',()=>{hideResults();});
-  $('menuBtn').addEventListener('click',()=>SHOW.full?showFull(false):GAME.state==='results'?hideResults():GAME.state==='drive'?openMenu(false):closeMenu());
+  const menuTap=()=>SHOW.full?showFull(false):GAME.state==='results'?hideResults():GAME.state==='drive'?openMenu(false):closeMenu();let menuUp=0;
+  $('menuBtn').addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;e.preventDefault();menuUp=performance.now();menuTap();});
+  $('menuBtn').addEventListener('click',()=>{if(performance.now()-menuUp<600)return;menuTap();});
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
   buildGarage();
 }
@@ -16254,7 +16345,10 @@ function buildTuneCareer(){$('dlBuyYes').addEventListener('click',thBuy);$('dlBu
    brake pedal that works the same way, and the e-brake between them. Small buttons down the sides
    for the camera, reset, horn, lights and whatever this car has (nitrous, low range, lockers, overdrive).
    ===================================================================================== */
-const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false};
+const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false,lets:[]};
+/* the menu opening lets go of every pedal, the handbrake and the steering, and the controls show it (a finger still
+   down on one takes it again only once it lifts and presses again) */
+function touchLetGo(){for(const f of TOUCH.lets)f();}
 const TOUCH_KEY={reset:'KeyR',cam:'KeyC',nos:'KeyN',low:'KeyL',lock:'KeyK',od:'KeyO',lights:'KeyJ',horn:'KeyH'};
 function enableTouch(){if(GAME.touch)return;GAME.touch=TOUCH.on=true;document.body.classList.add('touch');if(APP.detail==='auto'&&SS>1.5)SS=1.5;syncTouch();}
 function syncTouch(){
@@ -16280,11 +16374,13 @@ function bindTouch(){
     el.addEventListener('pointerdown',e=>{e.preventDefault();pid=e.pointerId;try{el.setPointerCapture(pid);}catch(_){}el.classList.add('on');at(e);});
     el.addEventListener('pointermove',e=>{if(e.pointerId===pid)at(e);});
     const up=e=>{if(e.pointerId!==pid)return;pid=null;set(0);fill.style.height='0%';el.classList.remove('on');};
+    TOUCH.lets.push(()=>{if(pid!==null){try{el.releasePointerCapture(pid);}catch(_){}}pid=null;set(0);fill.style.height='0%';el.classList.remove('on');});
     for(const ev of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(ev,up);el.addEventListener('contextmenu',e=>e.preventDefault());};
   pedal('tGas',v=>TOUCH.thr=v,.12);pedal('tBrk',v=>TOUCH.brk=v,.3);
   const hb=$('tHb');
   hb.addEventListener('pointerdown',e=>{e.preventDefault();try{hb.setPointerCapture(e.pointerId);}catch(_){}TOUCH.hb=1;hb.classList.add('on');buzz(15);});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])hb.addEventListener(ev,()=>{TOUCH.hb=0;hb.classList.remove('on');});
+  TOUCH.lets.push(()=>{TOUCH.hb=0;hb.classList.remove('on');});
   /* steering: slide from wherever the thumb lands */
   const z=$('steerZone'),knob=$('steerKnob');let sid=null,x0=0;
   const span=()=>Math.max(70,Math.min(130,innerWidth*.11));
@@ -16293,6 +16389,7 @@ function bindTouch(){
   z.addEventListener('pointermove',e=>{if(e.pointerId!==sid)return;const d=(e.clientX-x0)/span(),v=Math.sign(d)*Math.pow(Math.min(1,Math.abs(d)),1.15);TOUCH.steer=v;show(v);});
   const sup=e=>{if(e.pointerId!==sid)return;sid=null;TOUCH.steer=0;TOUCH.steerActive=false;z.classList.remove('on');show(0);};
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])z.addEventListener(ev,sup);
+  TOUCH.lets.push(()=>{if(sid!==null){try{z.releasePointerCapture(sid);}catch(_){}}sid=null;TOUCH.steer=0;TOUCH.steerActive=false;z.classList.remove('on');show(0);});
   /* the old way: two buttons */
   for(const [id,dir] of [['tLeft',-1],['tRight',1]]){const b=$(id);
     b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}INPUT.down.add(dir<0?'ArrowLeft':'ArrowRight');b.classList.add('on');});
@@ -16311,7 +16408,8 @@ async function enableTilt(){TOUCH.tilt0=null;TOUCH.tiltOK=false;try{if(window.De
    THE BOOT: the dots, the GL, the open world, the car and the menu, once every module above is in place.
    ===================================================================================== */
 /* the renderer first (12_display): it makes the GL context; without WebGL2 and float targets the page says so */
-try{rutInit();}catch(e){console.error(e);if(!/WebGL2/.test(e.message))$('err').textContent='The graphics could not start: '+e.message;}
+const BOOT={};
+try{rutInit();BOOT.renderer=Math.round(performance.now());}catch(e){console.error(e);if(!/WebGL2/.test(e.message))$('err').textContent='The graphics could not start: '+e.message;}
 if(!gl){$('err').style.display='grid';$('loading').hidden=true;}
 else{
   /* the phone's graphics can restart under it (heat, too little memory, a driver crash): the page keeps nothing it
@@ -16323,24 +16421,32 @@ else{
   let r=parseInt(store.get('wo2-res',-1),10);if(!(r>=0&&r<RES.length)){const d=devicePixelRatio||1,long=Math.max(innerWidth,innerHeight)*d;r=matchMedia('(pointer: coarse)').matches?(long>=1800?3:long>=1200?2:1):4;}
   setRes(r);resize();txtFonts();addEventListener('resize',resize);
   applyTod(APP.tod);APP.lights=!!((TOD[APP.tod]||TOD.day).beams??(TOD[APP.tod]||TOD.day).lightsOn);gfxLabel();
-  /* let the loading line paint, then start the world */
-  requestAnimationFrame(()=>setTimeout(()=>{
+  /* the boot in stages, each line on the loading screen painted before its work starts; the shaders compile on the
+     GPU's side while the garage's other cars are built here (both behind the loading line); the town's lights go
+     into their grid once the opening screen is up. Each stage's time is kept (BOOT) for the Dev tab's numbers */
+  const L=$('loading'),paint=t=>new Promise(r=>{L.textContent=t;requestAnimationFrame(()=>setTimeout(r,0));}),mark=k=>{BOOT[k]=Math.round(performance.now());};
+  (async()=>{
     try{
-      /* the world's streaming and the renderer's world: the hooks, the town's lights in its grid, the programs */
-      worldInit();worldGL();computePlaces();bindTouch();setDetail(APP.detail);
+      mark('script');await paint('Making the county');
+      /* the world's streaming and the renderer's world: the hooks, the programs (their compiling starts now) */
+      worldInit();worldGL();computePlaces();bindTouch();setDetail(APP.detail);mark('world');
+      await paint('Building your car');
       /* the game you were in last: the career (60_career) or free play */
-      if(store.get('wo2-mode','free')==='career')setMode('career');else spawnCar(rigBuild(APP.car,rigOf(APP.car)),HOME[0],HOME[1],HOME[2]);buildMenu();buildDevWorld();
-      /* the shaders compile behind the loading line, so the first frame doesn't stall */
-      $('loading').textContent='Warming up the shaders';
-      R.G.warmup((d,n)=>{$('loading').textContent='Warming up the shaders '+d+' / '+n;}).then(()=>{
-        $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
-        /* the ground's photographs decode while the opening screen is up, and fade in */
-        texLoad();
-      }).catch(e=>{console.error(e);$('loading').textContent='A shader would not compile: '+e.message;});
-    }catch(e){console.error(e);$('loading').textContent='Something went wrong starting the world: '+e.message;}
-  },30));
+      if(store.get('wo2-mode','free')==='career')setMode('career');else spawnCar(rigBuild(APP.car,rigOf(APP.car)),HOME[0],HOME[1],HOME[2]);buildMenu();buildDevWorld();mark('car');
+      await paint('Warming up the shaders');
+      /* while the GPU compiles: the other cars in the garage, one a turn (what isn't done by the time the shaders are
+         is built one a frame on the opening screen, as before) */
+      let warm=false,built=0;const park=CARS.map(([c])=>c).filter(c=>c!==APP.car);
+      const pre=(async()=>{for(const car of park){if(warm)break;const i=rigBuild(car,rigOf(car));if(!TRUCK[BUILDS[i].id]){truck(i);built++;}await new Promise(r=>setTimeout(r,0));}})();
+      await R.G.warmup((d,n)=>{L.textContent='Warming up the shaders '+d+' / '+n+(built?' · the garage '+built+' / '+park.length:'');});
+      warm=true;await pre;mark('shaders');BOOT.built=built;
+      L.hidden=true;openMenu(true);requestAnimationFrame(frame);mark('menu');
+      /* the town's lights into their grid, then the ground's photographs, while the opening screen is up */
+      setTimeout(()=>{lgBuild();mark('lights');texLoad().then(()=>mark('photos'));},50);
+    }catch(e){console.error(e);L.textContent=/shader|compile|link/i.test(e.message)?'A shader would not compile: '+e.message:'Something went wrong starting the world: '+e.message;}
+  })();
   window.__game={showClutchCap,TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
-    GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,rutShaders,get RESO(){return RESO;},SKY,TOD,compile,setDisplay,PIC,LOOK,TEX,texLoad,LAND,CARHOOK,FXP,STUDIO,GLASSHOOK,envNow,lgBuild,lgPlace,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},rperfRows,carLights,yardLights,worldFar,viewCut,FX,
+    GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,rutShaders,get RESO(){return RESO;},SKY,TOD,compile,setDisplay,PIC,LOOK,TEX,texLoad,BOOT,BUDGET,budgetApply,perfReadout,PERF,perfBegin,perfEnd,DEVW,LAND,CARHOOK,FXP,STUDIO,GLASSHOOK,envNow,lgBuild,lgPlace,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},rperfRows,carLights,yardLights,worldFar,viewCut,FX,
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
