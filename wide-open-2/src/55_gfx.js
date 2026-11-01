@@ -63,16 +63,16 @@ const ENV={};
 function envNow(){
   const T=SKY,w=WX.w,E=ENV,g=1-.95*(T.night||0),L=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
   E.night=T.night||0;E.sunDir=T.sun;E.sunSize=T.sunSize;
-  /* (the Dev look's Moonlight: the moon and the night sky's light, under the full moon) */
-  const mk=(T.night||0)>.5?LOOK.moon:1;E.sunCol=T.sunCol.map(v=>v*(1-.72*w)*mk);
+  /* (the Dev look's Moonlight: the moon and the night sky's light, under the full moon; by day its Sunlight, the sun alone) */
+  const nt=(T.night||0)>.5,mk=nt?LOOK.moon:1,sk=nt?LOOK.moon:LOOK.sun;E.sunCol=T.sunCol.map(v=>v*(1-.72*w)*sk);
   E.ambUp=L(T.ambUp.map(v=>v*mk),[.42*g,.45*g,.5*g],w);E.ambDn=T.ambDn;
   E.skyZen=L(T.skyZen,[.36*g,.39*g,.44*g],w);E.skyHor=L(T.skyHor,[.62*g,.64*g,.67*g],w);E.skyGlow=T.skyGlow||[0,0,0];
-  E.cloud=lerp(T.cloud,.97,w);E.stars=(T.stars||0)*(1-w);
+  E.cloud=lerp(T.cloud,.97,w);E.stars=(T.stars||0)*(1-w)*LOOK.stars;
   E.fogCol=T.fogCol;E.fogDen=T.fogDen*(1+4*w)*LOOK.haze;E.fogFall=T.fogFall;E.fogAmb=L(T.fogAmb,[E.skyHor[0]*.35,E.skyHor[1]*.35,E.skyHor[2]*.35],w).map(v=>v*LOOK.haze);
   /* (the Dev tab's passes: the light in the air off reads the GPU's share of the volumetric fog) */
   if(DEVW.off.post){E.fogDen=0;E.fogAmb=[0,0,0];}
   E.wet=WX.wet;E.rain=w>.5?(w-.5)*2:0;E.puddles=WX.wet;
-  E.lightsOn=T.lightsOn*LOOK.lamps;E.lit=0;E.key=T.key*LOOK.key;E.expoRange=T.expoRange;E.bloom=T.bloom;E.grade=[T.grade[0]*LOOK.sat,T.grade[1]*LOOK.con];E.expoBias=1;
+  E.lightsOn=T.lightsOn*LOOK.lamps;E.lit=0;E.key=T.key*LOOK.key;E.expoRange=T.expoRange;E.bloom=T.bloom*LOOK.bloom;E.grade=[T.grade[0]*LOOK.sat,T.grade[1]*LOOK.con];E.expoBias=1;
   return E;
 }
 /* ---------- a slow frame rate at the lowest render scale: say so once ---------- */

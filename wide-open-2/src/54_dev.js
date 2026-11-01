@@ -9,7 +9,7 @@
 /* DEV: set to false to ship; the panel, the T key and the HUD tag go away and everything drives on the defaults */
 const DEV=true;
 /* ---------- the look: judgment calls about the picture the owner can A/B on the phone (saved on the device) ---------- */
-const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1,tex:1,texcol:.5,moon:1,lamps:1,glow:1,beam:1,hl:1,dust:1,rain:1},LOOK=Object.assign({},LOOK_DEF);
+const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1,tex:1,texcol:.5,moon:1,lamps:1,glow:1,beam:1,hl:1,dust:1,rain:1,sun:1,bloom:1,stars:1},LOOK=Object.assign({},LOOK_DEF);
 function lookLoad(){try{const d=JSON.parse(store.get('wo2-look','{}'))||{};for(const k in LOOK_DEF)if(typeof d[k]==='number')LOOK[k]=d[k];}catch(e){}}
 if(DEV)lookLoad();
 const lookSave=()=>store.set('wo2-look',JSON.stringify(LOOK));
@@ -21,6 +21,9 @@ const LOOK_S=[['sat','Saturation',.6,1.6,'The grade\'s saturation, times the tim
   ['detail','Ground detail',0,1,'How much detail is cut into the ground: clods, stones, cracks, grass tufts, tarmac grain. The tier sets the default (Mobile 60%).'],
   ['tex','Ground photos',0,1,'How much of the ground photographs (the texture packs) is laid over the procedural ground: 0 is the ground as Wide Open drew it, 100% the pictures in full.'],
   ['texcol','Photo colour',0,1,'0: only the pictures\' grain, in the game\'s own ground colours. 100%: the pictures\' own colours, as made.'],
+  ['sun','Sunlight',.5,1.6,'The sun\'s strength at noon and at golden hour, against the sky\'s light in the shade (more: harder shadows, more contrast).'],
+  ['bloom','Bloom',0,3,'The glow round anything bright: the sun, the lamps, the neon, the columns, chrome in the sun.'],
+  ['stars','Stars',0,3,'How bright the stars are under the full moon.'],
   ['moon','Moonlight',.4,2,'The full moon\'s light and the night sky\'s, on the country and the salt away from the lamps.'],
   ['lamps','Lamps',.3,2.5,'The town\'s and the park\'s lights, the yard lights and the diner\'s and the gas station\'s: how far their light reaches onto the street.'],
   ['glow','Glow',.3,2.5,'The neon, the signs, the lit windows and storefronts, the signals and the lamps\' own faces.'],
