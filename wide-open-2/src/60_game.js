@@ -510,8 +510,10 @@ function render(dt){
   /* the HUD first: the LED display lights its dots as part of the picture */
   drawHud(c);hudUpload();tq=psT(PS_HUD,tq);
   LAND.c=CARHOOK.c=GLASSHOOK.c=c;LAND.dt=dt;R.U.uStudio=0;
-  R.render({time:APP.t,dt,cam:{pos:c.eyeR,fwd:c.fwd,up:c.up,fov:c.fov,near:c.near,far:c.far,shift:c.shift||0},cut,env:envNow(),flicker:FLICK,
-    probePos:[t.p[0]-RO[0],t.p[1]+1.1-RO[1],t.p[2]-RO[2]],dyn:L.dyn,headlights:L.headlights,occ:LOOK.occ?occ:[],shutter:.5,lensRain:0,
+  /* the rain: the renderer's particles round the camera (53_fx) */
+  const env=envNow();rainUpdate(c.eye,t.v,env.rain);
+  R.render({time:APP.t,dt,cam:{pos:c.eyeR,fwd:c.fwd,up:c.up,fov:c.fov,near:c.near,far:c.far,shift:c.shift||0},cut,env,flicker:FLICK,
+    probePos:[t.p[0]-RO[0],t.p[1]+1.1-RO[1],t.p[2]-RO[2]],dyn:L.dyn,headlights:L.headlights,occ:LOOK.occ?occ:[],shutter:.5,lensRain:CAMS[APP.cam]==='Hood'&&!APP.orbit?env.rain*LOOK.rain*.8:0,
     led:ledState(),after:DISP.mode==='clear'?hudOverlay:null,debug:DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?null:DEBUG_VIEW});
   gl.bindVertexArray(null);APP.tris=LAND.tris+(APP.carTris||0);rperfAcc();
   psT(PS_SCENE,tq);

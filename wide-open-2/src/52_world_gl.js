@@ -59,7 +59,7 @@ const LAND={c:null,dt:1/60,tris:0,
   opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);CUR=litOf(P);
     const c=this.c;if(!c)return;
     let tris=drawWorld({eye:c.eye,VPw:toWorld(U.uVP)},SKY.night?SKY.draw:0);
-    if(!DEVW.off.fx)tris+=fxDraw();tris+=rainDraw(c,this.dt);
+    if(!DEVW.off.fx)tris+=fxDraw();
     this.tris=tris;},
   probe(R,U2,texs){if(!this.c)return;const G=R.G,P=G.use(P_LANDP);gl.disable(gl.CULL_FACE);G.set(P,U2);G.tex(P,texs);landUniforms(P);CUR=litOf(P);
     if(DEVW.off.refl)return;

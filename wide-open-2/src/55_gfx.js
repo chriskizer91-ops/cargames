@@ -6,7 +6,9 @@
    of detail, the things on them, the far tiles to the horizon), how near a tree is drawn in full, how far the probe
    sees. Mobile is the default on a touch screen; a Pixel 7a runs it. Changing the tier starts the page again on it
    (the renderer's targets are sized by it).
-   The weather the Sim level sets is drawn: an overcast sky, dark wet ground with puddles and rain rings, and rain.
+   The weather the Sim level sets is drawn (Damp, Rain, Downpour): an overcast sky turning grey and low, thicker haze
+   (the volumetric fog), dark wet ground with a sheen and puddles, rain rings in the water and the puddles, the
+   renderer's rain and its splashes (53_fx), spray off wet tarmac, and drops on the lens from the hood camera.
    ===================================================================================== */
 const GFX_LEVELS=[
   ['mobile','Mobile','The phone tier: 1024 shadow maps (the far cascade every fourth frame), a 64 reflection probe (a face every third frame), a light volumetric fog, short reflection rays, no motion blur, at most 1.25 device pixels per CSS pixel, and a render scale of at most 0.75 that TAA rebuilds to full. Looks almost the same as Ultra.'],
@@ -53,7 +55,8 @@ function useLit(P){R.G.use(P);return CUR=litOf(P);}
 const WX={w:0,wet:0,rainT:0};
 /* how wet it is: the setting's amount on the Sim level, nothing elsewhere */
 const wxTarget=()=>APP.level==='sim'?simVal(SIM_WX,SIMSET.wx):0;
-function syncWeather(){WX.w=wxTarget();WX.wet=Math.min(1,WX.w*1.25);}
+/* (the rain's programs are made the first time it is set to rain, under the menu, not when the first drop falls) */
+function syncWeather(){WX.w=wxTarget();WX.wet=Math.min(1,WX.w*1.25);if(WX.w>.5&&R&&typeof rainInit==='function')rainInit();}
 /* ---------- the environment the renderer lights the frame with: the time of day (59_daynight), turned grey and wet by
    the weather, and the Dev tab's look (54_dev) ---------- */
 const ENV={};
@@ -71,22 +74,6 @@ function envNow(){
   E.wet=WX.wet;E.rain=w>.5?(w-.5)*2:0;E.puddles=WX.wet;
   E.lightsOn=T.lightsOn*LOOK.lamps;E.lit=0;E.key=T.key*LOOK.key;E.expoRange=T.expoRange;E.bloom=T.bloom;E.grade=[T.grade[0]*LOOK.sat,T.grade[1]*LOOK.con];E.expoBias=1;
   return E;
-}
-/* rain: thin streaks falling round the camera, see-through (pixels dropped, TAA averages them) */
-const RAIN={n:0,x:null,y:null,z:null,buf:null,mesh:null};
-function rainDraw(cam,dt){
-  const w=WX.w;if(w<.5)return 0;
-  const N=Math.round(({ultra:1000,high:900,medium:800,low:600,mobile:450})[GFX.level]*(w-.3)/.7);
-  if(!RAIN.mesh){const mb=new MB();mb.box(-.5,-.5,-.5,.5,.5,.5,[1,1,1],0,MAT.COL);RAIN.mesh=mb.build();RAIN.x=new Float32Array(1000);RAIN.y=new Float32Array(1000);RAIN.z=new Float32Array(1000);RAIN.buf=new Float32Array(1000*12);
-    for(let i=0;i<1000;i++){RAIN.x[i]=Math.random()*36-18;RAIN.y[i]=Math.random()*18-4;RAIN.z[i]=Math.random()*36-18;}}
-  const e=cam.eyeR,B=RAIN.buf,fall=9.5*dt;
-  for(let i=0;i<N;i++){let y=RAIN.y[i]-fall;if(y<-4){y+=18;RAIN.x[i]=Math.random()*36-18;RAIN.z[i]=Math.random()*36-18;}RAIN.y[i]=y;
-    /* the streaks stay put in the world as the camera moves (wrapped into a 36 m box round it); none right in
-       front of the lens, where one streak would be a pillar across the screen */
-    const o=i*12,wx=e[0]+((RAIN.x[i]-e[0])%36+54)%36-18,wz=e[2]+((RAIN.z[i]-e[2])%36+54)%36-18,cl=Math.hypot(wx-e[0],wz-e[2])<2.2;
-    B[o]=wx;B[o+1]=e[1]+y-(cl?40:0);B[o+2]=wz;B[o+3]=0;B[o+4]=.012;B[o+5]=.6;B[o+6]=.012;B[o+7]=0;B[o+8]=.7;B[o+9]=.75;B[o+10]=.82;B[o+11]=-.32;}
-  setInst(RAIN.mesh,B.subarray(0,N*12));gl.uniform1f(CUR.u.uInst,1);drawMeshI(RAIN.mesh);gl.uniform1f(CUR.u.uInst,0);
-  return N*12;
 }
 /* ---------- a slow frame rate at the lowest render scale: say so once ---------- */
 const GFXW={t:0,said:false};

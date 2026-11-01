@@ -9,7 +9,7 @@
 /* DEV: set to false to ship; the panel, the T key and the HUD tag go away and everything drives on the defaults */
 const DEV=true;
 /* ---------- the look: judgment calls about the picture the owner can A/B on the phone (saved on the device) ---------- */
-const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1,tex:1,texcol:.5,moon:1,lamps:1,glow:1,beam:1,hl:1},LOOK=Object.assign({},LOOK_DEF);
+const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1,tex:1,texcol:.5,moon:1,lamps:1,glow:1,beam:1,hl:1,dust:1,rain:1},LOOK=Object.assign({},LOOK_DEF);
 function lookLoad(){try{const d=JSON.parse(store.get('wo2-look','{}'))||{};for(const k in LOOK_DEF)if(typeof d[k]==='number')LOOK[k]=d[k];}catch(e){}}
 if(DEV)lookLoad();
 const lookSave=()=>store.set('wo2-look',JSON.stringify(LOOK));
@@ -25,6 +25,8 @@ const LOOK_S=[['sat','Saturation',.6,1.6,'The grade\'s saturation, times the tim
   ['lamps','Lamps',.3,2.5,'The town\'s and the park\'s lights, the yard lights and the diner\'s and the gas station\'s: how far their light reaches onto the street.'],
   ['glow','Glow',.3,2.5,'The neon, the signs, the lit windows and storefronts, the signals and the lamps\' own faces.'],
   ['hl','Headlights',.4,2.5,'Your headlights: the pool of light on the road and its cut-off.'],
+  ['dust','Dust and spray',0,2,'How much the tyres throw up: dust off dirt and gravel, clods off mud, spray off wet tarmac and the fords. Mobile keeps at most 220 alive at once, the others 360.'],
+  ['rain','Rain',0,1.5,'How heavy the rain looks under the Sim level\'s Rain and Downpour: the falling streaks and the splashes (the drops on the lens from the hood camera).'],
   ['beam','Challenge columns',.3,2.5,'The columns of light over the challenges\' starts and gates, by day and by night.']];
 const LOOK_T=[['shadows','Sun shadows','The cascaded shadow maps (the moon\'s at night). Off, the sun casts nothing, and the frame is cheaper.'],['occ','Shade under the cars','The soft occlusion on the ground under each car.']];
 /* the ground, surface by surface: id, label, where it is */
