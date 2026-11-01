@@ -165,16 +165,49 @@ var SL3 = (() => {
       }
       return P;
     };
+    /* A uniform that already holds the value asked for is not sent again: WebGL keeps every program's uniforms, so
+       sending the same number twice (the land's lighting is set for the scene, then again for the car; nearly all
+       of it is the same from one frame to the next) is a driver call for nothing. Only a value that always comes
+       through here can be remembered: a program the renderer made (P.own) is set only through here, and the
+       renderer's own uniform names (G.ownU, the names of R.U) are set only through here in any program. A name the
+       game sets straight on the context (its model matrices, its car's paint) is sent every time, as before. */
+    G.ownU = /* @__PURE__ */ new Set();
+    const same = (c, v) => {
+      if (typeof v !== "object") return c === v;
+      const n = v.length;
+      if (!c || typeof c !== "object" || c.length !== n) return false;
+      for (let i = 0; i < n; i++) if (c[i] !== v[i]) return false;
+      return true;
+    };
+    const keep = (u, v) => {
+      if (typeof v !== "object") {
+        u.c = v;
+        return;
+      }
+      if (!u.c || typeof u.c !== "object" || u.c.length !== v.length) u.c = new Float64Array(v.length);
+      u.c.set(v);
+    };
     G.set = (P, vals) => {
+      const own = P.own;
       for (const k in P.u) {
         const v = vals[k];
         if (v === void 0) continue;
-        setU(P.u[k], v);
+        const u = P.u[k];
+        if (own || G.ownU.has(k)) {
+          if (same(u.c, v)) continue;
+          keep(u, v);
+        }
+        setU(u, v);
       }
     };
     G.uni = (P, k, v) => {
       const u = P.u[k];
-      if (u) setU(u, v);
+      if (!u) return;
+      if (P.own || G.ownU.has(k)) {
+        if (same(u.c, v)) return;
+        keep(u, v);
+      }
+      setU(u, v);
     };
     function setU(u, v) {
       const l = u.loc;
@@ -211,13 +244,32 @@ var SL3 = (() => {
           break;
       }
     }
+    /* which texture each unit holds, kept by wrapping the context's own bind (the game's direct binds count too),
+       so G.tex skips a bind already in place; a deleted texture leaves every unit it was on */
+    const BOUND = [], ACT = { u: 0 };
+    {
+      const bind = gl.bindTexture.bind(gl), act = gl.activeTexture.bind(gl), del = gl.deleteTexture.bind(gl);
+      gl.activeTexture = (u) => {
+        ACT.u = u - gl.TEXTURE0;
+        act(u);
+      };
+      gl.bindTexture = (target, t) => {
+        (BOUND[ACT.u] || (BOUND[ACT.u] = {}))[target] = t;
+        bind(target, t);
+      };
+      gl.deleteTexture = (t) => {
+        for (const b of BOUND) if (b) for (const k in b) if (b[k] === t) b[k] = null;
+        del(t);
+      };
+    }
     G.tex = (P, map) => {
       for (const k in map) {
         const unit = P.samplers[k];
         if (unit === void 0) continue;
-        const t = map[k];
-        gl.activeTexture(gl.TEXTURE0 + unit);
-        gl.bindTexture(t.target || gl.TEXTURE_2D, t.t || t);
+        const t = map[k], target = t.target || gl.TEXTURE_2D, tex = t.t || t, b = BOUND[unit];
+        if (b && b[target] === tex) continue;
+        if (ACT.u !== unit) gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.bindTexture(target, tex);
       }
     };
     const FMT = {
@@ -352,11 +404,12 @@ var SL3 = (() => {
     };
     G.timer = () => {
       if (!ext.timer) return null;
-      const qs = [];
+      /* (the query objects are reused, not made and deleted every frame) */
+      const qs = [], free = [];
       let last = -1;
       return {
         begin() {
-          const q = gl.createQuery();
+          const q = free.pop() || gl.createQuery();
           gl.beginQuery(ext.timer.TIME_ELAPSED_EXT, q);
           qs.push(q);
         },
@@ -368,9 +421,9 @@ var SL3 = (() => {
           while (qs.length && gl.getQueryParameter(qs[0], gl.QUERY_RESULT_AVAILABLE)) {
             const q = qs.shift();
             if (!dis) last = gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6;
-            gl.deleteQuery(q);
+            free.push(q);
           }
-          while (qs.length > 6) gl.deleteQuery(qs.shift());
+          while (qs.length > 8) free.push(qs.shift());
           return last;
         }
       };
@@ -1730,7 +1783,12 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       this.hasPrev = false;
       this.resetTAA = true;
       this.cars = [];
-      const P = (n, vs, fs, d) => G.program(n, vs, fs, d);
+      /* (the renderer's own programs are set only through G.set and G.uni, so their uniforms can be remembered) */
+      const P = (n, vs, fs, d) => {
+        const p = G.program(n, vs, fs, d);
+        p.own = true;
+        return p;
+      };
       const skyFS = sky || SKY_FS;
       this.P = {
         world: noWorld ? null : P("world", WORLD_VS, WORLD_FS),
@@ -1781,6 +1839,14 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       };
       this.timer = G.timer();
       this.gpuMs = -1;
+      /* the frame's matrices, made in place every frame (last frame's view-projection stays whole for TAA: two
+         of those, turn and turn about), and the probe's and the headlights' */
+      const F = () => new Float32Array(16);
+      this.m = { V: F(), Pn: F(), Pj: F(), VP: F(), inv: F(), nj: [F(), F()], res: [0, 0] };
+      this.pm = { V: F(), P: F(), VP: F(), inv: F() };
+      this.hm = { V: F(), P: F(), M: F() };
+      this.hlPos = [0, 0, 0];
+      this.ident = M4.ident();
       {
         const dbg = gl.getExtension("WEBGL_debug_renderer_info");
         let n = "";
@@ -1898,6 +1964,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         this.nT = G.texture(iw, ih, "rgba16f");
         this.vT = G.texture(iw, ih, "rg16f");
         this.dT = G.texture(iw, ih, "depth32f", { filter: "nearest" });
+        this.depthTex = { uDepth: this.dT };
         this.mainFB = G.target([this.cT, this.nT, this.vT], this.dT);
         this.glassFB = G.target([this.cT], this.dT);
         this.litT = G.texture(iw, ih, "rgba16f");
@@ -1918,27 +1985,30 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const rl = Math.hypot(...r);
       r = r.map((x) => x / rl);
       const up = [b[1] * r[2] - b[2] * r[1], b[2] * r[0] - b[0] * r[2], b[0] * r[1] - b[1] * r[0]];
-      const V = M4.view(c.pos, r, up, b), near = c.near || 0.25, far = c.far || 3200;
-      const Pn = M4.persp(c.fov, asp, near, far);
+      const m = this.m, V = M4.view(c.pos, r, up, b, m.V), near = c.near || 0.25, far = c.far || 3200;
+      const Pn = M4.persp(c.fov, asp, near, far, m.Pn);
       if (c.shift) Pn[8] += c.shift;
-      const Pj = Pn.slice();
+      const Pj = m.Pj;
+      Pj.set(Pn);
       const j = JIT[this.frameN % 8];
       this.jit = j;
       Pj[8] += 2 * j[0] / iw;
       Pj[9] += 2 * j[1] / ih;
-      const VP = M4.mul(Pj, V), VPnj = M4.mul(Pn, V);
+      const VP = M4.mul(Pj, V, m.VP), VPnj = M4.mul(Pn, V, m.nj[this.frameN & 1]);
       const U = this.U;
       U.uView = V;
       U.uProj = Pj;
       U.uVP = VP;
       U.uVPnj = VPnj;
-      U.uInvVP = M4.invert(VP);
+      U.uInvVP = M4.invert(VP, m.inv);
       U.uPrevVP = this.prevVP && !S.cut ? this.prevVP : VPnj;
       U.uCam = c.pos;
       U.uNear = near;
       U.uFar = far;
       U.uJit = j;
-      U.uRes = [iw, ih];
+      m.res[0] = iw;
+      m.res[1] = ih;
+      U.uRes = m.res;
       this.camBasis = { r, up, b, f };
       this.near = near;
       this.far = far;
@@ -1999,8 +2069,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       gl.polygonOffset(1.5, 3);
       gl.disable(gl.CULL_FACE);
       G.use(P);
-      G.uni(P, "uModel", M4.ident());
-      const sun = U.uCSMOn > 0;
+      G.uni(P, "uModel", this.ident);
+      const sun = U.uCSMOn > 0, own = this.tiles.length > 0 || !!this.dyn;
       if (sun) {
         const fe = this.Q.farCSM || 2;
         for (let k = 0; k < 3; k++) {
@@ -2009,7 +2079,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
           G.bind(this.csmFB[k]);
           gl.clear(gl.DEPTH_BUFFER_BIT);
           G.uni(P, "uVP", this.csmM[k]);
-          this.drawWorld(P, M4.planes(this.csmM[k]));
+          if (own) this.drawWorld(P, M4.planes(this.csmM[k]));
           for (const h of this.extra) h.shadow && h.shadow(this, P, this.csmM[k], "sun", k);
         }
       }
@@ -2017,7 +2087,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         G.bind(this.hlFB);
         gl.clear(gl.DEPTH_BUFFER_BIT);
         G.uni(P, "uVP", this.hlM);
-        this.drawWorld(P, M4.planes(this.hlM), { from: this.hlPos, maxDist: 80 });
+        if (own) this.drawWorld(P, M4.planes(this.hlM), { from: this.hlPos, maxDist: 80 });
         for (const h of this.extra) h.shadow && h.shadow(this, P, this.hlM, "hl");
       }
       gl.disable(gl.POLYGON_OFFSET_FILL);
@@ -2027,9 +2097,16 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       this.probeFace = (f + 1) % 6;
       const pos = S.probePos;
       const [fw, up] = CUBE[f];
-      const V = M4.lookAt(pos, [pos[0] + fw[0], pos[1] + fw[1], pos[2] + fw[2]], up), Pr = M4.persp(Math.PI / 2, 1, 0.3, 2500);
-      const VP = M4.mul(Pr, V);
-      const U2 = Object.assign({}, this.U, { uVP: VP, uVPnj: VP, uPrevVP: VP, uInvVP: M4.invert(VP), uCam: pos, uFrame: this.frameN });
+      const m = this.pm, V = M4.lookAt(pos, [pos[0] + fw[0], pos[1] + fw[1], pos[2] + fw[2]], up, m.V), Pr = M4.persp(Math.PI / 2, 1, 0.3, 2500, m.P);
+      const VP = M4.mul(Pr, V, m.VP);
+      /* (the scene's uniforms with the face's own view: one object, filled afresh for each face) */
+      const U2 = Object.assign(this.probeU || (this.probeU = {}), this.U);
+      U2.uVP = VP;
+      U2.uVPnj = VP;
+      U2.uPrevVP = VP;
+      U2.uInvVP = M4.invert(VP, m.inv);
+      U2.uCam = pos;
+      U2.uFrame = this.frameN;
       G.bind(this.probeFB[f]);
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -2038,7 +2115,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       gl.depthMask(true);
       gl.enable(gl.CULL_FACE);
       gl.cullFace(gl.BACK);
-      const texs = Object.assign(this.lights.bindings(), { uCSM0: this.csm[0], uCSM1: this.csm[1], uCSM2: this.csm[2], uHLSh: this.hlSh, uProbe: this.probe });
+      const texs = this.texSet();
       if (this.P.worldProbe) {
         const P = G.use(this.P.worldProbe);
         G.set(P, U2);
@@ -2059,11 +2136,17 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         this.probeFilled++;
       }
     }
+    /* the scene's textures (the lights, the shadow maps, the probe): the same set every frame, made once */
+    texSet() {
+      if (!this.texs || this.texs.uLights !== this.lights.tex) this.texs = Object.assign(this.lights.bindings(), { uCSM0: this.csm[0], uCSM1: this.csm[1], uCSM2: this.csm[2], uHLSh: this.hlSh, uProbe: this.probe });
+      return this.texs;
+    }
     /* ---------- the frame ---------- */
     render(S) {
       const G = this.G, gl = this.gl, U = this.U, Q = this.Q;
       if (this.timer) {
-        this.gpuMs = this.timer.poll();
+        /* (asking the driver for the timer's result is a round trip; every third frame is plenty for a smoothed number) */
+        if (this.frameN % 3 === 0) this.gpuMs = this.timer.poll();
         this.timer.begin();
       }
       this.camera(S);
@@ -2096,29 +2179,67 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         uProbeLod: Math.log2(Q.probe) - 1
       });
       U.uRoad[3] = E.puddles;
+      /* (every name of U is the renderer's own: see G.set) */
+      for (const k in U) G.ownU.add(k);
       U.uFlick.fill(1);
-      U.uFlick.set((S.flicker || []).slice(0, 16));
-      const dyn = S.dyn || [];
+      const fl = S.flicker;
+      if (fl) for (let i = 0, n = Math.min(16, fl.length); i < n; i++) U.uFlick[i] = fl[i];
+      const dyn = S.dyn || [], D = U.uDyn;
       U.uNDyn = Math.min(16, dyn.length);
-      U.uDyn.fill(0);
-      dyn.slice(0, 16).forEach((L, i) => {
-        U.uDyn.set([L.pos[0], L.pos[1], L.pos[2], L.r, L.col[0], L.col[1], L.col[2], L.type || 0, L.dir ? L.dir[0] : 0, L.dir ? L.dir[1] : -1, L.dir ? L.dir[2] : 0, L.cosO ?? -1], i * 12);
-      });
+      D.fill(0);
+      for (let i = 0; i < U.uNDyn; i++) {
+        const L = dyn[i], o = i * 12, d = L.dir;
+        D[o] = L.pos[0];
+        D[o + 1] = L.pos[1];
+        D[o + 2] = L.pos[2];
+        D[o + 3] = L.r;
+        D[o + 4] = L.col[0];
+        D[o + 5] = L.col[1];
+        D[o + 6] = L.col[2];
+        D[o + 7] = L.type || 0;
+        D[o + 8] = d ? d[0] : 0;
+        D[o + 9] = d ? d[1] : -1;
+        D[o + 10] = d ? d[2] : 0;
+        D[o + 11] = L.cosO ?? -1;
+      }
       const hl = S.headlights;
       if (hl && hl.on > 0) {
-        U.uHL.set([...hl.posL, hl.on, ...hl.posR, hl.high || 0, ...hl.dir, 0, ...hl.right, 0, ...hl.col, hl.range]);
-        const c = [(hl.posL[0] + hl.posR[0]) / 2, (hl.posL[1] + hl.posR[1]) / 2, (hl.posL[2] + hl.posR[2]) / 2];
-        this.hlPos = c;
-        const V = M4.lookAt(c, [c[0] + hl.dir[0], c[1] + hl.dir[1], c[2] + hl.dir[2]], hl.up || [0, 1, 0]);
-        this.hlM = M4.mul(M4.persp(1.9, 1.35, 0.35, hl.range), V);
+        const H = U.uHL, pl = hl.posL, pr = hl.posR, dr = hl.dir, rt = hl.right, cl = hl.col;
+        H[0] = pl[0];
+        H[1] = pl[1];
+        H[2] = pl[2];
+        H[3] = hl.on;
+        H[4] = pr[0];
+        H[5] = pr[1];
+        H[6] = pr[2];
+        H[7] = hl.high || 0;
+        H[8] = dr[0];
+        H[9] = dr[1];
+        H[10] = dr[2];
+        H[11] = 0;
+        H[12] = rt[0];
+        H[13] = rt[1];
+        H[14] = rt[2];
+        H[15] = 0;
+        H[16] = cl[0];
+        H[17] = cl[1];
+        H[18] = cl[2];
+        H[19] = hl.range;
+        const c = this.hlPos, hm = this.hm;
+        c[0] = (pl[0] + pr[0]) / 2;
+        c[1] = (pl[1] + pr[1]) / 2;
+        c[2] = (pl[2] + pr[2]) / 2;
+        const V = M4.lookAt(c, [c[0] + dr[0], c[1] + dr[1], c[2] + dr[2]], hl.up || [0, 1, 0], hm.V);
+        this.hlM = M4.mul(M4.persp(1.9, 1.35, 0.35, hl.range, hm.P), V, hm.M);
         U.uHLMat = this.hlM;
         U.uHLShOn = 1;
       } else {
         U.uHL[0 + 3] = 0;
         U.uHLShOn = 0;
       }
-      U.uNOcc = Math.min(8, (S.occ || []).length);
-      (S.occ || []).slice(0, 8).forEach((o, i) => U.uOcc.set(o, i * 8));
+      const oc = S.occ || [];
+      U.uNOcc = Math.min(8, oc.length);
+      for (let i = 0; i < U.uNOcc; i++) U.uOcc.set(oc[i], i * 8);
       U.uCSMOn = Math.max(...E.sunCol) > 2e-3 ? 1 : 0;
       if (U.uCSMOn) this.cascades(S);
       for (const h of this.extra) h.prepare && h.prepare(this, S);
@@ -2134,7 +2255,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       gl.enable(gl.CULL_FACE);
       gl.cullFace(gl.BACK);
       gl.disable(gl.BLEND);
-      const texs = Object.assign(this.lights.bindings(), { uCSM0: this.csm[0], uCSM1: this.csm[1], uCSM2: this.csm[2], uHLSh: this.hlSh, uProbe: this.probe });
+      const texs = this.texSet();
       for (const h of this.extra) h.opaque && h.opaque(this, U, texs);
       if (this.P.world) {
         const Pw = G.use(this.P.world);
@@ -2167,7 +2288,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const Pf = G.use(this.P.fog);
       G.bind(this.fogFB);
       G.set(Pf, U);
-      G.tex(Pf, Object.assign({ uDepth: this.dT }, texs));
+      G.tex(Pf, texs);
+      G.tex(Pf, this.depthTex);
       G.fullscreen();
       const Pc = G.use(this.P.comp);
       G.bind(this.litFB);
