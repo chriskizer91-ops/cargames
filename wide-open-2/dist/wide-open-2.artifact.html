@@ -10362,7 +10362,13 @@ function placeCar(x,z,yaw){
   if(pt.st!=='off')pt.st='run';
   for(let i=0;i<120;i++)t.step(DT,SETTLE);
   t.v.fill(0);t.w.fill(0);t.rev=false;pt.rev=false;t.revT=0;CAM.cut=true;GAME.flipT=0;PRB.fresh=true;CSM.fresh=true;
+  if(GAME.state!=='drive')settleCar();
 }
+/* with the game paused (the menu, boot, a screen over the game) the physics waits, so a car placed then settles onto its
+   springs here and now: a second and a half with the handbrake on and nothing else touched (not the brake pedal: held
+   at a standstill for half a second, that is how the physics engages reverse) */
+const SETTLE_IN={steer:0,thr:0,brk:0,hb:1,nos:false};
+function settleCar(){const t=GAME.car;for(let k=0;k<360;k++)t.step(DT,SETTLE_IN);t.takeEvents();GAME.acc=0;}
 /* the meshes of builds no longer driven or raced are let go (the wheels are shared and stay) */
 function truckEvict(keep){
   for(const id of Object.keys(TRUCKF)){if(keep.includes(id))continue;const F=TRUCKF[id];if(!F.shared)for(const m of [F.body,F.hood,F.bay&&F.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCKF[id];}
@@ -10412,9 +10418,13 @@ function evVoice(car,dt,on){const v=GAME.voice,a=ENG.audio;if(!a)return;
   if(on){if(!v.ev){v.ev=evSound(a.ctx);v.ev.out.connect(a.eng);}if(car)v.ev.update(car,dt,GAME.state);if(v.port&&!v.evZ){v.port.post({t:'sleep',v:true});v.evZ=true;}}
   else{if(v.ev)v.ev.out.gain.setTargetAtTime(0,a.ctx.currentTime,.05);if(v.port&&v.evZ){v.port.post({t:'sleep',v:false});v.evZ=false;}}}
 /* what the synth hears: the lab's 'behind' listener, from wherever the chase camera is */
-function soundUpdate(c){
+function soundUpdate(c,dt=1/60){
   const v=GAME.voice;if(!ENG.audio||!v.port)return;const t=GAME.car,M=t.M,F=mcol(M,0),mode=CAMS[APP.cam],D=carD(t);
-  const isEV=!!t.spec.ev;evVoice(t,1/60,isEV);if(isEV){t.pt.takeEvents();return;}
+  /* paused: the physics waits, but the engine settles to idle in the sound rather than droning where it was caught
+     (the electric motor winds down to a stop) */
+  const isEV=!!t.spec.ev,paused=GAME.state!=='drive';
+  if(paused){const to=isEV?0:t.pt.e.idle;GAME.pRpm=GAME.pRpm===undefined?(isEV?t.pt.rpm:t.pt.rpmOut):GAME.pRpm+(to-GAME.pRpm)*Math.min(1,dt*3);}else GAME.pRpm=undefined;
+  evVoice(isEV&&paused?{pt:{st:t.pt.st,rpm:GAME.pRpm,load:0,Te:0},speed:0}:t,1/60,isEV);if(isEV){t.pt.takeEvents();return;}
   const ex=add(t.p,mvec(M,[-(D.L/2-.15)-t.cg[0],.4-t.cg[1],0])),dist=len(sub2(c.eye,ex)),right=norm2([-c.fwd[2],0,c.fwd[0]]),toCam=norm2(sub2(c.eye,t.p));
   /* the camera sits 7 to 11 m back; the synth hears it from no further than the lab's own 'behind' spot plus a little, so it sounds like the lab */
   let geo={dist:clamp(dist,1.5,5),pan:clamp(-dot2(norm2(sub2(t.p,c.eye)),right)*.9,-1,1),rear:clamp(.5-.5*dot2(toCam,F),0,1)*.6+.4};
@@ -10424,6 +10434,7 @@ function soundUpdate(c){
   /* the room follows where the car is, once it has been there a second */
   const rm=roomNow();if(rm!==ENG.room){ENG.roomT=(ENG.roomT||0)+1/60;if(ENG.roomT>1){ENG.roomT=0;ENG.room=rm;swapRoom();}}else ENG.roomT=0;
   const ep=t.pt.soundParams(0,t.speed,geo);ep.horn=GAME.state==='drive'&&keyOn('horn')?1:0;ep.jake=t.pt.jakeOn?3:0;
+  if(paused){if(t.pt.running)ep.rpm=GAME.pRpm;ep.load=0;ep.cutFrac=0;ep.boost=0;ep.nos=0;ep.speed=0;ep.twostep=0;ep.antilag=0;ep.jake=0;}
   /* the pitch test (V): the synth hears the engine turning slower than it is; the physics and the tach don't change */
   if(ENG.pitch!==1)ep.rpm*=ENG.pitch;
   for(const e of t.pt.takeEvents())v.port.post({t:'ev',ev:e});
@@ -10512,13 +10523,12 @@ function step(dt){
   /* the drag strip's tree (60_park): the car held on its brakes until green (rev it all you like); the gas
      floored before green is a red light */
   if(!RACE.on&&PARKT.dr.st==='tree'){if(drive.thr>.6&&!PARKT.dr.foul){PARKT.dr.foul=true;say('RED LIGHT',1.8,PAL.red);}drive={steer:drive.steer||0,thr:drive.thr||0,brk:1,hb:1,nos:false,park:true};}
-  /* a challenge's countdown (60_chal): held on the brakes until GO; at the result it rolls to a stop */
+  /* a challenge's countdown (60_chal): held on the brakes until GO */
   if(CHAL.run&&CHAL.run.phase==='count')drive={steer:drive.steer||0,thr:drive.thr||0,brk:1,hb:1,nos:false,park:true};
-  if(GAME.state==='cres')drive={steer:0,thr:0,brk:.45,hb:0,nos:false,park:true};
-  if(RACE.on&&GAME.state!=='drive'){GAME.acc=0;return;}
-  /* paused: the car is held exactly as it was (speed and all) until the menu closes; changing it or going
-     somewhere places it afresh, and that unfreezes it */
-  if(GAME.state==='menu'&&GAME.frozen){GAME.acc=0;return;}
+  /* paused (the menu, boot, a race's results, a challenge's result card, someone's job dialog): the physics waits, the
+     car held exactly as it was (speed and all) until the game carries on; a car placed meanwhile has settled (settleCar).
+     Only the dust finishes falling */
+  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);return;}
   /* a machine's rider leans; a rider who has bailed lets go of everything */
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
@@ -10795,7 +10805,7 @@ function frame(ts){
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
   perfBegin();
-  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last);raceSound(CAM.last);}psT(PS_SOUND,ts0);autoDetail(dt);drsStep(dt);}catch(e){console.error(e);}
+  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last,dt);raceSound(CAM.last);}psT(PS_SOUND,ts0);autoDetail(dt);drsStep(dt);}catch(e){console.error(e);}
   perfEnd(dt);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps · '+WORLD.chunks.size+' chunks';}
   requestAnimationFrame(frame);
