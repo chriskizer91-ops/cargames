@@ -16,7 +16,8 @@ const CARD_NAME={quad90:"Kids' quad",quad450:'Sport quad',quadUtil:'Ranch quad',
 function openMenu(first){
   if(GAME.state==='jdlg')closeJobDialog();if(GAME.state==='cres')closeChalResult(true);
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
-  if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
+  /* (not with a stunt going: the car is frozen under the menu, and the stunt carries on, or bails, after it) */
+  if(GAME.state==='drive'&&Feats.S.combo&&!Feats.S.live.stunt)Feats.bankNow();
   if(GAME.state==='drive'){GAME.frozen=true;engineDuck(true);}
   APP.title=!!first;
   GAME.state='menu';$('menu').hidden=false;inputRelease();syncTouch();

@@ -153,15 +153,20 @@ x runs east, z south; downtown is at the origin.
 
 ## Stunts (`src/58_feats.js`)
 
-A stunt is everything from all four wheels leaving the ground (or the car going over past 78 degrees) until it is
-back on its wheels and settled for half a second. On the way it counts the flight up to the first touch of the
-ground (distance, time, height), every full flip, roll and spin while it's off its wheels (a turn about 30 degrees
-short still counts; the turning is read from the car's orientation frame to frame, from the moment it leaves its
-wheels), and every tree or post it clips. Hitting things doesn't end it, and a hard hit no longer costs the combo
-on its own: coming to rest does. At rest on its wheels without a reset it's LANDED and pays (CLEAN, half as much
-again, if it came down upright and soft first time, stayed down and clipped nothing); at rest on its side or roof
-it's BAILED (ROLLED IT if it never left the ground) and the unbanked combo goes with it. A tip past 78 degrees and
-back with nothing else to show for it is a save. Flips pay 300, rolls 220, spins 120, clips 50, on top of the air.
+A stunt is everything from all four wheels leaving the ground with the body clear of it too (or the car going over
+past 78 degrees) until it is back on its wheels and settled for half a second. On the way it counts the flight up
+to the first touch of the ground (distance, time, height); every full flip, roll and spin while it's off its wheels
+(a turn about 30 degrees short still counts; read from the car's orientation frame to frame, from the moment it
+leaves its wheels; after a touchdown only while it's really off them, so a spin-out on landing isn't a spin; a spin
+done nose up, which reads partly as a roll, is credited whole); and every tree, post or wall it clips (not the other
+cars in a race). Hitting things doesn't end it, and a hard hit no longer costs the combo on its own: coming to rest
+does. At rest on its wheels without a reset it's LANDED and pays (CLEAN, half as much again, if it came down upright
+and soft first time, stayed down and clipped nothing); at rest on its side or roof for a second it's BAILED (ROLLED
+IT if it never left the ground) and the unbanked combo goes with it; a quad's rider thrown off is a bail too. Hung up
+on something, upright with no wheels down, it's just over. A tip past 78 degrees and back with no air or turns is a
+save. A drift, two wheels or a burnout going when a stunt starts is paid there and then. Pausing doesn't bank the
+combo while a stunt is going (the car waits frozen under the menu). Flips pay 300, rolls 220, spins 120, clips 50, on
+top of the air. `tools/stunt_check.py` throws the car about on the salt and prints what each throw made.
 
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
