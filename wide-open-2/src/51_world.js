@@ -78,7 +78,7 @@ function worldRings(){
   const r=GFX.q,k=DEVW.view==='near'?.75:DEVW.view==='far'?1.35:1;
   WORLD.near=r.near*k;WORLD.farR=r.farR*k;WORLD.lodD=[r.lodD[0]*k,r.lodD[1]*k];WORLD.propD=r.propD*k;
   /* under the full moon the fog is thin enough to see a long way; the far land (and downtown's skyline) on a laptop */
-  if(SKY.night){WORLD.near=Math.min(WORLD.near,560);WORLD.farR=GFX.level==='mobile'||GFX.level==='low'?0:Math.min(WORLD.farR,1800);WORLD.propD=Math.min(WORLD.propD,420);}
+  if(SKY.night>.5){WORLD.near=Math.min(WORLD.near,560);WORLD.farR=GFX.level==='mobile'||GFX.level==='low'?0:Math.min(WORLD.farR,1800);WORLD.propD=Math.min(WORLD.propD,420);}
 }
 
 /* ---------- the worker ---------- */

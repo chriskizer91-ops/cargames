@@ -44,7 +44,7 @@ fs.mkdirSync(out,{recursive:true});
           if(g.TEX){if(!g.TEX.arr&&!g.TEX.loading)g.texLoad();for(let i=0;i<300&&!g.TEX.arr&&g.TEX.loading;i++)await wait(100);if(g.TEX.arr)g.TEX.t0=-10;}}
         else if(tod==='night')g.applyTod('night');
         else Object.assign(g.SKY,{sun:[-.52/Math.hypot(.52,.5,.4),.5/Math.hypot(.52,.5,.4),.4/Math.hypot(.52,.5,.4)],sunCol:[1.28,1.18,1.02],sky:[.44,.5,.62],gnd:[.24,.18,.13],zen:[.16,.32,.85],hor:[.78,.86,1.02],fogD:.0011,fogK:[.68,.72,.78],draw:420,night:0,expo:undefined,haze:1});
-        g.APP.tod=tod;g.APP.lights=neu?!!(g.TOD[tod]||{}).lightsOn:tod==='night';
+        g.APP.tod=tod;g.APP.lights=neu?!!((g.TOD[tod]||{}).beams??(g.TOD[tod]||{}).lightsOn):tod==='night';
         const studio=place==='show'||place==='bay'||place==='lab';
         if(studio){
           /* the opening screen's shed; the bay's window (Look); the dyno lab (Engine) */

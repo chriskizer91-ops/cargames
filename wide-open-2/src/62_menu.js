@@ -121,7 +121,7 @@ function buildMenu(){
   /* into or out of Sim the car is rebuilt where it stands (its roof load moves its centre of gravity) */
   segButtons($('mLevel'),LEVELS.map(l=>[l[0],l[1]]),id=>{const was=APP.level==='sim';APP.level=id;saveGame();if(was!==(id==='sim'))spawnRig();else GAME.car.setAssists(id);});
   buildSimCard();
-  segButtons($('mTod'),Object.entries(TOD).map(([k,v])=>[k,v.name]),id=>{APP.tod=id;applyTod(id);APP.lights=id==='night';saveGame();syncTouch();});
+  segButtons($('mTod'),Object.entries(TOD).map(([k,v])=>[k,v.name]),id=>{APP.tod=id;applyTod(id);APP.lights=!!(TOD[id].beams??TOD[id].lightsOn);saveGame();syncTouch();});
   segButtons($('mCam'),CAMS.map((n,i)=>[i,n]),i=>{APP.cam=+i;CAM.cut=true;saveGame();});
   const px=$('mPlaces');for(const [id,n] of PLACES){const el=document.createElement('button');el.type='button';el.className='place';el.textContent=n;
     el.addEventListener('click',()=>{goTo(id);closeMenu();});px.appendChild(el);}

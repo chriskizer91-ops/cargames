@@ -13,7 +13,7 @@ else{
   /* dots: a big screen or a high-density phone held sideways gets the fine 960 x 540 grid */
   let r=parseInt(store.get('wo2-res',-1),10);if(!(r>=0&&r<RES.length)){const d=devicePixelRatio||1,long=Math.max(innerWidth,innerHeight)*d;r=matchMedia('(pointer: coarse)').matches?(long>=1800?3:long>=1200?2:1):4;}
   setRes(r);resize();txtFonts();addEventListener('resize',resize);
-  applyTod(APP.tod);APP.lights=APP.tod==='night';gfxLabel();
+  applyTod(APP.tod);APP.lights=!!((TOD[APP.tod]||TOD.day).beams??(TOD[APP.tod]||TOD.day).lightsOn);gfxLabel();
   /* let the loading line paint, then start the world */
   requestAnimationFrame(()=>setTimeout(()=>{
     try{

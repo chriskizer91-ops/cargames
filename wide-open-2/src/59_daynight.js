@@ -1,6 +1,7 @@
 /* =====================================================================================
-   DAY AND THE NIGHT, in the renderer's own units (a clear noon sky near 1.5, the sun near 6; the auto exposure brings
-   each to the screen). High noon is the county as Back Forty lit it. The night is City Limits': a clear night under a
+   THE TIMES OF DAY, in the renderer's own units (a clear noon sky near 1.5, the sun near 6; the auto exposure brings
+   each to the screen). High noon is the county as Back Forty lit it. Golden hour is the sun low in the west, the
+   lamps coming on. The night is City Limits': a clear night under a
    full moon, bright enough to see the country and the salt in silver-blue away from the lights; the moon is the
    "sun" of the lighting (its cascades cast the moon shadows), cool, with the stars out.
    The town's lights (the street lamps, the boulevard's twin lamps, neon, the signs and shopfronts, the gas station,
@@ -22,9 +23,19 @@
 const TOD={
   day:{name:'High noon',sun:V3.norm([-.52,.5,.4]),sunCol:[6.2,5.8,5.2],sunSize:.0095,ambUp:[.58,.64,.76],ambDn:[.3,.22,.14],skyZen:[.18,.36,.95],skyHor:[.75,.88,1.1],
     fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.23,expoRange:[.02,3],bloom:.035,grade:[1.3,1],lightsOn:0,draw:0,beam:30},
+  /* golden hour: the sun low in the west (about 8 degrees up), warm and orange, every shadow seven times as long as
+     what casts it, a warm haze toward the sun, the sky pink and gold at the horizon; the windows, the neon and the
+     street lamps just coming on (a third of the night's glow, a little over half its lamps); the headlights off until
+     you put them on (beams: whether a time of day starts with them on) */
+  golden:{name:'Golden hour',sun:V3.norm([-.82,.13,.3]),sunCol:[5.6,3.15,1.5],sunSize:.016,ambUp:[.2,.23,.34],ambDn:[.13,.095,.065],skyZen:[.11,.24,.62],skyHor:[.8,.66,.58],
+    fogCol:[.46,.39,.34],fogDen:.0008,fogFall:.025,fogAmb:[.1,.085,.075],cloud:.3,stars:0,night:.3,key:.19,expoRange:[.04,6],bloom:.05,grade:[1.25,1],lightsOn:.55,beams:0,draw:0,beam:9},
   night:{name:'Full moon',sun:V3.norm([-.42,.7,.3]),sunCol:[2.86,3.46,4.78],sunSize:.012,ambUp:[.073,.095,.156],ambDn:[.017,.017,.021],skyZen:[.0024,.0048,.014],skyHor:[.012,.017,.034],
     fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.22,expoRange:[.25,30],bloom:.06,grade:[1.1,1],lightsOn:1,draw:520,beam:2.2}
 };
+/* (the game opens under the full moon, as Wide Open did: the town's lights, the neon and the headlights are the
+   renderer at its best, the moonlit roads now read as Wide Open's, and on a phone it is the cheapest of the three to
+   draw, the fog closing in at 520 m with no far tiles on Mobile. High noon and golden hour are a tap away on the
+   Drive tab, and a save keeps the one you chose: 60_game's APP.tod) */
 /* the time of day: the light the frame is lit with (55_gfx's envNow adds the weather); the probe starts over */
 function applyTod(id){const T=TOD[id]||TOD.day;Object.assign(SKY,T);if(typeof R!=='undefined'&&R)R.probeFilled=0;}
 /* the flicker slots the lamps can follow (none yet: every lamp steady) */
@@ -88,11 +99,11 @@ function carLights(t,L){
   const brake=t.brkIn>.05;
   if(APP.lights||brake){const back=V3.norm([-F[0]-U[0]*.35,-F[1]-U[1]*.35,-F[2]-U[2]*.35]);
     for(const z of [-.66,.66])L.dyn.push({pos:at(xr,y,z),r:brake?11:6,col:brake?[5,.12,.06]:[.9,.02,.01],type:1,dir:back,cosO:Math.cos(1.3)});}
-  if(SKY.night&&t.build.underglow&&t.build.glow){const g=t.build.glow;L.dyn.push({pos:at(0,.15,0),r:7,col:[g[0]*5*LK*.5,g[1]*5*LK*.5,g[2]*5*LK*.5],type:0});}
+  if(SKY.lightsOn&&t.build.underglow&&t.build.glow){const g=t.build.glow;L.dyn.push({pos:at(0,.15,0),r:7,col:[g[0]*5*LK*.5,g[1]*5*LK*.5,g[2]*5*LK*.5],type:0});}
 }
 /* the farms' yard lights, the diner's and the like that come with the chunks round the car: the nearest few */
 function yardLights(L,p,n){
-  if(!SKY.night)return;
+  if(!SKY.lightsOn)return;
   const F=worldLights(p,200).map(f=>({f,d:Math.hypot(f.p[0]-p[0],f.p[2]-p[2])-f.r})).filter(q=>q.d<160).sort((a,b)=>a.d-b.d);
   for(const {f} of F){if(L.dyn.length>=n)break;const r=lgRec(f);L.dyn.push({pos:[f.p[0]-RO[0],f.p[1]-RO[1],f.p[2]-RO[2]],r:r.r,col:r.col.map(v=>v*LOOK.lamps),type:r.type,dir:r.dir,cosO:r.type?r.cosO:-1});}
 }

@@ -7,7 +7,7 @@
    Engine synth (17_audio), heard from behind the car.
    ===================================================================================== */
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3],[1280,720,4]];
-const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:false,tod:'day',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
+const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:true,tod:'night',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
 /* the career (60_career): on or not, its save, and free play's cars and rigs kept aside while it's on */
@@ -504,7 +504,7 @@ function render(dt){
   const cut=!!CAM.cutFrame;CAM.cutFrame=false;
   /* the lamps: yours, the yard lights nearest you, and at night the others' headlights */
   const L={dyn:[],headlights:null};carLights(t,L);
-  const others=raceCars();if(SKY.night&&others.length)rivalLights(L,others,c.eye);
+  const others=raceCars();if(SKY.lightsOn&&others.length)rivalLights(L,others,c.eye);
   yardLights(L,t.p,14);
   const occ=[occOf(t)];for(const o of others){if(occ.length>=8)break;occ.push(occOf(o));}
   /* the HUD first: the LED display lights its dots as part of the picture */
