@@ -144,7 +144,7 @@ function showEnv(shed,full){
   const S=STAGES[SHOW.stage],K=full||S.id===2?showKey(S):{d:S.sun,c:S.sunCol},E=STUDIO.env;
   Object.assign(E,{night:0,sunDir:K.d,sunSize:.01,sunCol:K.c.map(v=>v*SLK),ambUp:S.sky.map(v=>v*SLK),ambDn:S.gnd.map(v=>v*SLK),skyZen:[0,0,0],skyHor:[0,0,0],skyGlow:[0,0,0],
     cloud:0,stars:0,fogCol:S.fog.map(v=>v*SLK),fogDen:S.fogD*.35,fogFall:0,fogAmb:S.fog.map(v=>v*SLK*.6),wet:0,rain:0,puddles:0,lightsOn:0,lit:0,
-    key:(S.id===1?.12:.15)*LOOK.key,expoRange:S.id===1?[.4,6]:[.08,1.2],bloom:.05,grade:[1.12*LOOK.sat,1.04*LOOK.con],expoBias:1});
+    key:(S.id===1?.12:.15)*LOOK.key,expoRange:S.id===1?[.4,6]:[.08,1.2],bloom:.05,grade:[1.12*LOOK.sat,LOOK.con],expoBias:1});
   let LS=stageLights(S,shed).slice(0,14);
   if(full&&SHOW.flash){const v=GAME.voice,k=Math.min(1,v.flame),n=Math.min(2,SHOW.flash.length);
     LS=LS.slice(0,14-n).concat(SHOW.flash.slice(0,n).map(p=>[p[0],p[1],p[2],5.5,[1,.46,.14],(5+5*v.flameL)*k]));}

@@ -14,11 +14,14 @@
    off more gently: at the 6 m a street lamp mostly lights, LK 100 keeps Wide Open's balance of lamp to moon (whose
    light, like the sun's, is these games' times about five).
    ===================================================================================== */
+/* (grade: saturation and contrast. The renderer grades in linear light, after the tone map, so any contrast above 1
+   sends the darks to black: at 1.06 everything under about a fifth of mid grey goes, the shade under a car, a dark
+   paint, a road at night. Wide Open graded after the gamma; here the contrast is left at 1, the Dev look can add it) */
 const TOD={
   day:{name:'High noon',sun:V3.norm([-.52,.5,.4]),sunCol:[6.2,5.8,5.2],sunSize:.0095,ambUp:[.58,.64,.76],ambDn:[.3,.22,.14],skyZen:[.18,.36,.95],skyHor:[.75,.88,1.1],
-    fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.23,expoRange:[.02,3],bloom:.035,grade:[1.35,1.06],lightsOn:0,draw:0,beam:8},
+    fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.23,expoRange:[.02,3],bloom:.035,grade:[1.3,1],lightsOn:0,draw:0,beam:8},
   night:{name:'Full moon',sun:V3.norm([-.42,.7,.3]),sunCol:[2.2,2.66,3.68],sunSize:.012,ambUp:[.056,.073,.12],ambDn:[.017,.017,.021],skyZen:[.0024,.0048,.014],skyHor:[.012,.017,.034],
-    fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.2,expoRange:[.25,30],bloom:.06,grade:[1.1,1.05],lightsOn:1,draw:520,beam:2.2}
+    fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.2,expoRange:[.25,30],bloom:.06,grade:[1.1,1],lightsOn:1,draw:520,beam:2.2}
 };
 /* the time of day: the light the frame is lit with (55_gfx's envNow adds the weather); the probe starts over */
 function applyTod(id){const T=TOD[id]||TOD.day;Object.assign(SKY,T);if(typeof R!=='undefined'&&R)R.probeFilled=0;}
