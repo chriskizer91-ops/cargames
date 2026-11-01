@@ -16,7 +16,8 @@ const CARD_NAME={quad90:"Kids' quad",quad450:'Sport quad',quadUtil:'Ranch quad',
 function openMenu(first){
   if(GAME.state==='jdlg')closeJobDialog();if(GAME.state==='cres')closeChalResult(true);
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
-  if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
+  /* (not with a stunt going: the car is frozen under the menu, and the stunt carries on, or bails, after it) */
+  if(GAME.state==='drive'&&Feats.S.combo&&!Feats.S.live.stunt)Feats.bankNow();
   if(GAME.state==='drive'){GAME.frozen=true;engineDuck(true);}
   APP.title=!!first;
   GAME.state='menu';$('menu').hidden=false;inputRelease();syncTouch();
@@ -199,7 +200,7 @@ function showResults(){
 }
 function hideResults(){$('rres').hidden=true;raceEnd(null);GAME.state='drive';CAM.cut=true;syncTouch();INPUT.down.clear();}
 /* ---------- cool stuff: the money, the last ten, the bests ---------- */
-const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
+const BEST_NAMES=[['combo','Biggest combo'],['stunt','Biggest stunt'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
   ['burn','Longest burnout'],['mudpit','Fastest mud pit'],['summit','Fastest up Red Hill'],['rocks','Fastest clean rock garden'],['lap','Fastest lap']];
 const ago=ms=>{const s=(Date.now()-ms)/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<129600?Math.round(s/3600)+' h ago':Math.round(s/86400)+' days ago';};
 function syncCool(){

@@ -259,7 +259,7 @@ function step(dt){
   /* paused (the menu, boot, a race's results, a challenge's result card, someone's job dialog): the physics waits, the
      car held exactly as it was (speed and all) until the game carries on; a car placed meanwhile has settled (settleCar).
      Only the dust finishes falling */
-  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);return;}
+  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);Feats.unsync();return;}
   /* a machine's rider leans; a rider who has bailed lets go of everything */
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
@@ -295,7 +295,8 @@ function step(dt){
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(GAME.sdt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
+  if(GAME.state!=='drive')Feats.unsync();
+  else{Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(GAME.sdt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
 }
 /* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
    gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
