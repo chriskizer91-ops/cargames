@@ -9,13 +9,16 @@
    the floating origin (51_world), so when the origin steps the grid's corner and its lights step with it (whole
    cells: nothing is sorted again). The farms' yard lights come and go with their chunks: the nearest few are the
    frame's own lamps, with the headlights (their low-beam cut-off and shadow map), the tail lights and the
-   underglow. These games' lamps were about 1/160 of the renderer's; they are scaled by LK.
+   underglow. These games' lamps were about 1/160 of the renderer's (Rut Access scaled them so); here they are
+   scaled by LK, less, because the renderer's lamps fall off as the square of the distance where these games' fell
+   off more gently: at the 6 m a street lamp mostly lights, LK 100 keeps Wide Open's balance of lamp to moon (whose
+   light, like the sun's, is these games' times about five).
    ===================================================================================== */
 const TOD={
-  day:{name:'High noon',sun:V3.norm([-.52,.5,.4]),sunCol:[6.2,5.8,5.2],sunSize:.0095,ambUp:[.42,.47,.56],ambDn:[.22,.15,.09],skyZen:[.18,.36,.95],skyHor:[.75,.88,1.1],
-    fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.19,expoRange:[.02,3],bloom:.035,grade:[1.35,1.06],lightsOn:0,draw:0,beam:3.6},
-  night:{name:'Full moon',sun:V3.norm([-.42,.7,.3]),sunCol:[1.15,1.38,1.9],sunSize:.012,ambUp:[.06,.08,.13],ambDn:[.018,.018,.022],skyZen:[.006,.012,.035],skyHor:[.03,.043,.085],
-    fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.1,expoRange:[.25,30],bloom:.06,grade:[1.1,1.05],lightsOn:1,draw:520,beam:2.2}
+  day:{name:'High noon',sun:V3.norm([-.52,.5,.4]),sunCol:[6.2,5.8,5.2],sunSize:.0095,ambUp:[.58,.64,.76],ambDn:[.3,.22,.14],skyZen:[.18,.36,.95],skyHor:[.75,.88,1.1],
+    fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.23,expoRange:[.02,3],bloom:.035,grade:[1.35,1.06],lightsOn:0,draw:0,beam:8},
+  night:{name:'Full moon',sun:V3.norm([-.42,.7,.3]),sunCol:[2.2,2.66,3.68],sunSize:.012,ambUp:[.056,.073,.12],ambDn:[.017,.017,.021],skyZen:[.0024,.0048,.014],skyHor:[.012,.017,.034],
+    fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.2,expoRange:[.25,30],bloom:.06,grade:[1.1,1.05],lightsOn:1,draw:520,beam:2.2}
 };
 /* the time of day: the light the frame is lit with (55_gfx's envNow adds the weather); the probe starts over */
 function applyTod(id){const T=TOD[id]||TOD.day;Object.assign(SKY,T);if(typeof R!=='undefined'&&R)R.probeFilled=0;}
@@ -27,7 +30,7 @@ const FLICK=[1,1];
    brightest few in a cell if more than MAXPER reach it), in the renderer's own layout (a square of cells, each its
    start and count in one list), and handed to the renderer in place of the grid loadWorld made. Its lights' records
    hold positions relative to the floating origin: lgShift moves them, and the grid's corner, when the origin steps */
-const LK=160;
+const LK=100;
 const LG={n:0,entries:0,maxN:0,ms:0,x0:-3000,z0:-1600,size:3800,CELL:8,MAXPER:24,rec:null,lights:null,obj:null,ro:[0,0]};
 /* a light of this game's ({p, r, c, d, cs}) as the renderer's record: point or spot, its reach, its colour in the
    renderer's units, its cone (the old shader's edge went from cs to cs + .1) */

@@ -288,7 +288,7 @@ void main(){
   /* (a degenerate normal, as on a few of the machines' part-built pieces, would be NaN, and one NaN pixel is a black
      screen once the TAA history has it) */
   vec3 N=dot(vN,vN)>1e-12?normalize(vN):vec3(0.,1.,0.);vec3 V=normalize(uCam-vP);if(dot(N,V)<0.)N=-N;vec3 Ng=N;
-  vec3 alb=vC.rgb;float em=vC.a;float spec=.04,shin=12.,metal=0.,clear=0.,clearR=.035,trans=0.,ao=1.,ssr=0.,pud=0.;vec3 emc=vec3(0.);
+  vec3 alb=vC.rgb;float em=vC.a;float spec=.04,shin=12.,metal=0.,clear=0.,clearR=.035,trans=0.,ao=1.,ssr=0.,pud=0.,f0k=1.;vec3 emc=vec3(0.);
   float dist=length(vP-uCam);vec3 dPx=dFdx(vP),dPy=dFdy(vP);gFP=max(length(dPx),length(dPy));vec2 fwP=abs(dPx.xz)+abs(dPy.xz);
   /* a car out in the world measures its mud up itself; see-through things drop pixels (TAA averages them over the
      frames: the rain carries its opacity as a negative glow); trees thin out right in front of the camera */
@@ -318,10 +318,11 @@ void main(){
        smaller than a pixel); the coat reflects the world and catches the sun as a sharp glint */
     alb=pc;vec3 fc=floor(vL*420.);float fl=h13(fc),fk=near(.004);alb*=.975+.05*fl;
     N=normalize(N+(vec3(fl,h13(fc+17.1),h13(fc+31.7))-.5)*.35*fk);
-    spec=.5;shin=60.;metal=.55;clear=1.;clearR=.035;dirty=true;
+    spec=.5;shin=60.;metal=.4;clear=1.;clearR=.035;dirty=true;
   }
-  else if(m==2){alb=vec3(.012,.014,.018);spec=1.;shin=40000.;ssr=1.;}
-  else if(m==3){alb=vec3(.03,.036,.042);spec=1.;shin=40000.;ssr=1.;}
+  /* the cars' glass: a little more of the world in it than plain glass gives (Wide Open's glass showed the sky) */
+  else if(m==2){alb=vec3(.012,.014,.018);spec=1.;shin=40000.;ssr=1.;f0k=2.5;}
+  else if(m==3){alb=vec3(.03,.036,.042);spec=1.;shin=40000.;ssr=1.;f0k=2.5;}
   else if(m==5){alb=vec3(.55,.56,.6);spec=1.;shin=90.;metal=1.;}
   else if(m==6){
     /* rubber: a darker tread band and sipes cut across it */
@@ -593,7 +594,7 @@ void main(){
               float blinds=r2>.3&&r2<.5?.55+.45*step(.4,fract(fv*9.)):1.;
               wcol=wc*blinds*mix(.55,1.15,sat(fv/fh*1.3))*(.35+.65*r1/max(fr,.05))*.5*uNight;}}}
         /* glass: dark, smooth, the street and the sky in it (the probe, and the screen through the SSR pass) */
-        if(glass>0.){alb=mix(alb,vec3(.012,.014,.016),glass);spec=mix(.04,1.,glass);shin=mix(12.,400.,glass);ssr=.8*glass*(1.-uNight*.6);emc+=wcol*glass;}
+        if(glass>0.){alb=mix(alb,vec3(.012,.014,.016),glass);spec=mix(.04,1.,glass);shin=mix(12.,400.,glass);ssr=.8*glass*(1.-uNight*.6);f0k=mix(1.,2.,glass);emc+=wcol*glass;}
         else{spec=.04+.3*(1.-rough);shin=mix(60.,8.,rough);}}
     }
     else if(m==61){
@@ -620,7 +621,7 @@ void main(){
   /* ---------- light it ---------- */
   Surf s;s.P=vP;s.V=V;s.N=N;s.Nc=Ng;s.ao=ao;s.spec=1.;s.trans=trans;s.clear=clear;s.clearR=clearR;
   s.rough=sqrt(2./(shin+2.));
-  s.diff=alb*(1.-metal);s.F0=mix(vec3(.04*sat(spec*3.)),alb,metal);
+  s.diff=alb*(1.-metal);s.F0=mix(vec3(.04*sat(spec*3.)*f0k),alb,metal);
   /* specular anti-aliasing: widen the lobe where the normal changes within a pixel */
   {vec3 dx=dFdx(s.N),dy=dFdy(s.N);float var=.25*(dot(dx,dx)+dot(dy,dy));float a2=s.rough*s.rough;s.rough=sqrt(sqrt(saturate(a2*a2+min(2.*var,.2))));}
   float occ=carOcc(vP);s.ao*=occ;

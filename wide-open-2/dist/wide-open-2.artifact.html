@@ -4104,7 +4104,7 @@ void main(){
   /* (a degenerate normal, as on a few of the machines' part-built pieces, would be NaN, and one NaN pixel is a black
      screen once the TAA history has it) */
   vec3 N=dot(vN,vN)>1e-12?normalize(vN):vec3(0.,1.,0.);vec3 V=normalize(uCam-vP);if(dot(N,V)<0.)N=-N;vec3 Ng=N;
-  vec3 alb=vC.rgb;float em=vC.a;float spec=.04,shin=12.,metal=0.,clear=0.,clearR=.035,trans=0.,ao=1.,ssr=0.,pud=0.;vec3 emc=vec3(0.);
+  vec3 alb=vC.rgb;float em=vC.a;float spec=.04,shin=12.,metal=0.,clear=0.,clearR=.035,trans=0.,ao=1.,ssr=0.,pud=0.,f0k=1.;vec3 emc=vec3(0.);
   float dist=length(vP-uCam);vec3 dPx=dFdx(vP),dPy=dFdy(vP);gFP=max(length(dPx),length(dPy));vec2 fwP=abs(dPx.xz)+abs(dPy.xz);
   /* a car out in the world measures its mud up itself; see-through things drop pixels (TAA averages them over the
      frames: the rain carries its opacity as a negative glow); trees thin out right in front of the camera */
@@ -4134,10 +4134,11 @@ void main(){
        smaller than a pixel); the coat reflects the world and catches the sun as a sharp glint */
     alb=pc;vec3 fc=floor(vL*420.);float fl=h13(fc),fk=near(.004);alb*=.975+.05*fl;
     N=normalize(N+(vec3(fl,h13(fc+17.1),h13(fc+31.7))-.5)*.35*fk);
-    spec=.5;shin=60.;metal=.55;clear=1.;clearR=.035;dirty=true;
+    spec=.5;shin=60.;metal=.4;clear=1.;clearR=.035;dirty=true;
   }
-  else if(m==2){alb=vec3(.012,.014,.018);spec=1.;shin=40000.;ssr=1.;}
-  else if(m==3){alb=vec3(.03,.036,.042);spec=1.;shin=40000.;ssr=1.;}
+  /* the cars' glass: a little more of the world in it than plain glass gives (Wide Open's glass showed the sky) */
+  else if(m==2){alb=vec3(.012,.014,.018);spec=1.;shin=40000.;ssr=1.;f0k=2.5;}
+  else if(m==3){alb=vec3(.03,.036,.042);spec=1.;shin=40000.;ssr=1.;f0k=2.5;}
   else if(m==5){alb=vec3(.55,.56,.6);spec=1.;shin=90.;metal=1.;}
   else if(m==6){
     /* rubber: a darker tread band and sipes cut across it */
@@ -4409,7 +4410,7 @@ void main(){
               float blinds=r2>.3&&r2<.5?.55+.45*step(.4,fract(fv*9.)):1.;
               wcol=wc*blinds*mix(.55,1.15,sat(fv/fh*1.3))*(.35+.65*r1/max(fr,.05))*.5*uNight;}}}
         /* glass: dark, smooth, the street and the sky in it (the probe, and the screen through the SSR pass) */
-        if(glass>0.){alb=mix(alb,vec3(.012,.014,.016),glass);spec=mix(.04,1.,glass);shin=mix(12.,400.,glass);ssr=.8*glass*(1.-uNight*.6);emc+=wcol*glass;}
+        if(glass>0.){alb=mix(alb,vec3(.012,.014,.016),glass);spec=mix(.04,1.,glass);shin=mix(12.,400.,glass);ssr=.8*glass*(1.-uNight*.6);f0k=mix(1.,2.,glass);emc+=wcol*glass;}
         else{spec=.04+.3*(1.-rough);shin=mix(60.,8.,rough);}}
     }
     else if(m==61){
@@ -4436,7 +4437,7 @@ void main(){
   /* ---------- light it ---------- */
   Surf s;s.P=vP;s.V=V;s.N=N;s.Nc=Ng;s.ao=ao;s.spec=1.;s.trans=trans;s.clear=clear;s.clearR=clearR;
   s.rough=sqrt(2./(shin+2.));
-  s.diff=alb*(1.-metal);s.F0=mix(vec3(.04*sat(spec*3.)),alb,metal);
+  s.diff=alb*(1.-metal);s.F0=mix(vec3(.04*sat(spec*3.)*f0k),alb,metal);
   /* specular anti-aliasing: widen the lobe where the normal changes within a pixel */
   {vec3 dx=dFdx(s.N),dy=dFdy(s.N);float var=.25*(dot(dx,dx)+dot(dy,dy));float a2=s.rough*s.rough;s.rough=sqrt(sqrt(saturate(a2*a2+min(2.*var,.2))));}
   float occ=carOcc(vP);s.ao*=occ;
@@ -12724,13 +12725,16 @@ const Feats=(()=>{
    the floating origin (51_world), so when the origin steps the grid's corner and its lights step with it (whole
    cells: nothing is sorted again). The farms' yard lights come and go with their chunks: the nearest few are the
    frame's own lamps, with the headlights (their low-beam cut-off and shadow map), the tail lights and the
-   underglow. These games' lamps were about 1/160 of the renderer's; they are scaled by LK.
+   underglow. These games' lamps were about 1/160 of the renderer's (Rut Access scaled them so); here they are
+   scaled by LK, less, because the renderer's lamps fall off as the square of the distance where these games' fell
+   off more gently: at the 6 m a street lamp mostly lights, LK 100 keeps Wide Open's balance of lamp to moon (whose
+   light, like the sun's, is these games' times about five).
    ===================================================================================== */
 const TOD={
-  day:{name:'High noon',sun:V3.norm([-.52,.5,.4]),sunCol:[6.2,5.8,5.2],sunSize:.0095,ambUp:[.42,.47,.56],ambDn:[.22,.15,.09],skyZen:[.18,.36,.95],skyHor:[.75,.88,1.1],
-    fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.19,expoRange:[.02,3],bloom:.035,grade:[1.35,1.06],lightsOn:0,draw:0,beam:3.6},
-  night:{name:'Full moon',sun:V3.norm([-.42,.7,.3]),sunCol:[1.15,1.38,1.9],sunSize:.012,ambUp:[.06,.08,.13],ambDn:[.018,.018,.022],skyZen:[.006,.012,.035],skyHor:[.03,.043,.085],
-    fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.1,expoRange:[.25,30],bloom:.06,grade:[1.1,1.05],lightsOn:1,draw:520,beam:2.2}
+  day:{name:'High noon',sun:V3.norm([-.52,.5,.4]),sunCol:[6.2,5.8,5.2],sunSize:.0095,ambUp:[.58,.64,.76],ambDn:[.3,.22,.14],skyZen:[.18,.36,.95],skyHor:[.75,.88,1.1],
+    fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.23,expoRange:[.02,3],bloom:.035,grade:[1.35,1.06],lightsOn:0,draw:0,beam:8},
+  night:{name:'Full moon',sun:V3.norm([-.42,.7,.3]),sunCol:[2.2,2.66,3.68],sunSize:.012,ambUp:[.056,.073,.12],ambDn:[.017,.017,.021],skyZen:[.0024,.0048,.014],skyHor:[.012,.017,.034],
+    fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.2,expoRange:[.25,30],bloom:.06,grade:[1.1,1.05],lightsOn:1,draw:520,beam:2.2}
 };
 /* the time of day: the light the frame is lit with (55_gfx's envNow adds the weather); the probe starts over */
 function applyTod(id){const T=TOD[id]||TOD.day;Object.assign(SKY,T);if(typeof R!=='undefined'&&R)R.probeFilled=0;}
@@ -12742,7 +12746,7 @@ const FLICK=[1,1];
    brightest few in a cell if more than MAXPER reach it), in the renderer's own layout (a square of cells, each its
    start and count in one list), and handed to the renderer in place of the grid loadWorld made. Its lights' records
    hold positions relative to the floating origin: lgShift moves them, and the grid's corner, when the origin steps */
-const LK=160;
+const LK=100;
 const LG={n:0,entries:0,maxN:0,ms:0,x0:-3000,z0:-1600,size:3800,CELL:8,MAXPER:24,rec:null,lights:null,obj:null,ro:[0,0]};
 /* a light of this game's ({p, r, c, d, cs}) as the renderer's record: point or spot, its reach, its colour in the
    renderer's units, its cone (the old shader's edge went from cs to cs + .1) */
@@ -15069,7 +15073,7 @@ function showEnv(shed,full){
   const S=STAGES[SHOW.stage],K=full||S.id===2?showKey(S):{d:S.sun,c:S.sunCol},E=STUDIO.env;
   Object.assign(E,{night:0,sunDir:K.d,sunSize:.01,sunCol:K.c.map(v=>v*SLK),ambUp:S.sky.map(v=>v*SLK),ambDn:S.gnd.map(v=>v*SLK),skyZen:[0,0,0],skyHor:[0,0,0],skyGlow:[0,0,0],
     cloud:0,stars:0,fogCol:S.fog.map(v=>v*SLK),fogDen:S.fogD*.35,fogFall:0,fogAmb:S.fog.map(v=>v*SLK*.6),wet:0,rain:0,puddles:0,lightsOn:0,lit:0,
-    key:.17*LOOK.key,expoRange:S.id===1?[.6,6]:[.08,1.2],bloom:.05,grade:[1.12*LOOK.sat,1.04*LOOK.con],expoBias:1});
+    key:(S.id===1?.12:.15)*LOOK.key,expoRange:S.id===1?[.4,6]:[.08,1.2],bloom:.05,grade:[1.12*LOOK.sat,1.04*LOOK.con],expoBias:1});
   let LS=stageLights(S,shed).slice(0,14);
   if(full&&SHOW.flash){const v=GAME.voice,k=Math.min(1,v.flame),n=Math.min(2,SHOW.flash.length);
     LS=LS.slice(0,14-n).concat(SHOW.flash.slice(0,n).map(p=>[p[0],p[1],p[2],5.5,[1,.46,.14],(5+5*v.flameL)*k]));}

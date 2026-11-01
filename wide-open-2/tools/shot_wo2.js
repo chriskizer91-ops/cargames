@@ -47,6 +47,7 @@ fs.mkdirSync(out,{recursive:true});
         if(studio){
           /* the opening screen's shed; the bay's window (Look); the dyno lab (Engine) */
           if(place!=='show'){g.showTab('garage');g.showFull(true);g.SHOW.tab=place==='lab'?'engine':'look';g.syncShow();}
+          if(JS)(new Function('g',JS))(g);
           for(let i=0;i<FRAMES;i++){g.APP.t+=dt;g.render(dt);if(i%4===3)await wait(20);}
           return {snap:g.snap(),place,tris:g.APP.tris,render:neu?g.R.iw+'x'+g.R.ih+' of '+g.R.W+'x'+g.R.H:''};}
         g.closeMenu();G.state='drive';g.goTo(place);g.APP.cam=cam===undefined||cam===''?1:+cam;
