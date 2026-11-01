@@ -4,7 +4,12 @@
    calls with the trees, splashes, and the ranch's own challenges (the mud pit, Red Hill, the rock garden,
    a lap of the track, the clock runs). Each one, when it ends, goes into the combo: the money stacks
    and the multiplier grows with every feat and more with every new kind. The combo banks once nothing
-   has happened for a few seconds. Roll it or hit something hard before then and the unbanked money is lost.
+   has happened for a few seconds. End up off your wheels (or reset) before then and the unbanked money is lost.
+   Stunts: anything from all four wheels leaving the ground (or the car going past 78 degrees over) until it is
+   back on its wheels and settled. Everything on the way counts, whatever happens: the air, the full spins,
+   flips and rolls, the trees and posts it clips. Hitting things doesn't end it; coming to rest does. Stopped on
+   its wheels, without a reset, it's LANDED and pays (CLEAN, half as much again, if it came down upright and
+   soft and stayed down); stopped on its side or roof it's BAILED, and the combo goes with it.
    Free play keeps your money as a score, your last ten cool things and your bests, on this device.
    Nothing here draws: it reads the car and the world and calls Feats.pop and Feats.buzz.
    ===================================================================================== */
@@ -16,7 +21,7 @@ const BANK_AFTER=2.6;
 const LOOSE={dirt:1,gravel:1,trail:1,grass:1,ruts:1,mud:1,strip:1,rock:1};
 const Feats=(()=>{
   const S={money:0,session:0,log:[],best:{},combo:null,live:{},lastHit:0,lastGround:null,closeCd:new Map(),splashT:-9,saveTilt:0,saveT:0,
-    pit:null,climb:null,rocks:null,pending:null,wreckT:-9,t:0};
+    pit:null,climb:null,rocks:null,wreckT:-9,t:0,q0:new Float64Array(4),pre:[0,0,0]};
   const API={S,pop:(text,col,big)=>{},buzz:ms=>{},carName:()=>'',place:()=>'',racing:()=>false};
   /* ---------- saving: free play's score, last ten and bests ---------- */
   let KEY='cc-free';
@@ -49,14 +54,14 @@ const Feats=(()=>{
     if(c.n>1)best('combo',tot,`${fmtMoney(tot)} combo (${c.n} feats, x${m.toFixed(1)})`);
     S.pendingLog=[];API.save();
   }
-  API.bankNow=()=>{S.live={};S.pending=null;bank();};
+  API.bankNow=()=>{S.live={};bank();};
   /* rolled it, hit something hard, or reset with money on the table */
   API.wreck=why=>{
-    S.live={};S.pending=null;S.climb=null;S.rocks=null;S.pit=null;
+    S.live={};S.climb=null;S.rocks=null;S.pit=null;
     const c=S.combo;S.combo=null;S.pendingLog=[];S.wreckT=S.t;
     if(c&&c.pot>0){API.pop((why||'WRECKED')+'  LOST '+fmtMoney(c.pot*mult(c)),'#ff3d5a',true);API.buzz([60,40,60]);}
   };
-  API.resetCar=()=>{if(S.combo)API.wreck('RESET');S.live={};S.pending=null;S.climb=null;S.rocks=null;S.pit=null;S.lastGround=null;};
+  API.resetCar=()=>{if(S.combo)API.wreck('RESET');S.live={};S.climb=null;S.rocks=null;S.pit=null;S.lastGround=null;};
   /* ---------- reading the car ---------- */
   function frame(t){
     const M=t.M,U=[M[1],M[4],M[7]],Rt=[M[2],M[5],M[8]];
@@ -69,27 +74,15 @@ const Feats=(()=>{
   /* ---------- one frame ---------- */
   API.step=(dt,t,ev,W)=>{
     S.t+=dt;const f=frame(t),L=S.live,now=S.t;
-    if(now-S.wreckT<1){S.lastGround=null;return;}
-    /* crashes: on its side or roof, or a hard hit */
-    if(f.up<.25&&f.v<4||ev&&(ev.wall>9||ev.ground>11)){if(S.combo||Object.keys(L).length)API.wreck(f.up<.25?'ROLLED IT':'WRECKED');return;}
+    if(now-S.wreckT<1){S.lastGround=null;keepQ(t);return;}
+    /* (a hard hit on its own no longer costs the combo: only ending up off the wheels does, below) */
+    if(stunt(dt,t,f,ev,W,now))return;
     /* --- drift: sideways on purpose, at speed, on the ground --- */
     const sideways=!f.air&&f.vf>6&&f.nC>=3&&Math.abs(f.beta)>.3&&!t.rev;
     if(sideways){const d=L.drift||(L.drift={t:0,max:0,score:0,low:0,dist:0});d.t+=dt;d.low=0;d.max=Math.max(d.max,Math.abs(f.beta));d.score+=(Math.abs(f.beta)-.22)*f.v*dt;d.dist+=f.v*dt;}
     else if(L.drift){const d=L.drift;d.low+=dt;if(Math.abs(f.beta)>.2&&!f.air&&f.v>5&&d.low<.6){d.t+=dt;}else{
       delete L.drift;if(d.t>.9){const ang=Math.round(d.max*57.3),val=d.score*14;addFeat('drift',val,`DRIFT ${ang}° ${d.t.toFixed(1)} S`,{deg:ang,s:d.t,m:d.dist});
         if(best('drift',d.t,`${d.t.toFixed(1)} s drift at up to ${ang}°`))API.pop('LONGEST DRIFT','#ff5ab4');}}}
-    /* --- air: every wheel off the ground --- */
-    if(!f.air){S.lastGround=[t.p[0],t.p[1],t.p[2]];if(L.air){const a=L.air;delete L.air;
-        if(a.t>.45){const dx=t.p[0]-a.p0[0],dz=t.p[2]-a.p0[2];S.pending={dist:Math.hypot(dx,dz),t:a.t,h:a.h,land:ev?ev.land:0,up:f.up,wait:.7};}}}
-    else if(f.airT>.2){const a=L.air||(L.air={t:0,h:0,p0:S.lastGround||[t.p[0],t.p[1],t.p[2]]});a.t=f.airT;
-      const gy=W.heightAt(t.p[0],t.p[2]);a.h=Math.max(a.h,t.p[1]-t.c.hcg-gy);}
-    /* the landing is graded a moment later, once it's clear it stayed on its wheels */
-    if(S.pending){const p=S.pending;p.wait-=dt;p.land=Math.max(p.land,ev?ev.land:0);p.up=Math.min(p.up,f.up);
-      if(p.wait<=0){S.pending=null;const clean=p.up>.9&&p.land<8,hard=p.land>10,grade=clean?'CLEAN':hard?'HARD':'SKETCHY';
-        const val=(p.dist*4+p.t*70+p.h*25)*(clean?1.5:hard?.7:1);
-        addFeat('air',val,`JUMP ${Math.round(p.dist)} M ${p.t.toFixed(1)} S ${grade}`,{m:p.dist,s:p.t,h:p.h,grade});
-        if(best('jump',p.dist,`${Math.round(p.dist)} m jump, ${p.t.toFixed(1)} s in the air`))API.pop('LONGEST JUMP','#4fe3ff');
-        best('airtime',p.t,`${p.t.toFixed(2)} s in the air`);API.buzz(Math.min(80,20+p.land*5));}}
     /* --- two wheels: one side up, the other rolling --- */
     const twoUp=!f.air&&f.v>3&&(f.left===2&&f.right===0||f.right===2&&f.left===0)&&Math.abs(f.roll)>.2;
     if(twoUp){const w=L.two||(L.two={m:0,off:0});w.m+=f.v*dt;w.off=0;}
@@ -123,9 +116,73 @@ const Feats=(()=>{
     /* --- the ranch's own challenges --- */
     if(W.D)challenges(dt,t,f,ev,W,now);
     /* --- banking: nothing going on for a few seconds --- */
-    const busy=Object.keys(L).length||S.pending;
+    const busy=Object.keys(L).length;
     if(S.combo){if(busy)S.combo.t=0;else if((S.combo.t+=dt)>BANK_AFTER)bank();}
   };
+  /* ---------- stunts ---------- */
+  /* the car's turn since the last frame, in its own frame (forward x: rolls; up y: spins; across z: flips), from
+     its orientation then and now (exact for anything under half a turn a frame: the physics caps a tumble at
+     about six turns a second) */
+  const DQ=new Float64Array(3);
+  function keepQ(t){S.q0.set(t.q);}
+  function turned(t){
+    const a=S.q0,b=t.q,ax=-a[0],ay=-a[1],az=-a[2],aw=a[3];
+    let w=aw*b[3]-ax*b[0]-ay*b[1]-az*b[2],x=aw*b[0]+ax*b[3]+ay*b[2]-az*b[1],y=aw*b[1]-ax*b[2]+ay*b[3]+az*b[0],z=aw*b[2]+ax*b[1]-ay*b[0]+az*b[3];
+    if(w<0){w=-w;x=-x;y=-y;z=-z;}const sn=Math.hypot(x,y,z),ang=2*Math.atan2(sn,w),k=sn>1e-9?ang/sn:2;
+    DQ[0]=x*k;DQ[1]=y*k;DQ[2]=z*k;S.q0.set(b);return DQ;}
+  /* full turns about one axis, a little short of a whole one still counting (about 30 degrees) */
+  const turns=a=>Math.floor((Math.abs(a)+.5)/(2*Math.PI));
+  const pl=(n,one,many)=>n+' '+(n===1?one:many);
+  function stuntWords(st,live){
+    const [r,y,p]=st.rot,n=live?a=>Math.floor(Math.abs(a)/(2*Math.PI)):turns,sp=n(y),fl=n(p),ro=n(r),w=[];
+    if(fl)w.push(pl(fl,'FLIP','FLIPS'));if(ro)w.push(pl(ro,'ROLL','ROLLS'));if(sp)w.push(pl(sp,'SPIN','SPINS'));
+    return {w,sp,fl,ro};}
+  /* one frame of a stunt: started, carried on or finished. True when the rest of the frame's feats should wait */
+  function stunt(dt,t,f,ev,W,now){
+    const L=S.live,on=f.nC>=3&&f.up>.8;let st=L.stunt;
+    if(!st){
+      /* the turning is counted from the moment it's off its wheels (S.pre), so the start of a roll or a spin counts too */
+      if(on){keepQ(t);S.pre[0]=S.pre[1]=S.pre[2]=0;S.bailed=false;}else{const d=turned(t);S.pre[0]+=d[0];S.pre[1]+=d[1];S.pre[2]+=d[2];}
+      /* off all four wheels for a fifth of a second, or going over past 78 degrees (not again while it lies where it
+         bailed: it has to be back on its wheels first) */
+      if(S.bailed||!(f.air&&f.airT>.2||f.up<.2)){if(!f.air)S.lastGround=[t.p[0],t.p[1],t.p[2]];return false;}
+      st=L.stunt={t:0,air:0,h:0,p0:S.lastGround||[t.p[0],t.p[1],t.p[2]],rot:S.pre.slice(),hits:0,hitT:-9,land:0,set:0,stop:0,touch:null,bounce:0,tilt:0};
+      delete L.drift;delete L.two;delete L.burn;S.saveTilt=0;}
+    /* (turns count while it's off its wheels: a spin-out once it's down again is the landing, not the stunt) */
+    else{const d=turned(t);if(!on){st.rot[0]+=d[0];st.rot[1]+=d[1];st.rot[2]+=d[2];}}
+    st.t+=dt;st.tilt=Math.max(st.tilt,1-f.up);
+    if(ev){st.land=Math.max(st.land,ev.land||0);if(ev.wall>1.5&&now-st.hitT>.3){st.hits++;st.hitT=now;}}
+    /* the flight is up to the first touch of the ground (a wheel or the body): how long, how high, how far. After
+       that it's bouncing and tumbling, which still counts for the turns and the clips but not as air */
+    if(!st.touch&&(!f.air||ev&&ev.ground>.3))st.touch={up:f.up,x:t.p[0],z:t.p[2]};
+    if(!st.touch&&f.air){st.air=f.airT;const gy=W.heightAt(t.p[0],t.p[2]);st.h=Math.max(st.h,t.p[1]-t.c.hcg-gy);}
+    /* back on its wheels: three or four of them down and upright; every time it comes off them again after a touch
+       down is a bounce */
+    if(on)st.set+=dt;else{if(st.set>0)st.bounce++;st.set=0;}
+    st.stop=!on&&f.v<1?st.stop+dt:0;
+    if(on&&st.set>=.5){delete L.stunt;landed(st,t);return false;}
+    /* at rest on its side or roof: bailed (at rest upright but not on its wheels, hung up on something: just over) */
+    if(st.stop>1.5){delete L.stunt;if(f.up<.5){S.bailed=true;const why=st.air<.2?'ROLLED IT':'BAILED',had=S.combo&&S.combo.pot>0;API.wreck(why);if(!had)API.pop(why,'#ff3d5a');return true;}return false;}
+    /* (forty seconds without either: let it go) */
+    if(st.t>40){delete L.stunt;return false;}
+    return true;
+  }
+  /* landed: what it was worth. The air (distance, time, height), each full flip, roll and spin, each thing clipped
+     on the way, then half as much again for a clean one: down upright and soft first time, and stayed down */
+  function landed(st,t){
+    const {w,sp,fl,ro}=stuntWords(st,false),e=st.touch||{x:t.p[0],z:t.p[2]},dist=Math.hypot(e.x-st.p0[0],e.z-st.p0[2]),air=st.air>.45;
+    const clean=!st.hits&&st.touch&&st.touch.up>.9&&st.land<8&&st.bounce===0;
+    let val=(air?dist*4+st.air*70+st.h*25:0)+fl*300+ro*220+sp*120+st.hits*50;
+    /* nothing to show for it but a tip past 78 degrees and back: that's a save */
+    if(!val){const deg=Math.round(Math.acos(Math.max(-1,1-st.tilt))*57.3);if(deg>78)addFeat('save',120+deg*4,`SAVED IT ${deg}°`,{deg});return;}
+    if(clean)val*=1.5;
+    const grade=clean?'CLEAN':'LANDED',hit=st.hits?(st.hits===1?'CLIPPED ONE':'CLIPPED '+st.hits):'';
+    const label=w.length?[...w,hit,air?st.air.toFixed(1)+' S':'',grade].filter(Boolean).join(' '):`JUMP ${Math.round(dist)} M ${st.air.toFixed(1)} S${hit?' '+hit:''} ${grade}`;
+    addFeat('air',val,label,{m:dist,s:st.air,h:st.h,grade,spins:sp,flips:fl,rolls:ro,hits:st.hits});
+    if(air){if(best('jump',dist,`${Math.round(dist)} m jump, ${st.air.toFixed(1)} s in the air`))API.pop('LONGEST JUMP','#4fe3ff');best('airtime',st.air,`${st.air.toFixed(2)} s in the air`);}
+    if(w.length&&best('stunt',Math.round(val),`${w.join(', ').toLowerCase()}${hit?', '+hit.toLowerCase():''}, ${grade.toLowerCase()} (${fmtMoney(val)})`))API.pop('BIGGEST STUNT','#4fe3ff');
+    API.buzz(Math.min(80,20+st.land*5));
+  }
   function challenges(dt,t,f,ev,W,now){
     const D=W.D,x=t.p[0],z=t.p[2];
     /* the mud pit: in one side and out the other without getting stuck */
@@ -158,7 +215,7 @@ const Feats=(()=>{
   API.hud=()=>{
     const L=S.live,out=[];
     if(L.drift&&L.drift.t>.4)out.push(['DRIFT '+Math.round(Math.abs(L.drift.max)*57.3)+'°',FEAT_DEFS.drift.col,L.drift.score*14]);
-    if(L.air&&L.air.t>.35)out.push(['AIR '+L.air.t.toFixed(1)+' S',FEAT_DEFS.air.col,0]);
+    if(L.stunt&&L.stunt.t>.35){const st=L.stunt,{w}=stuntWords(st,true);out.push([(st.air>.2?'AIR '+st.air.toFixed(1)+' S':'OVER')+(w.length?'  '+w.join(' '):''),FEAT_DEFS.air.col,0]);}
     if(L.two&&L.two.m>3)out.push(['TWO WHEELS '+Math.round(L.two.m)+' M',FEAT_DEFS.two.col,L.two.m*9]);
     if(L.speed&&L.speed.m>60)out.push(['SPEED RUN '+(L.speed.m/1609).toFixed(2)+' MI',FEAT_DEFS.speed.col,0]);
     if(L.burn&&L.burn.t>.6)out.push(['BURNOUT '+L.burn.t.toFixed(1)+' S',FEAT_DEFS.burn.col,L.burn.t*35]);

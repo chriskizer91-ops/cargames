@@ -151,6 +151,18 @@ x runs east, z south; downtown is at the origin.
   way (`MB.tri`, the hood split straight from the flat arrays), with every build's meshes checked bit for bit
   against the old builder's, and a wheel's matrix is now made in one scratch matrix instead of nine new ones.
 
+## Stunts (`src/58_feats.js`)
+
+A stunt is everything from all four wheels leaving the ground (or the car going over past 78 degrees) until it is
+back on its wheels and settled for half a second. On the way it counts the flight up to the first touch of the
+ground (distance, time, height), every full flip, roll and spin while it's off its wheels (a turn about 30 degrees
+short still counts; the turning is read from the car's orientation frame to frame, from the moment it leaves its
+wheels), and every tree or post it clips. Hitting things doesn't end it, and a hard hit no longer costs the combo
+on its own: coming to rest does. At rest on its wheels without a reset it's LANDED and pays (CLEAN, half as much
+again, if it came down upright and soft first time, stayed down and clipped nothing); at rest on its side or roof
+it's BAILED (ROLLED IT if it never left the ground) and the unbanked combo goes with it. A tip past 78 degrees and
+back with nothing else to show for it is a save. Flips pay 300, rolls 220, spins 120, clips 50, on top of the air.
+
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
 One night, City Limits': a full moon bright enough to see the country and the salt. The town's ~1,100 lights
