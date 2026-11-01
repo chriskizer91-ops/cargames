@@ -2,7 +2,8 @@
    THE BOOT: the dots, the GL, the open world, the car and the menu, once every module above is in place.
    ===================================================================================== */
 /* the renderer first (12_display): it makes the GL context; without WebGL2 and float targets the page says so */
-try{rutInit();}catch(e){console.error(e);if(!/WebGL2/.test(e.message))$('err').textContent='The graphics could not start: '+e.message;}
+const BOOT={};
+try{rutInit();BOOT.renderer=Math.round(performance.now());}catch(e){console.error(e);if(!/WebGL2/.test(e.message))$('err').textContent='The graphics could not start: '+e.message;}
 if(!gl){$('err').style.display='grid';$('loading').hidden=true;}
 else{
   /* the phone's graphics can restart under it (heat, too little memory, a driver crash): the page keeps nothing it
@@ -14,24 +15,32 @@ else{
   let r=parseInt(store.get('wo2-res',-1),10);if(!(r>=0&&r<RES.length)){const d=devicePixelRatio||1,long=Math.max(innerWidth,innerHeight)*d;r=matchMedia('(pointer: coarse)').matches?(long>=1800?3:long>=1200?2:1):4;}
   setRes(r);resize();txtFonts();addEventListener('resize',resize);
   applyTod(APP.tod);APP.lights=!!((TOD[APP.tod]||TOD.day).beams??(TOD[APP.tod]||TOD.day).lightsOn);gfxLabel();
-  /* let the loading line paint, then start the world */
-  requestAnimationFrame(()=>setTimeout(()=>{
+  /* the boot in stages, each line on the loading screen painted before its work starts; the shaders compile on the
+     GPU's side while the garage's other cars are built here (both behind the loading line); the town's lights go
+     into their grid once the opening screen is up. Each stage's time is kept (BOOT) for the Dev tab's numbers */
+  const L=$('loading'),paint=t=>new Promise(r=>{L.textContent=t;requestAnimationFrame(()=>setTimeout(r,0));}),mark=k=>{BOOT[k]=Math.round(performance.now());};
+  (async()=>{
     try{
-      /* the world's streaming and the renderer's world: the hooks, the town's lights in its grid, the programs */
-      worldInit();worldGL();computePlaces();bindTouch();setDetail(APP.detail);
+      mark('script');await paint('Making the county');
+      /* the world's streaming and the renderer's world: the hooks, the programs (their compiling starts now) */
+      worldInit();worldGL();computePlaces();bindTouch();setDetail(APP.detail);mark('world');
+      await paint('Building your car');
       /* the game you were in last: the career (60_career) or free play */
-      if(store.get('wo2-mode','free')==='career')setMode('career');else spawnCar(rigBuild(APP.car,rigOf(APP.car)),HOME[0],HOME[1],HOME[2]);buildMenu();buildDevWorld();
-      /* the shaders compile behind the loading line, so the first frame doesn't stall */
-      $('loading').textContent='Warming up the shaders';
-      R.G.warmup((d,n)=>{$('loading').textContent='Warming up the shaders '+d+' / '+n;}).then(()=>{
-        $('loading').hidden=true;openMenu(true);requestAnimationFrame(frame);
-        /* the ground's photographs decode while the opening screen is up, and fade in */
-        texLoad();
-      }).catch(e=>{console.error(e);$('loading').textContent='A shader would not compile: '+e.message;});
-    }catch(e){console.error(e);$('loading').textContent='Something went wrong starting the world: '+e.message;}
-  },30));
+      if(store.get('wo2-mode','free')==='career')setMode('career');else spawnCar(rigBuild(APP.car,rigOf(APP.car)),HOME[0],HOME[1],HOME[2]);buildMenu();buildDevWorld();mark('car');
+      await paint('Warming up the shaders');
+      /* while the GPU compiles: the other cars in the garage, one a turn (what isn't done by the time the shaders are
+         is built one a frame on the opening screen, as before) */
+      let warm=false,built=0;const park=CARS.map(([c])=>c).filter(c=>c!==APP.car);
+      const pre=(async()=>{for(const car of park){if(warm)break;const i=rigBuild(car,rigOf(car));if(!TRUCK[BUILDS[i].id]){truck(i);built++;}await new Promise(r=>setTimeout(r,0));}})();
+      await R.G.warmup((d,n)=>{L.textContent='Warming up the shaders '+d+' / '+n+(built?' · the garage '+built+' / '+park.length:'');});
+      warm=true;await pre;mark('shaders');BOOT.built=built;
+      L.hidden=true;openMenu(true);requestAnimationFrame(frame);mark('menu');
+      /* the town's lights into their grid, then the ground's photographs, while the opening screen is up */
+      setTimeout(()=>{lgBuild();mark('lights');texLoad().then(()=>mark('photos'));},50);
+    }catch(e){console.error(e);L.textContent=/shader|compile|link/i.test(e.message)?'A shader would not compile: '+e.message:'Something went wrong starting the world: '+e.message;}
+  })();
   window.__game={showClutchCap,TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
-    GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,rutShaders,get RESO(){return RESO;},SKY,TOD,compile,setDisplay,PIC,LOOK,TEX,texLoad,BUDGET,budgetApply,perfReadout,DEVW,LAND,CARHOOK,FXP,STUDIO,GLASSHOOK,envNow,lgBuild,lgPlace,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},rperfRows,carLights,yardLights,worldFar,viewCut,FX,
+    GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,rutShaders,get RESO(){return RESO;},SKY,TOD,compile,setDisplay,PIC,LOOK,TEX,texLoad,BOOT,BUDGET,budgetApply,perfReadout,DEVW,LAND,CARHOOK,FXP,STUDIO,GLASSHOOK,envNow,lgBuild,lgPlace,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},rperfRows,carLights,yardLights,worldFar,viewCut,FX,
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};

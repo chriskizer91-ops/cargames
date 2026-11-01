@@ -96,7 +96,7 @@ const GLASSHOOK={c:null,
 function worldGL(){
   R.loadWorld({geo:null,lights:[],info:{lightGrid:{x0:-8,z0:-8,size:16,cell:8}}});
   R.U.uStudio=0;
-  lgBuild();
+  /* (the town's lights go into the grid after the opening screen is up: 65_boot) */
   R.extra.push(LAND,CARHOOK,FXP,GLASSHOOK);
   landPrograms();FXP.init();displayPrograms();
   const sp=R.shadowPass.bind(R);
