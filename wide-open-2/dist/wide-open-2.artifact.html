@@ -45,7 +45,8 @@ button{font:inherit;color:inherit}
 .chip:hover{border-color:var(--edge-2)}
 .stat{font:500 11px/1 var(--f);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
 @media (max-width:640px){.stat{display:none}}
-body.touch #res,body.touch .stat{display:none}
+/* on a phone the bar is just Menu (as in Rut Access): the graphics level is in Settings, not a chip a thumb can catch mid-drive */
+body.touch #res,body.touch #gfx,body.touch .stat{display:none}
 
 /* ---------- the touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:4}
