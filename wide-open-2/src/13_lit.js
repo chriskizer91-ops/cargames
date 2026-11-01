@@ -65,8 +65,8 @@ vec3 rutSky(vec3 d,bool clouds){
 #endif
   if(uNight>0.){c+=uSunCol*pow(sd,2400.)*120.*uNight;
     /* the stars: round dots a couple of pixels across (a single pixel would be averaged away by TAA's jitter) */
-    if(uStars>0.){vec3 g=d*300.,q=floor(g);float st=h13(q);if(st>.988){float r=length(fract(g)-.5);
-      c+=vec3(.9,.92,1.)*(1.-smoothstep(.1,.42,r))*(.6+1.4*h13(q+7.))*uStars*uNight*smoothstep(.02,.2,t)*4.;}}}
+    if(uStars>0.){vec3 g=d*300.,q=floor(g);float st=h13(q);if(st>.976){float r=length(fract(g)-.5);
+      c+=vec3(.9,.92,1.)*(1.-smoothstep(.1,.42,r))*(.6+1.4*h13(q+7.))*uStars*uNight*smoothstep(.02,.2,t)*7.;}}}
   if(clouds&&uCloud>0.&&t>0.){vec2 uv=d.xz/(t+.12)*1.5+uTime*vec2(.006,.0025);float n=fbm(uv*1.2)*.62+fbm(uv*3.4+3.1)*.38;
     float cov=smoothstep(1.-uCloud,1.25-uCloud,n)*smoothstep(.0,.08,t);
     vec3 day=mix(vec3(.5,.55,.64),vec3(1.12,1.08,1.02),(.35+.65*sd)*(.6+.4*n))*mix(1.,.45,uRain)*max(uSkyHor.b,.2);
@@ -201,7 +201,9 @@ uniform float uDetail;uniform float uDrawFar;
    (x), a mile, the black line's half width, where its middle is (z) */
 uniform vec3 uOrg;uniform vec4 uCourse;
 /* emissives were tuned against a sun of 1.3; the renderer's sun is about 6 */
-const float EMK=5.;
+/* (times the Dev look's Glow: the signs, the lit windows and the lamps' own faces, for a phone held up bright) */
+uniform float uGlowK;
+#define EMK (5.*uGlowK)
 float sat(float x){return clamp(x,0.,1.);}
 float vn3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(mix(h13(i),h13(i+vec3(1,0,0)),f.x),mix(h13(i+vec3(0,1,0)),h13(i+vec3(1,1,0)),f.x),f.y),

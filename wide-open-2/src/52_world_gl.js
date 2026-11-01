@@ -43,7 +43,7 @@ async function texLoad(){
 const texOn=()=>TEX.arr?clamp((APP.t-TEX.t0)/1.,0,1)*LOOK.tex:0;
 function texUniforms(P){const G=R.G;if(P.u.uTexOn){G.uni(P,'uTexOn',texOn());G.uni(P,'uTexCol',LOOK.texcol);}if(TEX.arr&&P.samplers&&P.samplers.uTex!==undefined)G.tex(P,{uTex:TEX.arr});}
 /* what every lit pass of the world starts from: the world's own frame, no car */
-function landUniforms(P){texUniforms(P);const G=R.G;G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID);G.uni(P,'uPrevOn',0);G.uni(P,'uInst',0);G.uni(P,'uFarDrop',FAR0);
+function landUniforms(P){texUniforms(P);R.G.uni(P,'uGlowK',LOOK.glow);const G=R.G;G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID);G.uni(P,'uPrevOn',0);G.uni(P,'uInst',0);G.uni(P,'uFarDrop',FAR0);
   G.uni(P,'uDetail',GFX.q.detail*LOOK.detail);G.uni(P,'uDrawFar',worldFar());
   G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);G.uni(P,'uGlow',[0,0,0]);
   G.uni(P,'uCourse',[WG.COURSE.x0-RO[0],WG.COURSE.mi,.11,-RO[2]]);G.uni(P,'uOrg',[0,0,0]);}

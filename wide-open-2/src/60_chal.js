@@ -438,7 +438,7 @@ function chalDraw(cam){
       BEAM_BUF[o+4]=H;BEAM_BUF[o+5]=0;BEAM_BUF[o+6]=m.em;BEAM_BUF[o+7]=0;
       BEAM_BUF[o+8]=m.col[0];BEAM_BUF[o+9]=m.col[1];BEAM_BUF[o+10]=m.col[2];BEAM_BUF[o+11]=m.kind==='ring'?1:H/6;o+=12;}
     gl.bindBuffer(gl.ARRAY_BUFFER,BEAM_MESH.inst);gl.bufferSubData(gl.ARRAY_BUFFER,0,BEAM_BUF.subarray(0,n*12));BEAM_MESH.ni=n;}
-  const u=P_BEAM.u;gl.useProgram(P_BEAM.p);gl.uniformMatrix4fv(u.uVP,false,cam.VP);gl.uniform3fv(u.uCam,cam.eyeR);gl.uniform1f(u.uT,APP.t);gl.uniform1f(u.uK,SKY.beam||(SKY.night?1.1:3.2));
+  const u=P_BEAM.u;gl.useProgram(P_BEAM.p);gl.uniformMatrix4fv(u.uVP,false,cam.VP);gl.uniform3fv(u.uCam,cam.eyeR);gl.uniform1f(u.uT,APP.t);gl.uniform1f(u.uK,(SKY.beam||(SKY.night?1.1:3.2))*LOOK.beam);
   /* (only the column's far wall, seen from outside, or the walls round you from inside: half the pixels to fill) */
   gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);
   gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.depthMask(false);drawMeshI(BEAM_MESH);gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.CULL_FACE);gl.useProgram(CUR.p);

@@ -11,17 +11,19 @@
    frame's own lamps, with the headlights (their low-beam cut-off and shadow map), the tail lights and the
    underglow. These games' lamps were about 1/160 of the renderer's (Rut Access scaled them so); here they are
    scaled by LK, less, because the renderer's lamps fall off as the square of the distance where these games' fell
-   off more gently: at the 6 m a street lamp mostly lights, LK 100 keeps Wide Open's balance of lamp to moon (whose
-   light, like the sun's, is these games' times about five).
+   off more gently: at the 6 m a street lamp mostly lights, LK 100 kept Wide Open's balance of lamp to moon (whose
+   light, like the sun's, is these games' times about five); 130, with the moon a third brighter than that and the
+   night's exposure a tenth higher, puts the moonlit roads and the lamp-lit streets where Wide Open's own frames have
+   them, a little brighter, for a phone held up bright (the Dev look's Moonlight, Lamps and Glow move each).
    ===================================================================================== */
 /* (grade: saturation and contrast. The renderer grades in linear light, after the tone map, so any contrast above 1
    sends the darks to black: at 1.06 everything under about a fifth of mid grey goes, the shade under a car, a dark
    paint, a road at night. Wide Open graded after the gamma; here the contrast is left at 1, the Dev look can add it) */
 const TOD={
   day:{name:'High noon',sun:V3.norm([-.52,.5,.4]),sunCol:[6.2,5.8,5.2],sunSize:.0095,ambUp:[.58,.64,.76],ambDn:[.3,.22,.14],skyZen:[.18,.36,.95],skyHor:[.75,.88,1.1],
-    fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.23,expoRange:[.02,3],bloom:.035,grade:[1.3,1],lightsOn:0,draw:0,beam:8},
-  night:{name:'Full moon',sun:V3.norm([-.42,.7,.3]),sunCol:[2.2,2.66,3.68],sunSize:.012,ambUp:[.056,.073,.12],ambDn:[.017,.017,.021],skyZen:[.0024,.0048,.014],skyHor:[.012,.017,.034],
-    fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.2,expoRange:[.25,30],bloom:.06,grade:[1.1,1],lightsOn:1,draw:520,beam:2.2}
+    fogCol:[.6,.7,.88],fogDen:.0011,fogFall:.02,fogAmb:[.44,.5,.58],cloud:.25,stars:0,night:0,key:.23,expoRange:[.02,3],bloom:.035,grade:[1.3,1],lightsOn:0,draw:0,beam:30},
+  night:{name:'Full moon',sun:V3.norm([-.42,.7,.3]),sunCol:[2.86,3.46,4.78],sunSize:.012,ambUp:[.073,.095,.156],ambDn:[.017,.017,.021],skyZen:[.0024,.0048,.014],skyHor:[.012,.017,.034],
+    fogCol:[.03,.04,.07],fogDen:.0017,fogFall:.03,fogAmb:[.012,.015,.026],cloud:.1,stars:1,night:1,key:.22,expoRange:[.25,30],bloom:.06,grade:[1.1,1],lightsOn:1,draw:520,beam:2.2}
 };
 /* the time of day: the light the frame is lit with (55_gfx's envNow adds the weather); the probe starts over */
 function applyTod(id){const T=TOD[id]||TOD.day;Object.assign(SKY,T);if(typeof R!=='undefined'&&R)R.probeFilled=0;}
@@ -33,7 +35,7 @@ const FLICK=[1,1];
    brightest few in a cell if more than MAXPER reach it), in the renderer's own layout (a square of cells, each its
    start and count in one list), and handed to the renderer in place of the grid loadWorld made. Its lights' records
    hold positions relative to the floating origin: lgShift moves them, and the grid's corner, when the origin steps */
-const LK=100;
+const LK=130;
 const LG={n:0,entries:0,maxN:0,ms:0,x0:-3000,z0:-1600,size:3800,CELL:8,MAXPER:24,rec:null,lights:null,obj:null,ro:[0,0]};
 /* a light of this game's ({p, r, c, d, cs}) as the renderer's record: point or spot, its reach, its colour in the
    renderer's units, its cone (the old shader's edge went from cs to cs + .1) */
@@ -81,7 +83,8 @@ function carLights(t,L){
   const at=(x,y,z)=>[t.p[0]-RO[0]+F[0]*x+U[0]*y+Rt[0]*z,t.p[1]-RO[1]+F[1]*x+U[1]*y+Rt[1]*z,t.p[2]-RO[2]+F[2]*x+U[2]*y+Rt[2]*z];
   const xf=D.L/2-.15-t.cg[0],y=(Mc?Mc.lampY:.78)+lift-t.cg[1],zs=Mc?Math.min(.62,Mc.W*.3):.62,xr=-(D.L/2-.1)-t.cg[0];
   if(APP.lights){const dir=V3.norm([F[0]-U[0]*.06,F[1]-U[1]*.06,F[2]-U[2]*.06]);
-    L.headlights={on:1,high:0,posL:at(xf,y,-zs),posR:at(xf,y,zs),dir,right:Rt,up:U,col:[1050,1090,1140],range:85};}
+    /* (half as bright again as the port had them: the pool of light and its cut-off read on a phone like Wide Open's) */
+    const hk=1.5*LOOK.hl;L.headlights={on:1,high:0,posL:at(xf,y,-zs),posR:at(xf,y,zs),dir,right:Rt,up:U,col:[1050*hk,1090*hk,1140*hk],range:85};}
   const brake=t.brkIn>.05;
   if(APP.lights||brake){const back=V3.norm([-F[0]-U[0]*.35,-F[1]-U[1]*.35,-F[2]-U[2]*.35]);
     for(const z of [-.66,.66])L.dyn.push({pos:at(xr,y,z),r:brake?11:6,col:brake?[5,.12,.06]:[.9,.02,.01],type:1,dir:back,cosO:Math.cos(1.3)});}
@@ -91,7 +94,7 @@ function carLights(t,L){
 function yardLights(L,p,n){
   if(!SKY.night)return;
   const F=worldLights(p,200).map(f=>({f,d:Math.hypot(f.p[0]-p[0],f.p[2]-p[2])-f.r})).filter(q=>q.d<160).sort((a,b)=>a.d-b.d);
-  for(const {f} of F){if(L.dyn.length>=n)break;const r=lgRec(f);L.dyn.push({pos:[f.p[0]-RO[0],f.p[1]-RO[1],f.p[2]-RO[2]],r:r.r,col:r.col,type:r.type,dir:r.dir,cosO:r.type?r.cosO:-1});}
+  for(const {f} of F){if(L.dyn.length>=n)break;const r=lgRec(f);L.dyn.push({pos:[f.p[0]-RO[0],f.p[1]-RO[1],f.p[2]-RO[2]],r:r.r,col:r.col.map(v=>v*LOOK.lamps),type:r.type,dir:r.dir,cosO:r.type?r.cosO:-1});}
 }
 /* the other cars' headlights at night: spot lights for the nearest few */
 function rivalLights(L,cars,eye){
