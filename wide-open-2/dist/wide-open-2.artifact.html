@@ -12075,10 +12075,12 @@ function openMenu(first){
   if(GAME.state==='drive'){GAME.frozen=true;engineDuck(true);}
   APP.title=!!first;
   GAME.state='menu';$('menu').hidden=false;inputRelease();syncTouch();
-  $('mGo').textContent=first?'Start driving':RACE.on?'Back to the race':'Back to driving';$('mEyebrow').textContent=RACE.on?'Paused: '+RACE.ev.name:first?(CAREER.on?'Career':'Free play: every car and part is yours'):(CAREER.on?'Career · paused':'Paused');
+  $('mGo').textContent=first?'Start driving':RACE.on?'Back to the race':'Back to driving';$('mEyebrow').textContent=menuEyebrow();
   $('mLeave').hidden=!RACE.on&&!(CHAL.run&&CHAL.run.phase!=='done');$('mLeave').textContent=RACE.on?'Leave the race':'Quit the challenge';
   showTab(MENU.tab);syncMenu();setTimeout(()=>$('mGo').focus({preventScroll:true}),0);
 }
+/* the line over the menu: which game you're in, and paused or not (kept right when the game is switched under it) */
+const menuEyebrow=()=>RACE.on?'Paused: '+RACE.ev.name:APP.title?(CAREER.on?'Career':'Free play: every car and part is yours'):(CAREER.on?'Career · paused':'Paused');
 /* every key, pedal and stick let go: a release the menu swallowed must not leave the gas on */
 /* the engine fades out while the game is paused and back in after */
 function engineDuck(on){const a=ENG.audio;if(a&&a.eng)a.eng.gain.setTargetAtTime(on?0:1,a.ctx.currentTime,on?.08:.15);}
@@ -12159,7 +12161,7 @@ function syncModes(){
     el.querySelector('small').textContent=c?(d?`${Feats.fmtMoney(d.money)} · ${med} medal${med===1?'':'s'} · ${jobs} job${jobs===1?'':'s'} done`:`A stock SUV and ${Feats.fmtMoney(START_CASH)}`):'Every car and every part';}
   $('mModeHint').textContent=CAREER.on?`The career: a stock SUV and ${Feats.fmtMoney(START_CASH)} to start. Challenges pay for medals, the town's people pay for jobs, and feats pay a share. The money buys parts and cars: tap one you don't have and it tells you the price.`:
     'Free play: every car and every part is yours, and the money is just a score. The career is kept as you left it.';
-  $('mWipe').hidden=!CAREER.on;
+  $('mWipe').hidden=!CAREER.on;if(GAME.state==='menu')$('mEyebrow').textContent=menuEyebrow();
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
 function buildMenu(){
