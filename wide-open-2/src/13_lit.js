@@ -64,7 +64,9 @@ vec3 rutSky(vec3 d,bool clouds){
   float disc=smoothstep(cos(uSunSize*1.15),cos(uSunSize),sd);c+=uSunCol*disc*(uNight>.5?6.:60.)*smoothstep(-.05,.02,t)*(1.-uCloud*.85);
 #endif
   if(uNight>0.){c+=uSunCol*pow(sd,2400.)*120.*uNight;
-    if(uStars>0.){vec3 q=floor(d*620.);float st=h13(q);c+=vec3(.9,.92,1.)*step(.9982,st)*(.6+1.4*h13(q+7.))*uStars*uNight*smoothstep(.02,.2,t)*.3;}}
+    /* the stars: round dots a couple of pixels across (a single pixel would be averaged away by TAA's jitter) */
+    if(uStars>0.){vec3 g=d*300.,q=floor(g);float st=h13(q);if(st>.988){float r=length(fract(g)-.5);
+      c+=vec3(.9,.92,1.)*(1.-smoothstep(.1,.42,r))*(.6+1.4*h13(q+7.))*uStars*uNight*smoothstep(.02,.2,t)*4.;}}}
   if(clouds&&uCloud>0.&&t>0.){vec2 uv=d.xz/(t+.12)*1.5+uTime*vec2(.006,.0025);float n=fbm(uv*1.2)*.62+fbm(uv*3.4+3.1)*.38;
     float cov=smoothstep(1.-uCloud,1.25-uCloud,n)*smoothstep(.0,.08,t);
     vec3 day=mix(vec3(.5,.55,.64),vec3(1.12,1.08,1.02),(.35+.65*sd)*(.6+.4*n))*mix(1.,.45,uRain)*max(uSkyHor.b,.2);

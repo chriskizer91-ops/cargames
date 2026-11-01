@@ -54,6 +54,8 @@ const places=(process.argv[2]||'garage,downtown,ring,hwyE,gas,ridge,oval,mud,str
     const r=g.CHAL.run,out={id:c.id,kind:c.kind,phase:r&&r.phase,frames,tris:g.APP.tris};g.setTestInput(null);if(g.chalQuit)g.chalQuit();g.CHAL.run=null;if(G.state==='cres'&&g.closeChalResult)g.closeChalResult(true);return out;},chalId);
   /* the night: the town's lamps, the headlights, a frame or two */
   await run('night',async()=>{const g=window.__game,G=g.GAME,dt=1/60;g.closeMenu();G.state='drive';g.applyTod('night');g.APP.lights=true;g.goTo('neon');
-    for(let i=0;i<8;i++){g.APP.t+=dt;g.render(dt);}const out={tris:g.APP.tris,lights:g.R.lights.stats.lights,dyn:g.R.U.uNDyn,hl:g.R.U.uHLShOn};g.applyTod('day');g.APP.lights=false;return out;});
+    /* (with the performance overlay up, F: the renderer's numbers in it) */
+    g.DEVW.hud=true;for(let i=0;i<8;i++){g.APP.t+=dt;g.render(dt);}g.DEVW.hud=false;
+    const out={tris:g.APP.tris,lights:g.R.lights.stats.lights,dyn:g.R.U.uNDyn,hl:g.R.U.uHLShOn,overlay:g.rperfRows()};g.applyTod('day');g.APP.lights=false;return out;});
   console.log(errs.length?'PAGE ERRORS ('+errs.length+'):\n  '+errs.slice(0,12).join('\n  '):'no page errors');
   await b.close();process.exit(errs.length?1:0);})();

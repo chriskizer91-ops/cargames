@@ -1,1 +1,2 @@
-node_modules/
+# headless screenshots (tools/shot_wo2.js, tools/sheet.py): for the owner to open, not kept
+dist/shots/

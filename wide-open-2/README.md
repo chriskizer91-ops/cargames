@@ -52,7 +52,8 @@ them are in, compiled out until the pictures are packed into the page.
 Tools for this phase: `node tools/shot_wo2.js <out> name:tier:display:tod:place[:cam]` (pictures of this build,
 or of Wide Open's with `FILE=`), `node tools/eval_wo2.js "<code>"` (runs code in the booted page),
 `node tools/wo2_check.js` (boots, drives several places, a race, a challenge, the showroom and the night; fails on
-any page error).
+any page error), `python3 tools/sheet.py` (lays pictures out side by side). The pictures of every place on the Drive
+tab at Mobile and High, each beside Wide Open's own at Phone and Laptop, go in `dist/shots/` (not kept in git).
 
 ---
 

@@ -106,7 +106,7 @@ function buildDevWorld(){
   segButtons($('dGen'),[['worker','Worker'],['main','Main thread']],v=>{DEVW.gen=v;saveDev();if(v==='main'){WORLD.forceLocal=true;workerDown();}else{WORLD.forceLocal=false;WORLD.mode='starting';}syncDevWorld();});
   segButtons($('dCruise'),[['off','Off'],['max','Flat out'],['fast','100 mph'],['road','70 mph']],v=>{DEVW.cruise=v;if(v!=='off')DEVW.lastCruise=v;CRUISE.on=v!=='off';CRUISE.line=null;saveDev();});
   /* passes off, one at a time, to read the GPU's share by subtraction on a phone */
-  const po=$('dPasses');for(const [k,n] of [['shadows','Sun shadows'],['refl','Reflections'],['far','Far land'],['trees','Trees'],['fx','Dust and spray'],['post','Light in the air and occlusion']]){
+  const po=$('dPasses');for(const [k,n] of [['shadows','Sun shadows'],['refl','Reflections'],['far','Far land'],['trees','Trees'],['fx','Dust and spray'],['post','Light in the air (the fog)']]){
     const el=document.createElement('label');el.className='devchk';el.innerHTML='<input type="checkbox"><span><b></b></span>';el.querySelector('b').textContent=n;
     const cb=el.querySelector('input');cb.checked=!!DEVW.off[k];cb.addEventListener('change',()=>{DEVW.off[k]=cb.checked;if(k==='refl'||k==='shadows'){PRB.fresh=true;CSM.fresh=true;}saveDev();});po.appendChild(el);}
   $('dReset').addEventListener('click',()=>{const S=WORLD.st;S.n=[0,0,0];S.ms=[0,0,0];S.mx=[0,0,0];S.sn=0;S.sms=0;S.smx=0;S.fn=0;S.fms=0;S.missT=0;S.odo=0;S.top=0;syncDevWorld();});

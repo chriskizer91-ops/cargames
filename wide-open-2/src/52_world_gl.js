@@ -27,7 +27,7 @@ function landUniforms(P){const G=R.G;G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID)
   G.uni(P,'uCourse',[WG.COURSE.x0-RO[0],WG.COURSE.mi,.11,-RO[2]]);G.uni(P,'uOrg',[0,0,0]);}
 /* the renderer's hook for the land */
 const LAND={c:null,dt:1/60,tris:0,
-  prepare(R,S){if(!LOOK.shadows)R.U.uCSMOn=0;},
+  prepare(R,S){if(!LOOK.shadows||DEVW.off.shadows)R.U.uCSMOn=0;},
   /* the sun's cascades and the headlights' map: the buildings, poles and trees inside the map's frustum (the ground
      itself casts nothing, as before: the county's hills are gentle and the town is flat) */
   shadow(R,Pd,VP,kind,k){if(!this.c)return;const G=R.G;useLit(P_DEPTH);const u=CUR.u;G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uM',M4_ID);G.uni(P_DEPTH,'uInst',0);G.uni(P_DEPTH,'uTime',APP.t);
