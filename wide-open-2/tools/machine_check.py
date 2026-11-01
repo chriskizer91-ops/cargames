@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Every machine (and the stock SUV for scale) on Route 6, no drawing: 5 s idle at rest (no creep), then 20 s flat out.
+"""Every machine (and the stock SUV for scale) on Highway 40 heading east, no drawing: 5 s idle at rest (no creep), then 20 s flat out.
    Top speed, revs, gears, the gear it pulled away in, CVT revs, governors, NaNs. python3 tools/machine_check.py"""
 import os, json
 from playwright.sync_api import sync_playwright
 HERE=os.path.dirname(os.path.abspath(__file__)); PAGE='file://'+os.path.join(HERE,'..','wide-open-2.html')
 JS=r"""async ()=>{const g=__game,out=[];g.GAME.hold=true;g.closeMenu();await new Promise(r=>setTimeout(r,500));
 for(const car of ['suv','quad90','quad450','quadUtil','sxs','golf','kart','tractor','semi']){
-  g.APP.car=car;g.spawnRig(false);g.goTo('r6e');const t=g.GAME.car,pt=t.pt,e=pt.e;pt.start();
+  g.APP.car=car;g.spawnRig(false);g.goTo('hwyE');const t=g.GAME.car,pt=t.pt,e=pt.e;pt.start();
   for(let f=0;f<240;f++){g.GAME.state='drive';g.setTestInput({steer:0,thr:0,brk:0,hb:0,nos:false});g.step(1/60);}
   const creep=t.speed;g.setTestInput({steer:0,thr:1,brk:0,hb:0,nos:false});
   let top=0,rmax=0,rmin=1e9,nan=false,g0=null,gmax=0,t30=null;

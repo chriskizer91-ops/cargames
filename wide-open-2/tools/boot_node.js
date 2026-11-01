@@ -10,15 +10,16 @@ const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirnam
   const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
   const p=await b.newPage({viewport:{width:+(process.env.W||960),height:+(process.env.H||540)},deviceScaleFactor:1});
   const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))errs.push(m.text().slice(0,300));});
-  await p.addInitScript(()=>{try{localStorage.clear();}catch(e){}});
+  /* (the game takes its graphics level from its saved setting, wo2-gfx: there is no ?gfx= in the address) */
+  await p.addInitScript(gfx=>{try{localStorage.clear();if(gfx)localStorage.setItem('wo2-gfx',gfx);}catch(e){}},gfx);
   const t0=Date.now();
-  await p.goto('file://'+file+(gfx?'?gfx='+gfx:''));
+  await p.goto('file://'+file);
   try{await p.waitForFunction(()=>window.__game&&!(document.getElementById('loading')&&!document.getElementById('loading').hidden),null,{timeout:400000,polling:1000});}
   catch(e){errs.push('boot timed out');}
   const boot=(Date.now()-t0)/1000;
   await p.waitForTimeout(secs*1000);
   const r=await p.evaluate(()=>{const g=window.__game;if(!g)return null;const G=g.GAME||{};const car=G.car;
-    return {state:G.state,car:car?{p:car.p.map(v=>+v.toFixed(1)),speed:+car.speed.toFixed(1)}:null,fps:g.APP&&g.APP.fps?+g.APP.fps.toFixed(1):null,tris:g.APP&&g.APP.tris,
+    return {state:G.state,gfx:g.GFX&&g.GFX.level,car:car?{p:car.p.map(v=>+v.toFixed(1)),speed:+car.speed.toFixed(1)}:null,fps:g.APP&&g.APP.fps?+g.APP.fps.toFixed(1):null,tris:g.APP&&g.APP.tris,
       world:g.WORLD?{mode:g.WORLD.mode,chunks:g.WORLD.chunks&&g.WORLD.chunks.size}:null,keys:Object.keys(g).length};});
   /* a frame through the game's own snap (the loop held), as the python tools take it; a page screenshot can wait forever under software rendering */
   if(out){try{const d=await p.evaluate(()=>{const g=window.__game;g.GAME.hold=true;for(let i=0;i<3;i++)g.render(1/60);return g.snap();});require('fs').writeFileSync(out,Buffer.from(d.split(',')[1],'base64'));}catch(e){errs.push('snap: '+e.message);}}
