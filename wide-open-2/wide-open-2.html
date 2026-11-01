@@ -1074,6 +1074,7 @@ var SL3 = (() => {
           unit++;
         } else P.u[nm] = { loc, type: inf.type, size: inf.size };
       }
+      P.ukeys = Object.keys(P.u);
       P.ready = true;
       return P;
     };
@@ -1128,11 +1129,12 @@ var SL3 = (() => {
       u.c.set(v);
     };
     G.set = (P, vals) => {
-      const own = P.own;
-      for (const k in P.u) {
-        const v = vals[k];
+      if (!P.ready) G.finish(P);
+      const own = P.own, keys = P.ukeys, U = P.u;
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i], v = vals[k];
         if (v === void 0) continue;
-        const u = P.u[k];
+        const u = U[k];
         if (own || G.ownU.has(k)) {
           if (same(u.c, v)) continue;
           keep(u, v);
@@ -1370,6 +1372,9 @@ var SL3 = (() => {
     };
     return G;
   }
+  /* (scratch for lookAt, and the vectors every frame would otherwise make afresh) */
+  var UP_Y = [0, 1, 0], UP_X = [1, 0, 0], ORIGIN = [0, 0, 0], CSM_SPLITS = [0, 14, 45, 140];
+  var LA_B = new Float64Array(3), LA_R = new Float64Array(3), LA_U = new Float64Array(3);
   var M4 = {
     ident() {
       const m = new Float32Array(16);
@@ -1422,14 +1427,25 @@ var SL3 = (() => {
       o[15] = 1;
       return o;
     },
-    lookAt(eye, at, up = [0, 1, 0], o) {
-      let b = [eye[0] - at[0], eye[1] - at[1], eye[2] - at[2]];
-      const bl = Math.hypot(...b) || 1;
-      b = b.map((x) => x / bl);
-      let r = [up[1] * b[2] - up[2] * b[1], up[2] * b[0] - up[0] * b[2], up[0] * b[1] - up[1] * b[0]];
-      const rl = Math.hypot(...r) || 1;
-      r = r.map((x) => x / rl);
-      const u = [b[1] * r[2] - b[2] * r[1], b[2] * r[0] - b[0] * r[2], b[0] * r[1] - b[1] * r[0]];
+    lookAt(eye, at, up = UP_Y, o) {
+      const b = LA_B, r = LA_R, u = LA_U;
+      b[0] = eye[0] - at[0];
+      b[1] = eye[1] - at[1];
+      b[2] = eye[2] - at[2];
+      const bl = Math.hypot(b[0], b[1], b[2]) || 1;
+      b[0] /= bl;
+      b[1] /= bl;
+      b[2] /= bl;
+      r[0] = up[1] * b[2] - up[2] * b[1];
+      r[1] = up[2] * b[0] - up[0] * b[2];
+      r[2] = up[0] * b[1] - up[1] * b[0];
+      const rl = Math.hypot(r[0], r[1], r[2]) || 1;
+      r[0] /= rl;
+      r[1] /= rl;
+      r[2] /= rl;
+      u[0] = b[1] * r[2] - b[2] * r[1];
+      u[1] = b[2] * r[0] - b[0] * r[2];
+      u[2] = b[0] * r[1] - b[1] * r[0];
       return M4.view(eye, r, u, b, o);
     },
     /* model matrix from a row-major 3x3 rotation (columns = body axes) and a position */
@@ -1475,17 +1491,31 @@ var SL3 = (() => {
       o[15] = (a[8] * b03 - a[9] * b01 + a[10] * b00) * det;
       return o;
     },
+    xformTo(m, p, o) {
+      const w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
+      o[0] = (m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12]) / w;
+      o[1] = (m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13]) / w;
+      o[2] = (m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]) / w;
+      return o;
+    },
     xform(m, p) {
       const w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
       return [(m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12]) / w, (m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13]) / w, (m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]) / w];
     },
     /* the six frustum planes of a view-projection matrix, as [a,b,c,d] with inside = a*x+b*y+c*z+d >= 0 */
-    planes(m) {
-      const P = [], r = (i) => [m[i], m[4 + i], m[8 + i], m[12 + i]];
-      const r0 = r(0), r1 = r(1), r2 = r(2), r3 = r(3);
-      for (const [s, q] of [[1, r0], [-1, r0], [1, r1], [-1, r1], [1, r2], [-1, r2]]) {
-        const p = [r3[0] + s * q[0], r3[1] + s * q[1], r3[2] + s * q[2], r3[3] + s * q[3]], l = Math.hypot(p[0], p[1], p[2]);
-        P.push(p.map((x) => x / l));
+    planes(m, o) {
+      const P = o || [[], [], [], [], [], []];
+      for (let k = 0; k < 6; k++) {
+        const i = k >> 1, s = k & 1 ? -1 : 1, p = P[k];
+        p[0] = m[3] + s * m[i];
+        p[1] = m[7] + s * m[4 + i];
+        p[2] = m[11] + s * m[8 + i];
+        p[3] = m[15] + s * m[12 + i];
+        const l = Math.hypot(p[0], p[1], p[2]);
+        p[0] /= l;
+        p[1] /= l;
+        p[2] /= l;
+        p[3] /= l;
       }
       return P;
     },
@@ -2783,8 +2813,11 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
          of those, turn and turn about), and the probe's and the headlights' */
       const F = () => new Float32Array(16);
       this.m = { V: F(), Pn: F(), Pj: F(), VP: F(), inv: F(), nj: [F(), F()], res: [0, 0] };
-      this.pm = { V: F(), P: F(), VP: F(), inv: F() };
+      this.pm = { V: F(), P: F(), VP: F(), inv: F(), at: [0, 0, 0] };
       this.hm = { V: F(), P: F(), M: F() };
+      this.cs = { V: F(), O: F(), M: [F(), F(), F()], eye: [0, 0, 0], c: [0, 0, 0], lc: [0, 0, 0], S: [0, 0, 0, 0] };
+      this.cb = { r: [0, 0, 0], up: [0, 0, 0], b: [0, 0, 0], f: null };
+      this.pl = [0, 1, 2, 3, 4, 5].map(() => [0, 0, 0, 0]);
       this.hlPos = [0, 0, 0];
       this.ident = M4.ident();
       {
@@ -2915,16 +2948,46 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         this.fogT = G.texture(Math.max(1, Math.round(iw / fd)), Math.max(1, Math.round(ih / fd)), "rgba16f");
         this.fogFB = G.target([this.fogT]);
       }
+      this.passObjects();
+    }
+    /* what each pass of the post chain is given (its textures and small uniforms): the same objects every frame,
+       remade only here, when a target is, so no frame makes them afresh */
+    passObjects() {
+      const W = this.W, H = this.H, iw = this.iw, ih = this.ih;
+      this.po = {
+        ssrTex: { uNrm: this.nT, uDepth: this.dT, uPrev: this.pyr, uProbe: this.probe },
+        compTex: { uCol: this.cT, uNrm: this.nT, uSSR: this.ssrT, uFog: this.fogT, uDepth: this.dT },
+        taaU: { uInRes: [iw, ih], uOutRes: [W, H], uJit: null, uReset: 0 },
+        taaTex: { uCur: this.litT, uHist: null, uVel: this.vT, uDepth: this.dT },
+        pxW: [1 / W, 1 / H],
+        srcTex: { uSrc: null },
+        mbU: { uShutter: 0.5, uOutRes: [W, H], uNear: 0, uFar: 0, uFrame: 0 },
+        mbTex: { uSrc: null, uVel: this.vT, uDepth: this.dT },
+        px: [0, 0],
+        expoU: { uDt: 1 / 60, uKey: 0, uRange: null, uReset: 0 },
+        expoTex: { uSrc: null, uPrev: null },
+        expoRange: [0.05, 40],
+        finU: { uBloomK: 0, uGrade: null, uExpoBias: 1, uLensRain: 0, uVig: 0.35, uGrain: 0.018, uOutRes: [W, H], uCA: 0.6 },
+        finTex: { uSrc: this.mbT, uBloom: this.bl[0].t, uExpo: null }
+      };
     }
     /* ---------- per-frame matrices ---------- */
     camera(S) {
       const c = S.cam, iw = this.iw, ih = this.ih, asp = this.W / this.H;
-      const f = c.fwd, u0 = c.up || [0, 1, 0];
-      const b = [-f[0], -f[1], -f[2]];
-      let r = [u0[1] * b[2] - u0[2] * b[1], u0[2] * b[0] - u0[0] * b[2], u0[0] * b[1] - u0[1] * b[0]];
-      const rl = Math.hypot(...r);
-      r = r.map((x) => x / rl);
-      const up = [b[1] * r[2] - b[2] * r[1], b[2] * r[0] - b[0] * r[2], b[0] * r[1] - b[1] * r[0]];
+      const f = c.fwd, u0 = c.up || UP_Y, cb = this.cb, b = cb.b, r = cb.r, up = cb.up;
+      b[0] = -f[0];
+      b[1] = -f[1];
+      b[2] = -f[2];
+      r[0] = u0[1] * b[2] - u0[2] * b[1];
+      r[1] = u0[2] * b[0] - u0[0] * b[2];
+      r[2] = u0[0] * b[1] - u0[1] * b[0];
+      const rl = Math.hypot(r[0], r[1], r[2]);
+      r[0] /= rl;
+      r[1] /= rl;
+      r[2] /= rl;
+      up[0] = b[1] * r[2] - b[2] * r[1];
+      up[1] = b[2] * r[0] - b[0] * r[2];
+      up[2] = b[0] * r[1] - b[1] * r[0];
       const m = this.m, V = M4.view(c.pos, r, up, b, m.V), near = c.near || 0.25, far = c.far || 3200;
       const Pn = M4.persp(c.fov, asp, near, far, m.Pn);
       if (c.shift) Pn[8] += c.shift;
@@ -2949,30 +3012,40 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       m.res[0] = iw;
       m.res[1] = ih;
       U.uRes = m.res;
-      this.camBasis = { r, up, b, f };
+      cb.f = f;
+      this.camBasis = cb;
       this.near = near;
       this.far = far;
       this.fov = c.fov;
       this.asp = asp;
       this.VPnj = VPnj;
-      this.planes = M4.planes(VP);
+      this.planes = M4.planes(VP, this.pl);
     }
     /* cascades: bounding spheres of frustum slices, snapped to shadow texels so they don't swim */
     cascades(S) {
-      const U = this.U, L = S.env.sunDir, Q = this.Q;
-      const splits = [0, 14, 45, 140];
-      U.uCSMS = [splits[1], splits[2], splits[3], 1.5 / Q.csm];
+      const U = this.U, L = S.env.sunDir, Q = this.Q, C = this.cs, splits = CSM_SPLITS;
+      C.S[0] = splits[1];
+      C.S[1] = splits[2];
+      C.S[2] = splits[3];
+      C.S[3] = 1.5 / Q.csm;
+      U.uCSMS = C.S;
       const { f } = this.camBasis, th = Math.tan(this.fov / 2), cam = S.cam.pos;
-      const lu = Math.abs(L[1]) > 0.99 ? [1, 0, 0] : [0, 1, 0];
-      const V = M4.lookAt([L[0] * 500, L[1] * 500, L[2] * 500], [0, 0, 0], lu);
-      this.csmM = [];
+      const lu = Math.abs(L[1]) > 0.99 ? UP_X : UP_Y;
+      C.eye[0] = L[0] * 500;
+      C.eye[1] = L[1] * 500;
+      C.eye[2] = L[2] * 500;
+      const V = M4.lookAt(C.eye, ORIGIN, lu, C.V);
+      this.csmM = C.M;
       for (let k = 0; k < 3; k++) {
         const n = splits[k], fa = splits[k + 1], cz = (n + fa) / 2, hy = fa * th, hx = hy * this.asp;
         const rad = Math.ceil(Math.hypot(hx, hy, (fa - n) / 2) * 1.04);
-        const c = [cam[0] + f[0] * cz, cam[1] + f[1] * cz, cam[2] + f[2] * cz], lc = M4.xform(V, c), tex = 2 * rad / Q.csm;
+        const c = C.c, lc = C.lc, tex = 2 * rad / Q.csm;
+        c[0] = cam[0] + f[0] * cz;
+        c[1] = cam[1] + f[1] * cz;
+        c[2] = cam[2] + f[2] * cz;
+        M4.xformTo(V, c, lc);
         const cx = Math.round(lc[0] / tex) * tex, cy = Math.round(lc[1] / tex) * tex;
-        const M = M4.mul(M4.ortho(cx - rad, cx + rad, cy - rad, cy + rad, -lc[2] - rad - 260, -lc[2] + rad + 80), V);
-        this.csmM.push(M);
+        const M = M4.mul(M4.ortho(cx - rad, cx + rad, cy - rad, cy + rad, -lc[2] - rad - 260, -lc[2] + rad + 80, C.O), V, C.M[k]);
         U.uCSMM.set(M, k * 16);
       }
     }
@@ -3036,8 +3109,11 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const G = this.G, gl = this.gl, Q = this.Q, f = this.probeFace;
       this.probeFace = (f + 1) % 6;
       const pos = S.probePos;
-      const [fw, up] = CUBE[f];
-      const m = this.pm, V = M4.lookAt(pos, [pos[0] + fw[0], pos[1] + fw[1], pos[2] + fw[2]], up, m.V), Pr = M4.persp(Math.PI / 2, 1, 0.3, 2500, m.P);
+      const fw = CUBE[f][0], up = CUBE[f][1], m = this.pm, at = m.at;
+      at[0] = pos[0] + fw[0];
+      at[1] = pos[1] + fw[1];
+      at[2] = pos[2] + fw[2];
+      const V = M4.lookAt(pos, at, up, m.V), Pr = M4.persp(Math.PI / 2, 1, 0.3, 2500, m.P);
       const VP = M4.mul(Pr, V, m.VP);
       /* (the scene's uniforms with the face's own view: one object, filled afresh for each face) */
       const U2 = Object.assign(this.probeU || (this.probeU = {}), this.U);
@@ -3091,33 +3167,31 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       }
       this.camera(S);
       const E = S.env;
-      Object.assign(U, {
-        uTime: S.time,
-        uFrame: this.frameN,
-        uSunDir: E.sunDir,
-        uSunCol: E.sunCol,
-        uAmbUp: E.ambUp,
-        uAmbDn: E.ambDn,
-        uFogCol: E.fogCol,
-        uFogDen: E.fogDen,
-        uFogFall: E.fogFall,
-        uWet: E.wet,
-        uRain: E.rain,
-        uNight: E.night,
-        uSkyZen: E.skyZen,
-        uSkyHor: E.skyHor,
-        uSkyGlow: E.skyGlow,
-        uCloud: E.cloud,
-        uStars: E.stars,
-        uSunSize: E.sunSize,
-        uLightsOn: E.lightsOn,
-        uLit: E.lit,
-        uSignal: S.time * 0.9,
-        uFogAmb: E.fogAmb,
-        uFogSteps: Q.fogSteps,
-        uFogLights: Q.fogLights,
-        uProbeLod: Math.log2(Q.probe) - 1
-      });
+      U.uTime = S.time;
+      U.uFrame = this.frameN;
+      U.uSunDir = E.sunDir;
+      U.uSunCol = E.sunCol;
+      U.uAmbUp = E.ambUp;
+      U.uAmbDn = E.ambDn;
+      U.uFogCol = E.fogCol;
+      U.uFogDen = E.fogDen;
+      U.uFogFall = E.fogFall;
+      U.uWet = E.wet;
+      U.uRain = E.rain;
+      U.uNight = E.night;
+      U.uSkyZen = E.skyZen;
+      U.uSkyHor = E.skyHor;
+      U.uSkyGlow = E.skyGlow;
+      U.uCloud = E.cloud;
+      U.uStars = E.stars;
+      U.uSunSize = E.sunSize;
+      U.uLightsOn = E.lightsOn;
+      U.uLit = E.lit;
+      U.uSignal = S.time * 0.9;
+      U.uFogAmb = E.fogAmb;
+      U.uFogSteps = Q.fogSteps;
+      U.uFogLights = Q.fogLights;
+      U.uProbeLod = Math.log2(Q.probe) - 1;
       U.uRoad[3] = E.puddles;
       /* (every name of U is the renderer's own: see G.set) */
       for (const k in U) G.ownU.add(k);
@@ -3180,7 +3254,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const oc = S.occ || [];
       U.uNOcc = Math.min(8, oc.length);
       for (let i = 0; i < U.uNOcc; i++) U.uOcc.set(oc[i], i * 8);
-      U.uCSMOn = Math.max(...E.sunCol) > 2e-3 ? 1 : 0;
+      U.uCSMOn = Math.max(E.sunCol[0], E.sunCol[1], E.sunCol[2]) > 2e-3 ? 1 : 0;
       if (U.uCSMOn) this.cascades(S);
       for (const h of this.extra) h.prepare && h.prepare(this, S);
       this.shadowPass(S);
@@ -3223,7 +3297,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       G.uni(Pr, "uPrevLod", this.pyr.levels - 1);
       G.uni(Pr, "uProbeLod", U.uProbeLod);
       G.uni(Pr, "uSteps", Q.ssr | 0);
-      G.tex(Pr, { uNrm: this.nT, uDepth: this.dT, uPrev: this.pyr, uProbe: this.probe });
+      const po = this.po;
+      G.tex(Pr, po.ssrTex);
       G.fullscreen();
       const Pf = G.use(this.P.fog);
       G.bind(this.fogFB);
@@ -3234,20 +3309,24 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const Pc = G.use(this.P.comp);
       G.bind(this.litFB);
       G.set(Pc, U);
-      G.tex(Pc, { uCol: this.cT, uNrm: this.nT, uSSR: this.ssrT, uFog: this.fogT, uDepth: this.dT });
+      G.tex(Pc, po.compTex);
       G.fullscreen();
       const hi = this.histI, ho = 1 - hi;
       this.histI = ho;
       const Pt = G.use(this.P.taa);
       G.bind(this.histFB[ho]);
-      G.set(Pt, { uInRes: [this.iw, this.ih], uOutRes: [this.W, this.H], uJit: this.jit, uReset: this.resetTAA || S.cut ? 1 : 0 });
-      G.tex(Pt, { uCur: this.litT, uHist: this.hist[hi], uVel: this.vT, uDepth: this.dT });
+      po.taaU.uJit = this.jit;
+      po.taaU.uReset = this.resetTAA || S.cut ? 1 : 0;
+      G.set(Pt, po.taaU);
+      po.taaTex.uHist = this.hist[hi];
+      G.tex(Pt, po.taaTex);
       G.fullscreen();
       this.resetTAA = false;
       const Pd = G.use(this.P.down4);
       G.bind(this.pyrFB);
-      G.uni(Pd, "uPx", [1 / this.W, 1 / this.H]);
-      G.tex(Pd, { uSrc: this.hist[ho] });
+      G.uni(Pd, "uPx", po.pxW);
+      po.srcTex.uSrc = this.hist[ho];
+      G.tex(Pd, po.srcTex);
       G.fullscreen();
       gl.bindTexture(gl.TEXTURE_2D, this.pyr.t);
       gl.generateMipmap(gl.TEXTURE_2D);
@@ -3255,17 +3334,26 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       if (Q.mb) {
         const Pm = G.use(this.P.mb);
         G.bind(this.mbFB);
-        G.set(Pm, { uShutter: S.shutter ?? 0.5, uOutRes: [this.W, this.H], uNear: this.near, uFar: this.far, uFrame: this.frameN });
-        G.tex(Pm, { uSrc: this.hist[ho], uVel: this.vT, uDepth: this.dT });
+        const mu = po.mbU;
+        mu.uShutter = S.shutter ?? 0.5;
+        mu.uNear = this.near;
+        mu.uFar = this.far;
+        mu.uFrame = this.frameN;
+        G.set(Pm, mu);
+        po.mbTex.uSrc = this.hist[ho];
+        G.tex(Pm, po.mbTex);
         G.fullscreen();
       } else {
         const Pc2 = G.use(this.P.copy);
         G.bind(this.mbFB);
         G.uni(Pc2, "uLod", 0);
-        G.tex(Pc2, { uSrc: this.hist[ho] });
+        po.srcTex.uSrc = this.hist[ho];
+        G.tex(Pc2, po.srcTex);
         G.fullscreen();
       }
-      if (this.extra.some((h) => h.particles)) {
+      let anyP = false;
+      for (const h of this.extra) if (h.particles) anyP = true;
+      if (anyP) {
         G.bind(this.mbFB);
         gl.enable(gl.BLEND);
         for (const h of this.extra) h.particles && h.particles(this, U, texs);
@@ -3273,22 +3361,33 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       }
       const Pb = G.use(this.P.bdown);
       let src = this.mbT, sw = this.W, sh = this.H;
-      this.bl.forEach((L, i) => {
+      for (let i = 0; i < this.bl.length; i++) {
+        const L = this.bl[i];
         G.bind(L.fb);
-        G.uni(Pb, "uPx", [1 / sw, 1 / sh]);
+        po.px[0] = 1 / sw;
+        po.px[1] = 1 / sh;
+        G.uni(Pb, "uPx", po.px);
         G.uni(Pb, "uFirst", i === 0 ? 1 : 0);
-        G.tex(Pb, { uSrc: src });
+        po.srcTex.uSrc = src;
+        G.tex(Pb, po.srcTex);
         G.fullscreen();
         src = L.t;
         sw = L.w;
         sh = L.h;
-      });
+      }
       const ei = this.expoI, eo = 1 - ei;
       this.expoI = eo;
       const Pe = G.use(this.P.expo);
       G.bind(this.expoFB[eo]);
-      G.set(Pe, { uDt: S.dt || 1 / 60, uKey: E.key, uRange: E.expoRange || [0.05, 40], uReset: this.frameN < 2 || S.cut ? 1 : 0 });
-      G.tex(Pe, { uSrc: this.bl[Math.min(3, this.bl.length - 1)].t, uPrev: this.expo[ei] });
+      const eu = po.expoU;
+      eu.uDt = S.dt || 1 / 60;
+      eu.uKey = E.key;
+      eu.uRange = E.expoRange || po.expoRange;
+      eu.uReset = this.frameN < 2 || S.cut ? 1 : 0;
+      G.set(Pe, eu);
+      po.expoTex.uSrc = this.bl[Math.min(3, this.bl.length - 1)].t;
+      po.expoTex.uPrev = this.expo[ei];
+      G.tex(Pe, po.expoTex);
       G.fullscreen();
       const Pu = G.use(this.P.bup);
       gl.enable(gl.BLEND);
@@ -3296,9 +3395,12 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       for (let i = this.bl.length - 1; i > 0; i--) {
         const L = this.bl[i], D = this.bl[i - 1];
         G.bind(D.fb);
-        G.uni(Pu, "uPx", [1 / L.w, 1 / L.h]);
+        po.px[0] = 1 / L.w;
+        po.px[1] = 1 / L.h;
+        G.uni(Pu, "uPx", po.px);
         G.uni(Pu, "uW", 1);
-        G.tex(Pu, { uSrc: L.t });
+        po.srcTex.uSrc = L.t;
+        G.tex(Pu, po.srcTex);
         G.fullscreen();
       }
       gl.disable(gl.BLEND);
@@ -3306,8 +3408,14 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       if (S.led) G.bind(this.ldrFB);
       else G.bind(null, [0, 0, this.canvas.width, this.canvas.height]);
       G.set(Pfin, U);
-      G.set(Pfin, { uBloomK: E.bloom, uGrade: E.grade, uExpoBias: E.expoBias || 1, uLensRain: S.lensRain || 0, uVig: 0.35, uGrain: 0.018, uOutRes: [this.W, this.H], uCA: 0.6 });
-      G.tex(Pfin, { uSrc: this.mbT, uBloom: this.bl[0].t, uExpo: this.expo[eo] });
+      const fu = po.finU;
+      fu.uBloomK = E.bloom;
+      fu.uGrade = E.grade;
+      fu.uExpoBias = E.expoBias || 1;
+      fu.uLensRain = S.lensRain || 0;
+      G.set(Pfin, fu);
+      po.finTex.uExpo = this.expo[eo];
+      G.tex(Pfin, po.finTex);
       G.fullscreen();
       if (S.debug) {
         const D = { color: [this.cT, 0], normal: [this.nT, 1], rough: [this.nT, 2], ssrw: [this.nT, 3], vel: [this.vT, 4], depth: [this.dT, 5], ssr: [this.ssrT, 0], fog: [this.fogT, 0], fogT: [this.fogT, 3], lit: [this.litT, 0], hist: [this.hist[ho], 0], mb: [this.mbT, 0], bloom: [this.bl[0].t, 0], expo: [this.expo[eo], 0], probe: [this.pyr, 0] }[S.debug];
@@ -3356,7 +3464,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       if (!(ms > 2 && ms < 60)) return;
       this.raw.push(ms);
       if (this.raw.length > 120) this.raw.shift();
-      if (this.raw.length >= 24) {
+      if (this.raw.length >= 24 && (this.nv = (this.nv || 0) + 1) % 12 === 0) {
         const s = [...this.raw].sort((a, b) => a - b), p = s[Math.floor(s.length * 0.15)];
         this.hz = RATES.reduce((b, h) => Math.abs(1e3 / h - p) < Math.abs(1e3 / b - p) ? h : b, 60);
         this.period = 1e3 / this.hz * this.div;
@@ -11169,6 +11277,11 @@ function orgFor(u,x,z){const cx=Math.floor(x/ORG_CELL)*ORG_CELL,cz=Math.floor(z/
 const WORLD={inbox:[],treeGen:0,chunks:new Map(),far:new Map(),tiles:new Map(),labels:new Map(),pend:new Map(),inflight:0,nextId:1,worker:null,mode:'starting',frame:0,
   near:640,farR:2400,lodD:[170,340],propD:460,sky:null,ready:false,forceLocal:false,
   st:{n:[0,0,0],ms:[0,0,0],mx:[0,0,0],sn:0,sms:0,smx:0,fn:0,fms:0,upms:0,miss:0,missT:0,holes:0,queue:0,bytes:0,last:0,ring:0,odo:0,top:0,lastP:null,genRate:0,genAcc:0,genT:0}};
+/* the chunks and the far tiles as plain arrays for the loops that run several times a frame (walking a Map makes
+   an object a step); remade only when a chunk or a tile comes or goes (cver, fver) */
+WORLD.cver=0;WORLD.fver=0;WORLD.clist=[];WORLD.flist=[];WORLD.cverL=-1;WORLD.fverL=-1;
+function chunkList(){const W=WORLD;if(W.cverL!==W.cver){W.cverL=W.cver;W.clist.length=0;for(const c of W.chunks.values())W.clist.push(c);}return W.clist;}
+function farList(){const W=WORLD;if(W.fverL!==W.fver){W.fverL=W.fver;W.flist.length=0;for(const t of W.far.values())W.flist.push(t);}return W.flist;}
 /* the sizes of the rings by graphics tier (55_gfx's GFX_Q; the dev panel can push them out or in) */
 function worldRings(){
   const r=GFX.q,k=DEVW.view==='near'?.75:DEVW.view==='far'?1.35:1;
@@ -11283,7 +11396,7 @@ function worldUpdate(eye,car){
     const dx=Math.max(cx*CHK-ex,0,ex-cx*CHK-CHK),dz=Math.max(cz*CHK-ez,0,ez-cz*CHK-CHK),d=Math.hypot(dx,dz);
     const under=Math.abs(cx-ccx)<=1&&Math.abs(cz-ccz)<=1;
     if(d>R&&!under)continue;
-    if(!c){c=newChunk(cx,cz);W.chunks.set(k,c);WLC.cx=NaN;}
+    if(!c){c=newChunk(cx,cz);W.chunks.set(k,c);W.cver++;WLC.cx=NaN;}
     c.seen=W.frame;
     let lod=d<W.lodD[0]?0:d<W.lodD[1]?1:2;
     if(c.want<lod&&d<W.lodD[c.want]+25)lod=c.want;
@@ -11299,7 +11412,7 @@ function worldUpdate(eye,car){
   if(W.farR>0){const F=W.farR;
     for(let tx=Math.floor((ex-F)/FTS);tx<=Math.floor((ex+F)/FTS);tx++)for(let tz=Math.floor((ez-F)/FTS);tz<=Math.floor((ez+F)/FTS);tz++){
       const dx=Math.max(tx*FTS-ex,0,ex-tx*FTS-FTS),dz=Math.max(tz*FTS-ez,0,ez-tz*FTS-FTS),d=Math.hypot(dx,dz);if(d>F)continue;
-      const k=ckey(tx,tz)+1e8;let t=W.far.get(k);if(!t){t={tx,tz,x0:tx*FTS,z0:tz*FTS,m:null,marks:null,req:false,mn:[tx*FTS,-50,tz*FTS],mx:[tx*FTS+FTS,150,tz*FTS+FTS]};W.far.set(k,t);}
+      const k=ckey(tx,tz)+1e8;let t=W.far.get(k);if(!t){t={key:k,tx,tz,x0:tx*FTS,z0:tz*FTS,m:null,marks:null,req:false,mn:[tx*FTS,-50,tz*FTS],mx:[tx*FTS+FTS,150,tz*FTS+FTS]};W.far.set(k,t);W.fver++;}
       t.seen=W.frame;if(!t.m&&!t.req)todo.push({k:'f',key:k,cx:tx,cz:tz,pr:3000+d});}}
   S.queue=todo.length;
   /* send the most wanted */
@@ -11310,10 +11423,10 @@ function worldUpdate(eye,car){
     if(W.worker){W.todo=todo;W.todoI=0;wPump();}
     else{const t0=performance.now();for(const q of todo){wMark(q);runLocal(q);if(performance.now()-t0>(GAME.state==='drive'?5:14))break;}}}
   /* let go of what's far behind */
-  for(const [k,c] of W.chunks){if(c.seen===W.frame)continue;if(wBox2(ex,ez,c)>R+160){freeChunk(c);W.chunks.delete(k);WLC.cx=NaN;}}
-  for(const [k,t] of W.far){if(t.seen===W.frame)continue;const d=Math.hypot(t.x0+FTS/2-ex,t.z0+FTS/2-ez);if(d>W.farR+FTS*1.5||W.farR===0){freeM(t.m);freeM(t.marks);W.far.delete(k);}}
+  {const L=chunkList();for(let i=0;i<L.length;i++){const c=L[i];if(c.seen===W.frame)continue;if(wBox2(ex,ez,c)>R+160){freeChunk(c);W.chunks.delete(c.key);W.cver++;WLC.cx=NaN;}}}
+  {const L=farList();for(let i=0;i<L.length;i++){const t=L[i];if(t.seen===W.frame)continue;const d=Math.hypot(t.x0+FTS/2-ex,t.z0+FTS/2-ez);if(d>W.farR+FTS*1.5||W.farR===0){freeM(t.m);freeM(t.marks);W.far.delete(t.key);W.fver++;}}}
   /* the stress test's numbers: how far, how fast, any frame where the car's own ground wasn't ready */
-  if(car){if(S.lastP){const dd=Math.hypot(px-S.lastP[0],pz-S.lastP[1]);if(dd<60)S.odo+=dd;}S.lastP=[px,pz];S.top=Math.max(S.top,sp);
+  if(car){if(S.lastP){const dd=Math.hypot(px-S.lastP[0],pz-S.lastP[1]);if(dd<60)S.odo+=dd;}if(S.lastP){S.lastP[0]=px;S.lastP[1]=pz;}else S.lastP=[px,pz];S.top=Math.max(S.top,sp);
     const cc=W.chunks.get(ckey(ccx,ccz));if(!cc||!cc.H)S.missT++;}
   S.genT+=1/60;if(S.genT>=1){S.genRate=S.genAcc/S.genT;S.genAcc=0;S.genT=0;}
   W.ready=true;
@@ -11350,10 +11463,15 @@ const RANCH={W:WW,world:new GroundWorld(groundInto,WW.colliders,WG.HALF-30),ms:0
 
 /* ---------- drawing ---------- */
 /* the six planes of the view frustum from a column-major view-projection matrix */
-function frustum(m){const r=(a,b,c,d)=>{const l=Math.hypot(a,b,c);return [a/l,b/l,c/l,d/l];};
-  return [r(m[3]+m[0],m[7]+m[4],m[11]+m[8],m[15]+m[12]),r(m[3]-m[0],m[7]-m[4],m[11]-m[8],m[15]-m[12]),r(m[3]+m[1],m[7]+m[5],m[11]+m[9],m[15]+m[13]),
-    r(m[3]-m[1],m[7]-m[5],m[11]-m[9],m[15]-m[13]),r(m[3]+m[2],m[7]+m[6],m[11]+m[10],m[15]+m[14]),r(m[3]-m[2],m[7]-m[6],m[11]-m[10],m[15]-m[14])];}
-function boxVisible(F,mn,mx){for(const p of F){const x=p[0]>0?mx[0]:mn[0],y=p[1]>0?mx[1]:mn[1],z=p[2]>0?mx[2]:mn[2];if(p[0]*x+p[1]*y+p[2]*z+p[3]<0)return false;}return true;}
+/* (the planes come from a ring of eight sets filled in place, none made per call: a set is good until eight more
+   frustums have been asked for, longer than any pass keeps one; a caller that needs one for longer copies it) */
+const FR_RING=[];for(let i=0;i<8;i++){const F=[];for(let j=0;j<6;j++)F.push([0,0,0,0]);FR_RING.push(F);}let FR_I=0;
+function frPlane(p,a,b,c,d){const l=Math.hypot(a,b,c);p[0]=a/l;p[1]=b/l;p[2]=c/l;p[3]=d/l;}
+function frustum(m){const F=FR_RING[FR_I++&7];
+  frPlane(F[0],m[3]+m[0],m[7]+m[4],m[11]+m[8],m[15]+m[12]);frPlane(F[1],m[3]-m[0],m[7]-m[4],m[11]-m[8],m[15]-m[12]);frPlane(F[2],m[3]+m[1],m[7]+m[5],m[11]+m[9],m[15]+m[13]);
+  frPlane(F[3],m[3]-m[1],m[7]-m[5],m[11]-m[9],m[15]-m[13]);frPlane(F[4],m[3]+m[2],m[7]+m[6],m[11]+m[10],m[15]+m[14]);frPlane(F[5],m[3]-m[2],m[7]-m[6],m[11]-m[10],m[15]-m[14]);
+  return F;}
+function boxVisible(F,mn,mx){for(let i=0;i<6;i++){const p=F[i],x=p[0]>0?mx[0]:mn[0],y=p[1]>0?mx[1]:mn[1],z=p[2]>0?mx[2]:mn[2];if(p[0]*x+p[1]*y+p[2]*z+p[3]<0)return false;}return true;}
 const boxDist=(e,mn,mx)=>{let s=0;for(let k=0;k<3;k+=2){const d=Math.max(mn[k]-e[k],0,e[k]-mx[k]);s+=d*d;}return Math.sqrt(s);};
 /* a model matrix that only moves: the chunk's corner, relative to the camera */
 const WTM=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
@@ -11370,26 +11488,29 @@ function worldInit(){
    probe: the reflection probe's cheap version, without the far tiles */
 function drawWorld(cam,maxD,probe){
   const W=WORLD,u=CUR.u,F=frustum(cam.VPw),e=cam.eye,near=Math.min(W.near,maxD||W.near),propD=Math.min(W.propD,maxD||W.propD);let tris=0,holes=0;
-  gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
-  /* far tiles: pushed down a little where the chunks are, so the chunks always win */
-  if(W.farR>0&&!probe&&!DEVW.off.far&&(!maxD||maxD>W.near)){if(u.uFarDrop)gl.uniform4f(u.uFarDrop,1,W.near-90,W.near+30,14);
-    for(const t of W.far.values()){if(!t.m)continue;if(boxDist(e,t.mn,t.mx)>W.farR||!boxVisible(F,t.mn,t.mx))continue;atM(u,t.x0,0,t.z0);drawMesh(t.m);tris+=t.m.tris;if(t.marks){drawMesh(t.marks);tris+=t.marks.tris;}}
-    if(u.uFarDrop)gl.uniform4f(u.uFarDrop,0,0,0,0);}
-  const vis=[];
-  for(const c of W.chunks.values()){const g=probe?(c.g[2]||c.g[1]||c.g[0]):bestG(c);const d=boxDist(e,c.mn,c.mx);
+  /* what is in sight this frame (each chunk's level of detail and its distance), before anything is drawn */
+  const vis=[],CL=chunkList();
+  for(let i=0;i<CL.length;i++){const c=CL[i],g=probe?(c.g[2]||c.g[1]||c.g[0]):bestG(c),d=boxDist(e,c.mn,c.mx);
     if(!g){if(d<W.near*.6)holes++;continue;}
-    if(d>near||!boxVisible(F,c.mn,c.mx))continue;atM(u,c.x0,0,c.z0);drawMesh(g.m);tris+=g.m.tris;if(g.w){drawMesh(g.w);tris+=g.w.tris;}c.vd=d;vis.push(c);}
-  const tg=tris;
-  /* the roads lie on the ground like paint */
-  gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-1.5,-3);
-  for(const c of vis)if(c.st&&c.st.roads&&c.vd<near-20){atM(u,c.x0,0,c.z0);drawMesh(c.st.roads);tris+=c.st.roads.tris;}
-  gl.disable(gl.POLYGON_OFFSET_FILL);
-  const tr=tris;
-  for(const c of vis)if(c.st&&c.st.props&&c.vd<propD+40){atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
+    if(d>near||!boxVisible(F,c.mn,c.mx))continue;c.vd=d;c.vg=g;vis.push(c);}
+  /* what stands up is drawn before what lies flat (the trees, the buildings and poles, the roads, then the ground
+     and the far tiles): the depth test picks the same winner whatever the order, but this way the GPU shades the
+     ground only where a tree, a building or a road is not in front of it, instead of shading it and then painting
+     over it. The roads lie on the ground like paint (the polygon offset), so they never tie with it */
   gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
   const tt=DEVW.off.trees?0:drawTreesW(cam,F,probe?Math.min(propD,160):propD,probe);
-  if(!probe){W.st.holes=holes;RANCH.stat={ground:tg,roads:tr-tg,props:tris-tr,trees:tt};}
-  return tris+tt;
+  let tp=0;for(const c of vis)if(c.st&&c.st.props&&c.vd<propD+40){atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tp+=c.st.props.tris;}
+  gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-1.5,-3);
+  let tr=0;for(const c of vis)if(c.st&&c.st.roads&&c.vd<near-20){atM(u,c.x0,0,c.z0);drawMesh(c.st.roads);tr+=c.st.roads.tris;}
+  gl.disable(gl.POLYGON_OFFSET_FILL);
+  for(const c of vis){const g=c.vg;atM(u,c.x0,0,c.z0);drawMesh(g.m);tris+=g.m.tris;if(g.w){drawMesh(g.w);tris+=g.w.tris;}}
+  /* far tiles: pushed down a little where the chunks are, so the chunks always win */
+  if(W.farR>0&&!probe&&!DEVW.off.far&&(!maxD||maxD>W.near)){if(u.uFarDrop)gl.uniform4f(u.uFarDrop,1,W.near-90,W.near+30,14);
+    const FL=farList();for(let i=0;i<FL.length;i++){const t=FL[i];if(!t.m)continue;if(boxDist(e,t.mn,t.mx)>W.farR||!boxVisible(F,t.mn,t.mx))continue;atM(u,t.x0,0,t.z0);drawMesh(t.m);tris+=t.m.tris;if(t.marks){drawMesh(t.marks);tris+=t.marks.tris;}}
+    if(u.uFarDrop)gl.uniform4f(u.uFarDrop,0,0,0,0);}
+  gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
+  if(!probe){W.st.holes=holes;RANCH.stat={ground:tris,roads:tr,props:tp,trees:tt};}
+  return tris+tr+tp+tt;
 }
 /* the trees: three broadleaf shapes and two pines, each near (full) and far (one lump), drawn instanced */
 const TREES={shapes:null,buf:null,cnt:null};
@@ -11425,16 +11546,17 @@ function treeShapes(){
 const TLIST=new Map();
 function treeList(id,ctr,maxD,F,nearOnly){
   let L=TLIST.get(id);
-  if(!L){L={cnt:[],buf:[],gb:[],k:[]};for(let v=0;v<TREES.shapes.length;v++){L.cnt.push([0,0]);L.buf.push([new Float32Array(12*256),new Float32Array(12*256)]);L.gb.push([gl.createBuffer(),gl.createBuffer()]);}TLIST.set(id,L);}
+  if(!L){L={cnt:[],buf:[],gb:[],k:new Float64Array(9).fill(NaN)};for(let v=0;v<TREES.shapes.length;v++){L.cnt.push([0,0]);L.buf.push([new Float32Array(12*256),new Float32Array(12*256)]);L.gb.push([gl.createBuffer(),gl.createBuffer()]);}TLIST.set(id,L);}
   const t0=performance.now(),cx=Math.floor(ctr[0]/8),cz=Math.floor(ctr[2]/8),mg=maxD+12,md=mg*mg;let sig=0;
-  if(F)for(const c of WORLD.chunks.values()){const T=c.st&&c.st.trees;if(!T||!T.length)continue;
+  const CL=chunkList();
+  if(F)for(let i=0;i<CL.length;i++){const c=CL[i],T=c.st&&c.st.trees;if(!T||!T.length)continue;
     const dx=Math.max(c.x0-ctr[0],0,ctr[0]-c.x0-CHK),dz=Math.max(c.z0-ctr[2],0,ctr[2]-c.z0-CHK);if(dx*dx+dz*dz>md)continue;
     c.mx[1]=Math.max(c.mx[1],c.ymax+18);if(boxVisible(F,c.mn,c.mx))sig=(Math.imul(sig,31)+c.cx*7919+c.cz*104729+1)|0;}
-  const K=[cx,cz,WORLD.treeGen,sig,RO[0],RO[2],maxD,TREE_NEAR,nearOnly?1:0];
-  if(K.every((x,i)=>x===L.k[i])){PS.cur[PS_TREES]+=performance.now()-t0;return L;}
-  L.k=K;for(const c of L.cnt){c[0]=0;c[1]=0;}
+  const k=L.k,n1=nearOnly?1:0;
+  if(k[0]===cx&&k[1]===cz&&k[2]===WORLD.treeGen&&k[3]===sig&&k[4]===RO[0]&&k[5]===RO[2]&&k[6]===maxD&&k[7]===TREE_NEAR&&k[8]===n1){PS.cur[PS_TREES]+=performance.now()-t0;return L;}
+  k[0]=cx;k[1]=cz;k[2]=WORLD.treeGen;k[3]=sig;k[4]=RO[0];k[5]=RO[2];k[6]=maxD;k[7]=TREE_NEAR;k[8]=n1;for(const c of L.cnt){c[0]=0;c[1]=0;}
   const nn=TREE_NEAR*TREE_NEAR;
-  for(const c of WORLD.chunks.values()){const T=c.st&&c.st.trees;if(!T||!T.length)continue;
+  for(let i=0;i<CL.length;i++){const c=CL[i],T=c.st&&c.st.trees;if(!T||!T.length)continue;
     const dx=Math.max(c.x0-ctr[0],0,ctr[0]-c.x0-CHK),dz=Math.max(c.z0-ctr[2],0,ctr[2]-c.z0-CHK);if(dx*dx+dz*dz>md)continue;
     if(F&&!boxVisible(F,c.mn,c.mx))continue;
     for(let o=0;o<T.length;o+=12){const ex=T[o]-ctr[0],ez=T[o+2]-ctr[2],d2=ex*ex+ez*ez;if(d2>md)continue;
@@ -11457,13 +11579,13 @@ function drawTreesW(cam,F,maxD,probe){
    (world space) and within maxD of e (world), and the trees (the far cascades take each tree's single-lump shape) */
 function worldShadow(u,F,e,maxD,id,far){
   let tris=0;
-  for(const c of WORLD.chunks.values()){if(!c.st||!c.st.props)continue;if(boxDist(e,c.mn,c.mx)>maxD||!boxVisible(F,c.mn,c.mx))continue;atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
+  const CL=chunkList();for(let i=0;i<CL.length;i++){const c=CL[i];if(!c.st||!c.st.props)continue;if(boxDist(e,c.mn,c.mx)>maxD||!boxVisible(F,c.mn,c.mx))continue;atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
   gl.uniformMatrix4fv(u.uM,false,M4.id());
   return tris+(DEVW.off.trees?0:drawTreeList(treeList(id,e,maxD,F,!far),u,far));
 }
 /* the lights of the farms, the towns and the garage near a point (for the night) */
 function worldLights(p,r){const out=[];
-  for(const c of WORLD.chunks.values()){if(!c.st||!c.st.lights.length)continue;if(wBox2(p[0],p[2],c)>r)continue;for(const l of c.st.lights)out.push(l);}
+  const CL=chunkList();for(let i=0;i<CL.length;i++){const c=CL[i];if(!c.st||!c.st.lights.length)continue;if(wBox2(p[0],p[2],c)>r)continue;for(const l of c.st.lights)out.push(l);}
   return out;}
 /* =====================================================================================
    THE WORLD THROUGH THE RENDERER. Shiftlight 3's renderer (11_sl3) draws no world of its own here: everything the
@@ -11519,7 +11641,9 @@ function worldGL(){
   R.loadWorld({geo:null,lights:[],info:{lightGrid:{x0:-8,z0:-8,size:16,cell:8}}});
   R.U.uStudio=0;
   lgBuild();
-  R.extra.push(LAND,CARHOOK,FXP,GLASSHOOK);
+  /* (your car before the land: it is the nearest thing in the picture, so the ground behind it is never shaded
+     only to be painted over; the depth test picks the same winner either way) */
+  R.extra.push(CARHOOK,LAND,FXP,GLASSHOOK);
   landPrograms();FXP.init();displayPrograms();
   const sp=R.shadowPass.bind(R);
   R.shadowPass=function(S){if(!this.shadowAll)return sp(S);this.shadowAll=false;const n=this.frameN;
@@ -12684,7 +12808,12 @@ function rigCost(car,rig,owned){let c=0;for(const [s] of SLOTS){const o=slotOpti
    calls with the trees, splashes, and the ranch's own challenges (the mud pit, Red Hill, the rock garden,
    a lap of the track, the clock runs). Each one, when it ends, goes into the combo: the money stacks
    and the multiplier grows with every feat and more with every new kind. The combo banks once nothing
-   has happened for a few seconds. Roll it or hit something hard before then and the unbanked money is lost.
+   has happened for a few seconds. End up off your wheels (or reset) before then and the unbanked money is lost.
+   Stunts: anything from all four wheels leaving the ground (or the car going past 78 degrees over) until it is
+   back on its wheels and settled. Everything on the way counts, whatever happens: the air, the full spins,
+   flips and rolls, the trees and posts it clips. Hitting things doesn't end it; coming to rest does. Stopped on
+   its wheels, without a reset, it's LANDED and pays (CLEAN, half as much again, if it came down upright and
+   soft and stayed down); stopped on its side or roof it's BAILED, and the combo goes with it.
    Free play keeps your money as a score, your last ten cool things and your bests, on this device.
    Nothing here draws: it reads the car and the world and calls Feats.pop and Feats.buzz.
    ===================================================================================== */
@@ -12695,8 +12824,8 @@ const FEAT_DEFS={
 const BANK_AFTER=2.6;
 const LOOSE={dirt:1,gravel:1,trail:1,grass:1,ruts:1,mud:1,strip:1,rock:1};
 const Feats=(()=>{
-  const S={money:0,session:0,log:[],best:{},combo:null,live:{},lastHit:0,lastGround:null,closeCd:new Map(),splashT:-9,saveTilt:0,saveT:0,
-    pit:null,climb:null,rocks:null,pending:null,wreckT:-9,t:0};
+  const S={money:0,session:0,log:[],best:{},combo:null,live:{},lastHit:0,closeCd:new Map(),splashT:-9,saveTilt:0,saveT:0,
+    pit:null,climb:null,rocks:null,wreckT:-9,t:0,q0:new Float64Array(4),qOk:false,pre:[0,0,0],g:new Float64Array(3),hasG:false,wait:false};
   const API={S,pop:(text,col,big)=>{},buzz:ms=>{},carName:()=>'',place:()=>'',racing:()=>false};
   /* ---------- saving: free play's score, last ten and bests ---------- */
   let KEY='wo2-free';
@@ -12729,14 +12858,14 @@ const Feats=(()=>{
     if(c.n>1)best('combo',tot,`${fmtMoney(tot)} combo (${c.n} feats, x${m.toFixed(1)})`);
     S.pendingLog=[];API.save();
   }
-  API.bankNow=()=>{S.live={};S.pending=null;bank();};
+  API.bankNow=()=>{S.live={};bank();};
   /* rolled it, hit something hard, or reset with money on the table */
   API.wreck=why=>{
-    S.live={};S.pending=null;S.climb=null;S.rocks=null;S.pit=null;
+    S.live={};S.climb=null;S.rocks=null;S.pit=null;
     const c=S.combo;S.combo=null;S.pendingLog=[];S.wreckT=S.t;
     if(c&&c.pot>0){API.pop((why||'WRECKED')+'  LOST '+fmtMoney(c.pot*mult(c)),'#ff3d5a',true);API.buzz([60,40,60]);}
   };
-  API.resetCar=()=>{if(S.combo)API.wreck('RESET');S.live={};S.pending=null;S.climb=null;S.rocks=null;S.pit=null;S.lastGround=null;};
+  API.resetCar=()=>{if(S.combo)API.wreck('RESET');S.live={};S.climb=null;S.rocks=null;S.pit=null;S.hasG=false;S.qOk=false;S.wait=false;S.pre[0]=S.pre[1]=S.pre[2]=0;};
   /* ---------- reading the car ---------- */
   function frame(t){
     const M=t.M,U=[M[1],M[4],M[7]],Rt=[M[2],M[5],M[8]];
@@ -12746,35 +12875,33 @@ const Feats=(()=>{
     let top='',n=0;for(const k in surf)if(surf[k]>n){n=surf[k];top=k;}
     return {U,Rt,up:U[1],roll:Math.asin(clamp(Rt[1],-1,1)),nC,left,right,surf:top,spin:driven?spin/driven:0,v:t.speed,vf:t.vf,beta:t.beta,air:t.air,airT:t.airT};
   }
+  /* (is anything going on: the banking waits while it is) */
+  const any=o=>{for(const k in o)return true;return false;};
+  /* ---------- the ground feats' endings: each pays what it came to (also when a stunt cuts it short) ---------- */
+  function endDrift(){const d=S.live.drift;if(!d)return;delete S.live.drift;if(d.t<=.9)return;const ang=Math.round(d.max*57.3),val=d.score*14;
+    addFeat('drift',val,`DRIFT ${ang}° ${d.t.toFixed(1)} S`,{deg:ang,s:d.t,m:d.dist});if(best('drift',d.t,`${d.t.toFixed(1)} s drift at up to ${ang}°`))API.pop('LONGEST DRIFT','#ff5ab4');}
+  function endTwo(){const w=S.live.two;if(!w)return;delete S.live.two;if(w.m<=6)return;addFeat('two',w.m*9,`TWO WHEELS ${Math.round(w.m)} M`,{m:w.m});
+    if(best('two',w.m,`${Math.round(w.m)} m on two wheels`))API.pop('LONGEST ON TWO WHEELS','#ffb040');}
+  function endBurn(){const b=S.live.burn;if(!b)return;delete S.live.burn;if(b.t<=1.5)return;addFeat('burn',b.t*35,`BURNOUT ${b.t.toFixed(1)} S`,{s:b.t});
+    if(best('burn',b.t,`${b.t.toFixed(1)} s burnout`))API.pop('LONGEST BURNOUT','#ff6a3d');}
   /* ---------- one frame ---------- */
   API.step=(dt,t,ev,W)=>{
     S.t+=dt;const f=frame(t),L=S.live,now=S.t;
-    if(now-S.wreckT<1){S.lastGround=null;return;}
-    /* crashes: on its side or roof, or a hard hit */
-    if(f.up<.25&&f.v<4||ev&&(ev.wall>9||ev.ground>11)){if(S.combo||Object.keys(L).length)API.wreck(f.up<.25?'ROLLED IT':'WRECKED');return;}
+    if(now-S.wreckT<1){S.hasG=false;S.qOk=false;return;}
+    /* a quad's rider thrown off: that's a bail, whatever the machine does next */
+    if(t.lean&&t.lean.bail){if(L.stunt||S.combo&&S.combo.pot>0)API.wreck('BAILED');S.qOk=false;return;}
+    /* (a hard hit on its own no longer costs the combo: only ending up off the wheels does, in the stunt) */
+    const live=stunt(dt,t,f,ev,W,now);
+    /* the feats on the ground wait while a stunt is going */
+    if(!live){
     /* --- drift: sideways on purpose, at speed, on the ground --- */
     const sideways=!f.air&&f.vf>6&&f.nC>=3&&Math.abs(f.beta)>.3&&!t.rev;
     if(sideways){const d=L.drift||(L.drift={t:0,max:0,score:0,low:0,dist:0});d.t+=dt;d.low=0;d.max=Math.max(d.max,Math.abs(f.beta));d.score+=(Math.abs(f.beta)-.22)*f.v*dt;d.dist+=f.v*dt;}
-    else if(L.drift){const d=L.drift;d.low+=dt;if(Math.abs(f.beta)>.2&&!f.air&&f.v>5&&d.low<.6){d.t+=dt;}else{
-      delete L.drift;if(d.t>.9){const ang=Math.round(d.max*57.3),val=d.score*14;addFeat('drift',val,`DRIFT ${ang}° ${d.t.toFixed(1)} S`,{deg:ang,s:d.t,m:d.dist});
-        if(best('drift',d.t,`${d.t.toFixed(1)} s drift at up to ${ang}°`))API.pop('LONGEST DRIFT','#ff5ab4');}}}
-    /* --- air: every wheel off the ground --- */
-    if(!f.air){S.lastGround=[t.p[0],t.p[1],t.p[2]];if(L.air){const a=L.air;delete L.air;
-        if(a.t>.45){const dx=t.p[0]-a.p0[0],dz=t.p[2]-a.p0[2];S.pending={dist:Math.hypot(dx,dz),t:a.t,h:a.h,land:ev?ev.land:0,up:f.up,wait:.7};}}}
-    else if(f.airT>.2){const a=L.air||(L.air={t:0,h:0,p0:S.lastGround||[t.p[0],t.p[1],t.p[2]]});a.t=f.airT;
-      const gy=W.heightAt(t.p[0],t.p[2]);a.h=Math.max(a.h,t.p[1]-t.c.hcg-gy);}
-    /* the landing is graded a moment later, once it's clear it stayed on its wheels */
-    if(S.pending){const p=S.pending;p.wait-=dt;p.land=Math.max(p.land,ev?ev.land:0);p.up=Math.min(p.up,f.up);
-      if(p.wait<=0){S.pending=null;const clean=p.up>.9&&p.land<8,hard=p.land>10,grade=clean?'CLEAN':hard?'HARD':'SKETCHY';
-        const val=(p.dist*4+p.t*70+p.h*25)*(clean?1.5:hard?.7:1);
-        addFeat('air',val,`JUMP ${Math.round(p.dist)} M ${p.t.toFixed(1)} S ${grade}`,{m:p.dist,s:p.t,h:p.h,grade});
-        if(best('jump',p.dist,`${Math.round(p.dist)} m jump, ${p.t.toFixed(1)} s in the air`))API.pop('LONGEST JUMP','#4fe3ff');
-        best('airtime',p.t,`${p.t.toFixed(2)} s in the air`);API.buzz(Math.min(80,20+p.land*5));}}
+    else if(L.drift){const d=L.drift;d.low+=dt;if(Math.abs(f.beta)>.2&&!f.air&&f.v>5&&d.low<.6){d.t+=dt;}else endDrift();}
     /* --- two wheels: one side up, the other rolling --- */
     const twoUp=!f.air&&f.v>3&&(f.left===2&&f.right===0||f.right===2&&f.left===0)&&Math.abs(f.roll)>.2;
     if(twoUp){const w=L.two||(L.two={m:0,off:0});w.m+=f.v*dt;w.off=0;}
-    else if(L.two){const w=L.two;w.off+=dt;if(w.off>.25){delete L.two;if(w.m>6){addFeat('two',w.m*9,`TWO WHEELS ${Math.round(w.m)} M`,{m:w.m});
-      if(best('two',w.m,`${Math.round(w.m)} m on two wheels`))API.pop('LONGEST ON TWO WHEELS','#ffb040');}}}
+    else if(L.two){const w=L.two;w.off+=dt;if(w.off>.25)endTwo();}
     /* --- the save: tipped past 40 degrees and brought back --- */
     if(f.up<.77&&f.up>.3&&f.v>2){S.saveTilt=Math.max(S.saveTilt,1-f.up);S.saveT=now;}
     else if(S.saveTilt&&f.up>.96&&!f.air){if(now-S.saveT<3){const deg=Math.round(Math.acos(1-S.saveTilt)*57.3);addFeat('save',120+deg*4,`SAVED IT ${deg}°`,{deg});}S.saveTilt=0;}
@@ -12789,8 +12916,8 @@ const Feats=(()=>{
         if(best('speed',r.m,`${(r.m/1609).toFixed(2)} mi on ${nm.toLowerCase()} at ${Math.round(mph)} mph`))API.pop('LONGEST SPEED RUN','#ffd84a');}}}
     /* --- burnout: tyres spinning hard, going nowhere --- */
     if(f.v<2.5&&!f.air&&f.nC>=3&&f.spin>7&&t.pt.running){const b=L.burn||(L.burn={t:0,off:0});b.t+=dt;b.off=0;}
-    else if(L.burn){const b=L.burn;b.off+=dt;if(b.off>.5){delete L.burn;if(b.t>1.5){addFeat('burn',b.t*35,`BURNOUT ${b.t.toFixed(1)} S`,{s:b.t});
-      if(best('burn',b.t,`${b.t.toFixed(1)} s burnout`))API.pop('LONGEST BURNOUT','#ff6a3d');}}}
+    else if(L.burn){const b=L.burn;b.off+=dt;if(b.off>.5)endBurn();}
+    }
     /* --- close call: past a tree or a post at speed, within a metre and not touching --- */
     if(f.v>13.4&&W.colliders&&now-S.lastHit>.6){
       if(ev&&ev.wall>.5)S.lastHit=now;
@@ -12803,9 +12930,92 @@ const Feats=(()=>{
     /* --- the ranch's own challenges --- */
     if(W.D)challenges(dt,t,f,ev,W,now);
     /* --- banking: nothing going on for a few seconds --- */
-    const busy=Object.keys(L).length||S.pending;
-    if(S.combo){if(busy)S.combo.t=0;else if((S.combo.t+=dt)>BANK_AFTER)bank();}
+    if(S.combo){if(any(L))S.combo.t=0;else if((S.combo.t+=dt)>BANK_AFTER)bank();}
   };
+  /* (the car moved where the feats weren't watching, behind a result screen or a reset: the next turn read starts afresh) */
+  API.unsync=()=>{S.qOk=false;};
+  /* ---------- stunts ---------- */
+  /* the car's turn since the last frame, in its own frame (forward x: rolls; up y: spins; across z: flips), from
+     its orientation then and now (exact for anything under half a turn a frame: the physics caps a tumble at
+     about six turns a second, and a frame at eight steps) */
+  const DQ=new Float64Array(3);
+  function turned(t){
+    const a=S.q0,b=t.q;if(!S.qOk){a.set(b);S.qOk=true;DQ[0]=DQ[1]=DQ[2]=0;return DQ;}
+    const ax=-a[0],ay=-a[1],az=-a[2],aw=a[3];
+    let w=aw*b[3]-ax*b[0]-ay*b[1]-az*b[2],x=aw*b[0]+ax*b[3]+ay*b[2]-az*b[1],y=aw*b[1]-ax*b[2]+ay*b[3]+az*b[0],z=aw*b[2]+ax*b[1]-ay*b[0]+az*b[3];
+    if(w<0){w=-w;x=-x;y=-y;z=-z;}const sn=Math.sqrt(x*x+y*y+z*z),ang=2*Math.atan2(sn,w),k=sn>1e-9?ang/sn:2;
+    DQ[0]=x*k;DQ[1]=y*k;DQ[2]=z*k;a.set(b);return DQ;}
+  /* full turns about one axis, a little short of a whole one still counting (about 30 degrees) */
+  const TAU2=2*Math.PI,turns=a=>Math.floor((Math.abs(a)+.5)/TAU2),pl=(n,one,many)=>n+' '+(n===1?one:many);
+  function turnWords(fl,ro,sp){const w=[];if(fl)w.push(pl(fl,'FLIP','FLIPS'));if(ro)w.push(pl(ro,'ROLL','ROLLS'));if(sp)w.push(pl(sp,'SPIN','SPINS'));return w;}
+  /* one frame of a stunt: started, carried on or finished. True while one is going */
+  function stunt(dt,t,f,ev,W,now){
+    const L=S.live,on=f.nC>=3&&f.up>.8,rest=!!(ev&&(ev.gsurf||ev.ground>.3));let st=L.stunt;
+    if(!st){
+      const d=turned(t);
+      if(on)S.wait=false;
+      /* the turning since it left its wheels (in the air, or going over), so the start of a roll or a spin counts too */
+      if(!on&&(f.air||f.up<.5)){S.pre[0]+=d[0];S.pre[1]+=d[1];S.pre[2]+=d[2];}else S.pre[0]=S.pre[1]=S.pre[2]=0;
+      if(!f.air){S.g[0]=t.p[0];S.g[1]=t.p[1];S.g[2]=t.p[2];S.hasG=true;}
+      /* it starts off all four wheels for a fifth of a second with the body not on the ground either (hung up on its
+         belly isn't flying), or going over past 78 degrees; and not again until it has been back on its wheels after
+         a bail or a hang-up */
+      if(S.wait||!(f.air&&f.airT>.2&&!rest||f.up<.2))return false;
+      const g=S.hasG?S.g:t.p;
+      st=L.stunt={t:0,air:0,h:0,p0:[g[0],g[1],g[2]],rot:S.pre.slice(),hits:0,hitT:-9,land:0,set:0,stop:0,touch:null,bounce:0,tilt:0,hk:-1,hud:''};
+      S.pre[0]=S.pre[1]=S.pre[2]=0;endDrift();endTwo();endBurn();S.saveTilt=0;}
+    else{const d=turned(t);
+      /* turns count while it's off its wheels; once it has touched down, only while it's really off them (a wheel or
+         none down, or past 60 degrees over): a spin-out on two wheels after landing is the landing, not the stunt */
+      if(st.touch?f.nC<=1||f.up<.5:!on){st.rot[0]+=d[0];st.rot[1]+=d[1];st.rot[2]+=d[2];}}
+    st.t+=dt;st.tilt=Math.max(st.tilt,1-f.up);
+    /* things it clips on the way (trees, posts, walls; not the other cars in a race), until it's down on its wheels */
+    if(ev){st.land=Math.max(st.land,ev.land||0);if(ev.wall>1.5&&!ev.car&&!on&&now-st.hitT>.3){st.hits++;st.hitT=now;}}
+    /* the flight is up to the first touch of the ground (a wheel or the body): how long, how high, how far. After
+       that it's bouncing and tumbling, which still counts for the turns and the clips but not as air */
+    if(!st.touch&&(!f.air||rest))st.touch={up:f.up,x:t.p[0],z:t.p[2]};
+    if(!st.touch&&f.air){st.air=f.airT;const gy=W.heightAt(t.p[0],t.p[2]);st.h=Math.max(st.h,t.p[1]-t.c.hcg-gy);}
+    /* back on its wheels: three or four of them down and upright; every time it comes off them again after a touch
+       down is a bounce */
+    if(on)st.set+=dt;else{if(st.set>0)st.bounce++;st.set=0;}
+    st.stop=!on&&f.v<1?st.stop+dt:0;
+    if(on&&st.set>=.5){delete L.stunt;landed(st,t);return false;}
+    /* at rest on its side or roof for a second: bailed (Kids turns it back over at 1.2). At rest upright but not on
+       its wheels, hung up on something: just over, nothing paid. Either way not again until it's back on its wheels */
+    if(st.stop>1){delete L.stunt;S.wait=true;
+      if(f.up<.5){const why=st.air<.2?'ROLLED IT':'BAILED',had=S.combo&&S.combo.pot>0;API.wreck(why);if(!had)API.pop(why,'#ff3d5a');}
+      return false;}
+    /* (forty seconds without either: let it go) */
+    if(st.t>40){delete L.stunt;S.wait=true;return false;}
+    return true;
+  }
+  /* landed: what it was worth. The air (distance, time, height), each full flip, roll and spin, each thing clipped
+     on the way, then half as much again for a clean one: down upright and soft first time, stayed down, nothing hit */
+  function landed(st,t){
+    const [r,y,p]=st.rot;let fl=turns(p),ro=turns(r),sp=turns(y);
+    /* (a spin done nose up reads partly as a roll: the whole turn, all axes together, is credited to the main one) */
+    const tot=turns(Math.sqrt(r*r+y*y+p*p)),miss=tot-fl-ro-sp;
+    if(miss>0){const ap=Math.abs(p),ar=Math.abs(r),ay=Math.abs(y);if(ap>=ar&&ap>=ay)fl+=miss;else if(ar>=ay)ro+=miss;else sp+=miss;}
+    const w=turnWords(fl,ro,sp),e=st.touch||{x:t.p[0],z:t.p[2]},dist=Math.hypot(e.x-st.p0[0],e.z-st.p0[2]),air=st.air>.45;
+    const clean=!st.hits&&st.touch&&st.touch.up>.9&&st.land<8&&st.bounce===0;
+    const grade=clean?'CLEAN':'LANDED',hit=st.hits?(st.hits===1?'CLIPPED ONE':'CLIPPED '+st.hits):'';
+    /* no air and no turns: a tip past 78 degrees and back is a save (and anything it clipped on the way) */
+    if(!air&&!w.length){const deg=Math.round(Math.acos(Math.max(-1,1-st.tilt))*57.3);
+      if(deg>78)addFeat('save',120+deg*4+st.hits*50,`SAVED IT ${deg}°${hit?' '+hit:''}`,{deg,hits:st.hits});
+      else if(st.hits)addFeat('air',st.hits*50,`${hit} ${grade}`,{hits:st.hits,grade});
+      return;}
+    let val=(air?dist*4+st.air*70+st.h*25:0)+fl*300+ro*220+sp*120+st.hits*50;if(clean)val*=1.5;
+    const label=w.length?[...w,hit,air?st.air.toFixed(1)+' S':'',grade].filter(Boolean).join(' '):`JUMP ${Math.round(dist)} M ${st.air.toFixed(1)} S${hit?' '+hit:''} ${grade}`;
+    addFeat('air',val,label,{m:dist,s:st.air,h:st.h,grade,spins:sp,flips:fl,rolls:ro,hits:st.hits});
+    if(air){if(best('jump',dist,`${Math.round(dist)} m jump, ${st.air.toFixed(1)} s in the air`))API.pop('LONGEST JUMP','#4fe3ff');best('airtime',st.air,`${st.air.toFixed(2)} s in the air`);}
+    if(w.length&&best('stunt',Math.round(val),`${w.join(', ').toLowerCase()}${hit?', '+hit.toLowerCase():''}, ${grade.toLowerCase()} (${fmtMoney(val)})`))API.pop('BIGGEST STUNT','#4fe3ff');
+    API.buzz(Math.min(80,20+st.land*5));
+  }
+  /* the HUD's line for a stunt going on: remade only when a whole turn or a tenth of a second of air changes */
+  function stuntLine(st){
+    const [r,y,p]=st.rot,fl=Math.floor(Math.abs(p)/TAU2),ro=Math.floor(Math.abs(r)/TAU2),sp=Math.floor(Math.abs(y)/TAU2),a=Math.round(st.air*10),k=((fl*97+ro)*97+sp)*1e4+a;
+    if(k!==st.hk){st.hk=k;const w=turnWords(fl,ro,sp);st.hud=(st.air>.2?'AIR '+(a/10).toFixed(1)+' S':'OVER')+(w.length?'  '+w.join(' '):'');}
+    return st.hud;}
   function challenges(dt,t,f,ev,W,now){
     const D=W.D,x=t.p[0],z=t.p[2];
     /* the mud pit: in one side and out the other without getting stuck */
@@ -12838,7 +13048,7 @@ const Feats=(()=>{
   API.hud=()=>{
     const L=S.live,out=[];
     if(L.drift&&L.drift.t>.4)out.push(['DRIFT '+Math.round(Math.abs(L.drift.max)*57.3)+'°',FEAT_DEFS.drift.col,L.drift.score*14]);
-    if(L.air&&L.air.t>.35)out.push(['AIR '+L.air.t.toFixed(1)+' S',FEAT_DEFS.air.col,0]);
+    if(L.stunt&&L.stunt.t>.35)out.push([stuntLine(L.stunt),FEAT_DEFS.air.col,0]);
     if(L.two&&L.two.m>3)out.push(['TWO WHEELS '+Math.round(L.two.m)+' M',FEAT_DEFS.two.col,L.two.m*9]);
     if(L.speed&&L.speed.m>60)out.push(['SPEED RUN '+(L.speed.m/1609).toFixed(2)+' MI',FEAT_DEFS.speed.col,0]);
     if(L.burn&&L.burn.t>.6)out.push(['BURNOUT '+L.burn.t.toFixed(1)+' S',FEAT_DEFS.burn.col,L.burn.t*35]);
@@ -13210,7 +13420,7 @@ function step(dt){
   /* paused (the menu, boot, a race's results, a challenge's result card, someone's job dialog): the physics waits, the
      car held exactly as it was (speed and all) until the game carries on; a car placed meanwhile has settled (settleCar).
      Only the dust finishes falling */
-  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);return;}
+  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);Feats.unsync();return;}
   /* a machine's rider leans; a rider who has bailed lets go of everything */
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
@@ -13246,7 +13456,8 @@ function step(dt){
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(GAME.sdt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
+  if(GAME.state!=='drive')Feats.unsync();
+  else{Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(GAME.sdt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
 }
 /* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
    gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
@@ -14760,7 +14971,8 @@ const CARD_NAME={quad90:"Kids' quad",quad450:'Sport quad',quadUtil:'Ranch quad',
 function openMenu(first){
   if(GAME.state==='jdlg')closeJobDialog();if(GAME.state==='cres')closeChalResult(true);
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
-  if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
+  /* (not with a stunt going: the car is frozen under the menu, and the stunt carries on, or bails, after it) */
+  if(GAME.state==='drive'&&Feats.S.combo&&!Feats.S.live.stunt)Feats.bankNow();
   if(GAME.state==='drive'){GAME.frozen=true;engineDuck(true);}
   APP.title=!!first;
   GAME.state='menu';$('menu').hidden=false;inputRelease();syncTouch();
@@ -14943,7 +15155,7 @@ function showResults(){
 }
 function hideResults(){$('rres').hidden=true;raceEnd(null);GAME.state='drive';CAM.cut=true;syncTouch();INPUT.down.clear();}
 /* ---------- cool stuff: the money, the last ten, the bests ---------- */
-const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
+const BEST_NAMES=[['combo','Biggest combo'],['stunt','Biggest stunt'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
   ['burn','Longest burnout'],['mudpit','Fastest mud pit'],['summit','Fastest up Red Hill'],['rocks','Fastest clean rock garden'],['lap','Fastest lap']];
 const ago=ms=>{const s=(Date.now()-ms)/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<129600?Math.round(s/3600)+' h ago':Math.round(s/86400)+' days ago';};
 function syncCool(){
