@@ -11,7 +11,7 @@
 const fs=require('fs'),path=require('path');
 const SRC=path.resolve(__dirname,'..','src')+'/';
 const MODS=['10_core','12_gl_mesh','13_lit','14_loft','15_digital_engine','16_engines','21_suv','22_faces','23_parts','24_4x4','25_coupe','26_wagon',
-  '27_pickup','28_muscle','29_hatch','30_wheels','31_engine_bay','32_builds','40_physics','41_ground','42_chassis','43_sim'];
+  '27_pickup','28_muscle','29_hatch','34_ev','35_wedge','36_hyper','30_wheels','31_engine_bay','32_builds','34_machines','40_physics','41_ground','42_chassis','43_sim','37_newbuilds','45_ev'];
 /* the car modules need a page only to draw; these stand in for it */
 const STUB=`const document={getElementById:()=>null,createElement:()=>({getContext:()=>null,style:{}})},matchMedia=()=>({matches:false}),localStorage={getItem:()=>null,setItem:()=>{}},window={};\n`;
 const X=new Function(STUB+MODS.map(m=>fs.readFileSync(SRC+m+'.js','utf8')).join('\n')+
@@ -78,11 +78,12 @@ function brakes(i){
   return null;
 }
 const want=process.argv.slice(2);
-const rat=JSON.parse(fs.readFileSync(path.resolve(__dirname,'..','design','ratings.json'),'utf8')).cars;
+/* (the rankings' file, where there is one: this game keeps its ratings in src/57_ratings.js, so the last columns may be blank) */
+let rat=[];try{rat=JSON.parse(fs.readFileSync(path.resolve(__dirname,'..','design','ratings.json'),'utf8')).cars;}catch(e){}
 const f=(x,d=1)=>x==null?'  -  ':x.toFixed(d);
 console.log('build          0-60   0-100  1/4 mile        top | grip 20m/s 35m/s gravel | 60-0 ft | ranked: 0-60  grip  dirt');
 for(let i=0;i<X.BUILDS.length;i++){
   const b=X.BUILDS[i];if(want.length&&!want.includes(b.id))continue;
-  const d=drag(i),g20=grip(i,20),g35=grip(i,35),gg=grip(i,15,'gravel'),bd=brakes(i),r=rat.find(c=>c.id===b.id);
+  const d=drag(i),g20=grip(i,20),g35=grip(i,35),gg=grip(i,15,'gravel'),bd=brakes(i),r=rat.find(c=>c.id===b.id)||{};
   console.log(`${b.id.padEnd(13)} ${f(d.t60).padStart(5)} ${f(d.t100).padStart(6)}  ${d.q?f(d.q.t,2)+' @ '+f(d.q.v*2.237,0):'   -    '}  ${f(d.top*2.237,0).padStart(4)} |      ${f(g20,2)}  ${f(g35,2)}   ${f(gg,2)}  | ${f(bd&&bd*3.281,0).padStart(5)}   |        ${f(r.z60).padStart(4)}  ${f(r.latG,2)}  ${f(r.dirtLat,2)}${d.flip?'  FLIPPED ON THE STRIP':''}`);
 }
