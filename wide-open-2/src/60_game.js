@@ -123,7 +123,7 @@ function spawnCar(i,x,z,yaw){
   syncTouch();
 }
 /* drive the current car's rig (after a garage change or a new car) */
-function spawnRig(keepPlace=true){const t=GAME.car;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));}
+function spawnRig(keepPlace=true){const t=GAME.car,nb=t&&t.pt.e.nosKw?t.pt.nos:undefined,nk=t?nosKit():0,nc=t?t.build.car:null;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));nosCarry(nb,nk,nc);}
 const carWhole=t=>{for(const a of [t.p,t.v,t.w,t.q])for(let k=0;k<a.length;k++)if(!Number.isFinite(a[k]))return false;return true;};
 function resetCar(){const t=GAME.car;placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));}
 function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;CHAL.run=null;if(RACE.on)raceEnd('Race abandoned');placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
@@ -259,7 +259,7 @@ function step(dt){
   /* paused (the menu, boot, a race's results, a challenge's result card, someone's job dialog): the physics waits, the
      car held exactly as it was (speed and all) until the game carries on; a car placed meanwhile has settled (settleCar).
      Only the dust finishes falling */
-  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);return;}
+  if(GAME.state!=='drive'){GAME.acc=0;fxStep(dt);Feats.unsync();return;}
   /* a machine's rider leans; a rider who has bailed lets go of everything */
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
@@ -290,12 +290,13 @@ function step(dt){
   const ev=t.takeEvents();riderBail(t,ev);if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
   if(ev.wall>4||ev.ground>6)buzz(Math.min(90,20+Math.max(ev.wall,ev.ground)*6));
   if(ev.debead)say('A tyre rolled off its rim. R to reset',3.5,PAL.amber);
-  simWarn(dt,t);
+  simWarn(dt,t);nosStep(dt);
   /* the phone feels the gearbox and the limiter */
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(GAME.sdt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
+  if(GAME.state!=='drive')Feats.unsync();
+  else{Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(GAME.sdt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
 }
 /* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
    gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
@@ -431,7 +432,7 @@ function carUniformsW(t,v,dirt){
 function drawWorldCar(t,v,dirt,far,depth){
   const i=t.bi,b=t.build,u=CUR.u,M0=carMatrix(t);let Mb=M0,T=far?truckFar(i):truck(i);
   /* a phone out of graphics memory for this car's full body draws its coarse copy */
-  if(T.body.oom&&!far){far=true;T=truckFar(i);if(!GAME.oomSaid){GAME.oomSaid=true;say('THE PHONE IS OUT OF GRAPHICS MEMORY: CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
+  if(T.body.oom&&!far&&!meshRetry(T.body)){far=true;const spent=T.body.tries>=6;T=truckFar(i);if(spent&&!GAME.oomSaid){GAME.oomSaid=true;say('OUT OF GRAPHICS MEMORY: THIS CAR IS DRAWN COARSE. CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
   const D=T.D,pm=depth?null:(t.drawPrev||(t.drawPrev={}));
   if(pm&&(pm.ro0!==RO[0]||pm.ro2!==RO[2])){const dx=RO[0]-(pm.ro0??RO[0]),dz=RO[2]-(pm.ro2??RO[2]);
     for(const k in pm){const q=pm[k];const M=q&&(q.length===16?q:q.M0);if(M){M[12]-=dx;M[14]-=dz;}}pm.ro0=RO[0];pm.ro2=RO[2];}

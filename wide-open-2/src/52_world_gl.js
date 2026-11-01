@@ -97,7 +97,9 @@ function worldGL(){
   R.loadWorld({geo:null,lights:[],info:{lightGrid:{x0:-8,z0:-8,size:16,cell:8}}});
   R.U.uStudio=0;
   /* (the town's lights go into the grid after the opening screen is up: 65_boot) */
-  R.extra.push(LAND,CARHOOK,FXP,GLASSHOOK);
+  /* (your car before the land: it is the nearest thing in the picture, so the ground behind it is never shaded
+     only to be painted over; the depth test picks the same winner either way) */
+  R.extra.push(CARHOOK,LAND,FXP,GLASSHOOK);
   landPrograms();FXP.init();displayPrograms();
   const sp=R.shadowPass.bind(R);
   /* a 1 x 1 depth target the second pass's near cascade and headlight map go to: nothing is drawn into it */

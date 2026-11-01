@@ -251,6 +251,34 @@ x runs east, z south; downtown is at the origin.
   way (`MB.tri`, the hood split straight from the flat arrays), with every build's meshes checked bit for bit
   against the old builder's, and a wheel's matrix is now made in one scratch matrix instead of nine new ones.
 
+## Stunts (`src/58_feats.js`)
+
+A stunt is everything from all four wheels leaving the ground with the body clear of it too (or the car going over
+past 78 degrees) until it is back on its wheels and settled for half a second. On the way it counts the flight up
+to the first touch of the ground (distance, time, height); every full flip, roll and spin while it's off its wheels
+(a turn about 30 degrees short still counts; read from the car's orientation frame to frame, from the moment it
+leaves its wheels; after a touchdown only while it's really off them, so a spin-out on landing isn't a spin; a spin
+done nose up, which reads partly as a roll, is credited whole); and every tree, post or wall it clips (not the other
+cars in a race). Hitting things doesn't end it, and a hard hit no longer costs the combo on its own: coming to rest
+does. At rest on its wheels without a reset it's LANDED and pays (CLEAN, half as much again, if it came down upright
+and soft first time, stayed down and clipped nothing); at rest on its side or roof for a second it's BAILED (ROLLED
+IT if it never left the ground) and the unbanked combo goes with it; a quad's rider thrown off is a bail too. Hung up
+on something, upright with no wheels down, it's just over. A tip past 78 degrees and back with no air or turns is a
+save. A drift, two wheels or a burnout going when a stunt starts is paid there and then. Pausing doesn't bank the
+combo while a stunt is going (the car waits frozen under the menu). Flips pay 300, rolls 220, spins 120, clips 50, on
+top of the air. `tools/stunt_check.py` throws the car about on the salt and prints what each throw made.
+
+
+## Nitrous out in the wild (`src/60_nitrous.js`)
+
+The bottle (eight seconds of shot, whatever the kit's size) used to fill only when the car was built, so an empty one
+meant a trip to the Garage tab. In free play the bottle is always full. In the career a bottle comes from Deke at the
+gas station on Highway 40 east: at his pumps it is the bottle's price (by the kit's shot) and no wait; anywhere else
+the Drive tab's Nitrous row calls him out: the bottle, a fee for the drive by the distance, paid at once, and he
+arrives after the drive out at a delivery's pace, the clock on the HUD as DEKE 1:12 (it waits with the physics under
+the menu). Keep driving; it finds you. A rebuild in the Garage tab no longer fills the bottle for free in the career;
+a new kit, or another car, comes with its own full bottle. The physics is untouched: the bottle is a number the game sets.
+
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
 City Limits' night, one of Wide Open 2's three times of day (the top of this file says how the renderer draws them):

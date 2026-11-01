@@ -89,7 +89,7 @@ function drawWorldStats(){
     `MS EACH  2M ${av(0)}  4M ${av(1)}  8M ${av(2)}  ITEMS ${S.sn?(S.sms/S.sn).toFixed(1):'-'}  FAR ${S.fn?(S.fms/S.fn).toFixed(1):'-'}`,
     `WORST  2M ${S.mx[0].toFixed(0)} MS  ITEMS ${S.smx.toFixed(0)} MS  MAKER BUSY ${Math.min(999,S.genRate/10).toFixed(0)}%`,
     `GPU ${(S.bytes/1048576).toFixed(1)} MB  ${Math.round(APP.tris/1000)}K TRIS  ${APP.fps.toFixed(0)} FPS`,
-    (()=>{const P=perfStats();return P?`FRAME ${P.avg.toFixed(1)} MS  1% LOW ${(1000/P.low1).toFixed(0)} FPS  JS ${P.js.toFixed(1)} MS  DRAWS ${PERF.draws}`:'';})(),
+    (()=>{const P=perfStats();return P?`FRAME ${P.avg.toFixed(1)} MS  1% LOW ${(1000/P.low1).toFixed(0)} FPS  JS ${P.js.toFixed(1)} MS  DRAWS ${PERF.draws}${GLC.oom?'  UPLOADS REFUSED '+GLC.oom:''}`:'';})(),
     ...rperfRows(),`HUD ${BW}X${BH}  ORIGIN ${RO[0]},${RO[2]} (${WORLD.steps||0} STEPS)  LIGHT GRID ${LG.n} LIGHTS, ${LG.ms.toFixed(0)} MS TO MAKE`,
     `PASSES OFF: ${Object.keys(DEVW.off).filter(k=>DEVW.off[k]).join(' ').toUpperCase()||'NONE'}`,
     `BOOT MS: RENDERER ${BOOT.renderer||'-'}  WORLD ${BOOT.world||'-'}  CAR ${BOOT.car||'-'}  SHADERS ${BOOT.shaders||'-'} (+${BOOT.built||0} CARS)  LIGHTS ${BOOT.lights||'-'}  PHOTOS ${BOOT.photos||'-'}`,

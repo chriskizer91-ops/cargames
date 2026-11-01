@@ -16,7 +16,8 @@ const CARD_NAME={quad90:"Kids' quad",quad450:'Sport quad',quadUtil:'Ranch quad',
 function openMenu(first){
   if(GAME.state==='jdlg')closeJobDialog();if(GAME.state==='cres')closeChalResult(true);
   /* pausing banks whatever combo is on the table: changing parts or going somewhere won't cost it */
-  if(GAME.state==='drive'&&Feats.S.combo)Feats.bankNow();
+  /* (not with a stunt going: the car is frozen under the menu, and the stunt carries on, or bails, after it) */
+  if(GAME.state==='drive'&&Feats.S.combo&&!Feats.S.live.stunt)Feats.bankNow();
   if(GAME.state==='drive'){GAME.frozen=true;engineDuck(true);}
   APP.title=!!first;
   GAME.state='menu';$('menu').hidden=false;inputRelease();syncTouch();
@@ -57,7 +58,7 @@ function syncMenu(){
   for(const el of $('mCars').querySelectorAll('.card')){const car=el.dataset.car,own=ownsCar(car);el.setAttribute('aria-pressed',String(car===APP.car));
     el.classList.toggle('dealer',!own&&carOpen(car));el.classList.toggle('locked',!own&&!carOpen(car));
     el.querySelector('small').textContent=own?rigName(car,rigOf(car))+plusTag(car):dealerLine(car);}
-  $('mCarHint').textContent=CAR_HINT[APP.car];
+  $('mCarHint').textContent=CAR_HINT[APP.car];syncNos();
   /* the presets for this car, and Custom when the garage has changed it */
   const pr=$('mPresets');pr.textContent='';const cur=rigName(APP.car,rigOf(APP.car));
   for(const id of presetsOf(APP.car)){const b=BUILDS.find(q=>q.id===id),el=document.createElement('button');el.type='button';el.className='place';el.textContent=b.name;el.title=b.tag;
@@ -112,7 +113,7 @@ function syncModes(){
   $('mWipe').hidden=!CAREER.on;if(GAME.state==='menu')$('mEyebrow').textContent=menuEyebrow();
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
-function buildMenu(){
+function buildMenu(){buildNos();
   buildShow();
   for(const b of $('mTabs').children)b.addEventListener('click',()=>showTab(b.dataset.t));
   const cx=$('mCars');let grp='';
@@ -204,7 +205,7 @@ function showResults(){
 }
 function hideResults(){$('rres').hidden=true;raceEnd(null);GAME.state='drive';CAM.cut=true;syncTouch();INPUT.down.clear();}
 /* ---------- cool stuff: the money, the last ten, the bests ---------- */
-const BEST_NAMES=[['combo','Biggest combo'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
+const BEST_NAMES=[['combo','Biggest combo'],['stunt','Biggest stunt'],['jump','Longest jump'],['airtime','Most air'],['drift','Longest drift'],['two','Longest on two wheels'],['speed','Longest speed run'],
   ['burn','Longest burnout'],['mudpit','Fastest mud pit'],['summit','Fastest up Red Hill'],['rocks','Fastest clean rock garden'],['lap','Fastest lap']];
 const ago=ms=>{const s=(Date.now()-ms)/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<129600?Math.round(s/3600)+' h ago':Math.round(s/86400)+' days ago';};
 function syncCool(){
