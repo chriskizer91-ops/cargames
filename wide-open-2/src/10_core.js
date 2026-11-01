@@ -209,7 +209,10 @@ function txtBegin(){TXT.q.length=0;}
 function txtFlush(){
   const x=tCtx();if(!x)return;
   if(!TXT.on){if(TXT.last!==''){x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,TXT.cv.width,TXT.cv.height);TXT.last='';}return;}
-  if(TXT.w!==VW||TXT.h!==VH){TXT.cv.width=TXT.w=VW;TXT.cv.height=TXT.h=VH;TXT.last='#';}
+  /* (at the screen's own sharpness, whatever the picture is drawn at: the renderer draws at fewer device pixels than a
+     phone has, and TAA and the scale make that up; words must not be) */
+  const TD=Math.min(window.devicePixelRatio||1,touchy?3:2.5),TW=Math.max(2,Math.round(innerWidth*TD)),TH=Math.max(2,Math.round(innerHeight*TD));
+  if(TXT.w!==TW||TXT.h!==TH){TXT.cv.width=TXT.w=TW;TXT.cv.height=TXT.h=TH;TXT.last='#';}
   /* the layer is repainted whole, so: compared item by item with what was painted (no key string built every
      frame), painted at once when the layout changes or an item comes or goes (a message), and at most every 80 ms
      when only a value moved (the speed, a clock, a fade), so live numbers cost at most a dozen repaints a second */
@@ -217,8 +220,8 @@ function txtFlush(){
   if(lay&&P.length===Q.length){let same=true;for(let i=0;i<Q.length&&same;i++){const a=Q[i],b=P[i];for(let k=0;k<9;k++)if(a[k]!==b[k]){same=false;break;}}
     if(same||performance.now()-TXT.paintT<80)return;}
   TXT.last='p';TXT.lx=RECT.x;TXT.ly=RECT.y;TXT.lw=RECT.w;TXT.lW=W;TXT.prev=Q.slice();TXT.paintT=performance.now();
-  x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,VW,VH);
-  const cell=tCell(),k=cell*DPR,ox=RECT.x*DPR,oy=RECT.y*DPR;
+  x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,TW,TH);
+  const cell=tCell(),k=cell*TD,ox=RECT.x*TD,oy=RECT.y*TD;
   x.textBaseline='alphabetic';x.lineJoin='round';
   for(const [kind,s,gx,gy,col,sc,align,it,ol] of Q){
     const face=tFace(kind,s,sc),sz=tSize(kind,face,sc),w=tWidth(kind,s,sc),nat=tNat(kind,s,sc),sx=nat>w?w/nat:1,capH=kind===2?sc:(kind===0?7:5)*sc;

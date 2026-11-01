@@ -8,6 +8,52 @@ is a fork of `city-and-country/` on the `city-and-country/round-1` branch (Wide 
 `BRIEF.md` is the build brief; the sections below are Wide Open's own README, kept as the description of what
 the game is until this one has moved on from it.
 
+## Where it stands
+
+**Phase 1, the renderer.** The game is drawn by Shiftlight 3's renderer (`src/11_sl3.js`, the same bundle Rut
+Access uses, unchanged): HDR with the sun (by night the full moon) through cascaded shadow maps, the town's lamps
+in a clustered light grid, the car's headlights with a real low-beam cut-off and their own shadow map, a reflection
+probe at the car, screen-space reflections, volumetric fog, TAA that rebuilds full resolution from a jittered
+lower-resolution frame with dynamic resolution, bloom, eye-like auto exposure and the ACES grade. Everything Wide
+Open drew comes from its own meshes and materials, through the renderer's hooks:
+
+- **The world** (`52_world_gl.js`, `LAND`): what `drawWorld` draws (the far tiles, the streamed chunks at their
+  levels of detail, the roads, the buildings, poles and stands, the trees, the mud clods, the rain) into the scene,
+  the probe and the shadow maps. Everything is drawn relative to the floating origin, the renderer included: when
+  the origin steps the last frame's matrix takes the step (TAA and the reflections reproject through it), the light
+  grid moves with it, every cascade is drawn afresh that frame and each car's kept matrices step too.
+- **The materials** (`13_lit.js`, `rutShaders()`): Rut Access's port of Showdown's into the renderer's lighting,
+  with every one Wide Open added: the salt crust and clay and the salt course's black line and mile bars, the
+  public roads by class with their lines, zebras and medians, the town's facades with lit windows and storefronts,
+  the traffic signals, the park's tracks fading to grass, the cars' light strips and underglow, the two studios.
+  Emissives are Wide Open's values times five (the renderer's sun is about five times the old one).
+- **The lights** (`59_daynight.js`): the town's and the park's 1,158 lights in the renderer's grid (8 m cells over
+  3.8 by 2.4 km; 35 ms to make at the boot, a third of a millisecond to move with the origin), at 100 times these
+  games' values; the yard lights nearest the car, the tail lights, the underglow and the others' headlights as the
+  frame's own lamps. High noon (new: the default for this phase) and the full moon, in the renderer's units.
+- **The cars** (`60_game.js`, `CARHOOK`): yours and a race's others, the riders on the machines, each part with its
+  last frame's matrix so TAA sees it move; the occlusion under each car; the dust and spray as soft puffs through
+  the particles hook (`53_fx.js`, `FXP`); the challenges' columns of light in the glass pass.
+- **The showroom** (`63_showroom.js`, `STUDIO`): the two studios as scenes of their own, the studio's lamps as the
+  frame's lamps, its key light the sun with the cascades' shadow, a probe at the car; the dark bay's floor is
+  glossy through the screen-space reflections.
+- **The display** (`55_post.js`): the clear picture by default, the HUD's dots over it and the smooth text over
+  that; or the LED dot matrix. Dynamic resolution; frames on an even beat (every second refresh on a 90 Hz
+  phone). The renderer's numbers (render size, GPU time, tier, chip) are in the F overlay.
+- **Graphics** (`55_gfx.js`): Shiftlight's tiers, Mobile to Ultra, Mobile by default on a touch screen, each with
+  the streamed world's ring sizes. Changing the tier starts the page again on it.
+- **Dev: the look** (the Dev tab): saturation, contrast, exposure, haze, ground detail, sun shadows and the shade
+  under the cars, to A/B on the phone (saved as `wo2-look`).
+
+Wide Open's own drawing path is gone (it is not kept as a fallback); Wide Open's build stays the reference for
+side-by-side pictures. The ground photographs (Rut Access's texture packs) are Phase 2: the shader's helpers for
+them are in, compiled out until the pictures are packed into the page.
+
+Tools for this phase: `node tools/shot_wo2.js <out> name:tier:display:tod:place[:cam]` (pictures of this build,
+or of Wide Open's with `FILE=`), `node tools/eval_wo2.js "<code>"` (runs code in the booted page),
+`node tools/wo2_check.js` (boots, drives several places, a race, a challenge, the showroom and the night; fails on
+any page error).
+
 ---
 
 # Redline County: Wide Open

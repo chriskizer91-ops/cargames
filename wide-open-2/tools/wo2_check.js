@@ -32,10 +32,10 @@ const places=(process.argv[2]||'garage,downtown,ring,hwyE,gas,ridge,oval,mud,str
     const t=G.car,eye=()=>[t.p[0],t.p[1]+3,t.p[2]],ro0=[...g.RO];let frames=0,nan=0;
     for(let k=0;k<200;k++){g.worldUpdate(eye(),t);const c=g.WORLD.chunks.get((Math.floor(t.p[0]/128)+4096)*8192+Math.floor(t.p[2]/128)+4096);if(c&&c.H&&c.st)break;await wait(50);}
     g.placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));
-    g.setTestInput({steer:0,thr:.8,brk:0,hb:0,nos:false});
+    g.setTestInput({steer:.25,thr:1,brk:0,hb:0,nos:false});
     for(let k=0;k<240;k++){g.APP.t+=dt;g.step(dt);if(k%12===0){g.render(dt);frames++;}else{g.worldUpdate(eye(),t);g.setOrigin(eye());}if(!t.p.every(Number.isFinite))nan++;if(k%10===0)await wait(0);}
     g.setTestInput(null);
-    return {place:G.place,mph:Math.round(t.speed*2.237),frames,nan,tris:g.APP.tris,chunks:g.WORLD.chunks.size,ro:[...g.RO],stepped:g.RO[0]!==ro0[0]||g.RO[2]!==ro0[2],render:g.R.iw+'x'+g.R.ih};},place);
+    return {place:G.place,mph:Math.round(t.speed*2.237),frames,nan,puffs:g.FX.filter(p=>p.kind!=='mud').length,clods:g.FX.filter(p=>p.kind==='mud').length,tris:g.APP.tris,chunks:g.WORLD.chunks.size,ro:[...g.RO],stepped:g.RO[0]!==ro0[0]||g.RO[2]!==ro0[2],render:g.R.iw+'x'+g.R.ih};},place);
   /* a race: the first one (or the one asked for), a robot in your seat for a minute and a half, frames drawn on the way */
   await run('race',async id=>{const g=window.__game,G=g.GAME,R=g.RACE,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));g.closeMenu();G.state='drive';
     id=id||g.RACE_EVENTS[0].id;g.startRace(id);const t=G.car;let pd=null,frames=0,f=0;
