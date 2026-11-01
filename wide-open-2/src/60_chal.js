@@ -435,10 +435,12 @@ function chalDraw(cam){
     for(const m of CH_MARKS){if(o>=n*12)break;if(Math.hypot(m.x-e[0],m.z-e[2])>(m.kind==='start'?4000:2500))continue;
       const H=m.kind==='start'?(m.near?8:m.h):m.kind==='person'?(m.near?6:46):m.kind==='gate'?22:3.2;
       BEAM_BUF[o]=m.x-RO[0];BEAM_BUF[o+1]=m.y-.5-RO[1];BEAM_BUF[o+2]=m.z-RO[2];BEAM_BUF[o+3]=m.r;
-      BEAM_BUF[o+4]=H;BEAM_BUF[o+5]=0;BEAM_BUF[o+6]=m.em;BEAM_BUF[o+7]=0;
+      BEAM_BUF[o+4]=H;BEAM_BUF[o+5]=0;BEAM_BUF[o+6]=m.em*(m.near&&!SKY.night?.3:1);BEAM_BUF[o+7]=0;
       BEAM_BUF[o+8]=m.col[0];BEAM_BUF[o+9]=m.col[1];BEAM_BUF[o+10]=m.col[2];BEAM_BUF[o+11]=m.kind==='ring'?1:H/6;o+=12;}
     gl.bindBuffer(gl.ARRAY_BUFFER,BEAM_MESH.inst);gl.bufferSubData(gl.ARRAY_BUFFER,0,BEAM_BUF.subarray(0,n*12));BEAM_MESH.ni=n;}
   const u=P_BEAM.u;gl.useProgram(P_BEAM.p);gl.uniformMatrix4fv(u.uVP,false,cam.VP);gl.uniform3fv(u.uCam,cam.eyeR);gl.uniform1f(u.uT,APP.t);gl.uniform1f(u.uK,(SKY.beam||(SKY.night?1.1:3.2))*LOOK.beam);
+  /* (a column you stand in, by day, at a third of its strength: at full strength it fills the view and the exposure
+     darkens everything else) */
   /* (only the column's far wall, seen from outside, or the walls round you from inside: half the pixels to fill) */
   gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);
   gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.depthMask(false);drawMeshI(BEAM_MESH);gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.CULL_FACE);gl.useProgram(CUR.p);
