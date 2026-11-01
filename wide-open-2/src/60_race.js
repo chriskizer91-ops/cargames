@@ -165,7 +165,7 @@ function raceFrame(dt){
   else if(RACE.state==='race'||RACE.state==='flag')RACE.clock+=dt;
   /* off the physics far from you, back on near (not while it would land on another car); riding out past where
      it could be seen, it isn't set down on the ground at all */
-  const p=GAME.car.p,vis=(SKY.night?SKY.draw:GFX.far)+30;
+  const p=GAME.car.p,vis=(SKY.night&&SKY.draw?SKY.draw:GFX.far)+30;
   for(const c of RACE.cars){const d=c.drv;if(!d)continue;if((c.done||c.out)&&!d.done)d.done=true;
     let d2=0;if(RACE.state!=='grid'){const q=d.kin?d.kinXZ():c.car.p,dx=q[0]-p[0],dz=(d.kin?q[1]:q[2])-p[2];d2=dx*dx+dz*dz;
       /* (a rider that is still on top of another car this close drops back a little at a time until it isn't) */
@@ -254,7 +254,7 @@ function raceEnd(why){
 }
 /* ---------- drawing the robots' cars ---------- */
 function raceDraw(c){
-  if(!RACE.on)return 0;let tris=0;const F=frustum(c.VPw),e=c.eye,far=SKY.night?SKY.draw:GFX.far;
+  if(!RACE.on)return 0;let tris=0;const F=frustum(c.VPw),e=c.eye,far=SKY.night&&SKY.draw?SKY.draw:GFX.far;
   for(const o of RACE.cars){if(o.me||!o.built||o.drv.kin&&!o.drv.posed)continue;const t=o.car,r=t.c.body.L*.6+1,d=Math.hypot(t.p[0]-e[0],t.p[2]-e[2]);
     if(d>far)continue;if(!boxVisible(F,[t.p[0]-r,t.p[1]-r,t.p[2]-r],[t.p[0]+r,t.p[1]+r,t.p[2]+r]))continue;
     tris+=drawWorldCar(t,null,o.dirt,true);}

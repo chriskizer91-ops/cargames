@@ -93,3 +93,17 @@ function rperfRows(){if(!R)return [];const f=x=>x.toFixed(1);
   return [`RENDER ${R.iw}X${R.ih} OF ${R.W}X${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1].toUpperCase()}  ${DISP.mode==='dots'?'DOTS '+PIC.dots[0]+'X'+PIC.dots[1]:'CLEAR'}`,
     `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS':'NOT REPORTED'}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
     `CHIP ${String(R.gpuName).toUpperCase().slice(0,52)}${R.software?' (SOFTWARE)':''}`];}
+/* ---------- the performance readout (F, or the Dev tab's Numbers on screen: Readout): small, under the HUD's name
+   block, in Rut Access's style: frames a second against the beat, the frame's time and its worst, the CPU's share, the
+   GPU's time where the browser reports it, the render size, triangles, chunks and lights ---------- */
+const PRO={t0:0};
+function perfReadout(){
+  const el=$('perf');if(!el)return;const on=DEVW.hud==='perf'&&GAME.state==='drive';if(el.hidden===on)el.hidden=!on;if(!on||!R)return;
+  const now=performance.now();if(now-PRO.t0<500)return;PRO.t0=now;
+  const n=Math.min(PERF.n,30);if(!n)return;let s=0,w=0,js=0;for(let k=0;k<n;k++){const i=(PERF.i-1-k+240)%240;s+=PERF.ft[i];w=Math.max(w,PERF.ft[i]);js+=PERF.js[i];}
+  const f=x=>x.toFixed(1),g=RPERF.ms;
+  el.textContent=[`${Math.round(1000*n/s)} FPS   beat ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} (${RESO?RESO.hz:'-'} Hz)   frame ${f(s/n)} ms   worst ${f(w)}`,
+    `CPU ${f(js/n)} ms   GPU ${g>0?f(g)+' ms':'not reported'}`,
+    `render ${R.iw}×${R.ih} of ${R.W}×${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1]}${DISP.mode==='dots'?'  dots':''}`,
+    `${Math.round(APP.tris/1000)}k tris   ${WORLD.chunks.size} chunks   lights ${R.lights?R.lights.stats.lights:0} + ${APP.dynN||0}`].join('\n');
+}

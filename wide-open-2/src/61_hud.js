@@ -87,7 +87,7 @@ function drawHud(c){
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
   drawFeatsHud();if(RACE.on)drawRaceHud(lx,sc);else if(CHAL.run)drawChalHud(lx,sc);else{drawParkHud(lx,sc);drawJobHud(lx,sc);}
-  if(DEVW.hud)drawWorldStats();
+  if(DEVW.hud==='full')drawWorldStats();
   if(!on){const msg=GAME.touch?'TAP GAS TO START':'PRESS W OR I TO START';if((APP.t*1.6|0)%2===0)otxt5(msg,W/2,H-26,GR.steel,1,'c');}
   else if(pt.st==='crank')otxt3('CRANKING',W/2,H-22,PAL.amber,1,'c');
   /* a lap under way on the road course */

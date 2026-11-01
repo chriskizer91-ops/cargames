@@ -83,7 +83,7 @@ function worldRings(){
   const r=GFX.q,k=DEVW.view==='near'?.75:DEVW.view==='far'?1.35:1;
   WORLD.near=r.near*k;WORLD.farR=r.farR*k;WORLD.lodD=[r.lodD[0]*k,r.lodD[1]*k];WORLD.propD=r.propD*k;
   /* under the full moon the fog is thin enough to see a long way; the far land (and downtown's skyline) on a laptop */
-  if(SKY.night){WORLD.near=Math.min(WORLD.near,560);WORLD.farR=GFX.level==='mobile'||GFX.level==='low'?0:Math.min(WORLD.farR,1800);WORLD.propD=Math.min(WORLD.propD,420);}
+  if(SKY.night>.5){WORLD.near=Math.min(WORLD.near,560);WORLD.farR=GFX.level==='mobile'||GFX.level==='low'?0:Math.min(WORLD.farR,1800);WORLD.propD=Math.min(WORLD.propD,420);}
 }
 
 /* ---------- the worker ---------- */
@@ -366,7 +366,7 @@ function drawTreeList(L,u,far){let tris=0;gl.uniform1f(u.uInst,1);
   for(let v=0;v<L.cnt.length;v++)for(let l=0;l<2;l++){const n=L.cnt[v][l];if(!n)continue;const m=TREES.shapes[v][far?1:l];instBind(m,L.gb[v][l],n);drawMeshI(m);tris+=m.tris*n;}
   gl.uniform1f(u.uInst,0);return tris;}
 function drawTreesW(cam,F,maxD,probe){
-  TREE_NEAR=GFX.q.treeNear;
+  TREE_NEAR=GFX.q.treeNear;if(GFX.level==='mobile')maxD=Math.min(maxD,BUDGET.treeD);
   /* the probe looks every way from the car, so its list has no frustum and serves all six faces; at its few
      pixels a face every tree is its single lump */
   return probe?drawTreeList(treeList('p',cam.eye,maxD,null,true),CUR.u,true):drawTreeList(treeList('v',cam.eye,maxD,F,false),CUR.u,false);

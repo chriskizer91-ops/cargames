@@ -9,7 +9,7 @@
 /* DEV: set to false to ship; the panel, the T key and the HUD tag go away and everything drives on the defaults */
 const DEV=true;
 /* ---------- the look: judgment calls about the picture the owner can A/B on the phone (saved on the device) ---------- */
-const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1,tex:1,texcol:.5},LOOK=Object.assign({},LOOK_DEF);
+const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1,tex:1,texcol:.5,moon:1,lamps:1,glow:1,beam:1,hl:1,dust:1,rain:1,sun:1,bloom:1,stars:1},LOOK=Object.assign({},LOOK_DEF);
 function lookLoad(){try{const d=JSON.parse(store.get('wo2-look','{}'))||{};for(const k in LOOK_DEF)if(typeof d[k]==='number')LOOK[k]=d[k];}catch(e){}}
 if(DEV)lookLoad();
 const lookSave=()=>store.set('wo2-look',JSON.stringify(LOOK));
@@ -18,8 +18,29 @@ const LOOK_S=[['sat','Saturation',.6,1.6,'The grade\'s saturation, times the tim
   ['con','Contrast',.8,1.3,'The grade\'s contrast round mid grey.'],
   ['key','Exposure',.5,2,'The auto exposure\'s target brightness, times the time of day\'s own (and the studio\'s).'],
   ['haze','Haze',0,2,'The light in the air: the volumetric fog, its ambient and the far land\'s fade into the sky.'],
-  ['detail','Ground detail',0,1,'How much detail is cut into the ground: clods, stones, cracks, grass tufts, tarmac grain. The tier sets the default (Mobile 60%).']];
+  ['detail','Ground detail',0,1,'How much detail is cut into the ground: clods, stones, cracks, grass tufts, tarmac grain. The tier sets the default (Mobile 60%).'],
+  ['tex','Ground photos',0,1,'How much of the ground photographs (the texture packs) is laid over the procedural ground: 0 is the ground as Wide Open drew it, 100% the pictures in full.'],
+  ['texcol','Photo colour',0,1,'0: only the pictures\' grain, in the game\'s own ground colours. 100%: the pictures\' own colours, as made.'],
+  ['sun','Sunlight',.5,1.6,'The sun\'s strength at noon and at golden hour, against the sky\'s light in the shade (more: harder shadows, more contrast).'],
+  ['bloom','Bloom',0,3,'The glow round anything bright: the sun, the lamps, the neon, the columns, chrome in the sun.'],
+  ['stars','Stars',0,3,'How bright the stars are under the full moon.'],
+  ['moon','Moonlight',.4,2,'The full moon\'s light and the night sky\'s, on the country and the salt away from the lamps.'],
+  ['lamps','Lamps',.3,2.5,'The town\'s and the park\'s lights, the yard lights and the diner\'s and the gas station\'s: how far their light reaches onto the street.'],
+  ['glow','Glow',.3,2.5,'The neon, the signs, the lit windows and storefronts, the signals and the lamps\' own faces.'],
+  ['hl','Headlights',.4,2.5,'Your headlights: the pool of light on the road and its cut-off.'],
+  ['dust','Dust and spray',0,2,'How much the tyres throw up: dust off dirt and gravel, clods off mud, spray off wet tarmac and the fords. Mobile keeps at most 220 alive at once, the others 360.'],
+  ['rain','Rain',0,1.5,'How heavy the rain looks under the Sim level\'s Rain and Downpour: the falling streaks and the splashes (the drops on the lens from the hood camera).'],
+  ['beam','Challenge columns',.3,2.5,'The columns of light over the challenges\' starts and gates, by day and by night.']];
 const LOOK_T=[['shadows','Sun shadows','The cascaded shadow maps (the moon\'s at night). Off, the sun casts nothing, and the frame is cheaper.'],['occ','Shade under the cars','The soft occlusion on the ground under each car.']];
+/* the phone's budgets (52_world_gl's BUDGET, Mobile only): id, label, min, max, note, how it reads */
+const BUDGET_S=[['scale','Render scale ceiling',.5,1,'The most of the screen\'s pixels the frame is drawn at before TAA rebuilds the rest; dynamic resolution works under it to hold the beat. 75% ships.',v=>Math.round(v*100)+'%'],
+  ['shadowD','Shadow distance',120,400,'How far out buildings, poles and trees are drawn into the sun\'s (the moon\'s) shadow maps. 320 m ships.',v=>Math.round(v)+' m'],
+  ['treeD','Tree distance',150,400,'How far the trees are drawn (past the full ones, a single lump each). 340 m ships.',v=>Math.round(v)+' m'],
+  ['treeNear','Full trees within',30,110,'How near a tree is drawn with its whole crown and trunk. 70 m ships.',v=>Math.round(v)+' m'],
+  ['probeEvery','Reflections: a face every',1,6,'The reflection probe at the car is six faces; one is drawn every this many frames. 3 ships.',v=>Math.round(v)+' frames'],
+  ['farCSM','Far shadows every',2,8,'The far shadow cascade is drawn every this many frames (the near one every frame, the middle one every second). 4 ships.',v=>Math.max(2,Math.round(v/2)*2)+' frames'],
+  ['fx','Dust and spray at once',60,360,'How many puffs, clods and drops of spray can be alive at once. 220 ships.',v=>String(Math.round(v))]];
+const BUDGET_T=[['carLod','Your car\'s coarse copy in the far shadows','Your car into the middle and far shadow cascades as its coarser copy (its shadow there is a few texels across); the near cascade always has the full car.']];
 /* the ground, surface by surface: id, label, where it is */
 const DEV_GROUND=[['asphalt','Tarmac','The race track and its kerbs.'],['concrete','Concrete','The shop pad, the store apron and the paddock.'],
   ['strip','Drag strip','The prepped dirt of the eighth mile.'],['dirt','Dirt','The yard, the ranch roads and the burnout pad.'],
@@ -144,6 +165,16 @@ function buildDev(){
     const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
     inp.addEventListener('change',()=>{LOOK[k]=inp.checked?1:0;lookSave();});el.sync=()=>{inp.checked=!!LOOK[k];};$('mDevLookT').appendChild(el);DEV_ROWS.push(el);}
   $('mDevLookReset').addEventListener('click',()=>{Object.assign(LOOK,LOOK_DEF);lookSave();syncDev();});
+  /* the phone's budgets */
+  $('mDevBudget').hidden=false;
+  if(GFX.level!=='mobile')$('mDevBudgetNote').textContent+=' This device is on '+GFX_LEVELS.find(l=>l[0]===GFX.level)[1]+': they do nothing here.';
+  for(const [k,n,lo,hi,note,fm] of BUDGET_S){const el=document.createElement('div');el.className='devrow';el.innerHTML='<label></label><output></output><input type="range"><small></small>';
+    const inp=el.querySelector('input'),lb=el.querySelector('label');lb.textContent=n;lb.htmlFor=inp.id='devb_'+k;inp.min=lo;inp.max=hi;inp.step=hi>20?1:hi>2?.5:.01;el.querySelector('small').textContent=note;
+    inp.addEventListener('input',()=>{BUDGET[k]=+inp.value;budgetSave();budgetApply();el.sync();});el.sync=()=>{inp.value=BUDGET[k];el.querySelector('output').textContent=fm(BUDGET[k]);};$('mDevBudgetS').appendChild(el);DEV_ROWS.push(el);}
+  for(const [k,n,note] of BUDGET_T){const el=document.createElement('label');el.className='devchk';el.innerHTML='<input type="checkbox"><span><b></b><small></small></span>';
+    const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
+    inp.addEventListener('change',()=>{BUDGET[k]=inp.checked?1:0;budgetSave();});el.sync=()=>{inp.checked=!!BUDGET[k];};$('mDevBudgetT').appendChild(el);DEV_ROWS.push(el);}
+  $('mDevBudgetReset').addEventListener('click',()=>{Object.assign(BUDGET,BUDGET_DEF);budgetSave();budgetApply();syncDev();});
 }
 /* a Sim piece changed: the car reads it now (the roof load rebuilds the car where it stands) */
 function simDevApply(rebuild){store.set('wo2-simdev',JSON.stringify(SIMDEV));if(rebuild&&APP.level==='sim')spawnRig();else if(GAME.car)GAME.car.applySim();syncDev();}

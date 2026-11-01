@@ -7,7 +7,7 @@
    Engine synth (17_audio), heard from behind the car.
    ===================================================================================== */
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3],[1280,720,4]];
-const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:false,tod:'day',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
+const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:true,tod:'night',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
 /* the career (60_career): on or not, its save, and free play's cars and rigs kept aside while it's on */
@@ -234,7 +234,7 @@ function step(dt){
     if(inp.od)say(setOD(!APP.od)?(APP.od?'Overdrive off':'Overdrive on'):pt.e.cvt?'No overdrive on a belt drive':'No overdrive button on a manual',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
-    if(inp.stats){DEVW.hud=!DEVW.hud;saveDev();}
+    if(inp.stats){DEVW.hud=DEVW.hud==='off'?'perf':DEVW.hud==='perf'?'full':'off';saveDev();say(DEVW.hud==='off'?'Numbers off':DEVW.hud==='perf'?'Performance readout':'Every number',1.2);}
     if(inp.cruise)toggleCruise();
     if(inp.pitch){ENG.pitch=ENG.pitch===1?.9:ENG.pitch===.9?.8:1;saveEng();syncSound();say('ENGINE PITCH '+Math.round(ENG.pitch*100)+'%'+(ENG.pitch===1?' (TRUE)':''),1.8);}
     if(inp.trac&&DEV)say('Traction '+pct(devStep()),1.4);
@@ -474,11 +474,11 @@ function drawRider(t,T,Mb,setM){
 }
 /* the renderer's hook for the cars: yours and a race's others into the shadow maps (yours not into its own
    headlights'), into the scene. The race's own drawing (60_race's raceDraw) culls and picks the coarse copies */
-const CARHOOK={c:null,
-  shadow(R,Pd,VP,kind,k){const c=this.c;if(!c||showActive())return;const G=R.G,F=frustum(toWorld(VP));let used=false;
+const CARHOOK={c:null,skip0:false,
+  shadow(R,Pd,VP,kind,k){const c=this.c;if(!c||showActive()||this.skip0&&(kind==='hl'||k===0))return;const G=R.G,F=frustum(toWorld(VP));let used=false;
     const one=(t,far)=>{const r=t.c.body.L*.6+1;if(!boxVisible(F,[t.p[0]-r,t.p[1]-r,t.p[2]-r],[t.p[0]+r,t.p[1]+r,t.p[2]+r]))return;
       if(!used){used=true;useLit(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);gl.disable(gl.CULL_FACE);}drawWorldCar(t,null,0,far,true);};
-    if(kind!=='hl')one(GAME.car,false);
+    if(kind!=='hl')one(GAME.car,k>=1&&budgetOn()&&BUDGET.carLod>.5);
     for(const o of raceCars())one(o,true);
     if(used)G.use(Pd);},
   opaque(R,U,texs){const c=this.c;if(!c||showActive())return;const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);CUR=litOf(P);
@@ -505,14 +505,16 @@ function render(dt){
   const cut=!!CAM.cutFrame;CAM.cutFrame=false;
   /* the lamps: yours, the yard lights nearest you, and at night the others' headlights */
   const L={dyn:[],headlights:null};carLights(t,L);
-  const others=raceCars();if(SKY.night&&others.length)rivalLights(L,others,c.eye);
-  yardLights(L,t.p,14);
+  const others=raceCars();if(SKY.lightsOn&&others.length)rivalLights(L,others,c.eye);
+  yardLights(L,t.p,14);APP.dynN=L.dyn.length;
   const occ=[occOf(t)];for(const o of others){if(occ.length>=8)break;occ.push(occOf(o));}
   /* the HUD first: the LED display lights its dots as part of the picture */
   drawHud(c);hudUpload();tq=psT(PS_HUD,tq);
   LAND.c=CARHOOK.c=GLASSHOOK.c=c;LAND.dt=dt;R.U.uStudio=0;
-  R.render({time:APP.t,dt,cam:{pos:c.eyeR,fwd:c.fwd,up:c.up,fov:c.fov,near:c.near,far:c.far,shift:c.shift||0},cut,env:envNow(),flicker:FLICK,
-    probePos:[t.p[0]-RO[0],t.p[1]+1.1-RO[1],t.p[2]-RO[2]],dyn:L.dyn,headlights:L.headlights,occ:LOOK.occ?occ:[],shutter:.5,lensRain:0,
+  /* the rain: the renderer's particles round the camera (53_fx) */
+  const env=envNow();rainUpdate(c.eye,t.v,env.rain);
+  R.render({time:APP.t,dt,cam:{pos:c.eyeR,fwd:c.fwd,up:c.up,fov:c.fov,near:c.near,far:c.far,shift:c.shift||0},cut,env,flicker:FLICK,
+    probePos:[t.p[0]-RO[0],t.p[1]+1.1-RO[1],t.p[2]-RO[2]],dyn:L.dyn,headlights:L.headlights,occ:LOOK.occ?occ:[],shutter:.5,lensRain:CAMS[APP.cam]==='Hood'&&!APP.orbit?env.rain*LOOK.rain*.8:0,
     led:ledState(),after:DISP.mode==='clear'?hudOverlay:null,debug:DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?null:DEBUG_VIEW});
   gl.bindVertexArray(null);APP.tris=LAND.tris+(APP.carTris||0);rperfAcc();
   psT(PS_SCENE,tq);
@@ -523,7 +525,9 @@ function setRes(i,keep){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/h
 function layout(){const vw=innerWidth,vh=innerHeight;
   /* the bay's window fills the whole screen, the car behind the lab's instruments: its dots take the window's shape */
   if(SHOW.full){bayFill(vw,vh);return;}if(BAYGRID.on){BAYGRID.on=false;setRes(APP.res,true);}
-  let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};}
+  let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};
+  /* the performance readout sits under the HUD's name block, clear of the touch buttons, the tach and the car */
+  const pf=$('perf');if(pf){pf.style.left=Math.max(GAME.touch?92:8,RECT.x+RECT.w*.012)+'px';pf.style.top=(RECT.y+RECT.h*.31)+'px';}}
 /* the same dot pitch the 16:9 picture would have had, over the whole window */
 const BAYGRID={on:false,key:''};
 function bayFill(vw,vh){const [dw,dh,hs]=RES[APP.res];let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}const pitch=w/dw;
@@ -546,6 +550,6 @@ function frame(ts){
   /* (a test can hold the loop still and draw frames itself) */
   perfBegin();
   if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last,dt);raceSound(CAM.last);}psT(PS_SOUND,ts0);drsStep(dt);}catch(e){console.error(e);}
-  perfEnd(dt);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
+  perfEnd(dt);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);perfReadout();
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps · '+WORLD.chunks.size+' chunks';}
 }
