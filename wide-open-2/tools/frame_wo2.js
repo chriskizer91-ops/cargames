@@ -24,8 +24,8 @@ const Q=process.env.QUALITY||'high',K=+(process.env.K||16),JS=process.env.JS||''
        or pending, then a few more for the trees' lists and the far tiles */
     let tries=0;for(;tries<120;tries++){g.APP.t+=dt;g.step(dt);g.render(dt);await wait(40);const W=g.WORLD;if(tries>8&&W.st.holes===0&&W.pend.size===0&&W.inbox.length===0&&W.st.queue===0)break;}
     for(let i=0;i<6;i++){g.APP.t+=dt;g.step(dt);g.render(dt);await wait(40);}
-    /* the same start for every build: frame count (the TAA jitter's phase), history, probe, clock */
-    R.frameN=0;R.resetTAA=true;R.hasPrev=false;R.probeFilled=0;R.probeFace=0;g.APP.t=100;g.GAME.car.v.fill(0);g.GAME.car.w.fill(0);
+    /* the same start for every build: frame count (the TAA jitter's phase), history, probe, clock, and the camera snapped to its place (its springs would otherwise carry a trace of how long the world took) */
+    R.frameN=0;R.resetTAA=true;R.hasPrev=false;R.probeFilled=0;R.probeFace=0;g.APP.t=100;g.GAME.car.v.fill(0);g.GAME.car.w.fill(0);g.CAM.cut=true;
     for(let i=0;i<K;i++){g.APP.t+=dt;g.step(dt);g.render(dt);}
     return {tries,chunks:g.WORLD.chunks.size,far:g.WORLD.far.size,render:R.iw+'x'+R.ih+' of '+R.W+'x'+R.H,frameN:R.frameN,p:G.car.p.map(v=>+v.toFixed(2)),png:g.snap()};},[place,tod,K,JS]);
   fs.writeFileSync(out,Buffer.from(r.png.split(',')[1],'base64'));delete r.png;
