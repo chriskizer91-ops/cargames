@@ -1,20 +1,26 @@
-/* ===== display: the LED dot pass, bloom and tone map, from Shiftlight 2 ===== */
+/* ===== display: the GL context (Shiftlight 3's renderer's) and shader compiling for the game's own passes ===== */
 /* =====================================================================================
-   4. DISPLAY — WebGL2. The 3D scene renders into a (BW*SS x BH*SS) HDR target; the HUD lives
-      in a BW x BH RGBA buffer (BW = W*HS: the logical grid times the high-detail scale). The LED pass samples both once per dot (a linear fetch at the
-      dot centre = an exact 2x2 box filter), composites, quantizes to LED PWM steps with an
-      ordered dither, and draws round dots. Then two-level bloom, ACES, vignette.
+   4. DISPLAY — WebGL2 through Shiftlight 3's renderer (11_sl3). R is the renderer, gl its context; both are made
+      by rutInit (called from the boot, 65_boot) once the graphics tier is known. The renderer needs floating-point
+      colour targets and refuses to start without them, so HDR is always on.
    ===================================================================================== */
 const cv=$('gl');
-const gl=cv.getContext('webgl2',{antialias:false,alpha:false,depth:false,powerPreference:'high-performance',preserveDrawingBuffer:false});
-/* float colour targets: full floats where there are, half floats on the phones that only have those */
-const HDR=gl?!!(gl.getExtension('EXT_color_buffer_float')||gl.getExtension('EXT_color_buffer_half_float')):false;
+let R=null,gl=null,RESO=null;
+const HDR=true;
 const STYLE_ID={color:0,amber:1,lamp:2}[(location.search.match(/[?&]style=(\w+)/)||[])[1]||'color']||0;
-let SS=2;
+/* the renderer's tier for this game's graphics level (55_gfx) */
+const SL3_TIER=lv=>({mini:'mobile',phone:'mobile',laptop:'high',ultra:'ultra'})[lv]||lv;
+/* the renderer, at the graphics tier, with no city of its own (the game's world comes through its hooks) */
+function rutInit(){
+  R=new SL3.Renderer(cv,{quality:SL3_TIER(GFX.level),sky:typeof rutShaders==='function'&&rutShaders().SKY_FS||null,noWorld:true});gl=R.gl;
+  RESO=new SL3.DRS({min:.5,max:R.Q.maxScale,start:Math.min(R.Q.maxScale,touchy?.75:.85)});
+}
+/* a program of the game's own (the HUD's dots, the puffs): the same header the renderer gives its shaders */
 function compile(vs,fs,defs=''){
   const p=gl.createProgram();
+  const hdr='#version 300 es\nprecision highp float;precision highp int;precision highp sampler2DArray;precision highp sampler2DShadow;precision highp sampler2DArrayShadow;precision highp usampler2D;precision highp samplerCube;\n'+defs;
   for(const [t,src] of [[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){
-    const s=gl.createShader(t);gl.shaderSource(s,'#version 300 es\nprecision highp float;precision highp int;\n'+defs+src);gl.compileShader(s);
+    const s=gl.createShader(t);gl.shaderSource(s,hdr+src);gl.compileShader(s);
     if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const log=gl.getShaderInfoLog(s);console.error(log,src.split('\n').map((l,i)=>(i+3+defs.split('\n').length-1)+': '+l).join('\n'));throw new Error(log);}
     gl.attachShader(p,s);}
   gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));
@@ -22,6 +28,7 @@ function compile(vs,fs,defs=''){
   for(let i=0;i<n;i++){const inf=gl.getActiveUniform(p,i);const nm=inf.name.replace(/\[0\]$/,'');u[nm]=gl.getUniformLocation(p,inf.name);}
   return {p,u};
 }
+let SS=2;
 const VS_FS=`out vec2 vT;void main(){vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));vT=p;gl_Position=vec4(p*2.0-1.0,0.0,1.0);}`;
 const FS_LED=`in vec2 vT;uniform sampler2D uScene;uniform sampler2D uHud;uniform sampler2D uExpo;uniform vec2 uRes;uniform float uGain;uniform int uStyle;uniform float uScn;uniform vec3 uFlash;uniform float uQuant;uniform vec3 uEdge;out vec4 o;
 const float BY[16]=float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);

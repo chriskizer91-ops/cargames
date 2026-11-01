@@ -9,8 +9,8 @@ page(){ out=$1;shell=$2;shift 2
     for m in "$@"; do cat "src/$m.js"; done; cat "shell/$shell.tail.html"; } > "$out"
   echo "$out $(wc -c < "$out") bytes"; }
 
-# everything a car is: the display, the meshes, the engine and its sound, the bodies, parts, wheels and builds
-CARS="10_core 11_display 12_gl_mesh 13_lit 14_loft 15_digital_engine 16_engines 17_audio 20_instruments
+# everything a car is: Shiftlight 3's renderer (11_sl3), the display, the meshes, the engine and its sound, the bodies, parts, wheels and builds
+CARS="10_core 11_sl3 12_display 12_gl_mesh 13_lit 14_loft 15_digital_engine 16_engines 17_audio 20_instruments
   21_suv 22_faces 23_parts 24_4x4 25_coupe 26_wagon 27_pickup 28_muscle 29_hatch 34_ev 35_wedge 36_hyper 30_wheels 31_engine_bay 32_builds 33_car_mesh 34_machines"
 # how they drive: the physics, the ground contact, each build's chassis and the Sim level
 DRIVE="40_physics 41_ground 42_chassis 43_sim 37_newbuilds 44_ai 45_ev"
