@@ -3,7 +3,7 @@
    frame count, TAA history and probe are reset, the clock set, and exactly K frames drawn at a fixed step before
    the canvas is saved. Two builds run through this give the same bytes unless the drawing differs (random things,
    dust and flames, are off: the car stands still by day).
-   usage: node tools/frame_wo2.js <out.png> [place] [tod]        env: QUALITY (high), W, H (480 x 270), K (frames, 16), FILE, JS */
+   usage: node tools/frame_wo2.js <out.png> [place] [tod]        env: QUALITY (high), W, H (480 x 270), K (frames, 16), FILE, JS, DEBUG (one of the renderer's buffers instead of the picture: color normal depth vel ...) */
 const {chromium}=require('playwright');const path=require('path'),fs=require('fs');
 const out=process.argv[2]||'/tmp/frame.png',place=process.argv[3]||'downtown',tod=process.argv[4]||'day';
 const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','wide-open-2.html');
@@ -14,7 +14,7 @@ const Q=process.env.QUALITY||'high',K=+(process.env.K||16),JS=process.env.JS||''
   const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))errs.push(m.text().slice(0,300));});
   await p.addInitScript(()=>{try{localStorage.clear();}catch(e){}
     const iv=setInterval(()=>{if(window.__game&&window.__game.GAME){window.__game.GAME.hold=true;clearInterval(iv);}},20);});
-  await p.goto('file://'+file+`?quality=${Q}&display=clear`);
+  await p.goto('file://'+file+`?quality=${Q}&display=clear`+(process.env.DEBUG?'&debug='+process.env.DEBUG:''));
   await p.waitForFunction(()=>window.__game&&!(document.getElementById('loading')&&!document.getElementById('loading').hidden),null,{timeout:400000,polling:500});
   const r=await p.evaluate(async([place,tod,K,JS])=>{const g=__game,G=g.GAME,R=g.R,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));
     g.applyTod(tod==='night'?'night':'day');g.APP.tod=tod;g.APP.lights=tod==='night';
