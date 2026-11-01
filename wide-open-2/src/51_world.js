@@ -73,6 +73,11 @@ function orgFor(u,x,z){const cx=Math.floor(x/ORG_CELL)*ORG_CELL,cz=Math.floor(z/
 const WORLD={inbox:[],treeGen:0,chunks:new Map(),far:new Map(),tiles:new Map(),labels:new Map(),pend:new Map(),inflight:0,nextId:1,worker:null,mode:'starting',frame:0,
   near:640,farR:2400,lodD:[170,340],propD:460,sky:null,ready:false,forceLocal:false,
   st:{n:[0,0,0],ms:[0,0,0],mx:[0,0,0],sn:0,sms:0,smx:0,fn:0,fms:0,upms:0,miss:0,missT:0,holes:0,queue:0,bytes:0,last:0,ring:0,odo:0,top:0,lastP:null,genRate:0,genAcc:0,genT:0}};
+/* the chunks and the far tiles as plain arrays for the loops that run several times a frame (walking a Map makes
+   an object a step); remade only when a chunk or a tile comes or goes (cver, fver) */
+WORLD.cver=0;WORLD.fver=0;WORLD.clist=[];WORLD.flist=[];WORLD.cverL=-1;WORLD.fverL=-1;
+function chunkList(){const W=WORLD;if(W.cverL!==W.cver){W.cverL=W.cver;W.clist.length=0;for(const c of W.chunks.values())W.clist.push(c);}return W.clist;}
+function farList(){const W=WORLD;if(W.fverL!==W.fver){W.fverL=W.fver;W.flist.length=0;for(const t of W.far.values())W.flist.push(t);}return W.flist;}
 /* the sizes of the rings by graphics tier (55_gfx's GFX_Q; the dev panel can push them out or in) */
 function worldRings(){
   const r=GFX.q,k=DEVW.view==='near'?.75:DEVW.view==='far'?1.35:1;
@@ -187,7 +192,7 @@ function worldUpdate(eye,car){
     const dx=Math.max(cx*CHK-ex,0,ex-cx*CHK-CHK),dz=Math.max(cz*CHK-ez,0,ez-cz*CHK-CHK),d=Math.hypot(dx,dz);
     const under=Math.abs(cx-ccx)<=1&&Math.abs(cz-ccz)<=1;
     if(d>R&&!under)continue;
-    if(!c){c=newChunk(cx,cz);W.chunks.set(k,c);WLC.cx=NaN;}
+    if(!c){c=newChunk(cx,cz);W.chunks.set(k,c);W.cver++;WLC.cx=NaN;}
     c.seen=W.frame;
     let lod=d<W.lodD[0]?0:d<W.lodD[1]?1:2;
     if(c.want<lod&&d<W.lodD[c.want]+25)lod=c.want;
@@ -203,7 +208,7 @@ function worldUpdate(eye,car){
   if(W.farR>0){const F=W.farR;
     for(let tx=Math.floor((ex-F)/FTS);tx<=Math.floor((ex+F)/FTS);tx++)for(let tz=Math.floor((ez-F)/FTS);tz<=Math.floor((ez+F)/FTS);tz++){
       const dx=Math.max(tx*FTS-ex,0,ex-tx*FTS-FTS),dz=Math.max(tz*FTS-ez,0,ez-tz*FTS-FTS),d=Math.hypot(dx,dz);if(d>F)continue;
-      const k=ckey(tx,tz)+1e8;let t=W.far.get(k);if(!t){t={tx,tz,x0:tx*FTS,z0:tz*FTS,m:null,marks:null,req:false,mn:[tx*FTS,-50,tz*FTS],mx:[tx*FTS+FTS,150,tz*FTS+FTS]};W.far.set(k,t);}
+      const k=ckey(tx,tz)+1e8;let t=W.far.get(k);if(!t){t={key:k,tx,tz,x0:tx*FTS,z0:tz*FTS,m:null,marks:null,req:false,mn:[tx*FTS,-50,tz*FTS],mx:[tx*FTS+FTS,150,tz*FTS+FTS]};W.far.set(k,t);W.fver++;}
       t.seen=W.frame;if(!t.m&&!t.req)todo.push({k:'f',key:k,cx:tx,cz:tz,pr:3000+d});}}
   S.queue=todo.length;
   /* send the most wanted */
@@ -214,10 +219,10 @@ function worldUpdate(eye,car){
     if(W.worker){W.todo=todo;W.todoI=0;wPump();}
     else{const t0=performance.now();for(const q of todo){wMark(q);runLocal(q);if(performance.now()-t0>(GAME.state==='drive'?5:14))break;}}}
   /* let go of what's far behind */
-  for(const [k,c] of W.chunks){if(c.seen===W.frame)continue;if(wBox2(ex,ez,c)>R+160){freeChunk(c);W.chunks.delete(k);WLC.cx=NaN;}}
-  for(const [k,t] of W.far){if(t.seen===W.frame)continue;const d=Math.hypot(t.x0+FTS/2-ex,t.z0+FTS/2-ez);if(d>W.farR+FTS*1.5||W.farR===0){freeM(t.m);freeM(t.marks);W.far.delete(k);}}
+  {const L=chunkList();for(let i=0;i<L.length;i++){const c=L[i];if(c.seen===W.frame)continue;if(wBox2(ex,ez,c)>R+160){freeChunk(c);W.chunks.delete(c.key);W.cver++;WLC.cx=NaN;}}}
+  {const L=farList();for(let i=0;i<L.length;i++){const t=L[i];if(t.seen===W.frame)continue;const d=Math.hypot(t.x0+FTS/2-ex,t.z0+FTS/2-ez);if(d>W.farR+FTS*1.5||W.farR===0){freeM(t.m);freeM(t.marks);W.far.delete(t.key);W.fver++;}}}
   /* the stress test's numbers: how far, how fast, any frame where the car's own ground wasn't ready */
-  if(car){if(S.lastP){const dd=Math.hypot(px-S.lastP[0],pz-S.lastP[1]);if(dd<60)S.odo+=dd;}S.lastP=[px,pz];S.top=Math.max(S.top,sp);
+  if(car){if(S.lastP){const dd=Math.hypot(px-S.lastP[0],pz-S.lastP[1]);if(dd<60)S.odo+=dd;}if(S.lastP){S.lastP[0]=px;S.lastP[1]=pz;}else S.lastP=[px,pz];S.top=Math.max(S.top,sp);
     const cc=W.chunks.get(ckey(ccx,ccz));if(!cc||!cc.H)S.missT++;}
   S.genT+=1/60;if(S.genT>=1){S.genRate=S.genAcc/S.genT;S.genAcc=0;S.genT=0;}
   W.ready=true;
@@ -254,10 +259,15 @@ const RANCH={W:WW,world:new GroundWorld(groundInto,WW.colliders,WG.HALF-30),ms:0
 
 /* ---------- drawing ---------- */
 /* the six planes of the view frustum from a column-major view-projection matrix */
-function frustum(m){const r=(a,b,c,d)=>{const l=Math.hypot(a,b,c);return [a/l,b/l,c/l,d/l];};
-  return [r(m[3]+m[0],m[7]+m[4],m[11]+m[8],m[15]+m[12]),r(m[3]-m[0],m[7]-m[4],m[11]-m[8],m[15]-m[12]),r(m[3]+m[1],m[7]+m[5],m[11]+m[9],m[15]+m[13]),
-    r(m[3]-m[1],m[7]-m[5],m[11]-m[9],m[15]-m[13]),r(m[3]+m[2],m[7]+m[6],m[11]+m[10],m[15]+m[14]),r(m[3]-m[2],m[7]-m[6],m[11]-m[10],m[15]-m[14])];}
-function boxVisible(F,mn,mx){for(const p of F){const x=p[0]>0?mx[0]:mn[0],y=p[1]>0?mx[1]:mn[1],z=p[2]>0?mx[2]:mn[2];if(p[0]*x+p[1]*y+p[2]*z+p[3]<0)return false;}return true;}
+/* (the planes come from a ring of eight sets filled in place, none made per call: a set is good until eight more
+   frustums have been asked for, longer than any pass keeps one; a caller that needs one for longer copies it) */
+const FR_RING=[];for(let i=0;i<8;i++){const F=[];for(let j=0;j<6;j++)F.push([0,0,0,0]);FR_RING.push(F);}let FR_I=0;
+function frPlane(p,a,b,c,d){const l=Math.hypot(a,b,c);p[0]=a/l;p[1]=b/l;p[2]=c/l;p[3]=d/l;}
+function frustum(m){const F=FR_RING[FR_I++&7];
+  frPlane(F[0],m[3]+m[0],m[7]+m[4],m[11]+m[8],m[15]+m[12]);frPlane(F[1],m[3]-m[0],m[7]-m[4],m[11]-m[8],m[15]-m[12]);frPlane(F[2],m[3]+m[1],m[7]+m[5],m[11]+m[9],m[15]+m[13]);
+  frPlane(F[3],m[3]-m[1],m[7]-m[5],m[11]-m[9],m[15]-m[13]);frPlane(F[4],m[3]+m[2],m[7]+m[6],m[11]+m[10],m[15]+m[14]);frPlane(F[5],m[3]-m[2],m[7]-m[6],m[11]-m[10],m[15]-m[14]);
+  return F;}
+function boxVisible(F,mn,mx){for(let i=0;i<6;i++){const p=F[i],x=p[0]>0?mx[0]:mn[0],y=p[1]>0?mx[1]:mn[1],z=p[2]>0?mx[2]:mn[2];if(p[0]*x+p[1]*y+p[2]*z+p[3]<0)return false;}return true;}
 const boxDist=(e,mn,mx)=>{let s=0;for(let k=0;k<3;k+=2){const d=Math.max(mn[k]-e[k],0,e[k]-mx[k]);s+=d*d;}return Math.sqrt(s);};
 /* a model matrix that only moves: the chunk's corner, relative to the camera */
 const WTM=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
@@ -275,8 +285,8 @@ function worldInit(){
 function drawWorld(cam,maxD,probe){
   const W=WORLD,u=CUR.u,F=frustum(cam.VPw),e=cam.eye,near=Math.min(W.near,maxD||W.near),propD=Math.min(W.propD,maxD||W.propD);let tris=0,holes=0;
   /* what is in sight this frame (each chunk's level of detail and its distance), before anything is drawn */
-  const vis=[];
-  for(const c of W.chunks.values()){const g=probe?(c.g[2]||c.g[1]||c.g[0]):bestG(c);const d=boxDist(e,c.mn,c.mx);
+  const vis=[],CL=chunkList();
+  for(let i=0;i<CL.length;i++){const c=CL[i],g=probe?(c.g[2]||c.g[1]||c.g[0]):bestG(c),d=boxDist(e,c.mn,c.mx);
     if(!g){if(d<W.near*.6)holes++;continue;}
     if(d>near||!boxVisible(F,c.mn,c.mx))continue;c.vd=d;c.vg=g;vis.push(c);}
   /* what stands up is drawn before what lies flat (the trees, the buildings and poles, the roads, then the ground
@@ -292,7 +302,7 @@ function drawWorld(cam,maxD,probe){
   for(const c of vis){const g=c.vg;atM(u,c.x0,0,c.z0);drawMesh(g.m);tris+=g.m.tris;if(g.w){drawMesh(g.w);tris+=g.w.tris;}}
   /* far tiles: pushed down a little where the chunks are, so the chunks always win */
   if(W.farR>0&&!probe&&!DEVW.off.far&&(!maxD||maxD>W.near)){if(u.uFarDrop)gl.uniform4f(u.uFarDrop,1,W.near-90,W.near+30,14);
-    for(const t of W.far.values()){if(!t.m)continue;if(boxDist(e,t.mn,t.mx)>W.farR||!boxVisible(F,t.mn,t.mx))continue;atM(u,t.x0,0,t.z0);drawMesh(t.m);tris+=t.m.tris;if(t.marks){drawMesh(t.marks);tris+=t.marks.tris;}}
+    const FL=farList();for(let i=0;i<FL.length;i++){const t=FL[i];if(!t.m)continue;if(boxDist(e,t.mn,t.mx)>W.farR||!boxVisible(F,t.mn,t.mx))continue;atM(u,t.x0,0,t.z0);drawMesh(t.m);tris+=t.m.tris;if(t.marks){drawMesh(t.marks);tris+=t.marks.tris;}}
     if(u.uFarDrop)gl.uniform4f(u.uFarDrop,0,0,0,0);}
   gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
   if(!probe){W.st.holes=holes;RANCH.stat={ground:tris,roads:tr,props:tp,trees:tt};}
@@ -332,16 +342,17 @@ function treeShapes(){
 const TLIST=new Map();
 function treeList(id,ctr,maxD,F,nearOnly){
   let L=TLIST.get(id);
-  if(!L){L={cnt:[],buf:[],gb:[],k:[]};for(let v=0;v<TREES.shapes.length;v++){L.cnt.push([0,0]);L.buf.push([new Float32Array(12*256),new Float32Array(12*256)]);L.gb.push([gl.createBuffer(),gl.createBuffer()]);}TLIST.set(id,L);}
+  if(!L){L={cnt:[],buf:[],gb:[],k:new Float64Array(9).fill(NaN)};for(let v=0;v<TREES.shapes.length;v++){L.cnt.push([0,0]);L.buf.push([new Float32Array(12*256),new Float32Array(12*256)]);L.gb.push([gl.createBuffer(),gl.createBuffer()]);}TLIST.set(id,L);}
   const t0=performance.now(),cx=Math.floor(ctr[0]/8),cz=Math.floor(ctr[2]/8),mg=maxD+12,md=mg*mg;let sig=0;
-  if(F)for(const c of WORLD.chunks.values()){const T=c.st&&c.st.trees;if(!T||!T.length)continue;
+  const CL=chunkList();
+  if(F)for(let i=0;i<CL.length;i++){const c=CL[i],T=c.st&&c.st.trees;if(!T||!T.length)continue;
     const dx=Math.max(c.x0-ctr[0],0,ctr[0]-c.x0-CHK),dz=Math.max(c.z0-ctr[2],0,ctr[2]-c.z0-CHK);if(dx*dx+dz*dz>md)continue;
     c.mx[1]=Math.max(c.mx[1],c.ymax+18);if(boxVisible(F,c.mn,c.mx))sig=(Math.imul(sig,31)+c.cx*7919+c.cz*104729+1)|0;}
-  const K=[cx,cz,WORLD.treeGen,sig,RO[0],RO[2],maxD,TREE_NEAR,nearOnly?1:0];
-  if(K.every((x,i)=>x===L.k[i])){PS.cur[PS_TREES]+=performance.now()-t0;return L;}
-  L.k=K;for(const c of L.cnt){c[0]=0;c[1]=0;}
+  const k=L.k,n1=nearOnly?1:0;
+  if(k[0]===cx&&k[1]===cz&&k[2]===WORLD.treeGen&&k[3]===sig&&k[4]===RO[0]&&k[5]===RO[2]&&k[6]===maxD&&k[7]===TREE_NEAR&&k[8]===n1){PS.cur[PS_TREES]+=performance.now()-t0;return L;}
+  k[0]=cx;k[1]=cz;k[2]=WORLD.treeGen;k[3]=sig;k[4]=RO[0];k[5]=RO[2];k[6]=maxD;k[7]=TREE_NEAR;k[8]=n1;for(const c of L.cnt){c[0]=0;c[1]=0;}
   const nn=TREE_NEAR*TREE_NEAR;
-  for(const c of WORLD.chunks.values()){const T=c.st&&c.st.trees;if(!T||!T.length)continue;
+  for(let i=0;i<CL.length;i++){const c=CL[i],T=c.st&&c.st.trees;if(!T||!T.length)continue;
     const dx=Math.max(c.x0-ctr[0],0,ctr[0]-c.x0-CHK),dz=Math.max(c.z0-ctr[2],0,ctr[2]-c.z0-CHK);if(dx*dx+dz*dz>md)continue;
     if(F&&!boxVisible(F,c.mn,c.mx))continue;
     for(let o=0;o<T.length;o+=12){const ex=T[o]-ctr[0],ez=T[o+2]-ctr[2],d2=ex*ex+ez*ez;if(d2>md)continue;
@@ -364,11 +375,11 @@ function drawTreesW(cam,F,maxD,probe){
    (world space) and within maxD of e (world), and the trees (the far cascades take each tree's single-lump shape) */
 function worldShadow(u,F,e,maxD,id,far){
   let tris=0;
-  for(const c of WORLD.chunks.values()){if(!c.st||!c.st.props)continue;if(boxDist(e,c.mn,c.mx)>maxD||!boxVisible(F,c.mn,c.mx))continue;atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
+  const CL=chunkList();for(let i=0;i<CL.length;i++){const c=CL[i];if(!c.st||!c.st.props)continue;if(boxDist(e,c.mn,c.mx)>maxD||!boxVisible(F,c.mn,c.mx))continue;atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
   gl.uniformMatrix4fv(u.uM,false,M4.id());
   return tris+(DEVW.off.trees?0:drawTreeList(treeList(id,e,maxD,F,!far),u,far));
 }
 /* the lights of the farms, the towns and the garage near a point (for the night) */
 function worldLights(p,r){const out=[];
-  for(const c of WORLD.chunks.values()){if(!c.st||!c.st.lights.length)continue;if(wBox2(p[0],p[2],c)>r)continue;for(const l of c.st.lights)out.push(l);}
+  const CL=chunkList();for(let i=0;i<CL.length;i++){const c=CL[i];if(!c.st||!c.st.lights.length)continue;if(wBox2(p[0],p[2],c)>r)continue;for(const l of c.st.lights)out.push(l);}
   return out;}

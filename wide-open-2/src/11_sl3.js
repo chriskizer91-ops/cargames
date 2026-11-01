@@ -134,6 +134,7 @@ var SL3 = (() => {
           unit++;
         } else P.u[nm] = { loc, type: inf.type, size: inf.size };
       }
+      P.ukeys = Object.keys(P.u);
       P.ready = true;
       return P;
     };
@@ -188,11 +189,12 @@ var SL3 = (() => {
       u.c.set(v);
     };
     G.set = (P, vals) => {
-      const own = P.own;
-      for (const k in P.u) {
-        const v = vals[k];
+      if (!P.ready) G.finish(P);
+      const own = P.own, keys = P.ukeys, U = P.u;
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i], v = vals[k];
         if (v === void 0) continue;
-        const u = P.u[k];
+        const u = U[k];
         if (own || G.ownU.has(k)) {
           if (same(u.c, v)) continue;
           keep(u, v);
@@ -430,6 +432,9 @@ var SL3 = (() => {
     };
     return G;
   }
+  /* (scratch for lookAt, and the vectors every frame would otherwise make afresh) */
+  var UP_Y = [0, 1, 0], UP_X = [1, 0, 0], ORIGIN = [0, 0, 0], CSM_SPLITS = [0, 14, 45, 140];
+  var LA_B = new Float64Array(3), LA_R = new Float64Array(3), LA_U = new Float64Array(3);
   var M4 = {
     ident() {
       const m = new Float32Array(16);
@@ -482,14 +487,25 @@ var SL3 = (() => {
       o[15] = 1;
       return o;
     },
-    lookAt(eye, at, up = [0, 1, 0], o) {
-      let b = [eye[0] - at[0], eye[1] - at[1], eye[2] - at[2]];
-      const bl = Math.hypot(...b) || 1;
-      b = b.map((x) => x / bl);
-      let r = [up[1] * b[2] - up[2] * b[1], up[2] * b[0] - up[0] * b[2], up[0] * b[1] - up[1] * b[0]];
-      const rl = Math.hypot(...r) || 1;
-      r = r.map((x) => x / rl);
-      const u = [b[1] * r[2] - b[2] * r[1], b[2] * r[0] - b[0] * r[2], b[0] * r[1] - b[1] * r[0]];
+    lookAt(eye, at, up = UP_Y, o) {
+      const b = LA_B, r = LA_R, u = LA_U;
+      b[0] = eye[0] - at[0];
+      b[1] = eye[1] - at[1];
+      b[2] = eye[2] - at[2];
+      const bl = Math.hypot(b[0], b[1], b[2]) || 1;
+      b[0] /= bl;
+      b[1] /= bl;
+      b[2] /= bl;
+      r[0] = up[1] * b[2] - up[2] * b[1];
+      r[1] = up[2] * b[0] - up[0] * b[2];
+      r[2] = up[0] * b[1] - up[1] * b[0];
+      const rl = Math.hypot(r[0], r[1], r[2]) || 1;
+      r[0] /= rl;
+      r[1] /= rl;
+      r[2] /= rl;
+      u[0] = b[1] * r[2] - b[2] * r[1];
+      u[1] = b[2] * r[0] - b[0] * r[2];
+      u[2] = b[0] * r[1] - b[1] * r[0];
       return M4.view(eye, r, u, b, o);
     },
     /* model matrix from a row-major 3x3 rotation (columns = body axes) and a position */
@@ -535,17 +551,31 @@ var SL3 = (() => {
       o[15] = (a[8] * b03 - a[9] * b01 + a[10] * b00) * det;
       return o;
     },
+    xformTo(m, p, o) {
+      const w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
+      o[0] = (m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12]) / w;
+      o[1] = (m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13]) / w;
+      o[2] = (m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]) / w;
+      return o;
+    },
     xform(m, p) {
       const w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
       return [(m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12]) / w, (m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13]) / w, (m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]) / w];
     },
     /* the six frustum planes of a view-projection matrix, as [a,b,c,d] with inside = a*x+b*y+c*z+d >= 0 */
-    planes(m) {
-      const P = [], r = (i) => [m[i], m[4 + i], m[8 + i], m[12 + i]];
-      const r0 = r(0), r1 = r(1), r2 = r(2), r3 = r(3);
-      for (const [s, q] of [[1, r0], [-1, r0], [1, r1], [-1, r1], [1, r2], [-1, r2]]) {
-        const p = [r3[0] + s * q[0], r3[1] + s * q[1], r3[2] + s * q[2], r3[3] + s * q[3]], l = Math.hypot(p[0], p[1], p[2]);
-        P.push(p.map((x) => x / l));
+    planes(m, o) {
+      const P = o || [[], [], [], [], [], []];
+      for (let k = 0; k < 6; k++) {
+        const i = k >> 1, s = k & 1 ? -1 : 1, p = P[k];
+        p[0] = m[3] + s * m[i];
+        p[1] = m[7] + s * m[4 + i];
+        p[2] = m[11] + s * m[8 + i];
+        p[3] = m[15] + s * m[12 + i];
+        const l = Math.hypot(p[0], p[1], p[2]);
+        p[0] /= l;
+        p[1] /= l;
+        p[2] /= l;
+        p[3] /= l;
       }
       return P;
     },
@@ -1843,8 +1873,11 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
          of those, turn and turn about), and the probe's and the headlights' */
       const F = () => new Float32Array(16);
       this.m = { V: F(), Pn: F(), Pj: F(), VP: F(), inv: F(), nj: [F(), F()], res: [0, 0] };
-      this.pm = { V: F(), P: F(), VP: F(), inv: F() };
+      this.pm = { V: F(), P: F(), VP: F(), inv: F(), at: [0, 0, 0] };
       this.hm = { V: F(), P: F(), M: F() };
+      this.cs = { V: F(), O: F(), M: [F(), F(), F()], eye: [0, 0, 0], c: [0, 0, 0], lc: [0, 0, 0], S: [0, 0, 0, 0] };
+      this.cb = { r: [0, 0, 0], up: [0, 0, 0], b: [0, 0, 0], f: null };
+      this.pl = [0, 1, 2, 3, 4, 5].map(() => [0, 0, 0, 0]);
       this.hlPos = [0, 0, 0];
       this.ident = M4.ident();
       {
@@ -1975,16 +2008,46 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         this.fogT = G.texture(Math.max(1, Math.round(iw / fd)), Math.max(1, Math.round(ih / fd)), "rgba16f");
         this.fogFB = G.target([this.fogT]);
       }
+      this.passObjects();
+    }
+    /* what each pass of the post chain is given (its textures and small uniforms): the same objects every frame,
+       remade only here, when a target is, so no frame makes them afresh */
+    passObjects() {
+      const W = this.W, H = this.H, iw = this.iw, ih = this.ih;
+      this.po = {
+        ssrTex: { uNrm: this.nT, uDepth: this.dT, uPrev: this.pyr, uProbe: this.probe },
+        compTex: { uCol: this.cT, uNrm: this.nT, uSSR: this.ssrT, uFog: this.fogT, uDepth: this.dT },
+        taaU: { uInRes: [iw, ih], uOutRes: [W, H], uJit: null, uReset: 0 },
+        taaTex: { uCur: this.litT, uHist: null, uVel: this.vT, uDepth: this.dT },
+        pxW: [1 / W, 1 / H],
+        srcTex: { uSrc: null },
+        mbU: { uShutter: 0.5, uOutRes: [W, H], uNear: 0, uFar: 0, uFrame: 0 },
+        mbTex: { uSrc: null, uVel: this.vT, uDepth: this.dT },
+        px: [0, 0],
+        expoU: { uDt: 1 / 60, uKey: 0, uRange: null, uReset: 0 },
+        expoTex: { uSrc: null, uPrev: null },
+        expoRange: [0.05, 40],
+        finU: { uBloomK: 0, uGrade: null, uExpoBias: 1, uLensRain: 0, uVig: 0.35, uGrain: 0.018, uOutRes: [W, H], uCA: 0.6 },
+        finTex: { uSrc: this.mbT, uBloom: this.bl[0].t, uExpo: null }
+      };
     }
     /* ---------- per-frame matrices ---------- */
     camera(S) {
       const c = S.cam, iw = this.iw, ih = this.ih, asp = this.W / this.H;
-      const f = c.fwd, u0 = c.up || [0, 1, 0];
-      const b = [-f[0], -f[1], -f[2]];
-      let r = [u0[1] * b[2] - u0[2] * b[1], u0[2] * b[0] - u0[0] * b[2], u0[0] * b[1] - u0[1] * b[0]];
-      const rl = Math.hypot(...r);
-      r = r.map((x) => x / rl);
-      const up = [b[1] * r[2] - b[2] * r[1], b[2] * r[0] - b[0] * r[2], b[0] * r[1] - b[1] * r[0]];
+      const f = c.fwd, u0 = c.up || UP_Y, cb = this.cb, b = cb.b, r = cb.r, up = cb.up;
+      b[0] = -f[0];
+      b[1] = -f[1];
+      b[2] = -f[2];
+      r[0] = u0[1] * b[2] - u0[2] * b[1];
+      r[1] = u0[2] * b[0] - u0[0] * b[2];
+      r[2] = u0[0] * b[1] - u0[1] * b[0];
+      const rl = Math.hypot(r[0], r[1], r[2]);
+      r[0] /= rl;
+      r[1] /= rl;
+      r[2] /= rl;
+      up[0] = b[1] * r[2] - b[2] * r[1];
+      up[1] = b[2] * r[0] - b[0] * r[2];
+      up[2] = b[0] * r[1] - b[1] * r[0];
       const m = this.m, V = M4.view(c.pos, r, up, b, m.V), near = c.near || 0.25, far = c.far || 3200;
       const Pn = M4.persp(c.fov, asp, near, far, m.Pn);
       if (c.shift) Pn[8] += c.shift;
@@ -2009,30 +2072,40 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       m.res[0] = iw;
       m.res[1] = ih;
       U.uRes = m.res;
-      this.camBasis = { r, up, b, f };
+      cb.f = f;
+      this.camBasis = cb;
       this.near = near;
       this.far = far;
       this.fov = c.fov;
       this.asp = asp;
       this.VPnj = VPnj;
-      this.planes = M4.planes(VP);
+      this.planes = M4.planes(VP, this.pl);
     }
     /* cascades: bounding spheres of frustum slices, snapped to shadow texels so they don't swim */
     cascades(S) {
-      const U = this.U, L = S.env.sunDir, Q = this.Q;
-      const splits = [0, 14, 45, 140];
-      U.uCSMS = [splits[1], splits[2], splits[3], 1.5 / Q.csm];
+      const U = this.U, L = S.env.sunDir, Q = this.Q, C = this.cs, splits = CSM_SPLITS;
+      C.S[0] = splits[1];
+      C.S[1] = splits[2];
+      C.S[2] = splits[3];
+      C.S[3] = 1.5 / Q.csm;
+      U.uCSMS = C.S;
       const { f } = this.camBasis, th = Math.tan(this.fov / 2), cam = S.cam.pos;
-      const lu = Math.abs(L[1]) > 0.99 ? [1, 0, 0] : [0, 1, 0];
-      const V = M4.lookAt([L[0] * 500, L[1] * 500, L[2] * 500], [0, 0, 0], lu);
-      this.csmM = [];
+      const lu = Math.abs(L[1]) > 0.99 ? UP_X : UP_Y;
+      C.eye[0] = L[0] * 500;
+      C.eye[1] = L[1] * 500;
+      C.eye[2] = L[2] * 500;
+      const V = M4.lookAt(C.eye, ORIGIN, lu, C.V);
+      this.csmM = C.M;
       for (let k = 0; k < 3; k++) {
         const n = splits[k], fa = splits[k + 1], cz = (n + fa) / 2, hy = fa * th, hx = hy * this.asp;
         const rad = Math.ceil(Math.hypot(hx, hy, (fa - n) / 2) * 1.04);
-        const c = [cam[0] + f[0] * cz, cam[1] + f[1] * cz, cam[2] + f[2] * cz], lc = M4.xform(V, c), tex = 2 * rad / Q.csm;
+        const c = C.c, lc = C.lc, tex = 2 * rad / Q.csm;
+        c[0] = cam[0] + f[0] * cz;
+        c[1] = cam[1] + f[1] * cz;
+        c[2] = cam[2] + f[2] * cz;
+        M4.xformTo(V, c, lc);
         const cx = Math.round(lc[0] / tex) * tex, cy = Math.round(lc[1] / tex) * tex;
-        const M = M4.mul(M4.ortho(cx - rad, cx + rad, cy - rad, cy + rad, -lc[2] - rad - 260, -lc[2] + rad + 80), V);
-        this.csmM.push(M);
+        const M = M4.mul(M4.ortho(cx - rad, cx + rad, cy - rad, cy + rad, -lc[2] - rad - 260, -lc[2] + rad + 80, C.O), V, C.M[k]);
         U.uCSMM.set(M, k * 16);
       }
     }
@@ -2096,8 +2169,11 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const G = this.G, gl = this.gl, Q = this.Q, f = this.probeFace;
       this.probeFace = (f + 1) % 6;
       const pos = S.probePos;
-      const [fw, up] = CUBE[f];
-      const m = this.pm, V = M4.lookAt(pos, [pos[0] + fw[0], pos[1] + fw[1], pos[2] + fw[2]], up, m.V), Pr = M4.persp(Math.PI / 2, 1, 0.3, 2500, m.P);
+      const fw = CUBE[f][0], up = CUBE[f][1], m = this.pm, at = m.at;
+      at[0] = pos[0] + fw[0];
+      at[1] = pos[1] + fw[1];
+      at[2] = pos[2] + fw[2];
+      const V = M4.lookAt(pos, at, up, m.V), Pr = M4.persp(Math.PI / 2, 1, 0.3, 2500, m.P);
       const VP = M4.mul(Pr, V, m.VP);
       /* (the scene's uniforms with the face's own view: one object, filled afresh for each face) */
       const U2 = Object.assign(this.probeU || (this.probeU = {}), this.U);
@@ -2151,33 +2227,31 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       }
       this.camera(S);
       const E = S.env;
-      Object.assign(U, {
-        uTime: S.time,
-        uFrame: this.frameN,
-        uSunDir: E.sunDir,
-        uSunCol: E.sunCol,
-        uAmbUp: E.ambUp,
-        uAmbDn: E.ambDn,
-        uFogCol: E.fogCol,
-        uFogDen: E.fogDen,
-        uFogFall: E.fogFall,
-        uWet: E.wet,
-        uRain: E.rain,
-        uNight: E.night,
-        uSkyZen: E.skyZen,
-        uSkyHor: E.skyHor,
-        uSkyGlow: E.skyGlow,
-        uCloud: E.cloud,
-        uStars: E.stars,
-        uSunSize: E.sunSize,
-        uLightsOn: E.lightsOn,
-        uLit: E.lit,
-        uSignal: S.time * 0.9,
-        uFogAmb: E.fogAmb,
-        uFogSteps: Q.fogSteps,
-        uFogLights: Q.fogLights,
-        uProbeLod: Math.log2(Q.probe) - 1
-      });
+      U.uTime = S.time;
+      U.uFrame = this.frameN;
+      U.uSunDir = E.sunDir;
+      U.uSunCol = E.sunCol;
+      U.uAmbUp = E.ambUp;
+      U.uAmbDn = E.ambDn;
+      U.uFogCol = E.fogCol;
+      U.uFogDen = E.fogDen;
+      U.uFogFall = E.fogFall;
+      U.uWet = E.wet;
+      U.uRain = E.rain;
+      U.uNight = E.night;
+      U.uSkyZen = E.skyZen;
+      U.uSkyHor = E.skyHor;
+      U.uSkyGlow = E.skyGlow;
+      U.uCloud = E.cloud;
+      U.uStars = E.stars;
+      U.uSunSize = E.sunSize;
+      U.uLightsOn = E.lightsOn;
+      U.uLit = E.lit;
+      U.uSignal = S.time * 0.9;
+      U.uFogAmb = E.fogAmb;
+      U.uFogSteps = Q.fogSteps;
+      U.uFogLights = Q.fogLights;
+      U.uProbeLod = Math.log2(Q.probe) - 1;
       U.uRoad[3] = E.puddles;
       /* (every name of U is the renderer's own: see G.set) */
       for (const k in U) G.ownU.add(k);
@@ -2240,7 +2314,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const oc = S.occ || [];
       U.uNOcc = Math.min(8, oc.length);
       for (let i = 0; i < U.uNOcc; i++) U.uOcc.set(oc[i], i * 8);
-      U.uCSMOn = Math.max(...E.sunCol) > 2e-3 ? 1 : 0;
+      U.uCSMOn = Math.max(E.sunCol[0], E.sunCol[1], E.sunCol[2]) > 2e-3 ? 1 : 0;
       if (U.uCSMOn) this.cascades(S);
       for (const h of this.extra) h.prepare && h.prepare(this, S);
       this.shadowPass(S);
@@ -2283,7 +2357,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       G.uni(Pr, "uPrevLod", this.pyr.levels - 1);
       G.uni(Pr, "uProbeLod", U.uProbeLod);
       G.uni(Pr, "uSteps", Q.ssr | 0);
-      G.tex(Pr, { uNrm: this.nT, uDepth: this.dT, uPrev: this.pyr, uProbe: this.probe });
+      const po = this.po;
+      G.tex(Pr, po.ssrTex);
       G.fullscreen();
       const Pf = G.use(this.P.fog);
       G.bind(this.fogFB);
@@ -2294,20 +2369,24 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const Pc = G.use(this.P.comp);
       G.bind(this.litFB);
       G.set(Pc, U);
-      G.tex(Pc, { uCol: this.cT, uNrm: this.nT, uSSR: this.ssrT, uFog: this.fogT, uDepth: this.dT });
+      G.tex(Pc, po.compTex);
       G.fullscreen();
       const hi = this.histI, ho = 1 - hi;
       this.histI = ho;
       const Pt = G.use(this.P.taa);
       G.bind(this.histFB[ho]);
-      G.set(Pt, { uInRes: [this.iw, this.ih], uOutRes: [this.W, this.H], uJit: this.jit, uReset: this.resetTAA || S.cut ? 1 : 0 });
-      G.tex(Pt, { uCur: this.litT, uHist: this.hist[hi], uVel: this.vT, uDepth: this.dT });
+      po.taaU.uJit = this.jit;
+      po.taaU.uReset = this.resetTAA || S.cut ? 1 : 0;
+      G.set(Pt, po.taaU);
+      po.taaTex.uHist = this.hist[hi];
+      G.tex(Pt, po.taaTex);
       G.fullscreen();
       this.resetTAA = false;
       const Pd = G.use(this.P.down4);
       G.bind(this.pyrFB);
-      G.uni(Pd, "uPx", [1 / this.W, 1 / this.H]);
-      G.tex(Pd, { uSrc: this.hist[ho] });
+      G.uni(Pd, "uPx", po.pxW);
+      po.srcTex.uSrc = this.hist[ho];
+      G.tex(Pd, po.srcTex);
       G.fullscreen();
       gl.bindTexture(gl.TEXTURE_2D, this.pyr.t);
       gl.generateMipmap(gl.TEXTURE_2D);
@@ -2315,17 +2394,26 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       if (Q.mb) {
         const Pm = G.use(this.P.mb);
         G.bind(this.mbFB);
-        G.set(Pm, { uShutter: S.shutter ?? 0.5, uOutRes: [this.W, this.H], uNear: this.near, uFar: this.far, uFrame: this.frameN });
-        G.tex(Pm, { uSrc: this.hist[ho], uVel: this.vT, uDepth: this.dT });
+        const mu = po.mbU;
+        mu.uShutter = S.shutter ?? 0.5;
+        mu.uNear = this.near;
+        mu.uFar = this.far;
+        mu.uFrame = this.frameN;
+        G.set(Pm, mu);
+        po.mbTex.uSrc = this.hist[ho];
+        G.tex(Pm, po.mbTex);
         G.fullscreen();
       } else {
         const Pc2 = G.use(this.P.copy);
         G.bind(this.mbFB);
         G.uni(Pc2, "uLod", 0);
-        G.tex(Pc2, { uSrc: this.hist[ho] });
+        po.srcTex.uSrc = this.hist[ho];
+        G.tex(Pc2, po.srcTex);
         G.fullscreen();
       }
-      if (this.extra.some((h) => h.particles)) {
+      let anyP = false;
+      for (const h of this.extra) if (h.particles) anyP = true;
+      if (anyP) {
         G.bind(this.mbFB);
         gl.enable(gl.BLEND);
         for (const h of this.extra) h.particles && h.particles(this, U, texs);
@@ -2333,22 +2421,33 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       }
       const Pb = G.use(this.P.bdown);
       let src = this.mbT, sw = this.W, sh = this.H;
-      this.bl.forEach((L, i) => {
+      for (let i = 0; i < this.bl.length; i++) {
+        const L = this.bl[i];
         G.bind(L.fb);
-        G.uni(Pb, "uPx", [1 / sw, 1 / sh]);
+        po.px[0] = 1 / sw;
+        po.px[1] = 1 / sh;
+        G.uni(Pb, "uPx", po.px);
         G.uni(Pb, "uFirst", i === 0 ? 1 : 0);
-        G.tex(Pb, { uSrc: src });
+        po.srcTex.uSrc = src;
+        G.tex(Pb, po.srcTex);
         G.fullscreen();
         src = L.t;
         sw = L.w;
         sh = L.h;
-      });
+      }
       const ei = this.expoI, eo = 1 - ei;
       this.expoI = eo;
       const Pe = G.use(this.P.expo);
       G.bind(this.expoFB[eo]);
-      G.set(Pe, { uDt: S.dt || 1 / 60, uKey: E.key, uRange: E.expoRange || [0.05, 40], uReset: this.frameN < 2 || S.cut ? 1 : 0 });
-      G.tex(Pe, { uSrc: this.bl[Math.min(3, this.bl.length - 1)].t, uPrev: this.expo[ei] });
+      const eu = po.expoU;
+      eu.uDt = S.dt || 1 / 60;
+      eu.uKey = E.key;
+      eu.uRange = E.expoRange || po.expoRange;
+      eu.uReset = this.frameN < 2 || S.cut ? 1 : 0;
+      G.set(Pe, eu);
+      po.expoTex.uSrc = this.bl[Math.min(3, this.bl.length - 1)].t;
+      po.expoTex.uPrev = this.expo[ei];
+      G.tex(Pe, po.expoTex);
       G.fullscreen();
       const Pu = G.use(this.P.bup);
       gl.enable(gl.BLEND);
@@ -2356,9 +2455,12 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       for (let i = this.bl.length - 1; i > 0; i--) {
         const L = this.bl[i], D = this.bl[i - 1];
         G.bind(D.fb);
-        G.uni(Pu, "uPx", [1 / L.w, 1 / L.h]);
+        po.px[0] = 1 / L.w;
+        po.px[1] = 1 / L.h;
+        G.uni(Pu, "uPx", po.px);
         G.uni(Pu, "uW", 1);
-        G.tex(Pu, { uSrc: L.t });
+        po.srcTex.uSrc = L.t;
+        G.tex(Pu, po.srcTex);
         G.fullscreen();
       }
       gl.disable(gl.BLEND);
@@ -2366,8 +2468,14 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       if (S.led) G.bind(this.ldrFB);
       else G.bind(null, [0, 0, this.canvas.width, this.canvas.height]);
       G.set(Pfin, U);
-      G.set(Pfin, { uBloomK: E.bloom, uGrade: E.grade, uExpoBias: E.expoBias || 1, uLensRain: S.lensRain || 0, uVig: 0.35, uGrain: 0.018, uOutRes: [this.W, this.H], uCA: 0.6 });
-      G.tex(Pfin, { uSrc: this.mbT, uBloom: this.bl[0].t, uExpo: this.expo[eo] });
+      const fu = po.finU;
+      fu.uBloomK = E.bloom;
+      fu.uGrade = E.grade;
+      fu.uExpoBias = E.expoBias || 1;
+      fu.uLensRain = S.lensRain || 0;
+      G.set(Pfin, fu);
+      po.finTex.uExpo = this.expo[eo];
+      G.tex(Pfin, po.finTex);
       G.fullscreen();
       if (S.debug) {
         const D = { color: [this.cT, 0], normal: [this.nT, 1], rough: [this.nT, 2], ssrw: [this.nT, 3], vel: [this.vT, 4], depth: [this.dT, 5], ssr: [this.ssrT, 0], fog: [this.fogT, 0], fogT: [this.fogT, 3], lit: [this.litT, 0], hist: [this.hist[ho], 0], mb: [this.mbT, 0], bloom: [this.bl[0].t, 0], expo: [this.expo[eo], 0], probe: [this.pyr, 0] }[S.debug];
@@ -2416,7 +2524,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       if (!(ms > 2 && ms < 60)) return;
       this.raw.push(ms);
       if (this.raw.length > 120) this.raw.shift();
-      if (this.raw.length >= 24) {
+      if (this.raw.length >= 24 && (this.nv = (this.nv || 0) + 1) % 12 === 0) {
         const s = [...this.raw].sort((a, b) => a - b), p = s[Math.floor(s.length * 0.15)];
         this.hz = RATES.reduce((b, h) => Math.abs(1e3 / h - p) < Math.abs(1e3 / b - p) ? h : b, 60);
         this.period = 1e3 / this.hz * this.div;
