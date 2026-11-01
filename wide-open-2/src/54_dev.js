@@ -8,6 +8,18 @@
    ===================================================================================== */
 /* DEV: set to false to ship; the panel, the T key and the HUD tag go away and everything drives on the defaults */
 const DEV=true;
+/* ---------- the look: judgment calls about the picture the owner can A/B on the phone (saved on the device) ---------- */
+const LOOK_DEF={sat:1,con:1,key:1,haze:1,detail:1,shadows:1,occ:1,tex:1,texcol:.5},LOOK=Object.assign({},LOOK_DEF);
+function lookLoad(){try{const d=JSON.parse(store.get('wo2-look','{}'))||{};for(const k in LOOK_DEF)if(typeof d[k]==='number')LOOK[k]=d[k];}catch(e){}}
+if(DEV)lookLoad();
+const lookSave=()=>store.set('wo2-look',JSON.stringify(LOOK));
+const lookOff=()=>Object.keys(LOOK_DEF).some(k=>Math.abs(LOOK[k]-LOOK_DEF[k])>1e-6);
+const LOOK_S=[['sat','Saturation',.6,1.6,'The grade\'s saturation, times the time of day\'s own. ACES, the renderer\'s tone map, leaves colours flatter than Wide Open\'s did; the day presets add some back.'],
+  ['con','Contrast',.8,1.3,'The grade\'s contrast round mid grey.'],
+  ['key','Exposure',.5,2,'The auto exposure\'s target brightness, times the time of day\'s own (and the studio\'s).'],
+  ['haze','Haze',0,2,'The light in the air: the volumetric fog, its ambient and the far land\'s fade into the sky.'],
+  ['detail','Ground detail',0,1,'How much detail is cut into the ground: clods, stones, cracks, grass tufts, tarmac grain. The tier sets the default (Mobile 60%).']];
+const LOOK_T=[['shadows','Sun shadows','The cascaded shadow maps (the moon\'s at night). Off, the sun casts nothing, and the frame is cheaper.'],['occ','Shade under the cars','The soft occlusion on the ground under each car.']];
 /* the ground, surface by surface: id, label, where it is */
 const DEV_GROUND=[['asphalt','Tarmac','The race track and its kerbs.'],['concrete','Concrete','The shop pad, the store apron and the paddock.'],
   ['strip','Drag strip','The prepped dirt of the eighth mile.'],['dirt','Dirt','The yard, the ranch roads and the burnout pad.'],
@@ -123,6 +135,15 @@ function buildDev(){
     const inp=el.querySelector('input'),lb=el.querySelector('label');lb.textContent=n;lb.htmlFor=inp.id='devs_'+k;inp.min=lo;inp.max=hi;inp.step=.01;el.querySelector('small').textContent=note;
     inp.addEventListener('input',()=>{SIMDEV[k]=+inp.value;simDevApply(false);});el.sync=()=>{inp.value=SIMDEV[k];el.querySelector('output').textContent=fm(SIMDEV[k]);};ss.appendChild(el);DEV_ROWS.push(el);}
   $('mDevSimReset').addEventListener('click',()=>{const cg=SIMDEV.cg!==SIMDEV0.cg;Object.assign(SIMDEV,SIMDEV0);simDevApply(cg);});
+  /* the look */
+  $('mDevLook').hidden=false;
+  for(const [k,n,lo,hi,note] of LOOK_S){const el=document.createElement('div');el.className='devrow';el.innerHTML='<label></label><output></output><input type="range"><small></small>';
+    const inp=el.querySelector('input'),lb=el.querySelector('label');lb.textContent=n;lb.htmlFor=inp.id='devl_'+k;inp.min=lo;inp.max=hi;inp.step=.01;el.querySelector('small').textContent=note;
+    inp.addEventListener('input',()=>{LOOK[k]=+inp.value;lookSave();el.sync();});el.sync=()=>{inp.value=LOOK[k];el.querySelector('output').textContent=pct(LOOK[k]);};$('mDevLookS').appendChild(el);DEV_ROWS.push(el);}
+  for(const [k,n,note] of LOOK_T){const el=document.createElement('label');el.className='devchk';el.innerHTML='<input type="checkbox"><span><b></b><small></small></span>';
+    const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
+    inp.addEventListener('change',()=>{LOOK[k]=inp.checked?1:0;lookSave();});el.sync=()=>{inp.checked=!!LOOK[k];};$('mDevLookT').appendChild(el);DEV_ROWS.push(el);}
+  $('mDevLookReset').addEventListener('click',()=>{Object.assign(LOOK,LOOK_DEF);lookSave();syncDev();});
 }
 /* a Sim piece changed: the car reads it now (the roof load rebuilds the car where it stands) */
 function simDevApply(rebuild){store.set('wo2-simdev',JSON.stringify(SIMDEV));if(rebuild&&APP.level==='sim')spawnRig();else if(GAME.car)GAME.car.applySim();syncDev();}

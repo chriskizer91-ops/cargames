@@ -88,7 +88,7 @@ function drawWorldStats(){
     `WORST  2M ${S.mx[0].toFixed(0)} MS  ITEMS ${S.smx.toFixed(0)} MS  MAKER BUSY ${Math.min(999,S.genRate/10).toFixed(0)}%`,
     `GPU ${(S.bytes/1048576).toFixed(1)} MB  ${Math.round(APP.tris/1000)}K TRIS  ${APP.fps.toFixed(0)} FPS`,
     (()=>{const P=perfStats();return P?`FRAME ${P.avg.toFixed(1)} MS  1% LOW ${(1000/P.low1).toFixed(0)} FPS  JS ${P.js.toFixed(1)} MS  DRAWS ${PERF.draws}`:'';})(),
-    `GRAPHICS ${GFX.level.toUpperCase()}  ${DISP.mode.toUpperCase()} ${DISP.mode==='dots'?BW+'X'+BH:''}  SCENE ${SC.w||0}X${SC.h||0}  HUD ${BW}X${BH}`,
+    ...rperfRows(),`HUD ${BW}X${BH}  ORIGIN ${RO[0]},${RO[2]} (${WORLD.steps||0} STEPS)  LIGHT GRID ${LG.n} LIGHTS, ${LG.ms.toFixed(0)} MS TO MAKE`,
     `PASSES OFF: ${Object.keys(DEVW.off).filter(k=>DEVW.off[k]).join(' ').toUpperCase()||'NONE'}`,
     `HOLES ${S.holes}  GROUND NOT READY ${S.missT} FRAMES  UPLOAD ${(PERF.up||0).toFixed(1)} MS/FRAME`,
     `CHUNK WAIT ${(S.lat||0).toFixed(0)} MS (WORST ${(S.latMx||0).toFixed(0)})`,

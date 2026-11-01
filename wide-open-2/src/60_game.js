@@ -7,7 +7,7 @@
    Engine synth (17_audio), heard from behind the car.
    ===================================================================================== */
 const RES=[[320,180,1],[480,270,1],[640,360,2],[960,540,3],[1280,720,4]];
-const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:true,tod:'night',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
+const APP={t:0,bi:0,car:'suv',level:'real',cam:0,fps:60,tris:0,res:3,lights:false,tod:'day',steer:'slide',haptics:true,detail:'auto',od:false,orbit:false,bigMap:false};
 /* each car's rig: what's on it now. A car not yet touched is its stock preset */
 const RIGS={};
 /* the career (60_career): on or not, its save, and free play's cars and rigs kept aside while it's on */
@@ -395,109 +395,120 @@ function camMats(c,asp){
   const eR=[c.eye[0]-RO[0],c.eye[1]-RO[1],c.eye[2]-RO[2]],V_=M4.look(eR,add(eR,c.fwd),c.up),Vw=M4.look(c.eye,add(c.eye,c.fwd),c.up),
     far=Math.max(1500,WORLD.farR+600),P_=M4.persp(c.fov,asp,mode0Near(),far);
   /* in the garage the menu covers the left of the screen: the picture slides right so the car sits in what's left */
-  if(APP.orbit){const mr=APP.menuRight||0,right=Math.min(innerWidth,RECT.x+RECT.w),cx=(Math.max(mr,RECT.x)+right)/2;P_[8]=-clamp((cx-RECT.x)/RECT.w*2-1,0,.8);}
-  return Object.assign(c,{eyeR:eR,V:V_,P:P_,VP:M4.mul(P_,V_),VPw:M4.mul(P_,Vw),asp,near:mode0Near(),far});}
+  let shift=0;if(APP.orbit){const mr=APP.menuRight||0,right=Math.min(innerWidth,RECT.x+RECT.w),cx=(Math.max(mr,RECT.x)+right)/2;shift=-clamp((cx-RECT.x)/RECT.w*2-1,0,.8);P_[8]=shift;}
+  return Object.assign(c,{eyeR:eR,V:V_,P:P_,VP:M4.mul(P_,V_),VPw:M4.mul(P_,Vw),asp,near:mode0Near(),far,shift});}
 const mode0Near=()=>CAMS[APP.cam]==='Hood'&&!APP.orbit?.12:.3;
 
 /* ---------- drawing ---------- */
-const SKY={sun:V3.norm([-.52,.5,.4]),sunCol:[1.28,1.18,1.02],sky:[.44,.5,.62],gnd:[.24,.18,.13],zen:[.16,.32,.85],hor:[.78,.86,1.02],fogD:.0011,fogK:[.68,.72,.78],draw:420,night:0};
-function worldUniforms(c){
-  /* the sky for the time of day, turned grey by the weather (55_gfx) */
-  const u=CUR.u,k=SKY.fogK,S=skyNow();
-  gl.uniformMatrix4fv(u.uVP,false,c.VP);gl.uniform3fv(u.uCam,c.eyeR);gl.uniform1f(u.uTime,APP.t);if(u.uFarDrop)gl.uniform4f(u.uFarDrop,0,0,0,0);orgFor(u,RO[0],RO[2]);
-  gl.uniform3fv(u.uSunDir,SKY.sun);gl.uniform3fv(u.uSunCol,S.sunCol);gl.uniform3fv(u.uSkyAmb,S.sky);gl.uniform3fv(u.uGndAmb,S.gnd);
-  gl.uniform3fv(u.uSkyZen,S.zen);gl.uniform3fv(u.uSkyHor,S.hor);gl.uniform3fv(u.uFogCol,[S.hor[0]*k[0],S.hor[1]*k[1],S.hor[2]*k[2]]);gl.uniform1f(u.uFogD,S.fogD);gl.uniform1f(u.uStage,3);
-  if(u.uCourse)gl.uniform4f(u.uCourse,WG.COURSE.x0-RO[0],WG.COURSE.mi,.11,-RO[2]);
-  gl.uniform1i(u.uNL,0);gl.uniform1f(u.uInst,0);gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uDirt,0);gl.uniform1i(u.uNSh,0);
-}
-/* the soft shadows under the cars on the ground: centre, half size, yaw and how dark (fading as a car leaves the ground) */
-const WSH=new Float32Array(32),WSA=new Float32Array(8),WSK=new Float32Array(8);
-function worldShadows(cars){
-  const u=CUR.u;let n=0;
-  for(const t of cars){if(n>=8)break;const D=carD(t),M=t.M,o=mvec(M,[-t.cg[0],-t.cg[1],0]),x=t.p[0]+o[0],z=t.p[2]+o[2],gy=RANCH.W.heightAt(x,z),hgt=t.p[1]+o[1]-gy;
-    WSH[n*4]=x-RO[0];WSH[n*4+1]=z-RO[2];WSH[n*4+2]=D.L/2-.02;WSH[n*4+3]=t.build.look.track/2+.12;WSA[n]=Math.atan2(-M[6],M[0]);WSK[n]=clamp(1-hgt/3.5,0,1)*(SKY.night?.5:CSM.on?.55:.9);n++;}
-  gl.uniform4fv(u.uSh,WSH);gl.uniform1fv(u.uShA,WSA);gl.uniform1fv(u.uShK,WSK);gl.uniform1i(u.uNSh,n);
-}
-/* the car's model matrix: physics frame (centre of gravity) to the model's frame (ground under the middle) */
+/* the time of day's light (59_daynight's TOD, put here by applyTod); 55_gfx's envNow adds the weather */
+const SKY={};
+/* the car's model matrix: physics frame (centre of gravity) to the model's frame (ground under the middle), relative to
+   the floating origin */
 function carMatrix(t){const R=t.M,m=new Float32Array(16);
   m[0]=R[0];m[1]=R[3];m[2]=R[6];m[4]=R[1];m[5]=R[4];m[6]=R[7];m[8]=R[2];m[9]=R[5];m[10]=R[8];m[12]=t.p[0]-RO[0];m[13]=t.p[1]-RO[1];m[14]=t.p[2]-RO[2];m[15]=1;
   return M4.mul(m,M4T(-t.cg[0],-t.cg[1],0));}
 function carUniformsW(t,v,dirt){
   const u=CUR.u,b=t.build,D=carD(t);
   gl.uniform3fv(u.uPaint,lin(b.paint));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
-  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,APP.lights?1:0);gl.uniform3fv(u.uGlow,b.glow||[0,0,0]);gl.uniform1f(u.uBrake,t.brkIn>.05?1:0);gl.uniform1f(u.uDirt,dirt);
+  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLamps,APP.lights?1:0);gl.uniform3fv(u.uGlow,b.glow||[0,0,0]);gl.uniform1f(u.uBrake,t.brkIn>.05?1:0);gl.uniform1f(u.uDirt,dirt);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
 }
 /* one car where the physics has it: the body (tail-up over big rear tyres, as on the turntable), the hood
-   shut, a blower through it, the spares, flames from the pipes, and each wheel at its own hub, steered and
-   turning. Mud is measured up the car itself, not up the world */
-function drawWorldCar(t,v,dirt,far){
+   shut, a blower through it, the spares, flames from the pipes, the rider on a machine, and each wheel at its own
+   hub, steered and turning. Mud is measured up the car itself, not up the world. Each part's matrix is kept from the
+   last frame (in the origin's frame: when the origin steps, they step with it) so TAA sees the car move (a wheel's
+   spin between frames is capped, as a camera's shutter would). depth: into a shadow map, position only */
+function drawWorldCar(t,v,dirt,far,depth){
   const i=t.bi,b=t.build,u=CUR.u,M0=carMatrix(t);let Mb=M0,T=far?truckFar(i):truck(i);
   /* a phone out of graphics memory for this car's full body draws its coarse copy */
   if(T.body.oom&&!far){far=true;T=truckFar(i);if(!GAME.oomSaid){GAME.oomSaid=true;say('THE PHONE IS OUT OF GRAPHICS MEMORY: CLOSE OTHER TABS AND RELOAD',7,PAL.amber);}}
-  const D=T.D;
-  carUniformsW(t,v,dirt);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);
+  const D=T.D,pm=depth?null:(t.drawPrev||(t.drawPrev={}));
+  if(pm&&(pm.ro0!==RO[0]||pm.ro2!==RO[2])){const dx=RO[0]-(pm.ro0??RO[0]),dz=RO[2]-(pm.ro2??RO[2]);
+    for(const k in pm){const q=pm[k];const M=q&&(q.length===16?q:q.M0);if(M){M[12]-=dx;M[14]-=dz;}}pm.ro0=RO[0];pm.ro2=RO[2];}
+  const setM=(key,M,prev)=>{gl.uniformMatrix4fv(u.uM,false,M);if(pm){gl.uniformMatrix4fv(u.uPrevM,false,prev||pm[key]||M);pm[key]=M.slice();}};
+  if(!depth){carUniformsW(t,v,dirt);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uPrevOn,1);}
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
-  gl.uniformMatrix4fv(u.uM,false,Mb);
+  setM('body',Mb);
   drawMesh(T.body);if(T.hood)drawMesh(T.hood);if(T.hide)drawMesh(T.hide);if(T.engineOut)drawMesh(T.bay.engine);
-  if(T.rider&&!far)drawRider(t,T,Mb);
-  for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
-    gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
-  if(v&&v.flame>.04&&D.tips)for(const tp of D.tips){
+  if(T.rider&&!far)drawRider(t,T,Mb,setM);
+  (D.spares||[]).forEach((sp,k)=>{const W=sp.rear?T.wheelR:T.wheel;
+    setM('sp'+k,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);});
+  if(!depth&&v&&v.flame>.04&&D.tips)for(const tp of D.tips){
     const up=Math.abs(tp.d[1])>.9?[1,0,0]:[0,1,0],rr=V3.norm(V3.cross(tp.d,up)),uu=V3.cross(rr,tp.d),k=Math.min(1,v.flame),fl=(.12+.42*k*(v.flameL||.8))*(.85+.3*Math.random()),fr=(tp.r||.04)*(.8+.5*k);
     /* (a broken number here would put a stray triangle across the screen on some phones) */
     const Mf=M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr)));if(!Mf.every(Number.isFinite))continue;
-    gl.uniformMatrix4fv(u.uM,false,Mf);drawMesh(flameMesh());}
-  for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;gl.uniform1f(u.uMudOff,w.R);
+    gl.uniformMatrix4fv(u.uM,false,Mf);gl.uniformMatrix4fv(u.uPrevM,false,Mf);drawMesh(flameMesh());}
+  t.wheels.forEach((w,k)=>{const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;if(!depth)gl.uniform1f(u.uMudOff,w.R);
     /* the semi's tandem: two axles of duals where the physics has one */
-    const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0];
-    for(const dx of xs)for(const dz of zs){
-      gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s,st,s,w.ang));drawMesh(w.front?T.wheel:T.wheelR);}}
-  gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);
+    const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0],p=pm&&pm['wb'+k],dA=p?clamp(w.ang-p.ang,-.35,.35):0;
+    for(const dx of xs)for(const dz of zs){const x=w.hp[0]+t.cg[0]+dx,y=w.hp[1]-w.len+t.cg[1],z=w.hp[2]+dz*s;
+      if(pm){const prev=p?wheelMat(p.M0,x,y,z,p.st,s,w.ang-dA).slice():null;gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,x,y,z,st,s,w.ang));gl.uniformMatrix4fv(u.uPrevM,false,prev||WHM);}
+      else gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,x,y,z,st,s,w.ang));
+      drawMesh(w.front?T.wheel:T.wheelR);}
+    if(pm)pm['wb'+k]={M0:M0.slice(),st,ang:w.ang};});
+  if(!depth){gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);gl.uniform3f(u.uGlow,0,0,0);}
   return T.tris;
 }
 /* the rider: legs on the pegs, the upper body leaning about the hips; bailed, lying in the dirt beside the machine.
    From the helmet camera only the legs and hands are drawn (Mini Dirt Run Solo's, drawn relative to the origin) */
-function drawRider(t,T,Mb){
-  const u=CUR.u,R=T.rider,L=t.lean,P=R.pivot;
+function drawRider(t,T,Mb,setM){
+  const R=T.rider,L=t.lean,P=R.pivot;
   if(L&&L.bail){const B=L.bail,M=M4.mul(M4.mul(M4T(B.p[0]-RO[0],B.p[1]+.2-RO[1],B.p[2]-RO[2]),M4RY(B.yaw)),M4.mul(M4RX(PI/2),M4T(-P[0],-P[1]*.4,-P[2])));
-    gl.uniformMatrix4fv(u.uM,false,M);drawMesh(R.lo);gl.uniformMatrix4fv(u.uM,false,M4.mul(M,M4T(P[0],P[1],P[2])));drawMesh(R.up);gl.uniformMatrix4fv(u.uM,false,Mb);return;}
-  gl.uniformMatrix4fv(u.uM,false,Mb);drawMesh(R.lo);
+    setM('rlo',M);drawMesh(R.lo);setM('rup',M4.mul(M,M4T(P[0],P[1],P[2])));drawMesh(R.up);setM('body',Mb);return;}
+  setM('rlo',Mb);drawMesh(R.lo);
   if(CAMS[APP.cam]==='Hood'&&GAME.car===t)return;
   const lx=L?L.x:0,lz=L?L.z:0,Mc=MACH[t.c.machine]||{},sh=(Mc.leanZ||0)*.5*lz;
-  gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(P[0]+lx*(Mc.leanX||0)*.3,P[1],P[2]+sh),M4.mul(M4RX(lz*.38),M4RZ(-lx*.42)))));drawMesh(R.up);
-  gl.uniformMatrix4fv(u.uM,false,Mb);
+  setM('rup',M4.mul(Mb,M4.mul(M4T(P[0]+lx*(Mc.leanX||0)*.3,P[1],P[2]+sh),M4.mul(M4RX(lz*.38),M4RZ(-lx*.42)))));drawMesh(R.up);
+  setM('body',Mb);
 }
+/* the renderer's hook for the cars: yours and a race's others into the shadow maps (yours not into its own
+   headlights'), into the scene. The race's own drawing (60_race's raceDraw) culls and picks the coarse copies */
+const CARHOOK={c:null,
+  shadow(R,Pd,VP,kind,k){const c=this.c;if(!c||showActive())return;const G=R.G,F=frustum(toWorld(VP));let used=false;
+    const one=(t,far)=>{const r=t.c.body.L*.6+1;if(!boxVisible(F,[t.p[0]-r,t.p[1]-r,t.p[2]-r],[t.p[0]+r,t.p[1]+r,t.p[2]+r]))return;
+      if(!used){used=true;useLit(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);gl.disable(gl.CULL_FACE);}drawWorldCar(t,null,0,far,true);};
+    if(kind!=='hl')one(GAME.car,false);
+    for(const o of raceCars())one(o,true);
+    if(used)G.use(Pd);},
+  opaque(R,U,texs){const c=this.c;if(!c||showActive())return;const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);CUR=litOf(P);
+    let tris=drawWorldCar(GAME.car,GAME.voice,GAME.dirt,false,false);
+    tris+=raceDraw({eye:c.eye,VPw:toWorld(U.uVP)});APP.carTris=tris;}
+};
+/* the soft occlusion under a car, for the renderer: where it is (relative to the origin), its height, which way it
+   faces, its size */
+function occOf(t){const D=carD(t),M=t.M,l=Math.hypot(M[0],M[6])||1;return [t.p[0]-RO[0],t.p[1]-RO[1],t.p[2]-RO[2],t.cg[1],M[0]/l,M[6]/l,D.L/2,t.build.look.track/2+.12];}
+/* a jump in the view (a reset, a teleport, a camera change): the TAA history starts over, the probe is redrawn whole */
+function viewCut(){CAM.cutFrame=true;if(R)R.probeFilled=0;}
 function render(dt){
   /* the opening screen and the garage: the showroom (63_showroom) */
   if(showActive()){renderShow(dt);return;}
   hClear();
   let tq=performance.now();
+  /* a reset or a teleport (60_game's placeCar, a race's grid) asks for a fresh start of the probe and the history */
+  if(CAM.cut||PRB.fresh||CSM.fresh){PRB.fresh=CSM.fresh=false;viewCut();}
   let cw=camUpdate(dt);
   /* (a camera that lost its numbers starts again behind the car rather than staying lost) */
-  if(![...cw.eye,...cw.fwd].every(Number.isFinite)){CAM.cut=true;CAM.yaw=null;CAM.off=null;CAM.fq=null;cw=camUpdate(dt);}
-  const T=sceneTargetHD(),t=GAME.car;worldUpdate(cw.eye,t);setOrigin(cw.eye);const c=CAM.last=camMats(cw,T.w/T.h);GFX.frame++;
+  if(![...cw.eye,...cw.fwd].every(Number.isFinite)){CAM.cut=true;CAM.yaw=null;CAM.off=null;CAM.fq=null;cw=camUpdate(dt);viewCut();}
+  const t=GAME.car;worldUpdate(cw.eye,t);setOrigin(cw.eye);const c=CAM.last=camMats(cw,PIC.w/PIC.h);GFX.frame++;
   tq=psT(PS_WORLD,tq);
-  /* the sun's cascaded shadow maps and a face of the reflection probe first (55_gfx) */
-  csmPass(c,t);tq=psT(PS_SHADOW,tq);probePass(t);tq=psT(PS_PROBE,tq);
-  gl.bindFramebuffer(gl.FRAMEBUFFER,T.f);gl.viewport(0,0,T.w,T.h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);useLit(P_LIT);
-  worldUniforms(c);gfxUniforms();skyLights(t);worldShadows([t,...raceCars()]);
-  /* at night the fog closes in and the world past it isn't drawn; by day the graphics level sets how far */
-  let tris=drawWorld(c,SKY.night?SKY.draw:0);
-  tris+=drawWorldCar(t,GAME.voice,GAME.dirt);tris+=raceDraw(c);
-  if(!DEVW.off.fx)tris+=fxDraw();tris+=rainDraw(c,dt);
-  /* the dust and spray last, blended over the rest (into the colour only, not the normals the passes read) */
-  if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.NONE]);if(!DEVW.off.fx)tris+=fxDrawSoft(c);tris+=chalDraw(c);if(SC.mrt)gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);
-  gl.bindVertexArray(null);APP.tris=tris;tq=psT(PS_SCENE,tq);
-  /* occlusion and light in the air (laptop), the exposure, then the HUD and the display (55_post) */
-  const src=postPasses(c,dt);tq=psT(PS_POST,tq);
-  drawHud(c);tq=psT(PS_HUD,tq);
-  presentHD(src);psT(PS_SEND,tq);
+  const cut=!!CAM.cutFrame;CAM.cutFrame=false;
+  /* the lamps: yours, the yard lights nearest you, and at night the others' headlights */
+  const L={dyn:[],headlights:null};carLights(t,L);
+  const others=raceCars();if(SKY.night&&others.length)rivalLights(L,others,c.eye);
+  yardLights(L,t.p,14);
+  const occ=[occOf(t)];for(const o of others){if(occ.length>=8)break;occ.push(occOf(o));}
+  /* the HUD first: the LED display lights its dots as part of the picture */
+  drawHud(c);hudUpload();tq=psT(PS_HUD,tq);
+  LAND.c=CARHOOK.c=GLASSHOOK.c=c;LAND.dt=dt;R.U.uStudio=0;
+  R.render({time:APP.t,dt,cam:{pos:c.eyeR,fwd:c.fwd,up:c.up,fov:c.fov,near:c.near,far:c.far,shift:c.shift||0},cut,env:envNow(),flicker:FLICK,
+    probePos:[t.p[0]-RO[0],t.p[1]+1.1-RO[1],t.p[2]-RO[2]],dyn:L.dyn,headlights:L.headlights,occ:LOOK.occ?occ:[],shutter:.5,lensRain:0,
+    led:ledState(),after:DISP.mode==='clear'?hudOverlay:null,debug:DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?null:DEBUG_VIEW});
+  gl.bindVertexArray(null);APP.tris=LAND.tris+(APP.carTris||0);rperfAcc();
+  psT(PS_SCENE,tq);
 }
 
 /* ---------- the matrix fills the window, 16:9 ---------- */
-function setRes(i,keep){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;if(!keep)store.set('wo2-res',i);$('res').textContent='Dots '+BW+'×'+BH;}
+function setRes(i,keep){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;if(!keep)store.set('wo2-res',i);$('res').textContent='Dots '+BW+'×'+BH;if(R&&DISP.mode==='dots'&&!keep)resize();}
 function layout(){const vw=innerWidth,vh=innerHeight;
   /* the bay's window fills the whole screen, the car behind the lab's instruments: its dots take the window's shape */
   if(SHOW.full){bayFill(vw,vh);return;}if(BAYGRID.on){BAYGRID.on=false;setRes(APP.res,true);}
@@ -508,26 +519,22 @@ function bayFill(vw,vh){const [dw,dh,hs]=RES[APP.res];let w=vw,h=w*9/16;if(h>vh)
   const bw=Math.max(hs,Math.round(vw/pitch/hs)*hs),bh=Math.max(hs,Math.round(vh/pitch/hs)*hs),key=bw+'x'+bh+'/'+hs;
   if(!BAYGRID.on||BAYGRID.key!==key){HS=hs;BW=bw;BH=bh;W=bw/hs;H=bh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);BAYGRID.key=key;}
   BAYGRID.on=true;RECT={x:0,y:0,w:vw,h:vh};}
-/* how much finer than the dots the scene is drawn: Sharp 2x2, Smooth 1.5x1.5, Fast one sample a dot.
-   Auto starts sharp (smooth on a phone) and steps down while driving if the frame rate can't keep up */
-const DETAIL={sharp:2,smooth:1.5,fast:1};
-function setDetail(id){APP.detail=id;SS=id==='auto'?(GAME.touch||touchy?1.5:2):DETAIL[id];APP.slowT=0;saveGame();}
-/* (dots only: the clear display has its own, 55_post drsStep; and the dots it lowers to aren't saved, so the
-   setting you chose comes back next time) */
-function autoDetail(dt){
-  if(APP.detail!=='auto'||GAME.state!=='drive'||DISP.mode==='clear')return;
-  if(APP.fps<48){APP.slowT=(APP.slowT||0)+dt;if(APP.slowT>3){APP.slowT=0;if(SS>1){SS=SS>1.5?1.5:1;say('Detail lowered to keep it smooth',1.6);}else if(APP.res>2){setRes(APP.res-1,true);layout();say('Fewer dots to keep it smooth',1.6);}}}
-  else APP.slowT=Math.max(0,(APP.slowT||0)-dt*.5);
-}
+/* (the dots' old detail setting, kept in the save; the renderer's dynamic resolution does its job now) */
+function setDetail(id){APP.detail=id;saveGame();}
 
 /* ---------- the loop ---------- */
-let LAST=0;
+/* frames come on an even beat: every refresh of the screen, or every second one (a 90 Hz phone at 45 fps, where every
+   refresh would spend the render scale chasing 90). Auto picks every second refresh on a touch screen that refreshes
+   faster than 75 Hz, every refresh elsewhere; the dynamic resolution aims for that beat */
+let LAST=0,LAST_RAW=0;
+const fpsDivisor=()=>APP.fpsMode==='auto'||!APP.fpsMode?(touchy&&RESO&&RESO.hz>=85?2:RESO?RESO.divFor('auto'):1):Math.max(1,Math.min(3,+APP.fpsMode||1));
 function frame(ts){
+  requestAnimationFrame(frame);
+  if(RESO){if(LAST_RAW)RESO.noteVsync(ts-LAST_RAW);LAST_RAW=ts;const k=fpsDivisor();RESO.setDivisor(k);const per=1000/RESO.hz;if(k>1&&LAST&&ts-LAST<k*per-per*.5)return;}
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
   perfBegin();
-  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last);raceSound(CAM.last);}psT(PS_SOUND,ts0);autoDetail(dt);drsStep(dt);}catch(e){console.error(e);}
+  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last);raceSound(CAM.last);}psT(PS_SOUND,ts0);drsStep(dt);}catch(e){console.error(e);}
   perfEnd(dt);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps · '+WORLD.chunks.size+' chunks';}
-  requestAnimationFrame(frame);
 }

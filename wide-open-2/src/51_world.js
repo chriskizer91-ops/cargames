@@ -9,10 +9,11 @@
    if one isn't there yet it works the ground out point by point from the same functions, so it is the
    same answer either way.
    Drawing is relative to a floating origin (RO): the camera's spot rounded to 512 m, at sea level. The GPU only
-   ever sees numbers a few kilometres across, so nothing shakes however far from the garage you drive, and
-   because the origin only moves in whole steps and never up or down, HD's fog, cascaded shadows, probe and
-   post passes work as they did. Each draw's uOrg puts the textures back on the world: a chunk's own corner
-   (within an 8,192 m cell), so the dirt, gravel and tarmac detail never crawl or pop.
+   ever sees numbers a few kilometres across, so nothing shakes however far from the garage you drive. The renderer
+   (11_sl3) draws in that frame too: its cascades, probe and light grid are relative to the origin, and when the
+   origin steps the last frame's matrix (TAA's and the reflections' reprojection) takes the step, the light grid
+   moves with it and every cascade is drawn afresh that frame. Each draw's uOrg puts the textures back on the world:
+   a chunk's own corner (within an 8,192 m cell), so the dirt, gravel and tarmac detail never crawl or pop.
    Back Forty: from Mini Dirt Run Open World's world_rt.js, moved onto Dirt Sleeper HD's renderer.
    ===================================================================================== */
 const RMAT={TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CONCRETE:45,WOOD:46,SHEET:47,LEAF:48,HAY:49,WATER:50,SKY:51,LINE:52,GRAVEL:53,ASPHALT:54,RUTS:55,ROAD:58};
@@ -55,30 +56,29 @@ const WSEED=6,WG=WORLDGEN(WSEED),CHK=WG.CH,FTS=WG.FT,CHN=CHK/2+1;
 const ckey=(cx,cz)=>(cx+4096)*8192+(cz+4096);
 /* the floating origin: everything is drawn relative to it */
 const RO=[0,0,0],RO_STEP=512,ORG_CELL=4096;
-/* move it under the camera when the camera has gone more than a step from it. What the shadow cascades and the
-   probe hold is still right, only the frame it was drawn in moved: each cascade's matrix takes the step (a point
-   now at p was at p+d), and the probe's spot moves back by it, so nothing is redrawn all at once (a hitch every
-   512 m on a phone otherwise) */
+/* move it under the camera when the camera has gone more than a step from it. Only the frame moved: the renderer's
+   last view-projection (what TAA and the reflections reproject through) takes the step (a point now at p was at
+   p + d), the light grid's records and corner move back by it (59_daynight), and the cascades are all drawn afresh
+   this frame (the far ones are otherwise redrawn every second or fourth frame, and would hold the old frame's
+   shadows). The probe is a cube of directions, right wherever it was drawn */
 function setOrigin(eye){
   if(!Number.isFinite(eye[0])||!Number.isFinite(eye[2]))return false;
   const x=Math.round(eye[0]/RO_STEP)*RO_STEP,z=Math.round(eye[2]/RO_STEP)*RO_STEP;
   if(x===RO[0]&&z===RO[2])return false;
   const dx=x-RO[0],dz=z-RO[2];RO[0]=x;RO[1]=0;RO[2]=z;
-  if(CSM.n){const T=M4T(dx,0,dz);for(let k=0;k<CSM.n;k++)CSM.M.set(M4.mul(CSM.M.subarray(k*16,k*16+16),T),k*16);}
-  PRB.pos[0]-=dx;PRB.pos[2]-=dz;return true;}
+  if(R){if(R.prevVP)R.prevVP=M4.mul(R.prevVP,M4T(dx,0,dz));R.shadowAll=true;lgPlace();}
+  WORLD.steps=(WORLD.steps||0)+1;return true;}
 /* uOrg for something whose texture cell starts at the 8,192 m cell holding (x,z) */
 function orgFor(u,x,z){const cx=Math.floor(x/ORG_CELL)*ORG_CELL,cz=Math.floor(z/ORG_CELL)*ORG_CELL;if(u.uOrg)gl.uniform3f(u.uOrg,RO[0]-cx,0,RO[2]-cz);}
 const WORLD={inbox:[],treeGen:0,chunks:new Map(),far:new Map(),tiles:new Map(),labels:new Map(),pend:new Map(),inflight:0,nextId:1,worker:null,mode:'starting',frame:0,
   near:640,farR:2400,lodD:[170,340],propD:460,sky:null,ready:false,forceLocal:false,
   st:{n:[0,0,0],ms:[0,0,0],mx:[0,0,0],sn:0,sms:0,smx:0,fn:0,fms:0,upms:0,miss:0,missT:0,holes:0,queue:0,bytes:0,last:0,ring:0,odo:0,top:0,lastP:null,genRate:0,genAcc:0,genT:0}};
-/* the sizes of the rings by graphics level (the dev panel can push them out or in) */
-const WRING={mini:{near:540,farR:1800,lodD:[115,270],propD:340},phone:{near:540,farR:1800,lodD:[115,270],propD:340},
-  laptop:{near:820,farR:3000,lodD:[200,420],propD:560},ultra:{near:980,farR:3600,lodD:[250,500],propD:680}};
+/* the sizes of the rings by graphics tier (55_gfx's GFX_Q; the dev panel can push them out or in) */
 function worldRings(){
-  const r=WRING[GFX.level]||WRING.phone,k=DEVW.view==='near'?.75:DEVW.view==='far'?1.35:1;
+  const r=GFX.q,k=DEVW.view==='near'?.75:DEVW.view==='far'?1.35:1;
   WORLD.near=r.near*k;WORLD.farR=r.farR*k;WORLD.lodD=[r.lodD[0]*k,r.lodD[1]*k];WORLD.propD=r.propD*k;
   /* under the full moon the fog is thin enough to see a long way; the far land (and downtown's skyline) on a laptop */
-  if(SKY.night){WORLD.near=Math.min(WORLD.near,560);WORLD.farR=GFX.level==='mini'||GFX.level==='phone'?0:Math.min(WORLD.farR,1800);WORLD.propD=Math.min(WORLD.propD,420);}
+  if(SKY.night){WORLD.near=Math.min(WORLD.near,560);WORLD.farR=GFX.level==='mobile'||GFX.level==='low'?0:Math.min(WORLD.farR,1800);WORLD.propD=Math.min(WORLD.propD,420);}
 }
 
 /* ---------- the worker ---------- */
@@ -265,21 +265,16 @@ function atM(u,x,y,z){WTM[12]=x-RO[0];WTM[13]=y-RO[1];WTM[14]=z-RO[2];gl.uniform
 const bestG=c=>c.g[c.want]||c.g[0]||c.g[1]||c.g[2];
 function worldInit(){
   const t0=performance.now();
-  /* the sky: an inside-out dome round the camera */
-  {const mb=new Ranch.MeshBuilderI();mb.m=[0,0,0,0];const seg=28,rings=14,ix=[];
-    for(let j=0;j<=rings;j++){const ph=j/rings*Math.PI,row=[];for(let i=0;i<=seg;i++){const th=i/seg*TAU,n=[Math.sin(ph)*Math.cos(th),Math.cos(ph),Math.sin(ph)*Math.sin(th)];row.push(mb.v([n[0]*900,n[1]*900,n[2]*900],n));}ix.push(row);}
-    for(let j=0;j<rings;j++)for(let i=0;i<seg;i++)mb.quad(ix[j][i],ix[j+1][i+1],ix[j][i+1]);
-    WORLD.sky=makeMesh({pos:new Float32Array(mb.P),nrm:new Float32Array(mb.N),col:new Float32Array(mb.C),mat:new Float32Array(mb.P.length/3).fill(RMAT.SKY),idx:new Uint32Array(mb.idx)});}
   TREES.shapes=treeShapes();
   startWorker();
   RANCH.ms=performance.now()-t0;
 }
-/* draw the sky, the far tiles, the ground, the roads, the buildings and the trees. cam: eye (world) and VPw (the
-   view in world space, for culling). maxD: how far (the night's fog, or the probe's reach). probe: the reflection
-   probe's cheap version, without the far tiles */
+/* draw the far tiles, the ground, the roads, the buildings and the trees (the sky is the renderer's own pass). cam:
+   eye (world) and VPw (the view in world space, for culling). maxD: how far (the night's fog, or the probe's reach).
+   probe: the reflection probe's cheap version, without the far tiles */
 function drawWorld(cam,maxD,probe){
   const W=WORLD,u=CUR.u,F=frustum(cam.VPw),e=cam.eye,near=Math.min(W.near,maxD||W.near),propD=Math.min(W.propD,maxD||W.propD);let tris=0,holes=0;
-  gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);gl.depthMask(false);drawMesh(W.sky);gl.depthMask(true);
+  gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
   /* far tiles: pushed down a little where the chunks are, so the chunks always win */
   if(W.farR>0&&!probe&&!DEVW.off.far&&(!maxD||maxD>W.near)){if(u.uFarDrop)gl.uniform4f(u.uFarDrop,1,W.near-90,W.near+30,14);
     for(const t of W.far.values()){if(!t.m)continue;if(boxDist(e,t.mn,t.mx)>W.farR||!boxVisible(F,t.mn,t.mx))continue;atM(u,t.x0,0,t.z0);drawMesh(t.m);tris+=t.m.tris;if(t.marks){drawMesh(t.marks);tris+=t.marks.tris;}}
@@ -302,8 +297,8 @@ function drawWorld(cam,maxD,probe){
 }
 /* the trees: three broadleaf shapes and two pines, each near (full) and far (one lump), drawn instanced */
 const TREES={shapes:null,buf:null,cnt:null};
-/* how near a tree is drawn in full (beyond, its single lump): by graphics level */
-const TREE_NEARL={mini:60,phone:70,laptop:95,ultra:120};let TREE_NEAR=95;
+/* how near a tree is drawn in full (beyond, its single lump): by graphics tier (55_gfx) */
+let TREE_NEAR=95;
 function treeShapes(){
   const out=[],R=Ranch.rng(11),mk=fn=>{const B=new Ranch.MeshBuilderI();fn(B);
     for(let i=0;i<B.nv;i++)if(B.M[i]===RMAT.WOOD)B.C[i*4+3]=2;
@@ -357,18 +352,18 @@ function drawTreeList(L,u,far){let tris=0;gl.uniform1f(u.uInst,1);
   for(let v=0;v<L.cnt.length;v++)for(let l=0;l<2;l++){const n=L.cnt[v][l];if(!n)continue;const m=TREES.shapes[v][far?1:l];instBind(m,L.gb[v][l],n);drawMeshI(m);tris+=m.tris*n;}
   gl.uniform1f(u.uInst,0);return tris;}
 function drawTreesW(cam,F,maxD,probe){
-  TREE_NEAR=TREE_NEARL[GFX.level]||95;
+  TREE_NEAR=GFX.q.treeNear;
   /* the probe looks every way from the car, so its list has no frustum and serves all six faces; at its few
      pixels a face every tree is its single lump */
   return probe?drawTreeList(treeList('p',cam.eye,maxD,null,true),CUR.u,true):drawTreeList(treeList('v',cam.eye,maxD,F,false),CUR.u,false);
 }
-/* a shadow cascade's share of the world (55_gfx casters): the buildings and poles inside its sphere, and the trees
-   (the far cascades take each tree's single-lump shape). ctr is relative to the origin, like the cascade */
-function worldCasters(u,ctr,R,far,id){
-  let tris=0;const wx=ctr[0]+RO[0],wz=ctr[2]+RO[2];
-  for(const c of WORLD.chunks.values()){if(!c.st||!c.st.props)continue;if(c.x0>wx+R||c.x0+CHK<wx-R||c.z0>wz+R||c.z0+CHK<wz-R)continue;atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
+/* a shadow map's share of the world (52_world_gl's LAND.shadow): the buildings, poles and stands inside its frustum F
+   (world space) and within maxD of e (world), and the trees (the far cascades take each tree's single-lump shape) */
+function worldShadow(u,F,e,maxD,id,far){
+  let tris=0;
+  for(const c of WORLD.chunks.values()){if(!c.st||!c.st.props)continue;if(boxDist(e,c.mn,c.mx)>maxD||!boxVisible(F,c.mn,c.mx))continue;atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
   gl.uniformMatrix4fv(u.uM,false,M4.id());
-  return tris+drawTreeList(treeList(id||'c',[wx,0,wz],R,null,!far),u,far);
+  return tris+(DEVW.off.trees?0:drawTreeList(treeList(id,e,maxD,F,!far),u,far));
 }
 /* the lights of the farms, the towns and the garage near a point (for the night) */
 function worldLights(p,r){const out=[];

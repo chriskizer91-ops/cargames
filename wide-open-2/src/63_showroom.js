@@ -1,7 +1,9 @@
 /* =====================================================================================
    THE SHOWROOM: Dirt Sleeper Mini's model bay, as Back Forty's opening screen and its garage.
-   The stage below is the bay's own (80_bay_stage.js), its house name now BACK FORTY; the studios are lit
-   by 13_lit's studioEnv (stages 1 and 2), the open world being stage 3.
+   The stage below is the bay's own (80_bay_stage.js), its house name now REDLINE COUNTY. The studios are scenes of
+   their own for Shiftlight 3's renderer (STUDIO below: its hooks draw the stage, the car, the dyno and the parked
+   cars; the studio's lamps are the frame's own lamps, its key light the "sun" with the cascades' shadow, its
+   reflections a probe at the car), lit by 13_lit's studioEnv (uStudio 1 the dark bay, 2 the light cyc).
    ===================================================================================== */
 /* =====================================================================================
    THE STAGE — two photo studios. The dark bay is the Shiftlight garage: a glossy floor, a
@@ -97,7 +99,7 @@ function showCam(asp,dt){
   let dth=tgt.th-c.th;while(dth>180)dth-=360;while(dth<-180)dth+=360;c.th+=dth*k;c.ph+=(tgt.ph-c.ph)*k;c.d+=(tgt.d-c.d)*k;c.ty+=(tgt.ty-c.ty)*k;
   const T=truck(APP.bi),sz=showShed()?1:clamp(T.D.L/4.9,.55,1.8),hz=showShed()?1:clamp(T.D.Hr/1.8,.55,2),ty=c.ty*hz+T.D.dy*.55+(showShed()?0:dynoH()),wall=showShed()?18.6:12.6,
     dd=Math.min(c.d*sz,wall),th=c.th*PI/180,ph=c.ph*PI/180,
-    e=[dd*Math.cos(ph)*Math.cos(th),ty+dd*Math.sin(ph),-dd*Math.cos(ph)*Math.sin(th)],t=[0,ty,0];
+    e=[dd*Math.cos(ph)*Math.cos(th),ty+dd*Math.sin(ph),-dd*Math.cos(ph)*Math.sin(th)];let t=[0,ty,0];
   /* in the bay's window the car is fitted into what the controls, the sheet and the instruments leave free (the
      lens widens rather than the camera backing into the studio's wall, which is also how a pinch out past the
      wall carries on); in the garage tab it slides right of the menu */
@@ -108,10 +110,14 @@ function showCam(asp,dt){
     /* (a narrow gap between the lab's columns is filled across: the car takes about two thirds of it) */
     const fv=clamp((vb-vt)/RECT.h,.2,1),fh=clamp((vr-vl)/RECT.w,.2,1),S=1.12*Math.max(1/fv,(fh<.6?.56:.82)/fh)*Math.max(1,c.d*sz/wall);
     fov=2*Math.atan(Math.tan(.25)*S);sx=clamp((vl+vr)/2-RECT.x,0,RECT.w)/RECT.w*2-1;sy=1-2*clamp((vt+vb)/2-RECT.y,0,RECT.h)/RECT.h;}
-  const V_=M4.look(e,t,[0,1,0]),P_=M4.persp(fov,asp,.2,200);
-  if(!SHOW.full){const mr=APP.menuRight||0,right=Math.min(innerWidth,RECT.x+RECT.w),cx=(Math.max(mr,RECT.x)+right)/2;P_[8]=-clamp((cx-RECT.x)/RECT.w*2-1,0,.8);}
-  else{P_[8]=-clamp(sx,-.6,.6);P_[9]=-clamp(sy,-.6,.6);}
-  const VP=M4.mul(P_,V_);return {eye:e,eyeR:e,fwd:V3.norm(V3.sub(t,e)),up:[0,1,0],fov,asp,V:V_,P:P_,VP,VPw:VP,near:.2,far:200};
+  let shift=0,up=0;
+  if(!SHOW.full){const mr=APP.menuRight||0,right=Math.min(innerWidth,RECT.x+RECT.w),cx=(Math.max(mr,RECT.x)+right)/2;shift=-clamp((cx-RECT.x)/RECT.w*2-1,0,.8);}
+  else{shift=-clamp(sx,-.6,.6);up=clamp(sy,-.6,.6);}
+  /* (the renderer's lens shifts sideways only: the bay's shift up or down is a tilt of the camera instead, its aim
+     moved down or up by as much) */
+  if(up){const f=V3.norm(V3.sub(t,e)),rr=V3.norm(V3.cross(f,[0,1,0])),uu=V3.cross(rr,f),k=V3.len(V3.sub(t,e))*Math.tan(fov/2)*up;t=[t[0]-uu[0]*k,t[1]-uu[1]*k,t[2]-uu[2]*k];}
+  const V_=M4.look(e,t,[0,1,0]),P_=M4.persp(fov,asp,.2,200);P_[8]=shift;
+  const VP=M4.mul(P_,V_);return {eye:e,eyeR:e,fwd:V3.norm(V3.sub(t,e)),up:[0,1,0],fov,asp,V:V_,P:P_,VP,VPw:VP,near:.2,far:200,shift};
 }
 /* where the bay's controls are, in CSS pixels (read every half second, and when they change) */
 function showMeasure(){
@@ -125,63 +131,34 @@ function showMeasure(){
   }else{const d=$('shDock');let top=vh;if(d)for(const el of d.children){if(el.hidden)continue;top=Math.min(top,el.getBoundingClientRect().top);}F.b=top;}
   SHOW.free=F;SHOW.dockTop=F.b;
 }
-/* ---------- the bay's quality ----------
-   One car in a studio costs a fraction of the open world, so in the bay's window the picture spends it on the car:
-   drawn at up to 1.25 times the screen's own pixels (a little supersampling on a phone; finer dots on a laptop),
-   the occlusion pass on, the ground's full detail, every studio lamp, and a real shadow map for the key light (in
-   the dark bay an overhead softbox, as a car photographer hangs one): the car's shadow under it on the floor and
-   the deck, shade in its arches and under its sills. If the frame rate can't hold, the picture's size comes down. */
-const SHOWQ={lv:0,ft:new Float32Array(60),i:0,n:0,chk:0,saved:null};
-function showQuality(on,dt){
-  if(!on){if(SHOWQ.saved){const S=SHOWQ.saved;DISP.scale=S.scale;SS=S.SS;GFX.q=S.q;SHOWQ.saved=null;}return;}
-  SHOWQ.saved={scale:DISP.scale,SS,q:GFX.q};
-  SHOWQ.ft[SHOWQ.i]=dt;SHOWQ.i=(SHOWQ.i+1)%60;SHOWQ.n=Math.min(60,SHOWQ.n+1);
-  /* if it can't hold its frame rate it gives up the occlusion and the softer shadow edge first, then pixels, never
-     going below what the game itself draws at */
-  if(SHOWQ.n===60&&APP.t-SHOWQ.chk>2){SHOWQ.chk=APP.t;const med=Array.from(SHOWQ.ft).sort((x,y)=>x-y)[30];
-    if(med>1/42&&SHOWQ.lv<4){SHOWQ.lv++;SHOWQ.n=0;}else if(med<1/57&&SHOWQ.lv>0&&APP.t-(SHOWQ.down||0)>8){SHOWQ.lv--;SHOWQ.n=0;SHOWQ.down=APP.t;}}
-  const lv=SHOWQ.lv,px=RECT.w*DPR*RECT.h*DPR,base=Math.min(1.25,Math.sqrt((touchy?1.6e6:3.2e6)/Math.max(1,px)))*[1,1,.85,.7,.55][lv];
-  DISP.scale=Math.max(SHOWQ.saved.scale,Math.round(base*20)/20);SS=lv<2?2:1.5;
-  GFX.q=Object.assign({},GFX.q,{ssao:GFX.level==='mini'||lv>0?0:1,vol:0,detail:1,taps:lv>0?4:9});
-}
+/* ---------- the bay's quality: the renderer's own dynamic resolution looks after it now ---------- */
+function showQuality(on,dt){}
 /* the key light: the light cyc's own sun; the dark bay's softbox overhead */
 const showKey=S=>S.id===1?{d:V3.norm([.16,1,.1]),c:lin('#fff0e0',.5)}:{d:S.sun,c:S.sunCol};
-function showShadowPass(i,Mcar,Mt,dh){
-  if(!GFX.q.csm||DEVW.off.shadows)return false;csmTarget();if(!CSM.n||!CSM.tex)return false;
-  const L=showKey(STAGES[SHOW.stage]).d,D=truck(i).D,dy=dh>.001,r=Math.max(3.6,D.L*.5+1.2)+(dy?2.6:0),ctr=[dy?.8:0,1,0],back=r+14;
-  const V=M4.look([ctr[0]+L[0]*back,ctr[1]+L[1]*back,ctr[2]+L[2]*back],ctr,Math.abs(L[1])>.98?[1,0,0]:[0,1,0]),n=CSM.size;
-  const M=M4.mul(ortho(-r,r,-r,r,1,back+r+6),V);CSM.M.set(M,0);CSM.off[0]=2*r/n*1.6+.02;CSM.ends[0]=1e4;
-  const P=CSM.P,u=P.u;gl.useProgram(P.p);gl.uniform1f(u.uTime,APP.t);gl.uniform1f(u.uInst,0);
-  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1.6,4);gl.disable(gl.CULL_FACE);
-  gl.bindFramebuffer(gl.FRAMEBUFFER,CSM.fbs[0]);gl.viewport(0,0,n,n);gl.clear(gl.DEPTH_BUFFER_BIT);gl.uniformMatrix4fv(u.uVP,false,M);
-  drawShowCar(i,Mcar,SHOW.hoodA,true,false,0,u);if(dy)drawDyno(i,Mt,dh,u);
-  gl.disable(gl.POLYGON_OFFSET_FILL);gl.bindVertexArray(null);
-  /* (the game's own cascades are all drawn afresh when it's back) */
-  CSM.on=true;CSM.fresh=true;return true;
-}
-/* the studio's light: its sun, ambient, fog, stage and lamps (omni: no beam, no spot); in the bay's window the key
-   light and its shadows, and the flash of a bang in the pipes lighting the floor */
-const SLP=new Float32Array(32),SLC=new Float32Array(32),SLD=new Float32Array(32);
-function showUniforms(shed,mirror){
-  const u=CUR.u,S=STAGES[SHOW.stage],full=SHOW.full&&!shed,K0=full?showKey(S):{d:S.sun,c:S.sunCol},K=mirror?{d:[K0.d[0],-K0.d[1],K0.d[2]],c:K0.c}:K0;
-  let LS=stageLights(S,shed).slice(0,!full&&(GFX.level==='mini'||GFX.level==='phone')?5:8);
+/* the studio's light for the renderer: its key (the light cyc's sun, the dark bay's softbox overhead: the cascades'
+   shadow under the car), its ambient, its haze, its lamps (omni: no beam, no spot) as the frame's own lamps, and in
+   the bay's window the flash of a bang in the pipes lighting the floor. These games' lamps were about 1/160 of the
+   renderer's (59_daynight's LK); the studio's are a little under that, to keep its look */
+const SLK=5,SLAMP=110;
+function showEnv(shed,full){
+  const S=STAGES[SHOW.stage],K=full||S.id===2?showKey(S):{d:S.sun,c:S.sunCol},E=STUDIO.env;
+  Object.assign(E,{night:0,sunDir:K.d,sunSize:.01,sunCol:K.c.map(v=>v*SLK),ambUp:S.sky.map(v=>v*SLK),ambDn:S.gnd.map(v=>v*SLK),skyZen:[0,0,0],skyHor:[0,0,0],skyGlow:[0,0,0],
+    cloud:0,stars:0,fogCol:S.fog.map(v=>v*SLK),fogDen:S.fogD*.35,fogFall:0,fogAmb:S.fog.map(v=>v*SLK*.6),wet:0,rain:0,puddles:0,lightsOn:0,lit:0,
+    key:.17*LOOK.key,expoRange:S.id===1?[.6,6]:[.08,1.2],bloom:.05,grade:[1.12*LOOK.sat,1.04*LOOK.con],expoBias:1});
+  let LS=stageLights(S,shed).slice(0,14);
   if(full&&SHOW.flash){const v=GAME.voice,k=Math.min(1,v.flame),n=Math.min(2,SHOW.flash.length);
-    LS=LS.slice(0,8-n).concat(SHOW.flash.slice(0,n).map(p=>[p[0],p[1],p[2],5.5,[1,.46,.14],(5+5*v.flameL)*k]));}
-  gl.uniform3fv(u.uSunDir,K.d);gl.uniform3fv(u.uSunCol,K.c);gl.uniform3fv(u.uSkyAmb,mirror?S.gnd:S.sky);gl.uniform3fv(u.uGndAmb,mirror?S.sky:S.gnd);
-  gl.uniform3fv(u.uFogCol,S.fog);gl.uniform1f(u.uFogD,S.fogD);gl.uniform1f(u.uStage,S.id);gl.uniform1f(u.uNight,0);
-  gl.uniform4f(u.uCloud,0,0,0,0);gl.uniform1f(u.uWet,0);gl.uniform4f(u.uProbeP,0,0,0,0);gl.uniform2i(u.uCSMN,full&&SHOW.shOn&&!mirror?1:0,full&&SHOW.shOn&&!mirror?GFX.q.taps:4);if(u.uOrg)gl.uniform3f(u.uOrg,0,0,0);
-  LS.forEach((l,k)=>{SLP.set([l[0],mirror?-l[1]:l[1],l[2],l[3]],k*4);SLC.set([l[4][0]*l[5],l[4][1]*l[5],l[4][2]*l[5],0],k*4);SLD.set([0,-1,0,-2],k*4);});
-  gl.uniform4fv(u.uLP,SLP);gl.uniform4fv(u.uLC,SLC);gl.uniform4fv(u.uLD,SLD);gl.uniform1i(u.uNL,LS.length);
+    LS=LS.slice(0,14-n).concat(SHOW.flash.slice(0,n).map(p=>[p[0],p[1],p[2],5.5,[1,.46,.14],(5+5*v.flameL)*k]));}
+  return LS.map(l=>({pos:[l[0],l[1],l[2]],r:l[3],col:[l[4][0]*l[5]*SLAMP,l[4][1]*l[5]*SLAMP,l[4][2]*l[5]*SLAMP],type:0}));
 }
 /* the floor's contact shadows: x, z, half length, half width, yaw */
 const SSH=new Float32Array(32),SSA=new Float32Array(8),SSK=new Float32Array(8);
-function showShadows(list){const u=CUR.u,n=Math.min(8,list.length);for(let k=0;k<n;k++){SSH.set(list[k].slice(0,4),k*4);SSA[k]=list[k][4];SSK[k]=1;}
-  gl.uniform4fv(u.uSh,SSH);gl.uniform1fv(u.uShA,SSA);gl.uniform1fv(u.uShK,SSK);gl.uniform1i(u.uNSh,n);}
+/* (as the renderer's occlusion under each car: x, y, z, the height, the direction it faces, half length, half width) */
+function showShadows(list){return list.slice(0,8).map(q=>[q[0],.6,q[1],.6,Math.cos(q[4]),-Math.sin(q[4]),q[2],q[3]]);}
 const showShadowOf=(i,x,z,yaw)=>{const b=BUILDS[i];return [x,z,truck(i).D.L/2+.15,b.look.track/2+b.look.tyre.W*.5,yaw];};
 function showCarUniforms(i,dirt){
   const u=CUR.u,b=BUILDS[i],D=truck(i).D;
   gl.uniform3fv(u.uPaint,lin(b.paint));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
-  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLights,SHOW.lights?1:0);gl.uniform3fv(u.uGlow,b.glow||[0,0,0]);gl.uniform1f(u.uBrake,0);gl.uniform1f(u.uDirt,dirt);
+  gl.uniform1f(u.uLiv,b.liv);gl.uniform1f(u.uLamps,SHOW.lights?1:0);gl.uniform1f(u.uPrevOn,0);gl.uniform3fv(u.uGlow,b.glow||[0,0,0]);gl.uniform1f(u.uBrake,0);gl.uniform1f(u.uDirt,dirt);
   gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);
 }
 /* one car placed by Mc (the bay's drawCar on HD's uniforms): live, it rocks on its springs to the engine and
@@ -241,47 +218,50 @@ function renderShow(dt){
 }
 function renderShow1(dt,full){
   hClear();
-  const T=sceneTargetHD(),shed=showShed();GFX.frame++;
+  const shed=showShed();GFX.frame++;
   if(SHOW.spin)SHOW.yaw+=dt*.22;
   SHOW.hoodA=clamp(SHOW.hoodA+(SHOW.hood&&!BUILDS[APP.bi].machine?dt:-dt)*1.6,0,1);
   showBody(dt);
-  const cam=showCam(T.w/T.h,dt),Mc=M4RY(SHOW.yaw),dh=dynoH(),Mcar=dh>.001?M4.mul(Mc,M4T(0,dh,0)):Mc;
-  CSM.on=false;SHOW.shOn=full&&!shed&&showShadowPass(APP.bi,Mcar,Mc,dh);
+  const cam=showCam(PIC.w/PIC.h,dt),Mc=M4RY(SHOW.yaw),dh=dynoH(),Mcar=dh>.001?M4.mul(Mc,M4T(0,dh,0)):Mc;
   /* where the flames come out, for the flash they throw on the floor */
   SHOW.flash=null;const D=truck(APP.bi).D;
   if(full&&GAME.voice.flame>.04&&D.tips){const Mb=showBodyM(APP.bi,Mcar,true);SHOW.flash=D.tips.map(tp=>M4.xform(Mb,[tp.p[0]+tp.d[0]*.3,tp.p[1]+tp.d[1]*.3,tp.p[2]+tp.d[2]*.3]));}
-  gl.bindFramebuffer(gl.FRAMEBUFFER,T.f);gl.viewport(0,0,T.w,T.h);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);useLit(P_LIT);
-  worldUniforms(cam);gfxUniforms();showUniforms(shed);
-  const u=CUR.u,st=showStage(SHOW.stage,shed),P=shed?showParked():[],farCars=GFX.level==='mini'||GFX.level==='phone';
-  const near=P.slice().sort((a,b)=>Math.hypot(a.s.p[0]-cam.eye[0],a.s.p[2]-cam.eye[2])-Math.hypot(b.s.p[0]-cam.eye[0],b.s.p[2]-cam.eye[2])).slice(0,7);
-  showShadows([showShadowOf(APP.bi,0,0,SHOW.yaw)].concat(near.map(q=>showShadowOf(q.i,q.s.p[0],q.s.p[2],q.s.yaw))));
-  /* in the bay's window the turntable's disc is a glossy floor: the car (and the dyno) mirrored under it, lit by the
-     studio mirrored too, then the disc drawn over it a quarter see-through (floor beyond the disc hides the rest) */
-  const mir=full&&!shed;let tris=0;
-  if(mir){showUniforms(shed,true);const Mm=M4S(1,-1,1);
-    if(dh>.001)tris+=drawDyno(APP.bi,M4.mul(Mm,Mc),dh);
-    tris+=drawShowCar(APP.bi,M4.mul(Mm,Mcar),SHOW.hoodA,true,false,GAME.dirt||0);showUniforms(shed);}
-  gl.uniformMatrix4fv(u.uM,false,M4.id());drawMesh(st.stage);
-  gl.uniformMatrix4fv(u.uM,false,Mc);
-  if(mir){gl.enable(gl.BLEND);gl.blendColor(0,0,0,SHOW.stage==='dark'?.72:.84);gl.blendFunc(gl.CONSTANT_ALPHA,gl.ONE_MINUS_CONSTANT_ALPHA);}
-  drawMesh(st.table);if(mir)gl.disable(gl.BLEND);
-  /* the dyno under the car in Drive (it rises out of the floor and lifts the car with it) */
-  tris+=st.tris+(dh>.001?drawDyno(APP.bi,Mc,dh):0);
-  gl.uniform1i(u.uNSh,0);
-  tris+=drawShowCar(APP.bi,Mcar,SHOW.hoodA,true,false,GAME.dirt||0);
-  for(const q of P)tris+=drawShowCar(q.i,q.M,0,false,farCars,BUILDS[q.i].dirt||0);
-  gl.bindVertexArray(null);APP.tris=tris;
-  /* the bay had no eye adapting to the dark: the studio is shown at a fixed exposure, as it was there */
-  const ex=SKY.expo;SKY.expo=[.3,1,1];let src;try{src=postPasses(cam,dt);}finally{SKY.expo=ex;}
-  /* the car's name and build in dots, top right (the menu has the left) */
+  const P=shed?showParked():[],near=P.slice().sort((a,b)=>Math.hypot(a.s.p[0]-cam.eye[0],a.s.p[2]-cam.eye[2])-Math.hypot(b.s.p[0]-cam.eye[0],b.s.p[2]-cam.eye[2])).slice(0,7);
+  Object.assign(STUDIO,{on:true,shed,full,cam,Mc,Mcar,dh,parked:P,farCars:GFX.level==='mobile'||GFX.level==='low'});
+  const dyn=showEnv(shed,full),occ=showShadows([showShadowOf(APP.bi,0,0,SHOW.yaw)].concat(near.map(q=>showShadowOf(q.i,q.s.p[0],q.s.p[2],q.s.yaw))));
   /* the car's name over the garage tab's turntable; in the bay's window the picture is left to the car (Look) or the
      lab's instruments take over (Engine) */
   const lab=full&&SHOW.tab==='engine';
   if(!full){const sc=W>=400?2:1;otxt5(carName({car:APP.car}).toUpperCase(),W-5,5,GR.volt,sc,'r',.12);txt3((rigName(APP.car,rigOf(APP.car))+plusTag(APP.car)).toUpperCase(),W-5,7+7*sc+2,PAL.ink,1,'r');}
-  presentHD(src);
+  hudUpload();
+  /* a new stage, or the shed after the turntable: a cut (the history and the probe start over) */
+  const key=SHOW.stage+(shed?'S':'')+(full?'F':'');const cut=STUDIO.key!==key;if(cut){STUDIO.key=key;R.probeFilled=0;}
+  R.U.uStudio=STAGES[SHOW.stage].id;
+  const ex=R.extra;R.extra=[STUDIO];
+  try{R.render({time:APP.t,dt,cam:{pos:cam.eye,fwd:cam.fwd,up:[0,1,0],fov:cam.fov,near:.2,far:200,shift:cam.shift||0},cut,env:STUDIO.env,flicker:FLICK,
+    probePos:[0,1.1+dh,0],dyn,headlights:null,occ:LOOK.occ?occ:[],shutter:.5,lensRain:0,led:ledState(),after:DISP.mode==='clear'&&!lab?hudOverlay:null});}
+  finally{R.extra=ex;R.U.uStudio=0;}
+  gl.bindVertexArray(null);APP.tris=STUDIO.tris;
   if(lab){const t0=performance.now();dlFrame(dt);psT(PS_HUD,t0);}
 }
+/* the studio's hooks for the renderer: the stage, the turntable, the dyno, the car and the parked cars, into the key
+   light's cascades, the scene and the probe at the car (the probe sees the studio and the parked cars, not the car
+   it sits in). Two-sided meshes, like the world's: no back-face culling */
+const STUDIO={on:false,env:{},tris:0,key:'',
+  draw(P,depth,probe){const G=R.G;let tris=0;CUR=litOf(P);const u=CUR.u,st=showStage(SHOW.stage,this.shed);
+    if(!depth){G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID);G.uni(P,'uPrevOn',0);G.uni(P,'uInst',0);G.uni(P,'uFarDrop',FAR0);G.uni(P,'uDetail',1);G.uni(P,'uDrawFar',200);
+      G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);G.uni(P,'uGlow',[0,0,0]);G.uni(P,'uOrg',[0,0,0]);G.uni(P,'uCourse',[0,0,0,0]);
+      gl.uniformMatrix4fv(u.uM,false,M4_ID);drawMesh(st.stage);gl.uniformMatrix4fv(u.uM,false,this.Mc);drawMesh(st.table);tris+=st.tris;}
+    const du=depth?u:null;
+    if(!probe){if(this.dh>.001)tris+=drawDyno(APP.bi,this.Mc,this.dh,du);
+      tris+=drawShowCar(APP.bi,this.Mcar,SHOW.hoodA,true,false,depth?0:GAME.dirt||0,du);}
+    for(const q of this.parked)tris+=drawShowCar(q.i,q.M,0,false,this.farCars||probe,depth?0:BUILDS[q.i].dirt||0,du);
+    return tris;},
+  shadow(R,Pd,VP,kind,k){if(kind!=='sun'||k>1)return;const G=R.G;G.use(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);G.uni(P_DEPTH,'uTime',APP.t);gl.disable(gl.CULL_FACE);
+    this.draw(P_DEPTH,true,false);G.use(Pd);},
+  opaque(R,U,texs){const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);this.tris=this.draw(P,false,false);},
+  probe(R,U2,texs){const G=R.G,P=G.use(P_LANDP);gl.disable(gl.CULL_FACE);G.set(P,U2);G.tex(P,texs);this.draw(P,false,true);}
+};
 /* ---------- the bay's engine: the lab's EngineSim, as in the model bay ----------
    Free rev: in neutral, the car on the turntable. Drive: the turntable stops and a chassis dyno rises under the
    car (a deck with a drum under each driven axle, straps, a fan in front). The lab's own drivetrain runs it
