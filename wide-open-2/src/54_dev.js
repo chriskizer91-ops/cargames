@@ -32,6 +32,15 @@ const LOOK_S=[['sat','Saturation',.6,1.6,'The grade\'s saturation, times the tim
   ['rain','Rain',0,1.5,'How heavy the rain looks under the Sim level\'s Rain and Downpour: the falling streaks and the splashes (the drops on the lens from the hood camera).'],
   ['beam','Challenge columns',.3,2.5,'The columns of light over the challenges\' starts and gates, by day and by night.']];
 const LOOK_T=[['shadows','Sun shadows','The cascaded shadow maps (the moon\'s at night). Off, the sun casts nothing, and the frame is cheaper.'],['occ','Shade under the cars','The soft occlusion on the ground under each car.']];
+/* the phone's budgets (52_world_gl's BUDGET, Mobile only): id, label, min, max, note, how it reads */
+const BUDGET_S=[['scale','Render scale ceiling',.5,1,'The most of the screen\'s pixels the frame is drawn at before TAA rebuilds the rest; dynamic resolution works under it to hold the beat. 75% ships.',v=>Math.round(v*100)+'%'],
+  ['shadowD','Shadow distance',120,400,'How far out buildings, poles and trees are drawn into the sun\'s (the moon\'s) shadow maps. 320 m ships.',v=>Math.round(v)+' m'],
+  ['treeD','Tree distance',150,400,'How far the trees are drawn (past the full ones, a single lump each). 340 m ships.',v=>Math.round(v)+' m'],
+  ['treeNear','Full trees within',30,110,'How near a tree is drawn with its whole crown and trunk. 70 m ships.',v=>Math.round(v)+' m'],
+  ['probeEvery','Reflections: a face every',1,6,'The reflection probe at the car is six faces; one is drawn every this many frames. 3 ships.',v=>Math.round(v)+' frames'],
+  ['farCSM','Far shadows every',2,8,'The far shadow cascade is drawn every this many frames (the near one every frame, the middle one every second). 4 ships.',v=>Math.max(2,Math.round(v/2)*2)+' frames'],
+  ['fx','Dust and spray at once',60,360,'How many puffs, clods and drops of spray can be alive at once. 220 ships.',v=>String(Math.round(v))]];
+const BUDGET_T=[['carLod','Your car\'s coarse copy in the far shadows','Your car into the middle and far shadow cascades as its coarser copy (its shadow there is a few texels across); the near cascade always has the full car.']];
 /* the ground, surface by surface: id, label, where it is */
 const DEV_GROUND=[['asphalt','Tarmac','The race track and its kerbs.'],['concrete','Concrete','The shop pad, the store apron and the paddock.'],
   ['strip','Drag strip','The prepped dirt of the eighth mile.'],['dirt','Dirt','The yard, the ranch roads and the burnout pad.'],
@@ -156,6 +165,16 @@ function buildDev(){
     const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
     inp.addEventListener('change',()=>{LOOK[k]=inp.checked?1:0;lookSave();});el.sync=()=>{inp.checked=!!LOOK[k];};$('mDevLookT').appendChild(el);DEV_ROWS.push(el);}
   $('mDevLookReset').addEventListener('click',()=>{Object.assign(LOOK,LOOK_DEF);lookSave();syncDev();});
+  /* the phone's budgets */
+  $('mDevBudget').hidden=false;
+  if(GFX.level!=='mobile')$('mDevBudgetNote').textContent+=' This device is on '+GFX_LEVELS.find(l=>l[0]===GFX.level)[1]+': they do nothing here.';
+  for(const [k,n,lo,hi,note,fm] of BUDGET_S){const el=document.createElement('div');el.className='devrow';el.innerHTML='<label></label><output></output><input type="range"><small></small>';
+    const inp=el.querySelector('input'),lb=el.querySelector('label');lb.textContent=n;lb.htmlFor=inp.id='devb_'+k;inp.min=lo;inp.max=hi;inp.step=hi>20?1:hi>2?.5:.01;el.querySelector('small').textContent=note;
+    inp.addEventListener('input',()=>{BUDGET[k]=+inp.value;budgetSave();budgetApply();el.sync();});el.sync=()=>{inp.value=BUDGET[k];el.querySelector('output').textContent=fm(BUDGET[k]);};$('mDevBudgetS').appendChild(el);DEV_ROWS.push(el);}
+  for(const [k,n,note] of BUDGET_T){const el=document.createElement('label');el.className='devchk';el.innerHTML='<input type="checkbox"><span><b></b><small></small></span>';
+    const inp=el.querySelector('input');el.querySelector('b').textContent=n;el.querySelector('small').textContent=note;
+    inp.addEventListener('change',()=>{BUDGET[k]=inp.checked?1:0;budgetSave();});el.sync=()=>{inp.checked=!!BUDGET[k];};$('mDevBudgetT').appendChild(el);DEV_ROWS.push(el);}
+  $('mDevBudgetReset').addEventListener('click',()=>{Object.assign(BUDGET,BUDGET_DEF);budgetSave();budgetApply();syncDev();});
 }
 /* a Sim piece changed: the car reads it now (the roof load rebuilds the car where it stands) */
 function simDevApply(rebuild){store.set('wo2-simdev',JSON.stringify(SIMDEV));if(rebuild&&APP.level==='sim')spawnRig();else if(GAME.car)GAME.car.applySim();syncDev();}

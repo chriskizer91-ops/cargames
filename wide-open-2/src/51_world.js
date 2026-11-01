@@ -352,7 +352,7 @@ function drawTreeList(L,u,far){let tris=0;gl.uniform1f(u.uInst,1);
   for(let v=0;v<L.cnt.length;v++)for(let l=0;l<2;l++){const n=L.cnt[v][l];if(!n)continue;const m=TREES.shapes[v][far?1:l];instBind(m,L.gb[v][l],n);drawMeshI(m);tris+=m.tris*n;}
   gl.uniform1f(u.uInst,0);return tris;}
 function drawTreesW(cam,F,maxD,probe){
-  TREE_NEAR=GFX.q.treeNear;
+  TREE_NEAR=GFX.q.treeNear;if(GFX.level==='mobile')maxD=Math.min(maxD,BUDGET.treeD);
   /* the probe looks every way from the car, so its list has no frustum and serves all six faces; at its few
      pixels a face every tree is its single lump */
   return probe?drawTreeList(treeList('p',cam.eye,maxD,null,true),CUR.u,true):drawTreeList(treeList('v',cam.eye,maxD,F,false),CUR.u,false);

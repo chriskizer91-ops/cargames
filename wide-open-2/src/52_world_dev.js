@@ -1,9 +1,11 @@
 /* ---------- the open world's side of the developer's panel (Mini Dirt Run Open World's): the world's own numbers,
    how far it's drawn, worker or not, and a cruise control that holds the road (for the long straight runs).
    The handling and Sim switches are HD's own (54_dev). ---------- */
-const DEVW={hud:false,view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{}};
+const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{}};
 try{const d=JSON.parse(store.get('wo2-devworld','{}'))||{};for(const k of Object.keys(DEVW))if(d[k]!==undefined)DEVW[k]=d[k];}catch(e){}
 DEVW.cruise='off';if(DEVW.gen==='main')WORLD.forceLocal=true;
+/* (the numbers on screen: off, the small readout, or everything; a save from before had on or off) */
+if(DEVW.hud===true)DEVW.hud='full';if(!['off','perf','full'].includes(DEVW.hud))DEVW.hud='off';
 const saveDev=()=>store.set('wo2-devworld',JSON.stringify(Object.assign({},DEVW,{cruise:'off'})));
 /* cruise: locks onto the road you're on, keeps to its right-hand lane, and holds the set speed or what the bends ahead allow */
 const CRUISE={on:false,line:null};
@@ -100,7 +102,7 @@ function drawWorldStats(){
   drawPerfGraph(x0-2,y+2,Math.min(240,bw),40);
 }
 function buildDevWorld(){
-  segButtons($('dHud'),[['off','Off'],['on','On']],v=>{DEVW.hud=v==='on';saveDev();});
+  segButtons($('dHud'),[['off','Off'],['perf','Readout'],['full','Everything']],v=>{DEVW.hud=v;saveDev();});
   segButtons($('dView'),[['near','Near'],['normal','Normal'],['far','Far']],v=>{DEVW.view=v;saveDev();});
   segButtons($('dText'),[['smooth','Smooth'],['dots','Dots']],v=>{setDotText(v==='dots');syncDevWorld();});
   segButtons($('dGen'),[['worker','Worker'],['main','Main thread']],v=>{DEVW.gen=v;saveDev();if(v==='main'){WORLD.forceLocal=true;workerDown();}else{WORLD.forceLocal=false;WORLD.mode='starting';}syncDevWorld();});
@@ -112,7 +114,7 @@ function buildDevWorld(){
   $('dReset').addEventListener('click',()=>{const S=WORLD.st;S.n=[0,0,0];S.ms=[0,0,0];S.mx=[0,0,0];S.sn=0;S.sms=0;S.smx=0;S.fn=0;S.fms=0;S.missT=0;S.odo=0;S.top=0;syncDevWorld();});
 }
 function syncDevWorld(){
-  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud?'on':'off'],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off']])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
+  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off']])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
   const S=WORLD.st;$('dNote').textContent=`Made on: ${WORLD.mode}. ${WORLD.chunks.size} chunks and ${WORLD.far.size} far tiles loaded, ${(S.bytes/1048576).toFixed(1)} MB of them on the graphics card. `+
     `City Limits' town in the middle, Highway 40 straight through it east and west, country out to about two miles, then the salt flats to the edge, ${WG.HALF*2/1609.34|0} miles across.`;
 }

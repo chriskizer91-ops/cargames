@@ -41,6 +41,7 @@ body.touch #res,body.touch #gfx,body.touch .stat{display:none}
 
 /* ---------- the touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:4}
+#perf{position:fixed;left:92px;top:90px;margin:0;padding:5px 8px;border-radius:7px;background:rgba(7,7,11,.62);color:var(--cyan);font:500 9.5px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none;z-index:6}
 #steerZone{position:absolute;left:0;bottom:0;width:46vw;height:72vh;pointer-events:auto;touch-action:none}
 #steerZone[data-mode="tilt"],#steerZone[data-mode="buttons"]{pointer-events:none}
 #steerTrack{position:absolute;left:24vw;bottom:max(34px,calc(env(safe-area-inset-bottom,0px) + 26px));width:0;height:0}
@@ -471,6 +472,7 @@ body.bayfull>.bar{display:none}
   <span class="rot" id="rot">Turn your phone sideways</span>
   <div class="opts"><span class="stat" id="stat"></span><button class="chip" id="gfx" type="button">Gfx Plus</button><button class="chip" id="res" type="button">Dots 960×540</button><button class="chip" id="menuBtn" type="button">Menu</button></div>
 </div>
+<pre id="perf" hidden></pre>
 <div id="touch" hidden>
   <div id="steerZone" data-mode="slide"><div id="steerTrack"><b id="steerKnob"></b></div><span id="steerHint">SLIDE TO STEER</span>
     <div id="steerBtns" hidden><button class="tb big" id="tLeft" type="button" aria-label="Steer left">◀</button><button class="tb big" id="tRight" type="button" aria-label="Steer right">▶</button></div></div>
@@ -556,7 +558,7 @@ body.bayfull>.bar{display:none}
     </div>
     <div class="tab" data-tab="dev" hidden>
     <section class="dev"><h2>The open world</h2><p class="hint" style="margin:0 0 10px">The town, the country and the salt, made in 128 m chunks round you as you drive and let go behind you. Cruise holds the road you're on (its right-hand lane) so you can watch the world come in. Brake to stop it.</p>
-        <div class="row2"><div><h2 class="sub">World numbers on screen (F)</h2><div class="seg" id="dHud" role="group" aria-label="World numbers"></div></div>
+        <div class="row2"><div><h2 class="sub">Numbers on screen (F)</h2><div class="seg" id="dHud" role="group" aria-label="World numbers"></div></div>
           <div><h2 class="sub">View distance</h2><div class="seg" id="dView" role="group" aria-label="View distance"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Made on</h2><div class="seg" id="dGen" role="group" aria-label="Made on"></div></div>
           <div><h2 class="sub">Cruise (Y)</h2><div class="seg" id="dCruise" role="group" aria-label="Cruise"></div></div></div>
@@ -583,6 +585,12 @@ body.bayfull>.bar{display:none}
       <div class="devrows" id="mDevLookS"></div>
       <div id="mDevLookT" style="margin-top:10px"></div>
       <p style="margin-top:10px"><button class="btn sm" id="mDevLookReset" type="button">Back to the tuned look</button></p>
+    </section>
+    <section class="dev" id="mDevBudget" hidden><h2>Developer: the phone's budgets</h2>
+      <p class="hint" style="margin:0 0 10px" id="mDevBudgetNote">What the world and the cars hand the renderer on the Mobile tier, to trim on the phone while the performance readout (F, or Numbers on screen: Readout, above) shows the frame time. The other tiers always draw everything. Saved on this device.</p>
+      <div class="devrows" id="mDevBudgetS"></div>
+      <div id="mDevBudgetT" style="margin-top:10px"></div>
+      <p style="margin-top:10px"><button class="btn sm" id="mDevBudgetReset" type="button">Back to the shipped budgets</button></p>
     </section>
     </div>
     <div class="acts"><div class="buybar" id="mBuy" hidden><span id="mBuyTxt"></span><button class="btn go sm" id="mBuyYes" type="button">Buy it</button><button class="btn sm" id="mBuyNo" type="button">Not now</button></div>
