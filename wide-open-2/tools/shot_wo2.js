@@ -1,6 +1,6 @@
 /* Screenshots of Wide Open 2, drawn frame by frame through the game's own hooks (the page's loop is stopped).
    usage: node tools/shot_wo2.js <out-dir> name:quality:display:tod:place[:cam] ...
-   quality: mobile low medium high ultra · display: clear or dots · tod: day night · place: a Go to id (the Drive tab's:
+   quality: mobile low medium high ultra · display: clear or dots · tod: day night (and the times this build adds) · place: a Go to id (the Drive tab's:
    garage downtown neon ring hwyE hwyW gas diner ridge hills wash bog paddock oval short loop mud strip saltE saltW deep),
    or 'show' for the showroom (the opening screen's shed), 'bay' (the bay's window on the car, Look) or 'lab' (the
    dyno lab) · cam: 0 chase, 1 far, 2 hood (default 1 for the places, as the Drive tab's pictures)
@@ -39,10 +39,12 @@ fs.mkdirSync(out,{recursive:true});
         window.requestAnimationFrame=()=>0;await new Promise(r=>setTimeout(r,300));
         const g=window.__game,G=g.GAME,neu=!!g.R,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));G.hold=true;
         /* the time of day: Wide Open's own build has only its full moon in its list; its day is the light it had before */
-        if(neu){g.applyTod(tod==='night'?'night':'day');}
+        if(neu){g.applyTod(g.TOD[tod]?tod:'day');
+          /* the ground's photographs: decoded, and in full (not halfway through their fade) */
+          if(g.TEX){if(!g.TEX.arr&&!g.TEX.loading)g.texLoad();for(let i=0;i<300&&!g.TEX.arr&&g.TEX.loading;i++)await wait(100);if(g.TEX.arr)g.TEX.t0=-10;}}
         else if(tod==='night')g.applyTod('night');
         else Object.assign(g.SKY,{sun:[-.52/Math.hypot(.52,.5,.4),.5/Math.hypot(.52,.5,.4),.4/Math.hypot(.52,.5,.4)],sunCol:[1.28,1.18,1.02],sky:[.44,.5,.62],gnd:[.24,.18,.13],zen:[.16,.32,.85],hor:[.78,.86,1.02],fogD:.0011,fogK:[.68,.72,.78],draw:420,night:0,expo:undefined,haze:1});
-        g.APP.tod=tod;g.APP.lights=tod==='night';
+        g.APP.tod=tod;g.APP.lights=neu?!!(g.TOD[tod]||{}).lightsOn:tod==='night';
         const studio=place==='show'||place==='bay'||place==='lab';
         if(studio){
           /* the opening screen's shed; the bay's window (Look); the dyno lab (Engine) */

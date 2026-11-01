@@ -249,7 +249,7 @@ function renderShow1(dt,full){
 const STUDIO={on:false,env:{},tris:0,key:'',
   draw(P,depth,probe){const G=R.G;let tris=0;CUR=litOf(P);const u=CUR.u,st=showStage(SHOW.stage,this.shed);
     if(!depth){G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID);G.uni(P,'uPrevOn',0);G.uni(P,'uInst',0);G.uni(P,'uFarDrop',FAR0);G.uni(P,'uDetail',1);G.uni(P,'uDrawFar',200);
-      G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);G.uni(P,'uGlow',[0,0,0]);G.uni(P,'uOrg',[0,0,0]);G.uni(P,'uCourse',[0,0,0,0]);
+      G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);G.uni(P,'uGlow',[0,0,0]);G.uni(P,'uOrg',[0,0,0]);G.uni(P,'uCourse',[0,0,0,0]);texUniforms(P);
       gl.uniformMatrix4fv(u.uM,false,M4_ID);drawMesh(st.stage);gl.uniformMatrix4fv(u.uM,false,this.Mc);drawMesh(st.table);tris+=st.tris;}
     const du=depth?u:null;
     if(!probe){if(this.dh>.001)tris+=drawDyno(APP.bi,this.Mc,this.dh,du);

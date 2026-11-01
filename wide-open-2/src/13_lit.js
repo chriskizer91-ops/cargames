@@ -134,48 +134,50 @@ void main(){vec3 w;
   else w=(uM*vec4(aPos,1.)).xyz;
   gl_Position=uVP*vec4(w,1.);}`;
 const DEPTH_FS=`out vec4 o;void main(){o=vec4(0.);}`;
-/* ---------- the ground's photographs (Rut Access's texture packs, 49_textures, when the page has them): one array, a
-   layer a surface, TEXINFO its means (linear) and metres a tile, laid over the procedural colour as grain. Without
-   a pack (this phase) the helpers hand the procedural colour straight back and the sampler isn't compiled in ---------- */
+/* ---------- the ground's photographs (the owner's texture packs, 49_textures' TEXPACK, packed by tools/pack_textures.py):
+   one texture array holding only the layers that have a picture, TEXINFO their means (linear) and metres a tile, laid
+   over the procedural colour as grain. Each surface is T_<name> (the pack's t): its layer in the array, or the layer
+   it falls back on (TEX_FALLBACK: a second dirt or grass on the first, the speedway's clay on the red clay, the
+   forecourts on the concrete), or -1 where there is no picture at all, and the helpers hand the procedural colour
+   straight back (decided when the shader is made: a missing picture costs nothing). A picture the owner delivers
+   later drops in through the packer by its file name, with no change here. Without a pack the sampler isn't
+   compiled in ---------- */
+const TEX_NAMES=['DIRT','DIRT2','GRASS','GRASS2','TRAIL','GRAVEL','ASPHALT','STRIP','ROCK','RUTS','MUD','PLAYA','CLAY','CONCRETE','PLANKS','SHEET','HAY',
+  'SALT','BRICK','STUCCO','FORECOURT','PAINT','CLAYTRACK'];
+const TEX_FALLBACK={DIRT2:'DIRT',GRASS2:'GRASS',CLAYTRACK:'CLAY',FORECOURT:'CONCRETE'};
 const PHOTO=typeof TEXPACK!=='undefined'&&TEXPACK.layers&&TEXPACK.layers.some(l=>l.has);
-const texInfo=()=>{const L=PHOTO?TEXPACK.layers:null,n=L?L.length:17;
-  const rows=L?L.map(l=>`vec4(${l.m.map(v=>(+v).toFixed(4)).join(',')},${(+l.scale).toFixed(3)})`):Array(17).fill('vec4(.5,.5,.5,2.)');
-  return `const vec4 TEXINFO[${n}]=vec4[${n}](${rows.join(',')});\n`;};
+/* the layers in the array (those with a picture), and each surface's index into it */
+const texLayers=()=>PHOTO?TEXPACK.layers.filter(l=>l.has):[];
+function texIndex(){const L=texLayers(),at={};L.forEach((l,i)=>at[l.t]=i);const out={};
+  for(const n of TEX_NAMES){let k=n,i=at[k];while(i===undefined&&TEX_FALLBACK[k]){k=TEX_FALLBACK[k];i=at[k];}out[n]=i===undefined?-1:i;}return out;}
+const texInfo=()=>{const L=texLayers(),n=Math.max(1,L.length),I=texIndex();
+  const rows=L.length?L.map(l=>`vec4(${l.m.map(v=>(+v).toFixed(4)).join(',')},${(+l.scale).toFixed(3)})`):['vec4(.5,.5,.5,2.)'];
+  return TEX_NAMES.map(t=>`#define T_${t} ${I[t]}\n`).join('')+`const vec4 TEXINFO[${n}]=vec4[${n}](${rows.join(',')});\n`;};
 const PHOTOFN=`
-#define T_DIRT 0
-#define T_DIRT2 1
-#define T_GRASS 2
-#define T_GRASS2 3
-#define T_TRAIL 4
-#define T_GRAVEL 5
-#define T_ASPHALT 6
-#define T_STRIP 7
-#define T_ROCK 8
-#define T_RUTS 9
-#define T_MUD 10
-#define T_PLAYA 11
-#define T_CLAY 12
-#define T_CONCRETE 13
-#define T_PLANKS 14
-#define T_SHEET 15
-#define T_HAY 16
 vec2 rot2(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(c*p.x-s*p.y,s*p.x+c*p.y);}
 `+(PHOTO?`
 uniform sampler2DArray uTex;uniform float uTexOn,uTexCol;
 vec3 photoMix(vec3 alb,vec3 t,vec3 m){return mix(alb,mix(alb*(t/max(m,vec3(.02))),t,uTexCol),uTexOn);}
+/* only the picture's grain, never its colour (a painted line, the studio's floor) */
+vec3 photoGrain(vec3 alb,vec3 t,vec3 m,float k){return mix(alb,alb*(t/max(m,vec3(.02))),uTexOn*k);}
 #ifdef PROBE
 vec3 photoG(vec3 alb,int L,vec2 wp){return alb;}
 vec3 photoG2(vec3 alb,int L,int L2,vec2 wp){return alb;}
 vec3 photoUV(vec3 alb,int L,vec2 uv){return alb;}
 vec3 photoTri(vec3 alb,int L,vec3 P,vec3 N){return alb;}
+vec3 photoGrainG(vec3 alb,int L,vec2 wp,float k){return alb;}
+vec3 photoWall(vec3 tint,int L,vec2 uv,float k){return tint;}
 #else
-vec3 photoG(vec3 alb,int L,vec2 wp){if(uTexOn<=0.)return alb;vec4 I=TEXINFO[L];vec2 uv=wp/I.w;float n=smoothstep(.35,.65,vn(wp*.07));
+vec3 photoG(vec3 alb,int L,vec2 wp){if(L<0||uTexOn<=0.)return alb;vec4 I=TEXINFO[L];vec2 uv=wp/I.w;float n=smoothstep(.35,.65,vn(wp*.07));
   vec3 t=mix(texture(uTex,vec3(uv,float(L))).rgb,texture(uTex,vec3(rot2(uv,2.1)*.73+5.2,float(L))).rgb,n);return photoMix(alb,t,I.rgb);}
-vec3 photoG2(vec3 alb,int L,int L2,vec2 wp){if(uTexOn<=0.)return alb;vec4 I=TEXINFO[L],I2=TEXINFO[L2];vec2 uv=wp/I.w;float n=smoothstep(.4,.6,fbmS(wp*.045+3.7));
+vec3 photoG2(vec3 alb,int L,int L2,vec2 wp){if(L<0||uTexOn<=0.)return alb;if(L2<0)L2=L;vec4 I=TEXINFO[L],I2=TEXINFO[L2];vec2 uv=wp/I.w;float n=smoothstep(.4,.6,fbmS(wp*.045+3.7));
   vec3 t=mix(texture(uTex,vec3(uv,float(L))).rgb,texture(uTex,vec3(rot2(uv,1.3)*1.11+2.4,float(L2))).rgb,n);return photoMix(alb,t,mix(I.rgb,I2.rgb,n));}
-vec3 photoUV(vec3 alb,int L,vec2 uv){if(uTexOn<=0.)return alb;vec4 I=TEXINFO[L];return photoMix(alb,texture(uTex,vec3(uv/I.w,float(L))).rgb,I.rgb);}
-vec3 photoTri(vec3 alb,int L,vec3 P,vec3 N){if(uTexOn<=0.)return alb;vec4 I=TEXINFO[L];vec3 w=pow(abs(N),vec3(4.));w/=w.x+w.y+w.z;float l=float(L);
+vec3 photoUV(vec3 alb,int L,vec2 uv){if(L<0||uTexOn<=0.)return alb;vec4 I=TEXINFO[L];return photoMix(alb,texture(uTex,vec3(uv/I.w,float(L))).rgb,I.rgb);}
+vec3 photoTri(vec3 alb,int L,vec3 P,vec3 N){if(L<0||uTexOn<=0.)return alb;vec4 I=TEXINFO[L];vec3 w=pow(abs(N),vec3(4.));w/=w.x+w.y+w.z;float l=float(L);
   vec3 t=texture(uTex,vec3(P.zy/I.w,l)).rgb*w.x+texture(uTex,vec3(P.xz/I.w,l)).rgb*w.y+texture(uTex,vec3(P.xy/I.w,l)).rgb*w.z;return photoMix(alb,t,I.rgb);}
+vec3 photoGrainG(vec3 alb,int L,vec2 wp,float k){if(L<0||uTexOn<=0.)return alb;vec4 I=TEXINFO[L];return photoGrain(alb,texture(uTex,vec3(wp/I.w,float(L))).rgb,I.rgb,k);}
+/* a wall's picture as grain in the building's own tint (u along the wall, v up it) */
+vec3 photoWall(vec3 tint,int L,vec2 uv,float k){if(L<0||uTexOn<=0.)return tint;vec4 I=TEXINFO[L];return photoGrain(tint,texture(uTex,vec3(uv/I.w,float(L))).rgb,I.rgb,k);}
 #endif
 `:`
 const float uTexOn=0.;
@@ -183,6 +185,8 @@ vec3 photoG(vec3 alb,int L,vec2 wp){return alb;}
 vec3 photoG2(vec3 alb,int L,int L2,vec2 wp){return alb;}
 vec3 photoUV(vec3 alb,int L,vec2 uv){return alb;}
 vec3 photoTri(vec3 alb,int L,vec3 P,vec3 N){return alb;}
+vec3 photoGrainG(vec3 alb,int L,vec2 wp,float k){return alb;}
+vec3 photoWall(vec3 tint,int L,vec2 uv,float k){return tint;}
 `);
 /* ---------- the materials ---------- */
 const MATFN=`
@@ -232,6 +236,14 @@ float gFP=0.;vec2 gG=vec2(0.);
 /* fades detail of a given size (m) out as pixels grow past it */
 float near(float size){return sat(1.-gFP/size)*uDetail;}
 `+PHOTOFN+`
+/* the road's paint: the road paint's picture where there is one, else the tarmac's own grain showing through it */
+vec3 roadPaint(vec3 c,vec2 wp){
+#if T_PAINT>=0
+  return photoG(c,T_PAINT,wp);
+#else
+  return clamp(photoGrainG(c,T_ASPHALT,wp,.3),vec3(0.),vec3(.85));
+#endif
+}
 /* the red-dirt country (Dirt Sleeper's palette) */
 vec3 dirtCol(vec2 p){float n1=fbmS(p*.09),n3=vn(p*3.1);return mix(vec3(.21,.095,.045),vec3(.36,.2,.105),n1)*(.8+.35*n3);}
 vec3 grassCol(vec2 p){float dry=smoothstep(.3,.78,fbmS(p*.045+7.));float n2=vn(p*.7),n3=vn(p*3.1),n4=vn(p*11.);
@@ -354,7 +366,7 @@ void main(){
   else if(m==20){float r=length(vL.xy);alb=vec3(.28,.28,.3)*(.8+.2*step(.5,fract(r*60.)));spec=.6;shin=40.;metal=.8;}
   /* the studio's floor: glossy, the studio and the car in it (the dark bay's like a wet showroom floor, the light
      cyc's a satin) */
-  else if(m==21){spec=.55;shin=uStudio>1.5?60.:260.;ssr=uStudio>1.5?.45:1.;clear=uStudio>1.5?0.:.6;clearR=.03;}
+  else if(m==21){alb=photoGrainG(alb,T_CONCRETE,Pw.xz*.8,uStudio>1.5?.45:.7);spec=.55;shin=uStudio>1.5?60.:260.;ssr=uStudio>1.5?.45:1.;clear=uStudio>1.5?0.:.6;clearR=.03;}
   else if(m==22){alb=vec3(.62,.62,.58);spec=.2;}
   else if(m==23){emc=vec3(.9)*uLamps*.25;alb=vec3(.6);spec=.8;shin=80.;}
   else if(m==24){alb=vec3(.02,.018,.016);spec=1.;shin=120.;ssr=1.;}
@@ -379,7 +391,7 @@ void main(){
         vec3 sc=mix(vec3(.42,.38,.32),vec3(.60,.585,.55),smoothstep(.32,.78,big*.85+mid*.3))*(.93+.1*fine*near(.6));
         float crack=smoothstep(.3,.62,fbmS(wp*.012+4.1))*near(.25);
         if(crack>0.&&uDetail>.3){float e=cellEdge(wp*.52);sc*=1.-(1.-smoothstep(.0,.05,e))*.26*crack;}
-        sc=photoG(sc,T_PLAYA,wp);
+        sc=photoG(sc,T_SALT,wp);
         alb=mix(alb,sc,sw);gG*=1.-sw*.85;gw*=1.-sw;rw*=1.-sw;
         /* the salt course: Bonneville's black line down the middle, and a bar across the lanes at the start and
            every mile (each faded to its share of the pixel once it's thinner than one, so it doesn't crawl) */
@@ -436,8 +448,14 @@ void main(){
       mudCracks(wp,alb,edge*.8,spec);
       {float gt=smoothstep(5.5,6.3,ad+(n3-.5)*.6);toGrass(wp,alb,spec,shin,gt);pud*=1.-gt;}em=0.;
     }
-    else if(m==45){float j=max(step(fract(wp.x/4.),.012),step(fract(wp.y/4.),.012));alb=vec3(.26,.25,.235)*(.82+.25*vn(wp*2.3)+.1*vn(wp*13.))*(1.-.35*j);alb=photoG(alb,T_CONCRETE,wp);spec=.06;shin=20.;
-      vec3 b=vnd(wp*24.);gG+=b.yz*24.*.0007*near(.03);alb*=1.-.18*smoothstep(.6,.85,fbmS(wp*.35))*uDetail;}
+    else if(m==45){
+      /* concrete: the town's sidewalks, curbs and medians, the yards' and the paddock's pads, the gas station's and the
+         diner's forecourts (the pads: blue 1, their own picture where there is one); the joints every 4 m and the
+         stains go over the photograph, a curb's or a median's sides take it from three axes */
+      float j=max(step(fract(wp.x/4.),.012),step(fract(wp.y/4.),.012));bool pad=vC.b>.9;
+      alb=vec3(.26,.25,.235)*(.82+.25*vn(wp*2.3)+.1*vn(wp*13.));
+      alb=abs(N.y)>.7?photoG(alb,pad?T_FORECOURT:T_CONCRETE,wp):photoTri(alb,T_CONCRETE,Pw,N);alb*=1.-.35*j;spec=.06;shin=20.;
+      vec3 b=vnd(wp*24.);gG+=b.yz*24.*.0007*near(.03);alb*=1.-.18*smoothstep(.6,.85,fbmS(wp*.35))*uDetail*(pad?1.3:1.);}
     else if(m==46){float g=vn(vec2((Pw.x+Pw.z)*1.5,Pw.y*38.))*.6+vn(vec2((Pw.x+Pw.z)*.4,Pw.y*7.))*.4;alb*=.62+.5*g;alb=photoUV(alb,T_PLANKS,vec2(Pw.x+Pw.z,Pw.y));spec=.03;ground=false;}
     else if(m==47){float rib=abs(fract((Pw.x+Pw.z)*3.6+(em>.5?Pw.y*3.6:0.))-.5),st=smoothstep(.55,.85,vn(vec2((Pw.x+Pw.z)*2.,Pw.y*.25)))*.35;
       alb*=(.86+.22*rib*(1.-uTexOn))*(1.-st*.5);alb=mix(alb,vec3(.18,.08,.04),st*.35);alb=photoUV(alb,T_SHEET,vec2((Pw.x+Pw.z)+(em>.5?Pw.y:0.),em>.5?Pw.x-Pw.z:Pw.y));spec=em>.5?.15:.5;shin=em>.5?20.:60.;metal=em>.5?.2:.6*(1.-st);em=0.;ground=false;}
@@ -499,7 +517,7 @@ void main(){
       float groove=exp(-pow((d-(kind<.5?-.25*hw:0.))/(hw*.42),2.)),rut=kind>.5?max(exp(-pow((d-1.)/.45,2.)),exp(-pow((d+1.)/.45,2.)))*.6:0.;
       float cushion=smoothstep(hw*.55,hw*.95,kind<.5?d:ad)*(.6+.4*n3);
       c*=1.-.28*groove-.15*rut;c=mix(c,c*1.22+vec3(.025,.018,.01),cushion*.7);
-      dirtDetail(wp,c,(1.-groove*.7)*(.45+.55*cushion));c=kind<.5?photoG(c,T_CLAY,wp):photoG2(c,T_DIRT,T_DIRT2,wp);
+      dirtDetail(wp,c,(1.-groove*.7)*(.45+.55*cushion));c=kind<.5?photoG(c,T_CLAYTRACK,wp):mix(photoG2(c,T_DIRT,T_DIRT2,wp),photoUV(c,T_TRAIL,vec2(d,sx)),groove*.55);
       if(kind<.5&&d<-hw)c=mix(c*.8,vec3(.5,.49,.46),(1.-step(.12,abs(d+hw+.15))));
       /* mud: dark and wet, two ruts with water lying in them */
       float mk=clamp(kind-1.,0.,1.);
@@ -530,12 +548,14 @@ void main(){
         float hx=floor(em)/10.,hz=fract(em)*100.,ex=hx-abs(sx),ez=hz-abs(d);asphaltDetail(wp,ac,0.,99.);ac=photoG(ac,T_ASPHALT,wp);
         float zx=step(.6,ez)*step(ez,3.4)*step(.5,fract(sx/1.1))*step(abs(sx),hx-1.);
         float zz=step(.6,ex)*step(ex,3.4)*step(.5,fract(d/1.1))*step(abs(d),hz-1.);
-        ac=mix(ac,vec3(.6,.6,.58),max(zx,zz)*(.7+.3*n3));
+        ac=mix(ac,roadPaint(vec3(.6,.6,.58),wp)*(.7+.3*n3),max(zx,zz));
       }else{
         float lane=cls>3.5?3.65:3.2,lanes=cls>4.5?2.:1.,med=0.;
         if(cls>5.5){lane=cls<6.5?3.6:cls<7.5?3.5:cls<9.5?3.4:3.6;lanes=cls<6.5?3.:cls<9.5?2.:1.;med=cls<6.5?.3:cls<7.5?.7:cls<8.5?.6:0.;}
-        float el=med+lane*lanes,q=mod(max(ad-med,0.),lane);ac*=1.-.12*exp(-pow((q-lane*.28)/.45,2.))-.12*exp(-pow((q-lane*.72)/.45,2.));
+        float el=med+lane*lanes,q=mod(max(ad-med,0.),lane);
         asphaltDetail(wp,ac,ad,el);ac=photoG(ac,T_ASPHALT,wp);
+        /* (the tyres' darker tracks, over the photograph) */
+        ac*=1.-.12*exp(-pow((q-lane*.28)/.45,2.))-.12*exp(-pow((q-lane*.72)/.45,2.));
         float wht=step(el-.16,ad)*step(ad,el),yel;
         if(cls>5.5){yel=med>0.?step(abs(ad-med+.1),.065):lanes>1.5?step(.07,ad)*step(ad,.19):step(ad,.065)*step(fract(sx/12.),.25);
           float lw=0.;for(int k=1;k<3;k++){if(float(k)>=lanes)break;lw=max(lw,step(abs(ad-med-lane*float(k)),.065));}
@@ -546,7 +566,7 @@ void main(){
           if(cls>6.5)ac*=1.-.3*smoothstep(em-.6,em,ad);}
         else{yel=cls>4.5?step(.07,ad)*step(ad,.19):step(ad,.065)*step(fract(sx/12.),.25);
           if(cls>4.5)wht=max(wht,step(abs(ad-lane),.065)*step(fract(sx/12.),.25));}
-        ac=mix(ac,vec3(.6,.6,.58),wht*(.75+.25*n3));ac=mix(ac,vec3(.58,.42,.07),yel*(.75+.25*n3));
+        ac=mix(ac,roadPaint(vec3(.6,.6,.58),wp),wht*(.75+.25*n3));ac=mix(ac,roadPaint(vec3(.58,.42,.07),wp),yel*(.75+.25*n3));
       }
       /* (worn tarmac is rough: a glint of the sky low down, not a mirror) */
       alb=ac;spec=.15;shin=6.;em=0.;
@@ -578,15 +598,20 @@ void main(){
           else alb=vec3(.2);}
         else{
           float vv=v-gf,fi=floor(vv/fh),fv=fract(vv/fh)*fh,bi=floor(u/bw),bu=fract(u/bw)*bw,r1=h12(vec2(bi,fi)+sd*13.71),r2=h12(vec2(fi,bi*1.7)+sd*5.3);
-          if(style==0){vec2 bk=vec2(u/.25+step(.5,fract(v/.15))*.5,v/.075);vec2 bf=fract(bk);float mort=1.-smoothstep(.06,.12,min(min(bf.x,1.-bf.x)*3.3,min(bf.y,1.-bf.y)));
+          if(style==0){
+#if T_BRICK>=0
+            alb=photoWall(tint,T_BRICK,vec2(u,v),1.);
+#else
+            vec2 bk=vec2(u/.25+step(.5,fract(v/.15))*.5,v/.075);vec2 bf=fract(bk);float mort=1.-smoothstep(.06,.12,min(min(bf.x,1.-bf.x)*3.3,min(bf.y,1.-bf.y)));
             alb=tint*(.88+.14*h12(floor(bk))*near(.06))*(1.-mort*.3*near(.02));
+#endif
             float wx=abs(bu-bw*.5),wy=fv-fh*.5+.15,ww=bw*.27,wh=fh*.3;
             if(wx<ww+.08&&abs(wy)<wh+.08)alb=vec3(.42,.4,.36);if(wx<ww&&abs(wy)<wh)glass=1.;}
-          else if(style==1){alb=tint*(.8+.25*nB);float jn=min(abs(fv-.02),abs(bu-.01));alb*=1.-(1.-smoothstep(0.,.03,jn))*.4;
+          else if(style==1){alb=photoWall(tint*(.8+.25*nB),T_CONCRETE,vec2(u,v),.5);float jn=min(abs(fv-.02),abs(bu-.01));alb*=1.-(1.-smoothstep(0.,.03,jn))*.4;
             if(fv>fh*.38&&fv<fh*.9&&abs(bu-bw*.5)<bw*.46)glass=1.;}
           else if(style==2){float mx=min(bu,bw-bu),my=min(fv,fh-fv);
             if(mx<.05||my<.05){alb=vec3(.08,.085,.09);rough=.35;}else if(fv<fh*.22){alb=tint*.3;glass=.6;}else glass=1.;}
-          else if(style==3){alb=tint*(.82+.25*nB);float wx=abs(bu-bw*.5),wy=fv-fh*.52,ww=bw*.24,wh=fh*.33;
+          else if(style==3){alb=photoWall(tint*(.82+.25*nB),T_STUCCO,vec2(u,v),1.);float wx=abs(bu-bw*.5),wy=fv-fh*.52,ww=bw*.24,wh=fh*.33;
             if(wx<ww+.07&&abs(wy)<wh+.07)alb=vec3(.85,.84,.8);if(wx<ww&&abs(wy)<wh)glass=1.;}
           else{float rib=abs(fract(u*4.)-.5);alb=tint*(.7+.3*rib)*(.75+.3*nB);rough=.45;if(fv>fh*.55&&fv<fh*.85&&r1<.25)glass=1.;}
           /* night: some windows lit, warm or cool; offices light whole floors; now and then a TV's flicker */

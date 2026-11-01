@@ -16,13 +16,14 @@ const GFX_LEVELS=[
   ['ultra','Ultra','For a fast desktop: 3072 shadow maps, 28 fog steps, the render scale up to 1.25, the land drawn furthest.']];
 /* detail: the ground's fine detail (0..1); far: the day's draw distance; near, farR, lodD, propD: the streamed world's
    rings (51_world: the chunks, the far tiles, where a chunk's mesh steps down, the things on the chunks); treeNear: a
-   tree drawn in full inside this, its single lump beyond; probeFar: what the reflection probe draws */
+   tree drawn in full inside this, its single lump beyond; probeFar: what the reflection probe draws; texRes, texAniso: the ground
+   photographs' size on the GPU and their anisotropic filtering */
 const GFX_Q={
-  mobile:{detail:.6,far:420,near:540,farR:1800,lodD:[115,270],propD:340,treeNear:70, probeFar:260},
-  low:   {detail:.8,far:460,near:640,farR:2200,lodD:[150,300],propD:420,treeNear:85, probeFar:300},
-  medium:{detail:1, far:560,near:760,farR:2600,lodD:[180,380],propD:500,treeNear:95, probeFar:340},
-  high:  {detail:1, far:620,near:820,farR:3000,lodD:[200,420],propD:560,treeNear:110,probeFar:340},
-  ultra: {detail:1, far:700,near:980,farR:3600,lodD:[250,500],propD:680,treeNear:130,probeFar:400}};
+  mobile:{detail:.6,far:420,near:540,farR:1800,lodD:[115,270],propD:340,treeNear:70, probeFar:260,texRes:512,texAniso:2},
+  low:   {detail:.8,far:460,near:640,farR:2200,lodD:[150,300],propD:420,treeNear:85, probeFar:300,texRes:1024,texAniso:4},
+  medium:{detail:1, far:560,near:760,farR:2600,lodD:[180,380],propD:500,treeNear:95, probeFar:340,texRes:1024,texAniso:4},
+  high:  {detail:1, far:620,near:820,farR:3000,lodD:[200,420],propD:560,treeNear:110,probeFar:340,texRes:1024,texAniso:8},
+  ultra: {detail:1, far:700,near:980,farR:3600,lodD:[250,500],propD:680,treeNear:130,probeFar:400,texRes:1024,texAniso:8}};
 const GFX={level:'high',q:GFX_Q.high,far:620,frame:0,fromUrl:false};
 {const Q=new URLSearchParams(location.search);let g=Q.get('quality')||store.get('wo2-gfx','');GFX.fromUrl=!!Q.get('quality');
   /* (Wide Open's own levels, as a save from before may have them) */

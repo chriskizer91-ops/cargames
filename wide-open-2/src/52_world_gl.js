@@ -20,8 +20,30 @@ const M4_ID=M4.id(),FAR0=new Float32Array(4);
 const toWorld=VP=>M4.mul(VP,M4T(-RO[0],-RO[1],-RO[2]));
 /* how far the land is drawn this frame: by night the fog's reach; by day the far tiles' (or the chunks') */
 const worldFar=()=>SKY.night&&SKY.draw?Math.min(SKY.draw,Math.max(WORLD.near,WORLD.farR)):Math.max(WORLD.near,WORLD.farR);
+/* ---------- the ground's photographs (49_textures' TEXPACK, packed by tools/pack_textures.py): one texture array, a layer
+   for each picture there is (13_lit's T_ names index it), decoded after the boot while the game runs on its procedural
+   ground, then faded in. The tier sets the size (Mobile 512: the 1024 picture drawn down) and the anisotropy ---------- */
+const TEX={arr:null,t0:0,loading:false,failed:0,ms:0,res:0};
+async function texLoad(){
+  if(TEX.loading||TEX.arr||typeof TEXPACK==='undefined'||!TEXPACK.layers.some(l=>l.has))return;TEX.loading=true;const t0=performance.now();
+  const L=TEXPACK.layers.filter(l=>l.has),G=R.G,n=L.length,res=TEX.res=Math.min(TEXPACK.size,GFX.q.texRes||1024);
+  const arr=G.texture(res,res,'srgb8',{layers:n,mips:true,wrap:'repeat',aniso:GFX.q.texAniso||4});
+  const grey=new Uint8Array(res*res*4).fill(128);for(let i=3;i<grey.length;i+=4)grey[i]=255;
+  const put=(i,src)=>{gl.activeTexture(gl.TEXTURE0+15);gl.bindTexture(gl.TEXTURE_2D_ARRAY,arr.t);gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+    gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,i,res,res,1,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.bindTexture(gl.TEXTURE_2D_ARRAY,null);};
+  for(let i=0;i<n;i++){const l=L[i];
+    try{const img=new Image();img.src=l.src;await img.decode();let src=img;
+      if(img.width!==res){const c=document.createElement('canvas');c.width=c.height=res;c.getContext('2d').drawImage(img,0,0,res,res);src=c;}
+      put(i,src);}
+    catch(e){console.warn('ground picture '+l.id+': '+(e&&e.message||e));TEX.failed++;put(i,grey);}}
+  gl.activeTexture(gl.TEXTURE0+15);gl.bindTexture(gl.TEXTURE_2D_ARRAY,arr.t);gl.generateMipmap(gl.TEXTURE_2D_ARRAY);gl.bindTexture(gl.TEXTURE_2D_ARRAY,null);
+  TEX.arr=arr;TEX.t0=APP.t;TEX.loading=false;TEX.ms=performance.now()-t0;
+}
+/* how far the pictures are in: faded up over a second once they are decoded, times the Dev look's setting */
+const texOn=()=>TEX.arr?clamp((APP.t-TEX.t0)/1.,0,1)*LOOK.tex:0;
+function texUniforms(P){const G=R.G;if(P.u.uTexOn){G.uni(P,'uTexOn',texOn());G.uni(P,'uTexCol',LOOK.texcol);}if(TEX.arr&&P.samplers&&P.samplers.uTex!==undefined)G.tex(P,{uTex:TEX.arr});}
 /* what every lit pass of the world starts from: the world's own frame, no car */
-function landUniforms(P){const G=R.G;G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID);G.uni(P,'uPrevOn',0);G.uni(P,'uInst',0);G.uni(P,'uFarDrop',FAR0);
+function landUniforms(P){texUniforms(P);const G=R.G;G.uni(P,'uM',M4_ID);G.uni(P,'uPrevM',M4_ID);G.uni(P,'uPrevOn',0);G.uni(P,'uInst',0);G.uni(P,'uFarDrop',FAR0);
   G.uni(P,'uDetail',GFX.q.detail*LOOK.detail);G.uni(P,'uDrawFar',worldFar());
   G.uni(P,'uMudLocal',0);G.uni(P,'uMudOff',0);G.uni(P,'uDirt',0);G.uni(P,'uGround',0);G.uni(P,'uLamps',0);G.uni(P,'uBrake',0);G.uni(P,'uLiv',0);G.uni(P,'uGlow',[0,0,0]);
   G.uni(P,'uCourse',[WG.COURSE.x0-RO[0],WG.COURSE.mi,.11,-RO[2]]);G.uni(P,'uOrg',[0,0,0]);}

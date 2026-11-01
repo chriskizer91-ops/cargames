@@ -18,7 +18,9 @@ const LOOK_S=[['sat','Saturation',.6,1.6,'The grade\'s saturation, times the tim
   ['con','Contrast',.8,1.3,'The grade\'s contrast round mid grey.'],
   ['key','Exposure',.5,2,'The auto exposure\'s target brightness, times the time of day\'s own (and the studio\'s).'],
   ['haze','Haze',0,2,'The light in the air: the volumetric fog, its ambient and the far land\'s fade into the sky.'],
-  ['detail','Ground detail',0,1,'How much detail is cut into the ground: clods, stones, cracks, grass tufts, tarmac grain. The tier sets the default (Mobile 60%).']];
+  ['detail','Ground detail',0,1,'How much detail is cut into the ground: clods, stones, cracks, grass tufts, tarmac grain. The tier sets the default (Mobile 60%).'],
+  ['tex','Ground photos',0,1,'How much of the ground photographs (the texture packs) is laid over the procedural ground: 0 is the ground as Wide Open drew it, 100% the pictures in full.'],
+  ['texcol','Photo colour',0,1,'0: only the pictures\' grain, in the game\'s own ground colours. 100%: the pictures\' own colours, as made.']];
 const LOOK_T=[['shadows','Sun shadows','The cascaded shadow maps (the moon\'s at night). Off, the sun casts nothing, and the frame is cheaper.'],['occ','Shade under the cars','The soft occlusion on the ground under each car.']];
 /* the ground, surface by surface: id, label, where it is */
 const DEV_GROUND=[['asphalt','Tarmac','The race track and its kerbs.'],['concrete','Concrete','The shop pad, the store apron and the paddock.'],
