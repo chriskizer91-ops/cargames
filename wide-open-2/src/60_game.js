@@ -123,7 +123,7 @@ function spawnCar(i,x,z,yaw){
   syncTouch();
 }
 /* drive the current car's rig (after a garage change or a new car) */
-function spawnRig(keepPlace=true){const t=GAME.car;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));}
+function spawnRig(keepPlace=true){const t=GAME.car,nb=t&&t.pt.e.nosKw?t.pt.nos:undefined,nk=t?nosKit():0,nc=t?t.build.car:null;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));nosCarry(nb,nk,nc);}
 const carWhole=t=>{for(const a of [t.p,t.v,t.w,t.q])for(let k=0;k<a.length;k++)if(!Number.isFinite(a[k]))return false;return true;};
 function resetCar(){const t=GAME.car;placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));}
 function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;CHAL.run=null;if(RACE.on)raceEnd('Race abandoned');placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
@@ -290,7 +290,7 @@ function step(dt){
   const ev=t.takeEvents();riderBail(t,ev);if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
   if(ev.wall>4||ev.ground>6)buzz(Math.min(90,20+Math.max(ev.wall,ev.ground)*6));
   if(ev.debead)say('A tyre rolled off its rim. R to reset',3.5,PAL.amber);
-  simWarn(dt,t);
+  simWarn(dt,t);nosStep(dt);
   /* the phone feels the gearbox and the limiter */
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}

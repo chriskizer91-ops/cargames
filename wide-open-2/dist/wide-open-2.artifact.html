@@ -512,6 +512,7 @@ body.bayfull>.bar{display:none}
         </div><p class="hint" id="mSimHint"></p></section>
       <section class="row2"><div><h2>Time of day</h2><div class="seg" id="mTod" role="group" aria-label="Time of day"></div></div>
         <div><h2>Camera</h2><div class="seg" id="mCam" role="group" aria-label="Camera"></div></div></section>
+      <section><h2>Nitrous</h2><p class="hint" id="mNosTxt"></p><button class="btn sm" id="mNos" type="button" hidden>Call Deke</button></section>
       <section><h2>Go to</h2><div class="places" id="mPlaces"></div></section>
     </div>
     <div class="tab" data-tab="chals" hidden>
@@ -13504,7 +13505,7 @@ function spawnCar(i,x,z,yaw){
   syncTouch();
 }
 /* drive the current car's rig (after a garage change or a new car) */
-function spawnRig(keepPlace=true){const t=GAME.car;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));}
+function spawnRig(keepPlace=true){const t=GAME.car,nb=t&&t.pt.e.nosKw?t.pt.nos:undefined,nk=t?nosKit():0,nc=t?t.build.car:null;spawnCar(rigBuild(APP.car,rigOf(APP.car)),...(keepPlace&&t?[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])]:[]));nosCarry(nb,nk,nc);}
 const carWhole=t=>{for(const a of [t.p,t.v,t.w,t.q])for(let k=0;k<a.length;k++)if(!Number.isFinite(a[k]))return false;return true;};
 function resetCar(){const t=GAME.car;placeCar(t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0]));}
 function goTo(id){const p=PLACES.find(q=>q[0]===id);if(!p)return;RUN.on=null;CHAL.run=null;if(RACE.on)raceEnd('Race abandoned');placeCar(p[2],p[3],p[4]);say(p[1].toUpperCase(),2);}
@@ -13671,7 +13672,7 @@ function step(dt){
   const ev=t.takeEvents();riderBail(t,ev);if(ev.land>4||ev.wall>4||ev.ground>5)CAM.shake=Math.min(1,Math.max(ev.land,ev.wall,ev.ground)/12);
   if(ev.wall>4||ev.ground>6)buzz(Math.min(90,20+Math.max(ev.wall,ev.ground)*6));
   if(ev.debead)say('A tyre rolled off its rim. R to reset',3.5,PAL.amber);
-  simWarn(dt,t);
+  simWarn(dt,t);nosStep(dt);
   /* the phone feels the gearbox and the limiter */
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
@@ -15041,6 +15042,54 @@ function syncJobs(){
     L.appendChild(el);}
 }
 /* =====================================================================================
+   NITROUS OUT IN THE WILD. The bottle (40_physics' pt.nos: eight seconds of shot, whatever the size) used to fill
+   only when the car was built, so an empty one meant a trip to the Garage tab. Now: in free play the bottle is
+   always full. In the career a bottle comes from Deke at the gas station on Highway 40 east: at his pumps it is
+   the bottle's price and no wait; anywhere else it is called for from the Drive tab, paid for at once, and Deke
+   brings it out at a delivery's pace, the clock on the HUD (DEKE 1:12). You can keep driving; it finds you. A
+   rebuild in the Garage tab no longer fills the bottle for free in the career; a new kit comes full, as a bought
+   part would. The physics is untouched: the bottle is a number the game sets.
+   ===================================================================================== */
+const NOS={pending:null,
+  /* a bottle by the kit's shot (56_parts' NITROUS: none, 35, 75, 125, 250), the fee for the drive out, Deke's pace
+     in m/s, the shortest wait, and how near the pumps counts as at them */
+  BOTTLE:[0,120,180,250,320],FEE_PER_KM:80,PACE:24,MIN_WAIT:15,PUMPS_R:45};
+/* the kit on this car: the shot's index in NITROUS (0: no kit, nothing to fill) */
+const nosKit=()=>{const t=GAME.car;return t&&t.pt.e.nosKw?(t.pt.e.nos|0)||1:0;};
+/* what a bottle costs from where the car is: at the pumps the bottle alone; out here the bottle, a fee by the
+   distance, and the wait for the drive out (a delivery's pace, never under a quarter of a minute) */
+function nosQuote(){const t=GAME.car,d=PEOPLE.deke,dist=Math.hypot(t.p[0]-d.x,t.p[2]-d.z),bottle=NOS.BOTTLE[nosKit()]||0,pumps=dist<NOS.PUMPS_R,
+  fee=pumps?0:Math.round(dist/1000*NOS.FEE_PER_KM/10)*10,secs=pumps?0:Math.max(NOS.MIN_WAIT,Math.round(dist/NOS.PACE));return {price:bottle+fee,bottle,fee,secs,pumps,dist};}
+const nosClock=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+/* the order (in the career the buy bar has asked first): paid for now; filled now at the pumps, or when Deke gets here */
+function nosOrder(){const t=GAME.car;if(!t||!nosKit()||NOS.pending)return false;const q=nosQuote();if(!spend(q.price))return false;
+  if(q.pumps){t.pt.nos=1;say('A FRESH BOTTLE FROM DEKE',2.5,PAL.cyan);buzz(20);}
+  else{NOS.pending={t:q.secs};say("DEKE'S ON HIS WAY OUT WITH A BOTTLE",3,PAL.cyan);}
+  return true;}
+/* each frame of driving: free play's bottle kept full; the delivery's clock (it waits with the physics under the menu) */
+function nosStep(dt){const t=GAME.car;if(!t)return;
+  if(!CAREER.on){if(t.pt.e.nosKw)t.pt.nos=1;NOS.pending=null;return;}
+  const p=NOS.pending;if(!p)return;p.t-=dt;
+  if(p.t<=0){NOS.pending=null;if(t.pt.e.nosKw)t.pt.nos=1;say("DEKE: HERE'S YOUR BOTTLE",3,PAL.cyan);buzz(30);}}
+/* the HUD's chip while Deke is on his way */
+function nosHud(C){if(NOS.pending)C.push(['DEKE '+nosClock(NOS.pending.t),true,PAL.gold]);}
+/* the bottle carried over a rebuild of the same car in the career (the Garage tab used to fill it for free);
+   another car, or a new kit, comes with its own full bottle */
+function nosCarry(before,beforeKit,beforeCar){const t=GAME.car;if(!CAREER.on||!t||!t.pt.e.nosKw||before===undefined)return;
+  if(t.build.car===beforeCar&&nosKit()===beforeKit)t.pt.nos=before;}
+/* the Drive tab's row: what a bottle would cost from here, or why there is nothing to buy */
+function syncNos(){const el=$('mNos'),tx=$('mNosTxt');if(!el||!tx)return;const t=GAME.car,kit=t?nosKit():0;el.hidden=true;
+  if(!kit){tx.textContent='No nitrous kit on this car. The Garage tab fits one.';return;}
+  if(!CAREER.on){tx.textContent='Unlimited in free play: the bottle is always full.';return;}
+  const p=NOS.pending;if(p){tx.textContent="Deke's on his way out with a bottle: "+nosClock(p.t)+' to go.';return;}
+  const q=nosQuote(),left=Math.round(clamp(t.pt.nos,0,1)*100);
+  if(left>=99){tx.textContent='The bottle is full.';return;}
+  el.hidden=false;
+  if(q.pumps){el.textContent='Fill up';tx.textContent=`At Deke's pumps: a bottle for ${Feats.fmtMoney(q.bottle)}, no wait. ${left}% left now.`;}
+  else{el.textContent='Call Deke';tx.textContent=`A bottle brought out here: ${Feats.fmtMoney(q.bottle)} plus ${Feats.fmtMoney(q.fee)} for the drive, about ${nosClock(q.secs)}. Or fill up at his pumps on Highway 40 east for the bottle alone. ${left}% left now.`;}}
+function buildNos(){const el=$('mNos');if(!el)return;el.addEventListener('click',()=>{if(!GAME.car||!nosKit()||NOS.pending)return;const q=nosQuote();
+  askBuy(q.pumps?'A bottle from Deke':'A bottle from Deke, brought out here',q.price,()=>{nosOrder();syncNos();});});}
+/* =====================================================================================
    THE DOT-MATRIX HUD: the car, where it is and your money (top left), a map round the car (top right; M for
    the whole two miles), Shiftlight 2's shift lights, tach, gear and speed (bottom right, or top middle on a phone),
    what the car is doing (chips), the feat going on now and the combo (top middle), a clock run's target,
@@ -15124,7 +15173,7 @@ function drawHud(c){
   if(e.nosKw){const k=clamp(pt.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*k),4,Math.round(28*k),pt.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
   /* bottom left: what the car is doing */
   const can=t.c.diff.can,C=[['TC',pt.tcOn||pt.etcOn,PAL.green],['ABS',t.absOn,PAL.amber],['ESC',t.escOn,PAL.amber]];
-  if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);if(CRUISE.on)C.push(['CRUISE',true,PAL.cyan]);
+  if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);nosHud(C);if(CRUISE.on)C.push(['CRUISE',true,PAL.cyan]);
   if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}
@@ -15236,7 +15285,7 @@ function syncMenu(){
   for(const el of $('mCars').querySelectorAll('.card')){const car=el.dataset.car,own=ownsCar(car);el.setAttribute('aria-pressed',String(car===APP.car));
     el.classList.toggle('dealer',!own&&carOpen(car));el.classList.toggle('locked',!own&&!carOpen(car));
     el.querySelector('small').textContent=own?rigName(car,rigOf(car))+plusTag(car):dealerLine(car);}
-  $('mCarHint').textContent=CAR_HINT[APP.car];
+  $('mCarHint').textContent=CAR_HINT[APP.car];syncNos();
   /* the presets for this car, and Custom when the garage has changed it */
   const pr=$('mPresets');pr.textContent='';const cur=rigName(APP.car,rigOf(APP.car));
   for(const id of presetsOf(APP.car)){const b=BUILDS.find(q=>q.id===id),el=document.createElement('button');el.type='button';el.className='place';el.textContent=b.name;el.title=b.tag;
@@ -15291,7 +15340,7 @@ function syncModes(){
   $('mWipe').hidden=!CAREER.on;if(GAME.state==='menu')$('mEyebrow').textContent=menuEyebrow();
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
-function buildMenu(){
+function buildMenu(){buildNos();
   buildShow();
   for(const b of $('mTabs').children)b.addEventListener('click',()=>showTab(b.dataset.t));
   const cx=$('mCars');let grp='';
@@ -16765,7 +16814,7 @@ else{
   },30));
   window.__game={showClutchCap,TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
     GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,rutShaders,get RESO(){return RESO;},SKY,TOD,compile,setDisplay,PIC,LOOK,TEX,texLoad,BUDGET,budgetApply,perfReadout,DEVW,LAND,CARHOOK,FXP,STUDIO,GLASSHOOK,envNow,lgBuild,lgPlace,get P_LAND(){return P_LAND;},get P_DEPTH(){return P_DEPTH;},rperfRows,carLights,yardLights,worldFar,viewCut,FX,
-    RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,GLC,makeMesh,drawMesh,meshRetry,
+    RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,NOS,nosQuote,nosOrder,nosStep,syncNos,spend,GLC,makeMesh,drawMesh,meshRetry,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }

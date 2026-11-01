@@ -82,7 +82,7 @@ function drawHud(c){
   if(e.nosKw){const k=clamp(pt.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*k),4,Math.round(28*k),pt.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
   /* bottom left: what the car is doing */
   const can=t.c.diff.can,C=[['TC',pt.tcOn||pt.etcOn,PAL.green],['ABS',t.absOn,PAL.amber],['ESC',t.escOn,PAL.amber]];
-  if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);if(CRUISE.on)C.push(['CRUISE',true,PAL.cyan]);
+  if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);nosHud(C);if(CRUISE.on)C.push(['CRUISE',true,PAL.cyan]);
   if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}

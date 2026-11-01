@@ -228,6 +228,16 @@ combo while a stunt is going (the car waits frozen under the menu). Flips pay 30
 top of the air. `tools/stunt_check.py` throws the car about on the salt and prints what each throw made.
 
 
+## Nitrous out in the wild (`src/60_nitrous.js`)
+
+The bottle (eight seconds of shot, whatever the kit's size) used to fill only when the car was built, so an empty one
+meant a trip to the Garage tab. In free play the bottle is always full. In the career a bottle comes from Deke at the
+gas station on Highway 40 east: at his pumps it is the bottle's price (by the kit's shot) and no wait; anywhere else
+the Drive tab's Nitrous row calls him out: the bottle, a fee for the drive by the distance, paid at once, and he
+arrives after the drive out at a delivery's pace, the clock on the HUD as DEKE 1:12 (it waits with the physics under
+the menu). Keep driving; it finds you. A rebuild in the Garage tab no longer fills the bottle for free in the career;
+a new kit, or another car, comes with its own full bottle. The physics is untouched: the bottle is a number the game sets.
+
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
 One night, City Limits': a full moon bright enough to see the country and the salt. The town's ~1,100 lights

@@ -55,7 +55,7 @@ function syncMenu(){
   for(const el of $('mCars').querySelectorAll('.card')){const car=el.dataset.car,own=ownsCar(car);el.setAttribute('aria-pressed',String(car===APP.car));
     el.classList.toggle('dealer',!own&&carOpen(car));el.classList.toggle('locked',!own&&!carOpen(car));
     el.querySelector('small').textContent=own?rigName(car,rigOf(car))+plusTag(car):dealerLine(car);}
-  $('mCarHint').textContent=CAR_HINT[APP.car];
+  $('mCarHint').textContent=CAR_HINT[APP.car];syncNos();
   /* the presets for this car, and Custom when the garage has changed it */
   const pr=$('mPresets');pr.textContent='';const cur=rigName(APP.car,rigOf(APP.car));
   for(const id of presetsOf(APP.car)){const b=BUILDS.find(q=>q.id===id),el=document.createElement('button');el.type='button';el.className='place';el.textContent=b.name;el.title=b.tag;
@@ -110,7 +110,7 @@ function syncModes(){
   $('mWipe').hidden=!CAREER.on;if(GAME.state==='menu')$('mEyebrow').textContent=menuEyebrow();
 }
 function segButtons(host,items,cb){for(const [v,n] of items){const el=document.createElement('button');el.type='button';el.dataset.v=String(v);el.textContent=n;el.addEventListener('click',()=>{cb(v);syncMenu();});host.appendChild(el);}}
-function buildMenu(){
+function buildMenu(){buildNos();
   buildShow();
   for(const b of $('mTabs').children)b.addEventListener('click',()=>showTab(b.dataset.t));
   const cx=$('mCars');let grp='';
