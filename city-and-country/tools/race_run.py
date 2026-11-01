@@ -5,7 +5,8 @@ from playwright.sync_api import sync_playwright
 import os
 PAGE='file://'+os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','city-and-country.html')
 ids=sys.argv[1].split(','); car=sys.argv[2] if len(sys.argv)>2 else ''; diff=sys.argv[3] if len(sys.argv)>3 else 'medium'; skill=float(sys.argv[4]) if len(sys.argv)>4 else .9
-JS=r"""async ([id,car,diff,skill])=>{
+REND=int(os.environ.get('RENDER','0'))   # render every this many frames (0: never), to run the drawing too
+JS=r"""async ([id,car,diff,skill,REND])=>{
 const g=__game,FR=60;
 if(car){const [cr,pr]=car.split(':');g.APP.car=cr;if(pr)g.RIGS[cr]=g.presetRig(pr);g.spawnRig(false);}
 g.closeMenu&&g.closeMenu();g.GAME.state='drive';g.RACE.diff=diff;
@@ -18,14 +19,14 @@ for(;f<FR*1500;f++){
   if(pd){const others=R.cars.filter(c=>!c.me).map(c=>c.drv);pd.drive(1/FR,others);if(pd.resetReq){g.setTestInput(Object.assign({},pd.inp,{reset:true}));pd.resetReq=false;pd.stuckT=pd.flipT=pd.offT=pd.wrongT=0;}else g.setTestInput(pd.inp);}
   else g.setTestInput({steer:0,thr:0,brk:1,hb:0,nos:false});
   const a=performance.now();g.step(1/FR);const d=performance.now()-a;ms+=d;if(R.state!=='grid'){mxr=Math.max(mxr,d);msr+=d;fr++;}mx=Math.max(mx,d);frames++;
-  const e=[t.p[0],t.p[1]+3,t.p[2]];g.worldUpdate(e,t);g.setOrigin(e);
+  if(REND&&f%REND===0)g.render(1/FR);else{const e=[t.p[0],t.p[1]+3,t.p[2]];g.worldUpdate(e,t);g.setOrigin(e);}
   if(f%4===0)await new Promise(r=>setTimeout(r,0));
   let np=0;for(const c of R.cars){if(c.me)continue;if(!c.drv.kin)np++;if(last[c.name]!==undefined&&last[c.name]!==c.drv.kin)kinSw++;last[c.name]=c.drv.kin;if(!c.car.p.every(Number.isFinite))nan++;}phys[np]++;
 }
 const res=R.res;
 const out={id,diff,startMs:Math.round(startMs),frames,secs:+(frames/FR).toFixed(1),msPerFrame:+(ms/frames).toFixed(2),maxFrameMs:Math.round(mx),racingMsPerFrame:+(msr/Math.max(1,fr)).toFixed(2),racingMaxMs:Math.round(mxr),physHist:phys.map(x=>+(x/frames).toFixed(2)),kinSwitches:kinSw,nan,
   place:res&&res.place,prize:res&&res.prize,rows:res&&res.rows.map(r=>r.name+' | '+r.car+' | '+r.time+(r.sub?' | '+r.sub:'')),
-  paces:R.cars.filter(c=>!c.me).map(c=>c.name+' '+c.drv.pace.toFixed(2))};
+  paces:R.cars.filter(c=>!c.me).map(c=>c.name+' '+c.drv.pace.toFixed(2)),full:Object.keys(g.TRUCK).join(' '),coarse:Object.keys(g.TRUCKF).join(' ')};
 if(g.GAME.state==='results')g.hideResults();else g.raceEnd(null);
 return out;}"""
 with sync_playwright() as p:
@@ -38,7 +39,7 @@ with sync_playwright() as p:
     pg.evaluate("__game.GAME.hold=true")
     for i in ids:
         try:
-            r=pg.evaluate(JS,[i,car,diff,skill])
+            r=pg.evaluate(JS,[i,car,diff,skill,REND])
             rows=r.pop('rows') or []
             print(json.dumps(r),flush=True)
             for x in rows: print('   ',x)

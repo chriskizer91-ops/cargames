@@ -99,7 +99,7 @@ function carShadow(t,u,far){
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
   for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;
-    gl.uniformMatrix4fv(u.uM,false,M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0],w.hp[1]-w.len+t.cg[1],w.hp[2]),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang))))));drawMesh(w.front?T.wheel:T.wheelR);}
+    gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,w.hp[0]+t.cg[0],w.hp[1]-w.len+t.cg[1],w.hp[2],st,s,w.ang));drawMesh(w.front?T.wheel:T.wheelR);}
   return T.tris;
 }
 

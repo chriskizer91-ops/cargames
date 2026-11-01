@@ -164,7 +164,8 @@ class Driver{
       if(ds>0&&ds<Math.max(14,v*1.3)){const close=vo<v-.5||ds<7;
         if(ov&&close){const side=o.lat-lo>hi-o.lat?-1:1,gap=this.half+o.half+1.2,
             tgt=side<0?Math.max(lo,o.lat-gap):Math.min(hi,o.lat+gap);
-          if(Math.abs(tgt-o.lat)<gap-.6)vCap=Math.min(vCap,vo-.3+ds*.25);else want=tgt;}}
+          /* (holding station a car's length and a bit back, bumper to bumper, not centre to centre) */
+          if(Math.abs(tgt-o.lat)<gap-.6)vCap=Math.min(vCap,vo-.3+Math.max(0,ds-(this.car.c.body.L+o.car.c.body.L)/2-1.5)*.25);else want=tgt;}}
       else if(ds>-6&&ds<=0&&Math.abs(dl)<this.half+o.half+1){want+=dl>0?-1.2:1.2;}}
     want=Math.max(lo,Math.min(hi,want));this.want+=(want-this.want)*Math.min(1,dt*2.2);
     this.held=vCap<1e9;return vCap;
@@ -172,19 +173,24 @@ class Driver{
   /* off the physics: along the line at what the plan allows (a little under it, as the physics' robots manage) and
      as fast as the engine pulls, the same traffic rules, the car set down on the ground where that puts it. Once
      a frame, instead of drive and the car's steps */
-  ride(dt,others){
-    const L=this.line,inp=this.inp;inp.steer=0;inp.hb=0;inp.nos=false;
-    if(!this.go||this.goT<this.react){if(this.go)this.goT+=dt;inp.thr=0;inp.brk=1;this.kinPose();return inp;}
-    const i=L.idx(Math.round(this.s/L.ds));
-    if(this.done){this.km=Math.max(0,this.km-5*dt);inp.thr=0;inp.brk=.3;}
-    else{const vCap=this._traffic(dt,others,this.kv),km=this.km;this.km=this._kinV(km,i,Math.min(this.sp[i],vCap/this.pace),dt);
-      inp.brk=0;inp.thr=this.km>km?this.thrCap:.15;}
-    this.kv=this.km*this.pace;this.s+=this.kv*dt;
-    if(L.closed){if(this.s>=L.len){this.s-=L.len;this.lap++;}}else this.s=Math.min(this.s,L.len);
-    this.i=L.idx(Math.round(this.s/L.ds));this.prog=this.lap*L.len+this.s;this.lat=this.want;this.dist=0;
-    this.stuckT=this.offT=this.flipT=this.wrongT=0;this.resetReq=false;
-    this.kinPose(dt);return inp;
+  ride(dt,others,pose=true){
+    const L=this.line,inp=this.inp,t=this.car;inp.steer=0;inp.hb=0;inp.nos=false;
+    if(!this.go||this.goT<this.react){if(this.go)this.goT+=dt;inp.thr=0;inp.brk=1;}
+    else{const i=L.idx(Math.round(this.s/L.ds));
+      /* past the flag: off to the side of the line (where the ones on the physics pull over), then stopped */
+      if(this.done){const [lo,hi]=L.room(this.s,this.half),side=Math.max(lo,Math.min(hi,Math.min(L.wMax,4)));this.want+=(side-this.want)*Math.min(1,dt*1.5);
+        this.km=Math.max(Math.abs(side-this.want)>.5?2:0,this.km-5*dt);inp.thr=0;inp.brk=.3;}
+      else{const vCap=this._traffic(dt,others,this.kv),km=this.km;this.km=this._kinV(km,i,Math.min(this.sp[i],vCap/this.pace),dt);
+        inp.brk=0;inp.thr=this.km>km?this.thrCap:.15;}
+      this.kv=this.km*this.pace;this.s+=this.kv*dt;
+      if(L.closed){if(this.s>=L.len){this.s-=L.len;this.lap++;}}else this.s=Math.min(this.s,L.len);
+      this.i=L.idx(Math.round(this.s/L.ds));this.prog=this.lap*L.len+this.s;this.lat=this.want;this.dist=0;}
+    this.stuckT=this.offT=this.flipT=this.wrongT=0;this.resetReq=false;t.speed=t.vf=this.kv;t.brkIn=inp.brk;
+    /* set down on the ground only where it can be seen (60_race says): out past that it is only a place on its line */
+    this.posed=pose;if(pose)this.kinPose(dt);return inp;
   }
+  /* where riding has it on the ground (x, z) */
+  kinXZ(){return this.line.at(this.s,this.want);}
   /* the ghost's speed a step on from v at point i, held to cap: up as hard as the engine pulls there, slower
      where the going holds it back more than that, but never stopped dead (the ones on the physics scrabble on) */
   _kinV(v,i,cap,dt){let a=this.accel?this.accel(v,this.line.surf[i]):3;if(a>0)a*=this.thrCap;return v<cap?Math.max(Math.min(cap,1.5),Math.min(cap,v+a*dt)):cap;}
@@ -201,18 +207,21 @@ class Driver{
   toKin(){const [lo,hi]=this.line.room(this.s,this.half);this.kin=true;this.gh=null;this.kv=Math.max(0,this.car.vf);this.km=this.kv/this.pace;this.want=Math.max(lo,Math.min(hi,this.lat));}
   /* the car where riding puts it: on the ground, square to it, pointing down the line, the wheels turning */
   kinPose(dt=0){
-    const t=this.car,L=this.line,[x,z]=L.at(this.s,this.want),[x2,z2]=L.at(this.s+2.5,this.want),g=t.world.groundAt(x,z,KG),n=g.n;
+    const t=this.car,L=this.line,[x,z]=L.at(this.s,this.want),[x2,z2]=L.at(this.s+2.5,this.want),n=KG.n;t.world.groundAt(x,z,KG);
     let fx=x2-x,fz=z2-z;const fl=Math.hypot(fx,fz)||1;fx/=fl;fz/=fl;
     /* forward laid on the ground's slope; across it, forward x up */
     const fy=-(fx*n[0]+fz*n[2])/n[1],l=Math.hypot(fx,fy,fz),ax=fx/l,ay=fy/l,az=fz/l,rx=ay*n[2]-az*n[1],ry=az*n[0]-ax*n[2],rz=ax*n[1]-ay*n[0],M=t.M;
     M[0]=ax;M[3]=ay;M[6]=az;M[1]=n[0];M[4]=n[1];M[7]=n[2];M[2]=rx;M[5]=ry;M[8]=rz;
-    const h=this.rideH||t.c.hcg;t.p[0]=x+n[0]*h;t.p[1]=g.y+n[1]*h;t.p[2]=z+n[2]*h;
-    t.v[0]=ax*this.kv;t.v[1]=ay*this.kv;t.v[2]=az*this.kv;t.w.fill(0);t.speed=t.vf=this.kv;t.beta=0;
+    const h=this.rideH||t.c.hcg;t.p[0]=x+n[0]*h;t.p[1]=KG.y+n[1]*h;t.p[2]=z+n[2]*h;
+    t.v[0]=ax*this.kv;t.v[1]=ay*this.kv;t.v[2]=az*this.kv;t.w.fill(0);t.beta=0;
+    /* the front wheels turned for the bend it's in */
+    t.steer=Math.atan(t.c.wb*L.k[L.idx(Math.round(this.s/L.ds))]);
     for(const w of t.wheels){w.w=this.kv/w.R;w.ang=(w.ang+w.w*dt)%(2*Math.PI);}
   }
   /* back on the physics, moving: where riding put it and square to the ground as it was, at its speed, the
      wheels rolling, the engine in the gear that speed wants and turning with them */
   toPhysics(){
+    if(!this.posed)this.kinPose();
     const t=this.car,v=this.kv,pt=t.pt,e=pt.e,M=t.M,q=t.q,TA=2*Math.PI;
     /* (the orientation back into its quaternion: the physics turns that, not the matrix) */
     const tr=M[0]+M[4]+M[8];let S;
@@ -220,14 +229,20 @@ class Driver{
     else if(M[0]>M[4]&&M[0]>M[8]){S=Math.sqrt(1+M[0]-M[4]-M[8])*2;q[3]=(M[7]-M[5])/S;q[0]=.25*S;q[1]=(M[1]+M[3])/S;q[2]=(M[2]+M[6])/S;}
     else if(M[4]>M[8]){S=Math.sqrt(1+M[4]-M[0]-M[8])*2;q[3]=(M[2]-M[6])/S;q[0]=(M[1]+M[3])/S;q[1]=.25*S;q[2]=(M[5]+M[7])/S;}
     else{S=Math.sqrt(1+M[8]-M[0]-M[4])*2;q[3]=(M[3]-M[1])/S;q[0]=(M[2]+M[6])/S;q[1]=(M[5]+M[7])/S;q[2]=.25*S;}
-    qToM(M,q);t.v[0]=M[0]*v;t.v[1]=M[3]*v;t.v[2]=M[6]*v;t.w.fill(0);
-    for(const w of t.wheels){w.w=v/w.R;w.dig=0;w.FyB=0;w.vt=0;}
-    const R=t.wheels[2].R;let g=1,ratio;
-    if(e.cvt)ratio=e.cvt.lo*e.fd;
+    qToM(M,q);t.v[0]=M[0]*v;t.v[1]=M[3]*v;t.v[2]=M[6]*v;t.w.fill(0);t.rev=false;pt.rev=false;
+    /* the wheels rolling, the springs as they sat on the grid (a squashed one left from long ago would kick) */
+    t.wheels.forEach((w,k)=>{w.w=v/w.R;w.dig=0;w.FyB=0;w.vt=0;if(this.comp0){w.comp=this.comp0[k];w.len=t.c.susp.rest-w.comp;}});
+    const R=pt.o.R||t.wheels[2].R;let g=1,ratio;
+    if(e.cvt){ratio=e.cvt.lo*e.fd;pt.cvtR=0;}
     else{for(;g<e.nG;g++){const rpm=v/R*e.gears[g-1]*e.fd*60/TA;if(rpm<pt.upRpm[g-1]*.95)break;}ratio=e.gears[g-1]*e.fd;}
     pt.gear=g;pt.shiftT=0;pt.engage=1;pt.locked=v>3;pt.we=Math.max(e.idle*TA/60,Math.min(e.limiterRpm*TA/60,v/R*ratio));
-    this.kin=false;this.i=-1;this.track();this.latPrev=undefined;
+    /* tracked on from where riding had it, and its distance round kept whole: riding counts a lap at the line,
+       the tracker a metre or so before it, and that metre must not cost a lap */
+    const p0=this.prog;this.kin=false;this.track();this.latPrev=undefined;
+    if(this.line.closed){const k=Math.round((p0-this.prog)/this.line.len);if(k){this.lap+=k;this.prog+=k*this.line.len;}}
   }
+  /* back along its line m metres (a rider that would come back on the physics on top of another car) */
+  back(m){const L=this.line;this.s-=m;if(this.s<0){if(L.closed){this.s+=L.len;this.lap--;}else this.s=0;}this.prog=this.lap*L.len+this.s;this.i=L.idx(Math.round(this.s/L.ds));}
   /* the steering for a point: the arc that reaches it, as a share of what the steering can do at this speed */
   _aim(tx,tz){const t=this.car,c=t.c,dx=tx-t.p[0],dz=tz-t.p[2],L2=dx*dx+dz*dz,side=dx*t.M[2]+dz*t.M[8],k=2*side/Math.max(L2,1),ang=Math.atan(c.wb*k),
     lim=Math.min(c.lock,t.tyre.aPk*1.6+c.wb*9/Math.max(t.speed*t.speed,1));return Math.max(-1,Math.min(1,ang/lim));}

@@ -3493,12 +3493,15 @@ function buildSUV(look,build){
   const mb=new MB(),pm=new MB();
   /* stations: 5 cm everywhere, 5 mm across the vertical faces at both ends, dense around the arches
      and wherever the greenhouse changes (all Q times coarser for a far copy) */
+  /* (a coarse copy also takes the ends and the greenhouse twice as coarsely again, and the creases without the
+     stations either side: those were most of its skin) */
+  const Q2=Q>1?Q*2:1;
   const US=[];{const s=new Set(),a=u=>{if(u>=0&&u<=L)s.add(Math.round(u*4000)/4000);};
     for(let u=0;u<=L+1e-6;u+=.05*Q)a(u);
-    for(let u=0;u<.2;u+=.005*Q)a(u);for(let u=L-.2;u<=L+1e-6;u+=.005*Q)a(u);
+    for(let u=0;u<.2;u+=.005*Q2)a(u);for(let u=L-.2;u<=L+1e-6;u+=.005*Q2)a(u);
     const na=Math.max(7,Math.round(28/Q));for(const ua of [D.uFa,D.uRa]){for(let k=0;k<=na;k++)a(archPt(D,ua,k/na*PI)[0]);a(ua-D.arch.a-.012);a(ua+D.arch.a+.012);}
-    for(let u=G.cowl-.06;u<G.cowl+.3;u+=.012*Q)a(u);for(let u=G.rr-.06;u<G.be+.06;u+=.012*Q)a(u);
-    const B=D.B;for(const k of [G.rf,G.cB,G.cT,B.bumperR,B.bumperF,...B.clad.slice(1,-1).map(c=>c[0]),B.dome[0],B.dome[1]])a(k-.012),a(k),a(k+.012);
+    for(let u=G.cowl-.06;u<G.cowl+.3;u+=.012*Q2)a(u);for(let u=G.rr-.06;u<G.be+.06;u+=.012*Q2)a(u);
+    const B=D.B;for(const k of [G.rf,G.cB,G.cT,B.bumperR,B.bumperF,...B.clad.slice(1,-1).map(c=>c[0]),B.dome[0],B.dome[1]]){a(k);if(Q===1)a(k-.012),a(k+.012);}
     for(const [pu,ln,w] of G.pillars)for(const o of [-w,w])a(pu+o),a(pu+ln+o);
     const srt=[...s].sort((p,q)=>p-q);for(const u of srt)if(!US.length||u-US[US.length-1]>.002)US.push(u);
     if(US[US.length-1]<L-1e-6)US.push(L);else US[US.length-1]=L;}
@@ -3548,10 +3551,12 @@ function buildSUV(look,build){
     if(poly.length<3)return;
     let cx=0,cy=0;for(const q of poly){cx+=q[0];cy+=q[1];}cx/=poly.length;cy/=poly.length;
     const cache=new Map(),mp=q=>{const key=Math.round(q[0]*1e4)+','+Math.round(q[1]*1e4);let r=cache.get(key);if(!r){r=MAP[view](q,off);cache.set(key,r);}return r;};
+    /* (a coarse copy wraps them on in pieces Q times the size, and calls a piece flat Q times sooner) */
+    const rq=res*Q,fq=.0012*Q;
     const out=[],sub=(t,d)=>{const [a,b,c]=t,l=(p,q)=>Math.hypot(p[0]-q[0],p[1]-q[1]),L1=l(a,b),L2=l(b,c),L3=l(c,a),mx=Math.max(L1,L2,L3);
-      if(mx<res||d>8){out.push(t);return;}
+      if(mx<rq||d>8){out.push(t);return;}
       const [p,q,o]=mx===L1?[a,b,c]:mx===L2?[b,c,a]:[c,a,b],M=[(p[0]+q[0])/2,(p[1]+q[1])/2];
-      if(mx<.45){const P=mp(p),Q=mp(q),PM=mp(M);if(Math.hypot(PM[0]-(P[0]+Q[0])/2,PM[1]-(P[1]+Q[1])/2,PM[2]-(P[2]+Q[2])/2)<.0012){out.push(t);return;}}
+      if(mx<.45){const P=mp(p),Q=mp(q),PM=mp(M);if(Math.hypot(PM[0]-(P[0]+Q[0])/2,PM[1]-(P[1]+Q[1])/2,PM[2]-(P[2]+Q[2])/2)<fq){out.push(t);return;}}
       sub([p,M,o],d+1);sub([M,q,o],d+1);};
     for(let k=0;k<poly.length;k++)sub([[cx,cy],poly[k],poly[(k+1)%poly.length]],0);
     for(const t of out)pm.tri(mp(t[0]),mp(t[1]),mp(t[2]),m[0],m[1],m[2]);
@@ -5044,10 +5049,11 @@ function truckFar(i){const b=BUILDS[i];if(TRUCKF[b.id])return TRUCKF[b.id];
   /* a machine is built from parts, not lofted: its copy is itself, without its rider */
   if(b.machine){const T=truck(i);return TRUCKF[b.id]={body:T.body,hood:null,D:T.D,wheel:T.wheel,wheelR:T.wheelR,shared:true,tris:T.tris,ms:0};}
   const t0=performance.now();BODY_LOD=RACE_LOD;let s;try{s=buildSUV(b.look,b);}finally{BODY_LOD=1;}
-  if(s.hide&&s.hide.vao)freeMesh(s.hide);
+  /* (only the blower is drawn of a blown engine's bay: the rest of it goes at once) */
+  if(s.hide&&s.hide.vao)freeMesh(s.hide);if(s.bay){for(const m of [s.bay.bay,s.bay.liner])if(m&&m.vao)freeMesh(m);}
   const w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
   return TRUCKF[b.id]={body:s.body,hood:s.hood,D:s.D,bay:s.bay,engineOut:!!s.bay,wheel:w,wheelR:wr,
-    tris:(s.body.n+s.hood.n)/3+w.tris*2+wr.tris*2+(s.bay?s.bay.tris:0),ms:performance.now()-t0};}
+    tris:(s.body.n+s.hood.n+(s.bay?s.bay.engine.n:0))/3+w.tris*2+wr.tris*2,ms:performance.now()-t0};}
 /* the engine bay: built the first time this build's hood opens, never with it shut */
 const bayOf=i=>{const T=truck(i);return T.bay||(T.bay=buildBay(BUILDS[i],T.D));};
 /* ---------- matrices ---------- */
@@ -5056,6 +5062,15 @@ const M4RY=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s
 const M4S=(x,y,z)=>{const m=M4.id();m[0]=x;m[5]=y;m[10]=z;return m;};
 const M4RX=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m;};
 const M4RZ=a=>{const m=M4.id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m;};
+/* a wheel's matrix: the car's M0 times its hub at (x, y, z), steered st, the side s (+-1) and turned ang, written
+   into one scratch matrix (M0 x T x RY(-st) x S(1,1,s) x RZ(-ang) as nine new matrices was a wheel's cost, every
+   wheel of every car in every pass). GL copies it at once, so the one is enough */
+const WHM=new Float32Array(16),WHL=new Float64Array(16);
+function wheelMat(M0,x,y,z,st,s,ang){
+  const cb=Math.cos(-st),sb=Math.sin(-st),cg=Math.cos(-ang),sg=Math.sin(-ang),L=WHL;
+  L[0]=cb*cg;L[1]=sg;L[2]=-sb*cg;L[3]=0;L[4]=-cb*sg;L[5]=cg;L[6]=sb*sg;L[7]=0;L[8]=sb*s;L[9]=0;L[10]=cb*s;L[11]=0;L[12]=x;L[13]=y;L[14]=z;L[15]=1;
+  for(let c=0;c<4;c++){const c4=c*4;for(let r=0;r<4;r++)WHM[c4+r]=M0[r]*L[c4]+M0[4+r]*L[c4+1]+M0[8+r]*L[c4+2]+M0[12+r]*L[c4+3];}
+  return WHM;}
 /* a flame for the exhaust tips: unit length along +X, hot at the root, red at the tip */
 let FLAME=null;
 function flameMesh(){if(FLAME)return FLAME;const mb=new MB(),seg=[[0,.18,1,.92,[1,.92,.62],9],[.18,.48,.92,.7,[1,.7,.22],7],[.48,.78,.7,.38,[1,.42,.08],5],[.78,1,.38,.04,[.9,.18,.04],3.5]];
@@ -6619,7 +6634,8 @@ class Driver{
       if(ds>0&&ds<Math.max(14,v*1.3)){const close=vo<v-.5||ds<7;
         if(ov&&close){const side=o.lat-lo>hi-o.lat?-1:1,gap=this.half+o.half+1.2,
             tgt=side<0?Math.max(lo,o.lat-gap):Math.min(hi,o.lat+gap);
-          if(Math.abs(tgt-o.lat)<gap-.6)vCap=Math.min(vCap,vo-.3+ds*.25);else want=tgt;}}
+          /* (holding station a car's length and a bit back, bumper to bumper, not centre to centre) */
+          if(Math.abs(tgt-o.lat)<gap-.6)vCap=Math.min(vCap,vo-.3+Math.max(0,ds-(this.car.c.body.L+o.car.c.body.L)/2-1.5)*.25);else want=tgt;}}
       else if(ds>-6&&ds<=0&&Math.abs(dl)<this.half+o.half+1){want+=dl>0?-1.2:1.2;}}
     want=Math.max(lo,Math.min(hi,want));this.want+=(want-this.want)*Math.min(1,dt*2.2);
     this.held=vCap<1e9;return vCap;
@@ -6627,19 +6643,24 @@ class Driver{
   /* off the physics: along the line at what the plan allows (a little under it, as the physics' robots manage) and
      as fast as the engine pulls, the same traffic rules, the car set down on the ground where that puts it. Once
      a frame, instead of drive and the car's steps */
-  ride(dt,others){
-    const L=this.line,inp=this.inp;inp.steer=0;inp.hb=0;inp.nos=false;
-    if(!this.go||this.goT<this.react){if(this.go)this.goT+=dt;inp.thr=0;inp.brk=1;this.kinPose();return inp;}
-    const i=L.idx(Math.round(this.s/L.ds));
-    if(this.done){this.km=Math.max(0,this.km-5*dt);inp.thr=0;inp.brk=.3;}
-    else{const vCap=this._traffic(dt,others,this.kv),km=this.km;this.km=this._kinV(km,i,Math.min(this.sp[i],vCap/this.pace),dt);
-      inp.brk=0;inp.thr=this.km>km?this.thrCap:.15;}
-    this.kv=this.km*this.pace;this.s+=this.kv*dt;
-    if(L.closed){if(this.s>=L.len){this.s-=L.len;this.lap++;}}else this.s=Math.min(this.s,L.len);
-    this.i=L.idx(Math.round(this.s/L.ds));this.prog=this.lap*L.len+this.s;this.lat=this.want;this.dist=0;
-    this.stuckT=this.offT=this.flipT=this.wrongT=0;this.resetReq=false;
-    this.kinPose(dt);return inp;
+  ride(dt,others,pose=true){
+    const L=this.line,inp=this.inp,t=this.car;inp.steer=0;inp.hb=0;inp.nos=false;
+    if(!this.go||this.goT<this.react){if(this.go)this.goT+=dt;inp.thr=0;inp.brk=1;}
+    else{const i=L.idx(Math.round(this.s/L.ds));
+      /* past the flag: off to the side of the line (where the ones on the physics pull over), then stopped */
+      if(this.done){const [lo,hi]=L.room(this.s,this.half),side=Math.max(lo,Math.min(hi,Math.min(L.wMax,4)));this.want+=(side-this.want)*Math.min(1,dt*1.5);
+        this.km=Math.max(Math.abs(side-this.want)>.5?2:0,this.km-5*dt);inp.thr=0;inp.brk=.3;}
+      else{const vCap=this._traffic(dt,others,this.kv),km=this.km;this.km=this._kinV(km,i,Math.min(this.sp[i],vCap/this.pace),dt);
+        inp.brk=0;inp.thr=this.km>km?this.thrCap:.15;}
+      this.kv=this.km*this.pace;this.s+=this.kv*dt;
+      if(L.closed){if(this.s>=L.len){this.s-=L.len;this.lap++;}}else this.s=Math.min(this.s,L.len);
+      this.i=L.idx(Math.round(this.s/L.ds));this.prog=this.lap*L.len+this.s;this.lat=this.want;this.dist=0;}
+    this.stuckT=this.offT=this.flipT=this.wrongT=0;this.resetReq=false;t.speed=t.vf=this.kv;t.brkIn=inp.brk;
+    /* set down on the ground only where it can be seen (60_race says): out past that it is only a place on its line */
+    this.posed=pose;if(pose)this.kinPose(dt);return inp;
   }
+  /* where riding has it on the ground (x, z) */
+  kinXZ(){return this.line.at(this.s,this.want);}
   /* the ghost's speed a step on from v at point i, held to cap: up as hard as the engine pulls there, slower
      where the going holds it back more than that, but never stopped dead (the ones on the physics scrabble on) */
   _kinV(v,i,cap,dt){let a=this.accel?this.accel(v,this.line.surf[i]):3;if(a>0)a*=this.thrCap;return v<cap?Math.max(Math.min(cap,1.5),Math.min(cap,v+a*dt)):cap;}
@@ -6656,18 +6677,21 @@ class Driver{
   toKin(){const [lo,hi]=this.line.room(this.s,this.half);this.kin=true;this.gh=null;this.kv=Math.max(0,this.car.vf);this.km=this.kv/this.pace;this.want=Math.max(lo,Math.min(hi,this.lat));}
   /* the car where riding puts it: on the ground, square to it, pointing down the line, the wheels turning */
   kinPose(dt=0){
-    const t=this.car,L=this.line,[x,z]=L.at(this.s,this.want),[x2,z2]=L.at(this.s+2.5,this.want),g=t.world.groundAt(x,z,KG),n=g.n;
+    const t=this.car,L=this.line,[x,z]=L.at(this.s,this.want),[x2,z2]=L.at(this.s+2.5,this.want),n=KG.n;t.world.groundAt(x,z,KG);
     let fx=x2-x,fz=z2-z;const fl=Math.hypot(fx,fz)||1;fx/=fl;fz/=fl;
     /* forward laid on the ground's slope; across it, forward x up */
     const fy=-(fx*n[0]+fz*n[2])/n[1],l=Math.hypot(fx,fy,fz),ax=fx/l,ay=fy/l,az=fz/l,rx=ay*n[2]-az*n[1],ry=az*n[0]-ax*n[2],rz=ax*n[1]-ay*n[0],M=t.M;
     M[0]=ax;M[3]=ay;M[6]=az;M[1]=n[0];M[4]=n[1];M[7]=n[2];M[2]=rx;M[5]=ry;M[8]=rz;
-    const h=this.rideH||t.c.hcg;t.p[0]=x+n[0]*h;t.p[1]=g.y+n[1]*h;t.p[2]=z+n[2]*h;
-    t.v[0]=ax*this.kv;t.v[1]=ay*this.kv;t.v[2]=az*this.kv;t.w.fill(0);t.speed=t.vf=this.kv;t.beta=0;
+    const h=this.rideH||t.c.hcg;t.p[0]=x+n[0]*h;t.p[1]=KG.y+n[1]*h;t.p[2]=z+n[2]*h;
+    t.v[0]=ax*this.kv;t.v[1]=ay*this.kv;t.v[2]=az*this.kv;t.w.fill(0);t.beta=0;
+    /* the front wheels turned for the bend it's in */
+    t.steer=Math.atan(t.c.wb*L.k[L.idx(Math.round(this.s/L.ds))]);
     for(const w of t.wheels){w.w=this.kv/w.R;w.ang=(w.ang+w.w*dt)%(2*Math.PI);}
   }
   /* back on the physics, moving: where riding put it and square to the ground as it was, at its speed, the
      wheels rolling, the engine in the gear that speed wants and turning with them */
   toPhysics(){
+    if(!this.posed)this.kinPose();
     const t=this.car,v=this.kv,pt=t.pt,e=pt.e,M=t.M,q=t.q,TA=2*Math.PI;
     /* (the orientation back into its quaternion: the physics turns that, not the matrix) */
     const tr=M[0]+M[4]+M[8];let S;
@@ -6675,14 +6699,20 @@ class Driver{
     else if(M[0]>M[4]&&M[0]>M[8]){S=Math.sqrt(1+M[0]-M[4]-M[8])*2;q[3]=(M[7]-M[5])/S;q[0]=.25*S;q[1]=(M[1]+M[3])/S;q[2]=(M[2]+M[6])/S;}
     else if(M[4]>M[8]){S=Math.sqrt(1+M[4]-M[0]-M[8])*2;q[3]=(M[2]-M[6])/S;q[0]=(M[1]+M[3])/S;q[1]=.25*S;q[2]=(M[5]+M[7])/S;}
     else{S=Math.sqrt(1+M[8]-M[0]-M[4])*2;q[3]=(M[3]-M[1])/S;q[0]=(M[2]+M[6])/S;q[1]=(M[5]+M[7])/S;q[2]=.25*S;}
-    qToM(M,q);t.v[0]=M[0]*v;t.v[1]=M[3]*v;t.v[2]=M[6]*v;t.w.fill(0);
-    for(const w of t.wheels){w.w=v/w.R;w.dig=0;w.FyB=0;w.vt=0;}
-    const R=t.wheels[2].R;let g=1,ratio;
-    if(e.cvt)ratio=e.cvt.lo*e.fd;
+    qToM(M,q);t.v[0]=M[0]*v;t.v[1]=M[3]*v;t.v[2]=M[6]*v;t.w.fill(0);t.rev=false;pt.rev=false;
+    /* the wheels rolling, the springs as they sat on the grid (a squashed one left from long ago would kick) */
+    t.wheels.forEach((w,k)=>{w.w=v/w.R;w.dig=0;w.FyB=0;w.vt=0;if(this.comp0){w.comp=this.comp0[k];w.len=t.c.susp.rest-w.comp;}});
+    const R=pt.o.R||t.wheels[2].R;let g=1,ratio;
+    if(e.cvt){ratio=e.cvt.lo*e.fd;pt.cvtR=0;}
     else{for(;g<e.nG;g++){const rpm=v/R*e.gears[g-1]*e.fd*60/TA;if(rpm<pt.upRpm[g-1]*.95)break;}ratio=e.gears[g-1]*e.fd;}
     pt.gear=g;pt.shiftT=0;pt.engage=1;pt.locked=v>3;pt.we=Math.max(e.idle*TA/60,Math.min(e.limiterRpm*TA/60,v/R*ratio));
-    this.kin=false;this.i=-1;this.track();this.latPrev=undefined;
+    /* tracked on from where riding had it, and its distance round kept whole: riding counts a lap at the line,
+       the tracker a metre or so before it, and that metre must not cost a lap */
+    const p0=this.prog;this.kin=false;this.track();this.latPrev=undefined;
+    if(this.line.closed){const k=Math.round((p0-this.prog)/this.line.len);if(k){this.lap+=k;this.prog+=k*this.line.len;}}
   }
+  /* back along its line m metres (a rider that would come back on the physics on top of another car) */
+  back(m){const L=this.line;this.s-=m;if(this.s<0){if(L.closed){this.s+=L.len;this.lap--;}else this.s=0;}this.prog=this.lap*L.len+this.s;this.i=L.idx(Math.round(this.s/L.ds));}
   /* the steering for a point: the arc that reaches it, as a share of what the steering can do at this speed */
   _aim(tx,tz){const t=this.car,c=t.c,dx=tx-t.p[0],dz=tz-t.p[2],L2=dx*dx+dz*dz,side=dx*t.M[2]+dz*t.M[8],k=2*side/Math.max(L2,1),ang=Math.atan(c.wb*k),
     lim=Math.min(c.lock,t.tyre.aPk*1.6+c.wb*9/Math.max(t.speed*t.speed,1));return Math.max(-1,Math.min(1,ang/lim));}
@@ -9065,7 +9095,7 @@ function carShadow(t,u,far){
   for(const sp of D.spares||[]){const W=sp.rear?T.wheelR:T.wheel;
     gl.uniformMatrix4fv(u.uM,false,M4.mul(Mb,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1))));drawMesh(W);}
   for(const w of t.wheels){const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;
-    gl.uniformMatrix4fv(u.uM,false,M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0],w.hp[1]-w.len+t.cg[1],w.hp[2]),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang))))));drawMesh(w.front?T.wheel:T.wheelR);}
+    gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,w.hp[0]+t.cg[0],w.hp[1]-w.len+t.cg[1],w.hp[2],st,s,w.ang));drawMesh(w.front?T.wheel:T.wheelR);}
   return T.tris;
 }
 
@@ -10279,7 +10309,8 @@ const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],sub2=(a,b)=>[a[0]-b[0],a[1]-b[1
   dot2=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],len=a=>Math.hypot(a[0],a[1],a[2]),norm2=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];},
   mvec=(m,v)=>[m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]],mcol=(m,i)=>[m[i],m[3+i],m[6+i]];
 /* how far a car's model sits off its centre of gravity, and how much it has been lifted off its factory height */
-const carD=t=>truck(t.bi).D,liftOf=t=>t.cg[1]-HCG[t.build.look.body||'suv'];
+/* (a car in a race has only its coarse copy: asking for the full one here would build it) */
+const carD=t=>{const id=t.build.id;return (TRUCK[id]||TRUCKF[id]||truck(t.bi)).D;},liftOf=t=>t.cg[1]-HCG[t.build.look.body||'suv'];
 /* the name the HUD and the log give the car: its preset's name, or Custom once a part has changed */
 /* the Plus button: any car, any build, with the Plus tune: 15% more power and a final drive 15% taller (the dev
    panel sets both). Measured on flat tarmac that's 4 to 16% more top speed (most where the redline, not the air,
@@ -10336,7 +10367,7 @@ function placeCar(x,z,yaw){
 /* the meshes of builds no longer driven or raced are let go (the wheels are shared and stay) */
 function truckEvict(keep){
   for(const id of Object.keys(TRUCKF)){if(keep.includes(id))continue;const F=TRUCKF[id];if(!F.shared)for(const m of [F.body,F.hood,F.bay&&F.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCKF[id];}
-  for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
+  for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id],B=T.bay;for(const m of [T.body,T.hood,T.hide,B&&B.engine,B&&B.bay,B&&B.liner,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
 const RECENT=[];
 /* what the Sim level builds the car with: roof loads move its centre of gravity, plus any cargo */
 const simOpts=()=>APP.level==='sim'?{cg:!!SIMDEV.cg,cargo:simVal(SIM_CARGO,SIMSET.cargo)}:null;
@@ -10493,7 +10524,10 @@ function step(dt){
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
   GAME.acc+=dt;let n=0;
-  if(RACE.on)raceFrame(dt);
+  /* the race runs on the time the physics does this frame (below 30 fps that is less than the frame's: the
+     robots riding their lines and the clock must not run on ahead of the cars on the physics) */
+  GAME.sdt=Math.min(8,Math.floor(GAME.acc/DT))*DT;
+  if(RACE.on)raceFrame(GAME.sdt);else if(RACE.evictAt&&APP.t>RACE.evictAt){RACE.evictAt=0;truckEvict(RECENT);}
   /* at most eight steps (a thirtieth of a second) a frame: below 30 fps the game runs a little slow rather than
      spending a slow frame catching up and making the next one slow too */
   const tp=performance.now();
@@ -10521,7 +10555,7 @@ function step(dt){
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(dt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
+  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(GAME.sdt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
 }
 /* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
    gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
@@ -10688,8 +10722,7 @@ function drawWorldCar(t,v,dirt,far){
     /* the semi's tandem: two axles of duals where the physics has one */
     const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0];
     for(const dx of xs)for(const dz of zs){
-      const M=M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang)))));
-      gl.uniformMatrix4fv(u.uM,false,M);drawMesh(w.front?T.wheel:T.wheelR);}}
+      gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s,st,s,w.ang));drawMesh(w.front?T.wheel:T.wheelR);}}
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);
   return T.tris;
 }
@@ -10910,10 +10943,11 @@ function dragLine(lane){const S=WG.PKW.ST,z=S.lanes[lane],k='strip'+lane;
    rate alike on dirt; round the clay oval the hypercar is a fifth quicker). Kept per course and build. */
 const RACE_EST=new Map();
 function raceEst(L,i,car){
-  const k=L.key+':'+BUILDS[i].id;if(RACE_EST.has(k))return RACE_EST.get(k);
-  const sp=L.plan(car||makeCar(i,RANCH.world,null),.9),acc=raceAccel(i),n=L.n,ds=L.ds;let v=sp[0],t=0;
+  /* (yours, given its car, is worked out fresh: the dyno lab may have changed its engine since) */
+  const k=L.key+':'+BUILDS[i].id;if(!car&&RACE_EST.has(k))return RACE_EST.get(k);
+  const sp=L.plan(car||makeCar(i,RANCH.world,null),.9),acc=raceAccel(i,!car),n=L.n,ds=L.ds;let v=sp[0],t=0;
   for(let j=0;j<n;j++){const a=acc(v,L.surf[j]),v2=Math.max(1,Math.min(sp[L.idx(j+1)],Math.sqrt(Math.max(0,v*v+2*a*ds))));t+=2*ds/(v+v2);v=v2;}
-  RACE_EST.set(k,t);return t;
+  if(!car)RACE_EST.set(k,t);return t;
 }
 function pickRivals(ev,n){
   /* the cars and trucks (not the quads, carts and big machines) */
@@ -10923,7 +10957,7 @@ function pickRivals(ev,n){
      ratings' business, not the ghost's); round anything else, the time round this course */
   if(ev.kind==='drag')rate=i=>60/Math.max(1,(rateBuild(i).figs||{}).z60||12);
   else if(ev.terrain==='mud')rate=i=>(rateBuild(i)||{}).mud||0;
-  else{const L=raceLine(ev.course);rate=i=>1/raceEst(L,i);mine=1/raceEst(L,mi,GAME.car);RACE_EST.delete(L.key+':'+BUILDS[mi].id);}
+  else{const L=raceLine(ev.course);rate=i=>1/raceEst(L,i);mine=1/raceEst(L,mi,GAME.car);}
   if(mine===undefined)mine=rate(mi);
   for(const p of pool)p.r=rate(p.i);
   /* none hopeless for the ground (under 45% of the best factory build there, or 60% of yours, whichever is lower: a
@@ -10937,8 +10971,8 @@ function pickRivals(ev,n){
    drag: the physics' robots get through the park's mud far quicker than the ratings' sum says, and the ghost
    in 44_ai sets the pace on each course anyway.) */
 const RACE_SHEETS=new Map();
-function raceAccel(i){
-  const id=BUILDS[i].id;let S=RACE_SHEETS.get(id);if(!S){S=rateSheet(i);RACE_SHEETS.set(id,S);}
+function raceAccel(i,keep=true){
+  const id=BUILDS[i].id;let S=keep&&RACE_SHEETS.get(id);if(!S){S=rateSheet(i);if(keep)RACE_SHEETS.set(id,S);}
   const m=S.mass,fwd=S.drv==='FWD',share=S.drv==='AWD'?1:fwd?.5:.55;
   return (v,surf)=>{const mu=S.drv==='AWD'?(S.muOf(surf,true)+S.muOf(surf,false))/2:S.muOf(surf,fwd),
     F=Math.min(driveForce(S,Math.max(v,.3),false),mu*share*m*G9),res=S.rr(surf)*m*G9+.5*RHO*S.cdA*v*v;return (F-res)/S._me;};
@@ -10981,7 +11015,7 @@ function raceCar(p,L,o){const car=makeCar(p.i,RANCH.world,null);car.setAssists('
 /* settled on its wheels, held on the brakes; how high it sits is what riding the line sets it down at */
 const RACE_HOLD={steer:0,thr:0,brk:1,hb:0,nos:false};
 function raceSettle(o){const car=o.car;car.pt.start();for(let k=0;k<120;k++)car.step(DT,RACE_HOLD);car.v.fill(0);car.w.fill(0);
-  if(o.drv)o.drv.rideH=car.p[1]-RANCH.W.heightAt(car.p[0],car.p[2]);}
+  if(o.drv){o.drv.rideH=car.p[1]-RANCH.W.heightAt(car.p[0],car.p[2]);o.drv.comp0=car.wheels.map(w=>w.comp);}}
 /* ---------- each frame ---------- */
 /* before the physics: the lights, which robots are on the physics, their inputs */
 function raceFrame(dt){
@@ -11001,20 +11035,26 @@ function raceFrame(dt){
       for(const c of RACE.cars)if(c.drv){c.drv.go=true;}}
   }
   else if(RACE.state==='race'||RACE.state==='flag')RACE.clock+=dt;
-  /* off the physics far from you, back on near; not while one would land on another car */
-  const p=GAME.car.p;
-  for(const c of RACE.cars){const d=c.drv;if(!d||RACE.state==='grid')continue;const dx=c.car.p[0]-p[0],dz=c.car.p[2]-p[2],d2=dx*dx+dz*dz;
-    if(d.kin){if(d2<RACE_NEAR*RACE_NEAR&&raceClear(c))d.toPhysics();}
-    else if(d2>RACE_FAR*RACE_FAR)d.toKin();}
-  for(const c of RACE.cars){const d=c.drv;if(!d)continue;if((c.done||c.out)&&!d.done)d.done=true;if(d.kin)d.ride(dt,RACE.others);else d.drive(dt,RACE.others);}
+  /* off the physics far from you, back on near (not while it would land on another car); riding out past where
+     it could be seen, it isn't set down on the ground at all */
+  const p=GAME.car.p,vis=(SKY.night?SKY.draw:GFX.far)+30;
+  for(const c of RACE.cars){const d=c.drv;if(!d)continue;if((c.done||c.out)&&!d.done)d.done=true;
+    let d2=0;if(RACE.state!=='grid'){const q=d.kin?d.kinXZ():c.car.p,dx=q[0]-p[0],dz=(d.kin?q[1]:q[2])-p[2];d2=dx*dx+dz*dz;
+      /* (a rider that is still on top of another car this close drops back a little at a time until it isn't) */
+      if(d.kin){if(d2<RACE_NEAR*RACE_NEAR){if(raceClear(c))d.toPhysics();else if(d2<1600)d.back(.5);}}else if(d2>RACE_FAR*RACE_FAR)d.toKin();}
+    if(d.kin)d.ride(dt,RACE.others,d2<vis*vis);else d.drive(dt,RACE.others);}
 }
-/* nothing on the physics within a car's length or so of where this one would come back on */
-function raceClear(c){const p=c.car.p;for(const o of RACE.cars){if(o===c||o.drv&&o.drv.kin)continue;const q=o.car.p;if((q[0]-p[0])**2+(q[2]-p[2])**2<64)return false;}return true;}
+/* nothing on the physics overlapping where this one would come back on (along the course and across it) */
+function raceClear(c){const d=c.drv,L=d.line,H=L.len/2,cl=c.car.c.body.L;
+  for(const o of RACE.cars){if(o===c||o.drv&&o.drv.kin)continue;const T=o.drv||o.trk;let ds=T.prog-d.prog;if(L.closed){while(ds>H)ds-=L.len;while(ds<-H)ds+=L.len;}
+    if(Math.abs(ds)<(cl+o.car.c.body.L)/2+1.5&&Math.abs(T.lat-d.lat)<c.half+o.half+.5)return false;}
+  return true;}
 /* the robots on the physics stepped with yours, then everyone touching everyone */
 const RACE_CARS=[];
+/* (one stopped for good past the flag or out of the race is parked: not stepped unless you're near enough to hit it) */
 function raceSub(dt){
-  RACE_CARS.length=0;RACE_CARS.push(GAME.car);
-  for(const c of RACE.cars){if(!c.drv||c.drv.kin)continue;c.car.step(dt,c.drv.inp);RACE_CARS.push(c.car);}
+  RACE_CARS.length=0;RACE_CARS.push(GAME.car);const p=GAME.car.p;
+  for(const c of RACE.cars){if(!c.drv||c.drv.kin)continue;const q=c.car.p;if(c.parked&&(q[0]-p[0])**2+(q[2]-p[2])**2>144)continue;c.car.step(dt,c.drv.inp);RACE_CARS.push(c.car);}
   if(RACE_CARS.length>1)carContacts(RACE_CARS);
 }
 /* after the physics: where everyone is, laps, the finish, the robots put back on the course */
@@ -11025,7 +11065,8 @@ function racePost(dt){
     if(T.dist>L.hwAt(Math.max(0,T.i))+12&&keep[0]>=0){[T.i,T.lap,T.s,T.prog,T.lat]=keep;me.offT=(me.offT||0)+dt;
       if(me.offT>4&&RACE.state!=='grid'&&!me.done){me.offT=0;raceResetMe();say('BACK ON THE COURSE',1.6,PAL.amber);}}else me.offT=0;}
   for(const c of RACE.cars){const d=c.drv;if(!d||d.kin)continue;
-    if(d.resetReq&&!c.done){const [x,z,yaw]=d.resetPose(8);c.car.place([x,RANCH.W.heightAt(x,z)+.05,z],yaw);raceSettle(c);d.i=-1;d.track();}}
+    if(d.resetReq&&!c.done){const [x,z,yaw]=d.resetPose(8);c.car.place([x,RANCH.W.heightAt(x,z)+.05,z],yaw);raceSettle(c);d.i=-1;d.track();}
+    if((c.done||c.out)&&!c.parked){c.stillT=c.car.speed<.3?(c.stillT||0)+dt:0;if(c.stillT>1.5)c.parked=true;}}
   if(RACE.state==='grid')return;
   if(ev.kind==='drag')return dragPost(dt);
   /* circuits: laps done = line crossings - 1 (the grid is behind the line) */
@@ -11068,7 +11109,7 @@ function raceResults(){
   else{const ord2=raceOrder(),lead=ord2[0];place=ord2.indexOf(me)+1;
     rows=ord2.map(c=>({name:c.me?'You':c.name,car:c.me?carLabel():carName({car:BUILDS[c.bi].car})+' '+BUILDS[c.bi].name,me:c.me,
       time:c.out?'OUT LAP '+((c.laps||0)+1):ev.kind==='elim'?(c.done?'WINNER':'RUNNING'):c.done?(c===lead?fmtLap(c.time):'+'+(c.time-lead.time).toFixed(2)):
-        ev.laps===1?(((c.me?c.trk:c.drv).line.len-(c.me?c.trk:c.drv).s)/1000).toFixed(1)+' KM TO GO':ev.laps-(c.laps||0)>1?'+'+(ev.laps-(c.laps||0))+' LAPS':'+1 LAP'}));
+        ev.laps===1?(((T=>T.line.len*(ev.laps-(c.laps??-1)-1)+T.line.len-T.s)(c.me?c.trk:c.drv))/1000).toFixed(1)+' KM TO GO':ev.laps-Math.max(0,c.laps||0)>1?'+'+(ev.laps-Math.max(0,c.laps||0))+' LAPS':'+1 LAP'}));
     if(me.best&&me.best<1e9)rows.find(r=>r.me).sub='BEST LAP '+fmtLap(me.best);}
   /* the purse: your share for the place, more on harder settings */
   const prize=place>0?Math.round(ev.purse*(RACE_PAY[place-1]||0)*D.pay/10)*10:0;
@@ -11077,22 +11118,26 @@ function raceResults(){
   RACE.res={ev,place,prize,rows,diff:D.name};RACE.state='done';
   showResults();
 }
-/* leave the race (or tidy up after one): the robots' cars go */
+/* leave the race (or tidy up after one): the robots' cars go, and their meshes twenty seconds later unless another
+   race has started by then (Race again keeps them) */
 function raceEnd(why){
-  if(!RACE.on)return;RACE.on=false;RACE.hold=false;RACE.cars=[];RACE.me=null;RACE.state='';GAME.msgs.length=0;
+  if(!RACE.on)return;RACE.on=false;RACE.hold=false;RACE.cars=[];RACE.others=[];RACE.out=[];RACE.me=null;RACE.state='';GAME.msgs.length=0;RACE.evictAt=APP.t+20;
   if(why)say(why,1.6);
 }
 /* ---------- drawing the robots' cars ---------- */
 function raceDraw(c){
   if(!RACE.on)return 0;let tris=0;const F=frustum(c.VPw),e=c.eye,far=SKY.night?SKY.draw:GFX.far;
-  for(const o of RACE.cars){if(o.me||!o.built)continue;const t=o.car,r=t.c.body.L*.6+1,d=Math.hypot(t.p[0]-e[0],t.p[2]-e[2]);
+  for(const o of RACE.cars){if(o.me||!o.built||o.drv.kin&&!o.drv.posed)continue;const t=o.car,r=t.c.body.L*.6+1,d=Math.hypot(t.p[0]-e[0],t.p[2]-e[2]);
     if(d>far)continue;if(!boxVisible(F,[t.p[0]-r,t.p[1]-r,t.p[2]-r],[t.p[0]+r,t.p[1]+r,t.p[2]+r]))continue;
     tris+=drawWorldCar(t,null,o.dirt,true);}
   return tris;
 }
-/* the others' cars that are drawn (for the shadows): the same list all frame */
+/* the others' cars that cast shadows: drawn and within 150 m of you (further off a car's shadow is a few pixels,
+   and the ground shader tests every pixel against every car on this list); the same list all frame */
 const RACE_VIS=[];let RACE_VIS_F=-1;
-function raceCars(){if(RACE_VIS_F!==GFX.frame){RACE_VIS_F=GFX.frame;RACE_VIS.length=0;if(RACE.on)for(const o of RACE.cars)if(!o.me&&o.built)RACE_VIS.push(o.car);}return RACE_VIS;}
+function raceCars(){if(RACE_VIS_F!==GFX.frame){RACE_VIS_F=GFX.frame;RACE_VIS.length=0;const p=GAME.car.p;
+  if(RACE.on)for(const o of RACE.cars){if(o.me||!o.built||o.drv.kin&&!o.drv.posed)continue;const q=o.car.p;if((q[0]-p[0])**2+(q[2]-p[2])**2<22500)RACE_VIS.push(o.car);}}
+  return RACE_VIS;}
 /* ---------- the others' engines: a cheap voice each for the three nearest (the Digital Engine is yours alone) ---------- */
 const RVOX=[];
 function raceSound(c){
@@ -13591,7 +13636,7 @@ else{
   },30));
   window.__game={showClutchCap,TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DRS,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
     GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},gl,CSM,PRB,SKY,scn:()=>SCN,lit:()=>P_LIT,compile,VS_LIT,FS_LIT,DISP,setDisplay,SC,PT,
-    RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,
+    RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
 }

@@ -135,15 +135,21 @@ x runs east, z south; downtown is at the origin.
   ghost's speed below, set down on the ground, wheels turning), and goes back on the physics, moving and in the right
   gear, inside 140 m. Round the oval that is two or three of the five at a time; on the Enduro it is usually all of
   them but the one or two near you. A robot on the physics costs about as much as your own car; one riding its line
-  about a fiftieth of that.
+  about a tenth of that, and out past where it could be seen it isn't even set down on the ground. The riders, the
+  ghosts and the race clock all run on the time the physics does each frame, so on a slow phone (below 30 fps,
+  where the physics runs a little slow) the riders don't run on ahead. A car stopped for good past the flag, or out of
+  Last Car Out, is parked: not stepped unless you're close enough to hit it.
 - **The ghost**: while a robot is on the physics a ghost rides its line from where it is for fifteen seconds at a time
   (the plan's speeds, the engine's pull: `_kinV`), and how far the car got over how far the ghost did is the pace it
   rides at when it's off the physics (fifteen seconds mostly stuck behind someone don't count). Measured that way the
   riders finish within a few per cent of the same car on the physics (`tools/race_cal.py`).
-- **The cars' meshes**: the others are drawn from one coarser copy each (`truckFar`, the body's stations three times
-  further apart), near or far, built on the grid one a frame while the lights wait; the full car is never made for a
-  rival. The car builder itself got a third quicker on the way (`MB.tri`, the hood split straight from the flat
-  arrays), with every build's meshes checked bit for bit against the old builder's.
+- **The cars' meshes**: the others are drawn from one coarser copy each (`truckFar`: the body's stations three times
+  further apart, six at the ends and round the glass, no stations either side of the creases, the decals in bigger
+  pieces: about 16-20 thousand triangles to the full car's 40-60), near or far, built on the grid one a frame while
+  the lights wait; the full car is never made for a rival. Only those within 150 m cast shadows. Their meshes go 20
+  s after the race unless another starts (Race again keeps them). The car builder itself got a third quicker on the
+  way (`MB.tri`, the hood split straight from the flat arrays), with every build's meshes checked bit for bit
+  against the old builder's, and a wheel's matrix is now made in one scratch matrix instead of nine new ones.
 
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 

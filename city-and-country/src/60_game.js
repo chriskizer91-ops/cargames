@@ -39,7 +39,8 @@ const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],sub2=(a,b)=>[a[0]-b[0],a[1]-b[1
   dot2=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],len=a=>Math.hypot(a[0],a[1],a[2]),norm2=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];},
   mvec=(m,v)=>[m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]],mcol=(m,i)=>[m[i],m[3+i],m[6+i]];
 /* how far a car's model sits off its centre of gravity, and how much it has been lifted off its factory height */
-const carD=t=>truck(t.bi).D,liftOf=t=>t.cg[1]-HCG[t.build.look.body||'suv'];
+/* (a car in a race has only its coarse copy: asking for the full one here would build it) */
+const carD=t=>{const id=t.build.id;return (TRUCK[id]||TRUCKF[id]||truck(t.bi)).D;},liftOf=t=>t.cg[1]-HCG[t.build.look.body||'suv'];
 /* the name the HUD and the log give the car: its preset's name, or Custom once a part has changed */
 /* the Plus button: any car, any build, with the Plus tune: 15% more power and a final drive 15% taller (the dev
    panel sets both). Measured on flat tarmac that's 4 to 16% more top speed (most where the redline, not the air,
@@ -96,7 +97,7 @@ function placeCar(x,z,yaw){
 /* the meshes of builds no longer driven or raced are let go (the wheels are shared and stay) */
 function truckEvict(keep){
   for(const id of Object.keys(TRUCKF)){if(keep.includes(id))continue;const F=TRUCKF[id];if(!F.shared)for(const m of [F.body,F.hood,F.bay&&F.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCKF[id];}
-  for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id];for(const m of [T.body,T.hood,T.hide,T.bay&&T.bay.engine,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
+  for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id],B=T.bay;for(const m of [T.body,T.hood,T.hide,B&&B.engine,B&&B.bay,B&&B.liner,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
 const RECENT=[];
 /* what the Sim level builds the car with: roof loads move its centre of gravity, plus any cargo */
 const simOpts=()=>APP.level==='sim'?{cg:!!SIMDEV.cg,cargo:simVal(SIM_CARGO,SIMSET.cargo)}:null;
@@ -253,7 +254,10 @@ function step(dt){
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
   GAME.acc+=dt;let n=0;
-  if(RACE.on)raceFrame(dt);
+  /* the race runs on the time the physics does this frame (below 30 fps that is less than the frame's: the
+     robots riding their lines and the clock must not run on ahead of the cars on the physics) */
+  GAME.sdt=Math.min(8,Math.floor(GAME.acc/DT))*DT;
+  if(RACE.on)raceFrame(GAME.sdt);else if(RACE.evictAt&&APP.t>RACE.evictAt){RACE.evictAt=0;truckEvict(RECENT);}
   /* at most eight steps (a thirtieth of a second) a frame: below 30 fps the game runs a little slow rather than
      spending a slow frame catching up and making the next one slow too */
   const tp=performance.now();
@@ -281,7 +285,7 @@ function step(dt){
   if(pt.gear!==GAME.gear){if(pt.gear>GAME.gear&&GAME.state==='drive')buzz(12);GAME.gear=pt.gear;}
   if(pt.running&&pt.rpm>pt.e.limiterRpm-30&&pt.thr>.5&&APP.t-GAME.limT>.18){GAME.limT=APP.t;buzz(6);}
   GAME.placeT=(GAME.placeT||0)-dt;if(GAME.placeT<=0){GAME.placeT=.5;const p=placeName(t.p[0],t.p[2]);if(p!==GAME.place){GAME.place=p;}}
-  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(dt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
+  if(GAME.state==='drive'){Feats.step(dt,t,ev,RANCH.W);if(RACE.on)racePost(GAME.sdt);else if(CHAL.run)chalStep(dt,t,ev);else{lapStep(dt,t);runStep(dt,t);parkStep(dt,t);chalStep(dt,t,ev);}}
 }
 /* ---------- a rider on a machine: leaning into turns, uphill on a slope, forward up a climb; in the air the
    gas pulls the bars (nose up) and the brake pushes them (nose down), and steering throws the weight across.
@@ -448,8 +452,7 @@ function drawWorldCar(t,v,dirt,far){
     /* the semi's tandem: two axles of duals where the physics has one */
     const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0];
     for(const dx of xs)for(const dz of zs){
-      const M=M4.mul(M0,M4.mul(M4T(w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s),M4.mul(M4RY(-st),M4.mul(M4S(1,1,s),M4RZ(-w.ang)))));
-      gl.uniformMatrix4fv(u.uM,false,M);drawMesh(w.front?T.wheel:T.wheelR);}}
+      gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,w.hp[0]+t.cg[0]+dx,w.hp[1]-w.len+t.cg[1],w.hp[2]+dz*s,st,s,w.ang));drawMesh(w.front?T.wheel:T.wheelR);}}
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);
   return T.tris;
 }

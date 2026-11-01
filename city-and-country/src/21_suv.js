@@ -230,12 +230,15 @@ function buildSUV(look,build){
   const mb=new MB(),pm=new MB();
   /* stations: 5 cm everywhere, 5 mm across the vertical faces at both ends, dense around the arches
      and wherever the greenhouse changes (all Q times coarser for a far copy) */
+  /* (a coarse copy also takes the ends and the greenhouse twice as coarsely again, and the creases without the
+     stations either side: those were most of its skin) */
+  const Q2=Q>1?Q*2:1;
   const US=[];{const s=new Set(),a=u=>{if(u>=0&&u<=L)s.add(Math.round(u*4000)/4000);};
     for(let u=0;u<=L+1e-6;u+=.05*Q)a(u);
-    for(let u=0;u<.2;u+=.005*Q)a(u);for(let u=L-.2;u<=L+1e-6;u+=.005*Q)a(u);
+    for(let u=0;u<.2;u+=.005*Q2)a(u);for(let u=L-.2;u<=L+1e-6;u+=.005*Q2)a(u);
     const na=Math.max(7,Math.round(28/Q));for(const ua of [D.uFa,D.uRa]){for(let k=0;k<=na;k++)a(archPt(D,ua,k/na*PI)[0]);a(ua-D.arch.a-.012);a(ua+D.arch.a+.012);}
-    for(let u=G.cowl-.06;u<G.cowl+.3;u+=.012*Q)a(u);for(let u=G.rr-.06;u<G.be+.06;u+=.012*Q)a(u);
-    const B=D.B;for(const k of [G.rf,G.cB,G.cT,B.bumperR,B.bumperF,...B.clad.slice(1,-1).map(c=>c[0]),B.dome[0],B.dome[1]])a(k-.012),a(k),a(k+.012);
+    for(let u=G.cowl-.06;u<G.cowl+.3;u+=.012*Q2)a(u);for(let u=G.rr-.06;u<G.be+.06;u+=.012*Q2)a(u);
+    const B=D.B;for(const k of [G.rf,G.cB,G.cT,B.bumperR,B.bumperF,...B.clad.slice(1,-1).map(c=>c[0]),B.dome[0],B.dome[1]]){a(k);if(Q===1)a(k-.012),a(k+.012);}
     for(const [pu,ln,w] of G.pillars)for(const o of [-w,w])a(pu+o),a(pu+ln+o);
     const srt=[...s].sort((p,q)=>p-q);for(const u of srt)if(!US.length||u-US[US.length-1]>.002)US.push(u);
     if(US[US.length-1]<L-1e-6)US.push(L);else US[US.length-1]=L;}
@@ -285,10 +288,12 @@ function buildSUV(look,build){
     if(poly.length<3)return;
     let cx=0,cy=0;for(const q of poly){cx+=q[0];cy+=q[1];}cx/=poly.length;cy/=poly.length;
     const cache=new Map(),mp=q=>{const key=Math.round(q[0]*1e4)+','+Math.round(q[1]*1e4);let r=cache.get(key);if(!r){r=MAP[view](q,off);cache.set(key,r);}return r;};
+    /* (a coarse copy wraps them on in pieces Q times the size, and calls a piece flat Q times sooner) */
+    const rq=res*Q,fq=.0012*Q;
     const out=[],sub=(t,d)=>{const [a,b,c]=t,l=(p,q)=>Math.hypot(p[0]-q[0],p[1]-q[1]),L1=l(a,b),L2=l(b,c),L3=l(c,a),mx=Math.max(L1,L2,L3);
-      if(mx<res||d>8){out.push(t);return;}
+      if(mx<rq||d>8){out.push(t);return;}
       const [p,q,o]=mx===L1?[a,b,c]:mx===L2?[b,c,a]:[c,a,b],M=[(p[0]+q[0])/2,(p[1]+q[1])/2];
-      if(mx<.45){const P=mp(p),Q=mp(q),PM=mp(M);if(Math.hypot(PM[0]-(P[0]+Q[0])/2,PM[1]-(P[1]+Q[1])/2,PM[2]-(P[2]+Q[2])/2)<.0012){out.push(t);return;}}
+      if(mx<.45){const P=mp(p),Q=mp(q),PM=mp(M);if(Math.hypot(PM[0]-(P[0]+Q[0])/2,PM[1]-(P[1]+Q[1])/2,PM[2]-(P[2]+Q[2])/2)<fq){out.push(t);return;}}
       sub([p,M,o],d+1);sub([M,q,o],d+1);};
     for(let k=0;k<poly.length;k++)sub([[cx,cy],poly[k],poly[(k+1)%poly.length]],0);
     for(const t of out)pm.tri(mp(t[0]),mp(t[1]),mp(t[2]),m[0],m[1],m[2]);
