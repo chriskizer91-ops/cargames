@@ -1,59 +1,99 @@
 # Redline County: Wide Open 2: Road Not Found
 
-The sequel to Redline County: Wide Open, being built in this folder: the same county, cars, career, challenges,
-people, races and park, drawn by Shiftlight 3's renderer at the quality Rut Access: Road Not Found reached on a
-phone (`../rut-access/`, the worked example of that port), and run top to bottom for bugs on the way. This folder
-is a fork of `city-and-country/` on the `city-and-country/round-1` branch (Wide Open as published, 31 October
-2026), with the title and the saved-settings keys changed (`wo2-`, so nothing is shared with Wide Open's `cc-`).
-`BRIEF.md` is the build brief; the sections below are Wide Open's own README, kept as the description of what
-the game is until this one has moved on from it.
+The sequel to Redline County: Wide Open: the same county, cars, career, challenges, people, races and park, drawn
+by Shiftlight 3's renderer at the quality Rut Access: Road Not Found reached on a phone (`../rut-access/`, the
+worked example of that port), with the owner's ground photographs on the ground, three times of day, the renderer's
+rain, and the whole game run top to bottom for bugs on the way. This folder is a fork of `city-and-country/` on the
+`city-and-country/round-1` branch (Wide Open as published, 31 October 2026). `BRIEF.md` is the build brief,
+`QA.md` the bug sweep, `TEXTURES.md` and `TEXTURE_PROMPTS.md` the ground photographs; the sections after the line
+below are Wide Open's own README, kept as the description of the game (corrected where this one differs).
 
-## Where it stands
+Open `wide-open-2.html` in a browser with WebGL2 (one self-contained page, about 8.3 MB with the photographs).
+`sh build.sh` rebuilds it, and `dist/wide-open-2.artifact.html` beside it, from `src/` and `shell/`.
 
-**Phase 1, the renderer.** The game is drawn by Shiftlight 3's renderer (`src/11_sl3.js`, the same bundle Rut
-Access uses, unchanged): HDR with the sun (by night the full moon) through cascaded shadow maps, the town's lamps
-in a clustered light grid, the car's headlights with a real low-beam cut-off and their own shadow map, a reflection
-probe at the car, screen-space reflections, volumetric fog, TAA that rebuilds full resolution from a jittered
-lower-resolution frame with dynamic resolution, bloom, eye-like auto exposure and the ACES grade. Everything Wide
-Open drew comes from its own meshes and materials, through the renderer's hooks:
+## The picture
 
-- **The world** (`52_world_gl.js`, `LAND`): what `drawWorld` draws (the far tiles, the streamed chunks at their
-  levels of detail, the roads, the buildings, poles and stands, the trees, the mud clods, the rain) into the scene,
-  the probe and the shadow maps. Everything is drawn relative to the floating origin, the renderer included: when
-  the origin steps the last frame's matrix takes the step (TAA and the reflections reproject through it), the light
-  grid moves with it, every cascade is drawn afresh that frame and each car's kept matrices step too.
-- **The materials** (`13_lit.js`, `rutShaders()`): Rut Access's port of Showdown's into the renderer's lighting,
-  with every one Wide Open added: the salt crust and clay and the salt course's black line and mile bars, the
-  public roads by class with their lines, zebras and medians, the town's facades with lit windows and storefronts,
-  the traffic signals, the park's tracks fading to grass, the cars' light strips and underglow, the two studios.
-  Emissives are Wide Open's values times five (the renderer's sun is about five times the old one).
+The game is drawn by Shiftlight 3's renderer (`src/11_sl3.js`, the bundle Rut Access uses): HDR with the sun (by
+night the full moon) through cascaded shadow maps, the town's lamps in a clustered light grid, the car's headlights
+with a real low-beam cut-off and their own shadow map, a reflection probe at the car, screen-space reflections,
+volumetric fog, TAA that rebuilds full resolution from a jittered lower-resolution frame with dynamic resolution,
+bloom, eye-like auto exposure and the ACES grade. Everything Wide Open drew comes from its own meshes and
+materials, through the renderer's hooks:
+
+- **The world** (`52_world_gl.js`, `LAND`): the far tiles, the streamed chunks at their levels of detail, the roads,
+  the buildings, poles and stands, the trees, the mud clods, into the scene, the probe and the shadow maps, all
+  relative to the floating origin (when it steps, the last frame's matrix, the light grid and each car's kept
+  matrices step with it, and the cascades are drawn afresh).
+- **The materials** (`13_lit.js`): Showdown's and Wide Open's materials in the renderer's lighting: the salt crust
+  and the salt course's line and mile bars, the public roads by class with their lines, zebras and medians, the
+  town's facades with lit windows and storefronts, the signals, the park's tracks, the cars' light strips and
+  underglow, the two studios.
+- **The ground photographs** (`49_textures.js`, made by `tools/pack_textures.py` from Rut Access's seventeen
+  pictures in `../rut-access/textures/`): dirt, grass, the trail, gravel, asphalt, the strip's rubber, rock, ruts,
+  mud, playa, clay, concrete, planks, sheet metal and hay laid over the procedural ground as grain (Mobile reads
+  them at 512, the other tiers at 1024). The salt, brick, stucco, the forecourts, the road paint and the speedway's
+  clay keep Wide Open's look until the owner's pictures for them arrive (`TEXTURE_PROMPTS.md`); a delivered picture
+  drops in through the packer by its file name.
 - **The lights** (`59_daynight.js`): the town's and the park's 1,158 lights in the renderer's grid (8 m cells over
-  3.8 by 2.4 km; 35 ms to make at the boot, a third of a millisecond to move with the origin), at 100 times these
-  games' values; the yard lights nearest the car, the tail lights, the underglow and the others' headlights as the
-  frame's own lamps. High noon (new: the default for this phase) and the full moon, in the renderer's units.
-- **The cars** (`60_game.js`, `CARHOOK`): yours and a race's others, the riders on the machines, each part with its
-  last frame's matrix so TAA sees it move; the occlusion under each car; the dust and spray as soft puffs through
-  the particles hook (`53_fx.js`, `FXP`); the challenges' columns of light in the glass pass.
-- **The showroom** (`63_showroom.js`, `STUDIO`): the two studios as scenes of their own, the studio's lamps as the
-  frame's lamps, its key light the sun with the cascades' shadow, a probe at the car; the dark bay's floor is
-  glossy through the screen-space reflections.
-- **The display** (`55_post.js`): the clear picture by default, the HUD's dots over it and the smooth text over
-  that; or the LED dot matrix. Dynamic resolution; frames on an even beat (every second refresh on a 90 Hz
-  phone). The renderer's numbers (render size, GPU time, tier, chip) are in the F overlay.
-- **Graphics** (`55_gfx.js`): Shiftlight's tiers, Mobile to Ultra, Mobile by default on a touch screen, each with
-  the streamed world's ring sizes. Changing the tier starts the page again on it.
-- **Dev: the look** (the Dev tab): saturation, contrast, exposure, haze, ground detail, sun shadows and the shade
-  under the cars, to A/B on the phone (saved as `wo2-look`).
+  3.8 by 2.4 km, made once the opening screen is up), at 130 times these games' values; the yard lights nearest the
+  car, the tail lights, the underglow and the others' headlights as the frame's own lamps.
+- **The cars** (`60_game.js`, `CARHOOK`): yours and a race's others, the riders, each part with its last frame's
+  matrix so TAA sees it move; the shade under each car; the challenges' columns of light in the glass pass.
+- **Dust, spray and rain** (`53_fx.js`): dust and spray as soft lit puffs, mud clods as lumps; the rain through the
+  renderer's own rain particles and splashes over a mask of the ground round the camera, spray off wet tarmac, drops
+  on the lens from the hood camera.
+- **The showroom** (`63_showroom.js`, `STUDIO`): the two studios as scenes of their own (the dark bay's glossy floor
+  through the screen-space reflections), the dyno lab over the car.
+- **The display** (`55_post.js`): the clear picture with the HUD's dots and smooth text over it, or the LED dot
+  matrix; dynamic resolution; frames on an even beat (every second refresh on a 90 Hz phone: 45 fps on a Pixel 7a).
 
-Wide Open's own drawing path is gone (it is not kept as a fallback); Wide Open's build stays the reference for
-side-by-side pictures. The ground photographs (Rut Access's texture packs) are Phase 2: the shader's helpers for
-them are in, compiled out until the pictures are packed into the page.
+## The times of day (`59_daynight.js`, the Drive tab)
 
-Tools for this phase: `node tools/shot_wo2.js <out> name:tier:display:tod:place[:cam]` (pictures of this build,
-or of Wide Open's with `FILE=`), `node tools/eval_wo2.js "<code>"` (runs code in the booted page),
-`node tools/wo2_check.js` (boots, drives several places, a race, a challenge, the showroom and the night; fails on
-any page error), `python3 tools/sheet.py` (lays pictures out side by side). The pictures of every place on the Drive
-tab at Mobile and High, each beside Wide Open's own at Phone and Laptop, go in `dist/shots/` (not kept in git).
+- **High noon**: the county as Back Forty lit it.
+- **Golden hour**: the sun about eight degrees up in the west, long shadows, a light warm haze toward the sun, the
+  windows, neon and street lamps coming on.
+- **Full moon** (the game opens here, as Wide Open did): City Limits' night, bright enough to see the country and
+  the salt, the town lit by its lamps and neon, the headlights on.
+
+The Sim level's weather (Damp, Rain, Downpour) turns any of them grey and wet: the volumetric fog thickens, the
+ground darkens with a sheen and puddles, the renderer's rain falls.
+
+## Graphics, the phone and the Dev tab
+
+- **Tiers** (`55_gfx.js`): Mobile to Ultra, Mobile by default on a touch screen. Changing the tier starts the page
+  again on it.
+- **The phone's budgets** (Dev tab, `52_world_gl.js` `BUDGET`, Mobile only; the other tiers always draw
+  everything): the render scale's ceiling, the shadow distance, the trees' distance and how near they are full, the
+  reflection probe's and the far cascade's cadence, the dust allowed at once, your car's coarse copy in the far
+  cascades. The frame where the floating origin steps draws only the cascades that need it.
+- **The performance readout** (F, or Dev: Numbers on screen, Readout): frames a second against the beat, the frame
+  time and its worst, the CPU's and the GPU's time, the render size, triangles, chunks and lights, under the HUD's
+  name block. Everything shows the world's own numbers as well.
+- **The look** (Dev tab, saved as `wo2-look`): saturation, contrast, exposure, haze, ground detail, ground photos,
+  photo colour, sunlight, bloom, stars, moonlight, lamps, glow, headlights, dust and spray, rain, the challenges'
+  columns, sun shadows, the shade under the cars. Each is a multiplier on what the time of day sets; 100% is the
+  game as tuned against Wide Open's own pictures.
+
+## Saves
+
+Every setting and save is under a `wo2-` key, so nothing is shared with Wide Open (`cc-`), Back Forty (`b40-`),
+City Limits (`cl-`) or Rut Access (`rut-`): free play `wo2-game` (car, level, camera, time of day, the cars' rigs),
+`wo2-tune` (the Tune sheet and the Dev tab's traction), `wo2-fchal` (free play's challenge bests), `wo2-plus`,
+`wo2-free`; the career `wo2-career` and its feats `wo2-cfeats`, `wo2-mode` (which one you were in); `wo2-races`,
+`wo2-park`, `wo2-laps`, `wo2-runs`; the settings `wo2-gfx`, `wo2-display`, `wo2-res`, `wo2-dottext`, `wo2-sim`,
+`wo2-engine`, `wo2-dyno`, `wo2-show`; the Dev tab's `wo2-look`, `wo2-budget`, `wo2-simdev`, `wo2-devworld`.
+
+## Tools
+
+- `node tools/wo2_check.js`: the whole game headless (boot, the showroom, ten places with the origin stepping, a race,
+  a challenge, the night); fails on any page error. `node tools/physcheck.js` (worst difference must be 0) and
+  `node tools/proving.js` (the physics table) for the physics; `node tools/boot_node.js [s] [png] [tier]`.
+- `node tools/shot_wo2.js <out> name:tier:display:tod:place[:cam]` (pictures of this build, or of Wide Open's with
+  `FILE=`; tod is day, golden or night; `JS=` runs code first, `PAGE=1` shoots the whole page with its menus),
+  `node tools/eval_wo2.js "<code>"`, `python3 tools/sheet.py` (pictures side by side).
+- `python3 tools/pack_textures.py` (the ground photographs into `src/49_textures.js`).
+- The Python tools (`chal_drive.py`, `race_run.py`, `park_drive.py` and the rest) want the Python Playwright package
+  and, here, a shim that points it at the installed browser (`QA.md`, "How it was run").
 
 ---
 
@@ -65,10 +105,11 @@ and cars you can tune past anything real.
 Back Forty's game with City Limits' town, cars and night. Everything from Back Forty (its cars, machines, garage
 window with the dyno lab and the Tune sheet, the Plus tune, the Sim level, the dev panel, the settings, the phone
 controls) in a new world: City Limits' town at its own size in the middle, the country round it, and the salt
-flats past that, under a full moon.
+flats past that, under a full moon (in Wide Open 2, at high noon and golden hour too: the top of this file).
 
 Open `wide-open-2.html` in a browser with WebGL2. `sh build.sh` rebuilds it from `src/`.
-Saves use `wo2-` keys only, so nothing is shared with Wide Open (`cc-`), Back Forty (`b40-`) or City Limits (`cl-`).
+Saves use `wo2-` keys only, so nothing is shared with Wide Open (`cc-`), Back Forty (`b40-`) or City Limits (`cl-`)
+(the list is under Saves, at the top of this file).
 
 ## Where it comes from
 
@@ -135,8 +176,8 @@ x runs east, z south; downtown is at the origin.
   challenges, the people's jobs and a share of the feats (35%) pay real money, which buys parts (the garage marks
   each with its price; what you buy stays bought) and cars at the dealer. Three cars open only through a job: the
   electric (Marisol's The Quiet One), the wedge (Vince's Night Runner) and the hypercar (Hal's Two Hundred). Each
-  game keeps its own save: `cc-career` (money, cars, parts, medals, jobs, its own hand tunes) and free play's
-  `cc-game`, `cc-tune`, `cc-fchal`.
+  game keeps its own save: `wo2-career` (money, cars, parts, medals, jobs, its own hand tunes) and free play's
+  `wo2-game`, `wo2-tune`, `wo2-fchal`.
 - **Challenges** (`src/60_chal.js`): City Limits' kinds on this map: sprints through gates, laps, standing starts,
   the speed trap, the flying mile, big air off a mega ramp, and drift zones (City Limits' drift scoring). Town:
   Limits Loop, Downtown Quarter, Downtown Dash, Neon Row Drift. Out of town: Out to the Salt, the Highway 40 speed
@@ -212,7 +253,8 @@ x runs east, z south; downtown is at the origin.
 
 ## The night (`src/59_daynight.js`, `src/13_lit.js`)
 
-One night, City Limits': a full moon bright enough to see the country and the salt. The town's ~1,100 lights
+City Limits' night, one of Wide Open 2's three times of day (the top of this file says how the renderer draws them):
+a full moon bright enough to see the country and the salt. The town's ~1,100 lights
 (street lamps, the boulevard's twin lamps, neon, shopfronts, the gas station, the diner, the garage) and the off-road
 park's towers and poles are put into a grid of 8 m cells once (3.8 by 2.4 km, town and park), each cell listing the
 lights that reach it, and the lit shader lights each

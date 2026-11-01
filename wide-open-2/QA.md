@@ -234,6 +234,34 @@ than the panel in portrait (filed, cosmetic).
    finger of two). The Menu button listens for `click` (`src/62_menu.js:152`); if the phone test shows it ignoring a
    second-thumb tap, `pointerup` on it would be the fix.
 
+### Status after Phase 3 (the phone pass, 1 November)
+
+1. **Pars**: `chal_drive.py pars` rerun on Wide Open 2 and `CH_PARS` updated (step 4 of Phase 3: the old and new
+   numbers are in that commit). The physics is unchanged, so the pars were stale in Wide Open too. The full Outer
+   Loop's gold is now 518.4 s (was 602.2): the stock SUV's 566 s robot lap is a silver.
+2. **The stock Hatch under full brake**: investigated, not fixed (the physics modules are not changed here). From 60
+   mph at Realistic on the proving tool's flat asphalt it slows to about 12 mph, then in first gear holds 9 to 12 mph
+   with the brake on the floor. In `40_physics.js`: below about 12 mph the wheels lock under full brake at 100%
+   traction; the ABS (line 492: above 2.5 m/s, whenever a wheel's slip passes its threshold, that wheel's brake
+   torque is cut, down to a fifth) lets them go; the automatic's clutch re-engages whenever the driven wheels turn
+   the engine faster than 1.1 times idle (line 210), and the idle governor adds torque whenever the engine is pulled
+   below idle (line 196), so in first gear the engine drives the car against an ABS that keeps letting go, and the
+   car settles where the two balance, never reaching the 2.5 m/s under which the ABS would stop. Outside the
+   physics: the game drives at 200% traction by default (`54_dev.js`, `DEV_ALL0=2`, put on every car by `devFit`),
+   where the wheels don't lock and the Hatch stops in about 4 s (traced: 0 m/s at 4.0 s); `tools/proving.js`'s flat
+   ground has no traction setting (a `GroundWorld` with no `grip`: 100%), so its 60-0 column tests a ground the game
+   never drives on by default.
+3. **The career wipe**: `Feats.clear()` after the wipe (the old career's feats and their money go); the bests are
+   kept, as records of the game rather than of the career (the owner's call, either way).
+4. **The tab row**: the selected tab is scrolled into view.
+5. **The stats readout on a phone**: the small performance readout under the HUD's name block (F, or the Dev tab:
+   Off, Readout, Everything); the full numbers stay for a laptop.
+6. **SLIDE TO STEER**: over the knob's track, centred on it.
+7. **Documentation**: `README.md` and `60_career.js` name the `wo2-` keys; the README describes the three times of day.
+8. **The Dots row upright**: fits (each side of a two-setting row may shrink; the buttons scroll inside it).
+9. **Menu with a second thumb**: answers the touch's pointerup, and the menu's opening lets go of every pedal, the
+   handbrake and the steering; still not verifiable headless (the touch emulation can't lift one finger of two).
+
 ## 5. Challenge results (stock SUV, `chal_drive.py all`)
 
 | id | result | medal | id | result | medal |

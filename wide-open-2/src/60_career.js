@@ -5,8 +5,9 @@
    dealer (three of them only once someone in town has vouched for you), and the Plus tune is a paid job at
    Marisol's. Each car keeps one rig; what you have bought stays bought, so going back to it is free.
    Free play: as it always was, every car and every part yours, the money a score.
-   The game's RIGS and APP.car hold whichever mode is on: free play's are kept in cc-game as before, the
-   career's in cc-career (with its money, medals, bests, jobs). cc-mode says which one you were in.
+   The game's RIGS and APP.car hold whichever mode is on: free play's are kept in wo2-game as before, the
+   career's in wo2-career (with its money, medals, bests, jobs), its feats in wo2-cfeats. wo2-mode says which one
+   you were in.
    ===================================================================================== */
 const START_CASH=2500,FEAT_SHARE=.35,PLUS_PRICE=6000;
 /* the dealer: price, and the job that opens it (60_jobs) */
@@ -61,7 +62,10 @@ function careerSync(){if(!CAREER.on||!CAREER.d)return;for(const car of Object.ke
 function careerWipe(){store.set('wo2-career','null');if(CAREER.on){const F=CAREER.free;CAREER.d=null;CAREER.on=false;
   /* free play's cars and rigs back first, so the fresh career sets those aside again (not the old career's in their place) */
   for(const k of Object.keys(RIGS))delete RIGS[k];if(F){Object.assign(RIGS,F.rigs);APP.car=F.car;}CAREER.free=null;
-  let T={};try{T=JSON.parse(store.get('wo2-tune','{}'))||{};}catch(e){}tuneSwap(T);setMode('career');}}
+  let T={};try{T=JSON.parse(store.get('wo2-tune','{}'))||{};}catch(e){}tuneSwap(T);setMode('career');
+  /* the old career's Cool stuff goes with it (its log of feats and their money); its bests are kept, as records of
+     what was done in this game rather than this career's: the owner's call, either way */
+  {const S=Feats.S,best=S&&S.best;Feats.clear();if(best&&Feats.S){Feats.S.best=best;if(Feats.save)Feats.save();}}}}
 /* ---------- the buy bar under the menu: what, how much, yes or no ---------- */
 const BUY={yes:null};
 function askBuy(text,price,yes){

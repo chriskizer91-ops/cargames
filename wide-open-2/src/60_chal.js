@@ -13,18 +13,20 @@ const CH_MEDALS=[['gold','Gold','#ffd23f'],['silver','Silver','#c8d0dc'],['bronz
 /* first-time pay for gold, silver, bronze by tier; a better medal later pays the difference, a repeat a tenth */
 const CH_PAY={1:[1600,1000,600],2:[2600,1700,1000],3:[4000,2700,1700]};
 const CH_KINDS={sprint:'Sprint',lap:'Laps',drag:'Standing start',trap:'Speed trap',mile:'Flying mile',jump:'Big air',drift:'Drift zone',stop:'To speed and stop',mile2:'Two-way mile',air:'Ramp run'};
-/* the robots' results (s, m/s or m): the stock SUV and the build made for that ground (tools/chal_drive.py pars, Oct 31).
+/* the robots' results (s, m/s or m): the stock SUV and the build made for that ground (tools/chal_drive.py pars, run
+   again on 1 November on Wide Open 2: the physics is Wide Open's, unchanged, so these were already out of step there).
    e: estimated where the robot couldn't finish in the fast build (its stock time x .88; the slalom x .79, where
    grip is all of it; the two-way mile from the hypercar's one-way flying mile). The Outer Loop's robots ran
-   capped at 26 m/s on its dirt (it flew off the S-bend in the woods uncapped); the full lap is the round-3 robot lap. */
+   capped at 26 m/s on its dirt (it flew off the S-bend in the woods uncapped). Where the build's robot ran slower
+   than the stock SUV's (Downtown Dash, North Woods) its number is kept as run: the medals take the stock SUV's then */
 const CH_PARS={
-  loop:{stock:169.52,best:137.18},quarter:{stock:15.32,best:9.35},eighth:{stock:9.55,best:6.58},dash:{stock:61.4,best:58.85},salt:{stock:59.73,best:38.37},
-  bog:{stock:18.8,best:14.5},oval:{stock:110.23,best:102.82},short:{stock:179.72,best:169.43},
-  mudtrack:{stock:165.78,best:145.9,e:1},ridge:{stock:73.68,best:64.8,e:1},wash:{stock:114,best:100.3,e:1},
-  loopN:{stock:84.13,best:80.27},loopLap:{stock:657.9,best:579,e:1},
-  smile:{stock:40.12,best:22.88},stop100:{stock:26.98,best:9.7},stop200:{stock:0,best:22.55},
-  mile2:{stock:55.12,best:90,e:1},slalom:{stock:41.03,best:32.4,e:1},
-  trap:{stock:50.42,best:88.84},mile:{stock:54.4,best:92.94},jump:{stock:94.52,best:182.31}};
+  loop:{stock:169.8,best:143.72},quarter:{stock:15.51,best:8.59},eighth:{stock:9.93,best:6.77},dash:{stock:61.78,best:66.98},salt:{stock:59.7,best:37.82},
+  bog:{stock:18.78,best:14.6},oval:{stock:109.62,best:102.15},short:{stock:180.7,best:159.02,e:1},
+  mudtrack:{stock:166.18,best:117.1},ridge:{stock:74.27,best:53.42},wash:{stock:114.08,best:69.5},
+  loopN:{stock:84.3,best:85.28},loopLap:{stock:566.47,best:498.49,e:1},
+  smile:{stock:40.47,best:23.08},stop100:{stock:27,best:9.72},stop200:{stock:0,best:22.63},
+  mile2:{stock:55.2,best:90.2,e:1},slalom:{stock:41.03,best:32.4,e:1},
+  trap:{stock:50.44,best:89.42},mile:{stock:54.39,best:93.14},jump:{stock:94.52,best:182.31}};
 /* (each mark's ground height is kept on what it marks: the start, the gate, the person) */
 const markY=s=>s.y??(s.y=WG.sample(s.x,s.z,{}).h);
 /* ---------- polylines ([x, z]) ---------- */
