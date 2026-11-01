@@ -100,6 +100,8 @@ const PRO={t0:0};
 function perfReadout(){
   const el=$('perf');if(!el)return;const on=DEVW.hud==='perf'&&GAME.state==='drive';if(el.hidden===on)el.hidden=!on;if(!on||!R)return;
   const now=performance.now();if(now-PRO.t0<500)return;PRO.t0=now;
+  /* (placed each time: the touch buttons it keeps clear of arrive with the first touch, after the layout) */
+  el.style.left=Math.max(GAME.touch?92:8,RECT.x+RECT.w*.012)+'px';el.style.top=(RECT.y+RECT.h*.31)+'px';
   const n=Math.min(PERF.n,30);if(!n)return;let s=0,w=0,js=0;for(let k=0;k<n;k++){const i=(PERF.i-1-k+240)%240;s+=PERF.ft[i];w=Math.max(w,PERF.ft[i]);js+=PERF.js[i];}
   const f=x=>x.toFixed(1),g=RPERF.ms;
   el.textContent=[`${Math.round(1000*n/s)} FPS   beat ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} (${RESO?RESO.hz:'-'} Hz)   frame ${f(s/n)} ms   worst ${f(w)}`,

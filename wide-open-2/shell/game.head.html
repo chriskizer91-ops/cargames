@@ -48,7 +48,7 @@ body.touch #res,body.touch #gfx,body.touch .stat{display:none}
 #steerTrack::before{content:"";position:absolute;left:-120px;width:240px;top:-2px;height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
 #steerKnob{position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;border:2px solid rgba(79,227,255,.7);background:rgba(17,17,25,.55);transition:transform .05s linear}
 #steerZone.on #steerKnob{background:rgba(79,227,255,.25)}
-#steerHint{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));font:600 9.5px/1 var(--f);letter-spacing:.18em;color:var(--ink-3)}
+#steerHint{position:absolute;left:24vw;transform:translateX(-50%);bottom:max(66px,calc(env(safe-area-inset-bottom,0px) + 58px));font:600 9.5px/1 var(--f);letter-spacing:.18em;color:var(--ink-3);white-space:nowrap;pointer-events:none}
 #steerZone[data-mode="buttons"] #steerTrack,#steerZone[data-mode="buttons"] #steerHint{display:none}
 #steerBtns{position:absolute;left:max(14px,env(safe-area-inset-left,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;pointer-events:auto}
 .tb{border:1px solid var(--edge-2);background:rgba(17,17,25,.55);color:var(--ink);touch-action:none;cursor:pointer;backdrop-filter:blur(2px);
@@ -110,6 +110,7 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .place:hover,.place:focus-visible{color:var(--ink);border-color:var(--edge-2)}
 .place[aria-pressed="true"]{color:var(--ink);border-color:var(--amber)}
 .row2{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-start}
+.row2>div{min-width:0;max-width:100%}
 .vol{display:inline-flex;align-items:center;gap:8px;height:34px;font:600 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
 .vol input{width:130px;accent-color:var(--amber)}
 .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;bottom:0;margin:0 -18px;padding:12px 18px 14px;background:linear-gradient(to top,rgba(14,14,21,1) 75%,rgba(14,14,21,0));border-radius:0 0 16px 16px}

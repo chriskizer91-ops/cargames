@@ -6,7 +6,7 @@
    dyno lab) · cam: 0 chase, 1 far, 2 hood (default 1 for the places, as the Drive tab's pictures)
    env: W, H (the viewport, 960 x 540), FRAMES (frames drawn before the shot, 24), SIM (seconds of driving first, 2),
         DEBUG (one of the renderer's buffers instead of the picture: color normal rough vel depth ssr fog lit hist bloom expo probe),
-        JS (code run in the page before the frames, with the game as g),
+        JS (code run in the page before the frames, with the game as g), JS2 (code run after them, before the shot),
         PAGE=1 (a screenshot of the whole page, menus and readouts included, instead of the picture alone),
         FILE (another built page to shoot: Wide Open's own build, city-and-country.html, is shot the way it draws, with
         its levels: mobile is its Phone, high its Laptop; its day is its old daylight, its night its full moon)
@@ -14,7 +14,7 @@
    Software rendering: a minute or three a shot. Any page error is printed and fails the run. */
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
 const [out,...jobs]=process.argv.slice(2);const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','wide-open-2.html');
-const W=+(process.env.W||960),H=+(process.env.H||540),FRAMES=+(process.env.FRAMES||24),SIM=+(process.env.SIM||2),DEBUG=process.env.DEBUG||'',JS=process.env.JS||'',PAGE=!!process.env.PAGE;
+const W=+(process.env.W||960),H=+(process.env.H||540),FRAMES=+(process.env.FRAMES||24),SIM=+(process.env.SIM||2),DEBUG=process.env.DEBUG||'',JS=process.env.JS||'',JS2=process.env.JS2||'',PAGE=!!process.env.PAGE;
 fs.mkdirSync(out,{recursive:true});
 (async()=>{
   const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
@@ -35,7 +35,7 @@ fs.mkdirSync(out,{recursive:true});
     const loading=await p.evaluate(()=>document.getElementById('loading').textContent);
     let r={};
     if(await p.evaluate(()=>document.getElementById('loading').hidden)){
-      r=await p.evaluate(async([tod,place,cam,FRAMES,SIM,JS])=>{
+      r=await p.evaluate(async([tod,place,cam,FRAMES,SIM,JS,JS2])=>{
         window.requestAnimationFrame=()=>0;await new Promise(r=>setTimeout(r,300));
         const g=window.__game,G=g.GAME,neu=!!g.R,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));G.hold=true;
         /* the time of day: Wide Open's own build has only its full moon in its list; its day is the light it had before */
@@ -51,6 +51,7 @@ fs.mkdirSync(out,{recursive:true});
           if(place!=='show'){g.showTab('garage');g.showFull(true);g.SHOW.tab=place==='lab'?'engine':'look';g.syncShow();}
           if(JS)(new Function('g',JS))(g);
           for(let i=0;i<FRAMES;i++){g.APP.t+=dt;g.render(dt);if(i%4===3)await wait(20);}
+          if(JS2)(new Function('g',JS2))(g);
           return {snap:g.snap(),place,tris:g.APP.tris,render:neu?g.R.iw+'x'+g.R.ih+' of '+g.R.W+'x'+g.R.H:''};}
         g.closeMenu();G.state='drive';g.goTo(place);g.APP.cam=cam===undefined||cam===''?1:+cam;
         /* the world round the car: wait for the chunk under it (its ground and its things) and the ones round it */
@@ -64,8 +65,9 @@ fs.mkdirSync(out,{recursive:true});
         for(let i=0;i<40;i++){g.worldUpdate(eye(),G.car);if(C.inflight===0&&C.st.queue===0&&!C.inbox.length)break;await wait(80);}
         /* enough frames for TAA, the exposure and the probe to settle */
         for(let i=0;i<FRAMES;i++){g.APP.t+=dt;g.render(dt);if(i%4===3)await wait(20);}
+        if(JS2)(new Function('g',JS2))(g);
         return {snap:g.snap(),place:G.place,tries,tris:g.APP.tris,chunks:C.chunks.size,holes:C.st.holes,stat:g.RANCH.stat,ro:[...g.RO],
-          render:neu?g.R.iw+'x'+g.R.ih+' of '+g.R.W+'x'+g.R.H:'',lights:neu?g.R.lights.stats.lights:0,p:G.car.p.map(v=>+v.toFixed(1))};},[tod,place,cam,FRAMES,SIM,JS]);
+          render:neu?g.R.iw+'x'+g.R.ih+' of '+g.R.W+'x'+g.R.H:'',lights:neu?g.R.lights.stats.lights:0,p:G.car.p.map(v=>+v.toFixed(1))};},[tod,place,cam,FRAMES,SIM,JS,JS2]);
       if(PAGE)await p.screenshot({path:`${out}/${name}.png`,timeout:300000});else fs.writeFileSync(`${out}/${name}.png`,Buffer.from(r.snap.split(',')[1],'base64'));delete r.snap;}
     else{r.loading=loading;fails++;}
     if(errs.length)fails++;

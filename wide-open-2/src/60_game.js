@@ -525,8 +525,7 @@ function layout(){const vw=innerWidth,vh=innerHeight;
   /* the bay's window fills the whole screen, the car behind the lab's instruments: its dots take the window's shape */
   if(SHOW.full){bayFill(vw,vh);return;}if(BAYGRID.on){BAYGRID.on=false;setRes(APP.res,true);}
   let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}RECT={x:(vw-w)/2,y:(vh-h)/2,w,h};
-  /* the performance readout sits under the HUD's name block, clear of the touch buttons, the tach and the car */
-  const pf=$('perf');if(pf){pf.style.left=Math.max(GAME.touch?92:8,RECT.x+RECT.w*.012)+'px';pf.style.top=(RECT.y+RECT.h*.31)+'px';}}
+}
 /* the same dot pitch the 16:9 picture would have had, over the whole window */
 const BAYGRID={on:false,key:''};
 function bayFill(vw,vh){const [dw,dh,hs]=RES[APP.res];let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}const pitch=w/dw;

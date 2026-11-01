@@ -29,7 +29,7 @@ const menuEyebrow=()=>RACE.on?'Paused: '+RACE.ev.name:APP.title?(CAREER.on?'Care
 /* every key, pedal and stick let go: a release the menu swallowed must not leave the gas on */
 /* the engine fades out while the game is paused and back in after */
 function engineDuck(on){const a=ENG.audio;if(a&&a.eng)a.eng.gain.setTargetAtTime(on?0:1,a.ctx.currentTime,on?.08:.15);}
-function inputRelease(){INPUT.down.clear();INPUT.pressed.clear();INPUT.thr=0;INPUT.brk=0;INPUT.steer=0;INPUT.kick=false;INPUT.wWas=false;
+function inputRelease(){touchLetGo();INPUT.down.clear();INPUT.pressed.clear();INPUT.thr=0;INPUT.brk=0;INPUT.steer=0;INPUT.kick=false;INPUT.wWas=false;
   TOUCH.thr=0;TOUCH.brk=0;TOUCH.hb=0;TOUCH.steer=0;TOUCH.steerActive=false;CRUISE.on=false;CRUISE.line=null;}
 function closeMenu(){
   showLeave();APP.title=false;$('menu').classList.remove('garage');
@@ -40,6 +40,9 @@ function closeMenu(){
 function showTab(id){
   closeBuy();
   if(MENU.tab!==id)$('menu').scrollTop=0;MENU.tab=id;for(const b of $('mTabs').children)b.setAttribute('aria-selected',String(b.dataset.t===id));
+  /* (the tab row scrolls sideways on a phone: a tab the game picks, Dev say, is brought into it) */
+  {const row=$('mTabs'),b=[...row.children].find(q=>q.dataset.t===id);if(b){const r=row.getBoundingClientRect(),q=b.getBoundingClientRect();
+    if(q.left<r.left)row.scrollLeft-=r.left-q.left+14;else if(q.right>r.right)row.scrollLeft+=q.right-r.right+14;}}
   for(const el of document.querySelectorAll('#menu .tab'))el.hidden=el.dataset.tab!==id;
   /* in the garage the car turns in front of you */
   /* the garage, and the opening screen, are the showroom: the menu stands to the left of it */
@@ -149,7 +152,9 @@ function buildMenu(){
   $('mLeave').addEventListener('click',()=>{if(RACE.on)raceEnd('Race abandoned');else chalQuit();$('mLeave').hidden=true;closeMenu();});
   $('rrAgain').addEventListener('click',()=>{const id=RACE.ev.id;hideResults();startRace(id);});
   $('rrDone').addEventListener('click',()=>{hideResults();});
-  $('menuBtn').addEventListener('click',()=>SHOW.full?showFull(false):GAME.state==='results'?hideResults():GAME.state==='drive'?openMenu(false):closeMenu());
+  const menuTap=()=>SHOW.full?showFull(false):GAME.state==='results'?hideResults():GAME.state==='drive'?openMenu(false):closeMenu();let menuUp=0;
+  $('menuBtn').addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;e.preventDefault();menuUp=performance.now();menuTap();});
+  $('menuBtn').addEventListener('click',()=>{if(performance.now()-menuUp<600)return;menuTap();});
   $('res').addEventListener('click',()=>{setRes((APP.res+1)%RES.length);layout();});
   buildGarage();
 }

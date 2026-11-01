@@ -7,7 +7,10 @@
    brake pedal that works the same way, and the e-brake between them. Small buttons down the sides
    for the camera, reset, horn, lights and whatever this car has (nitrous, low range, lockers, overdrive).
    ===================================================================================== */
-const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false};
+const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false,lets:[]};
+/* the menu opening lets go of every pedal, the handbrake and the steering, and the controls show it (a finger still
+   down on one takes it again only once it lifts and presses again) */
+function touchLetGo(){for(const f of TOUCH.lets)f();}
 const TOUCH_KEY={reset:'KeyR',cam:'KeyC',nos:'KeyN',low:'KeyL',lock:'KeyK',od:'KeyO',lights:'KeyJ',horn:'KeyH'};
 function enableTouch(){if(GAME.touch)return;GAME.touch=TOUCH.on=true;document.body.classList.add('touch');if(APP.detail==='auto'&&SS>1.5)SS=1.5;syncTouch();}
 function syncTouch(){
@@ -33,11 +36,13 @@ function bindTouch(){
     el.addEventListener('pointerdown',e=>{e.preventDefault();pid=e.pointerId;try{el.setPointerCapture(pid);}catch(_){}el.classList.add('on');at(e);});
     el.addEventListener('pointermove',e=>{if(e.pointerId===pid)at(e);});
     const up=e=>{if(e.pointerId!==pid)return;pid=null;set(0);fill.style.height='0%';el.classList.remove('on');};
+    TOUCH.lets.push(()=>{if(pid!==null){try{el.releasePointerCapture(pid);}catch(_){}}pid=null;set(0);fill.style.height='0%';el.classList.remove('on');});
     for(const ev of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(ev,up);el.addEventListener('contextmenu',e=>e.preventDefault());};
   pedal('tGas',v=>TOUCH.thr=v,.12);pedal('tBrk',v=>TOUCH.brk=v,.3);
   const hb=$('tHb');
   hb.addEventListener('pointerdown',e=>{e.preventDefault();try{hb.setPointerCapture(e.pointerId);}catch(_){}TOUCH.hb=1;hb.classList.add('on');buzz(15);});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])hb.addEventListener(ev,()=>{TOUCH.hb=0;hb.classList.remove('on');});
+  TOUCH.lets.push(()=>{TOUCH.hb=0;hb.classList.remove('on');});
   /* steering: slide from wherever the thumb lands */
   const z=$('steerZone'),knob=$('steerKnob');let sid=null,x0=0;
   const span=()=>Math.max(70,Math.min(130,innerWidth*.11));
@@ -46,6 +51,7 @@ function bindTouch(){
   z.addEventListener('pointermove',e=>{if(e.pointerId!==sid)return;const d=(e.clientX-x0)/span(),v=Math.sign(d)*Math.pow(Math.min(1,Math.abs(d)),1.15);TOUCH.steer=v;show(v);});
   const sup=e=>{if(e.pointerId!==sid)return;sid=null;TOUCH.steer=0;TOUCH.steerActive=false;z.classList.remove('on');show(0);};
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])z.addEventListener(ev,sup);
+  TOUCH.lets.push(()=>{if(sid!==null){try{z.releasePointerCapture(sid);}catch(_){}}sid=null;TOUCH.steer=0;TOUCH.steerActive=false;z.classList.remove('on');show(0);});
   /* the old way: two buttons */
   for(const [id,dir] of [['tLeft',-1],['tRight',1]]){const b=$(id);
     b.addEventListener('pointerdown',e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}INPUT.down.add(dir<0?'ArrowLeft':'ArrowRight');b.classList.add('on');});
