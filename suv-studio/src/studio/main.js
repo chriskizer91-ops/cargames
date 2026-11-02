@@ -66,7 +66,11 @@ const col=h=>new THREE.Color(h);
 let B=null;
 /* (the game draws every face from both sides: its builders do not keep one winding) */
 const P=(o)=>new THREE.MeshPhysicalMaterial({side:THREE.DoubleSide,...o});
-function matFor(id,em,b){
+/* the cabin's surfaces see little of the studio's light through the glass: their share of the reflections and the
+   room's light is cut (a stand-in for the occlusion a closed cabin has) */
+const INSIDE=new Set();
+function matFor(id,em,b){const m=matFor0(id,em,b);if(INSIDE.has(id)){m.envMapIntensity=.32;}return m;}
+function matFor0(id,em,b){
   const vc={vertexColors:true};
   switch(id){
     case MAT.PAINT:return P({color:col(b.paint),metalness:.22,roughness:.42,clearcoat:1,clearcoatRoughness:.03});
@@ -140,7 +144,7 @@ function meshes(src,name,b){
   return g;
 }
 /* a box projection for the grain maps (textured plastic, rubber): metres times k */
-const MAT_UV={};MAT_UV[MAT.CLAD]=18;MAT_UV[MAT.TYRE]=30;
+const MAT_UV={};for(const k of ['VINYL','CARPET','DASH','SEAT','HEADLINER','GAUGE'])INSIDE.add(SM[k]);MAT_UV[MAT.CLAD]=18;MAT_UV[MAT.TYRE]=30;
 for(const [k,v] of [['LINER',24],['TREAD',40],['WALL',36],['VINYL',14],['CARPET',30],['DASH',20],['SEAT',16]])MAT_UV[SM[k]]=v;
 function addUV(geo,k){const p=geo.attributes.position.array,n=geo.attributes.normal.array,uv=new Float32Array(p.length/3*2);
   for(let i=0;i<p.length/3;i++){const ax=Math.abs(n[i*3]),ay=Math.abs(n[i*3+1]),az=Math.abs(n[i*3+2]);let u,v;
@@ -181,7 +185,7 @@ const VIEWS={
   front34:{p:[5.6,1.55,4.6],t:[.15,.8,0]},rear34:{p:[-5.4,1.7,4.8],t:[-.1,.85,0]},side:{p:[0,1.0,8.2],t:[0,.85,0]},
   front:{p:[8.2,1.0,0],t:[0,.8,0]},rear:{p:[-8.2,1.1,0],t:[0,.85,0]},top:{p:[.01,9.5,0],t:[0,.6,0]},
   wheel:{p:[2.6,.55,2.35],t:[1.36,.4,.8]},lamp:{p:[3.9,1.0,1.55],t:[2.35,.88,.55]},tail:{p:[-3.6,1.15,1.6],t:[-2.35,1.0,.6]},
-  low:{p:[4.4,.25,3.4],t:[0,.55,0]},cabin:{p:[1.6,1.75,2.2],t:[-.2,1.05,0]},bay:{p:[3.9,2.4,1.6],t:[1.45,.95,0]}
+  low:{p:[4.4,.25,3.4],t:[0,.55,0]},rglass:{p:[-3.9,2.1,2.4],t:[-2.25,1.5,.6]},cabin:{p:[1.6,1.75,2.2],t:[-.2,1.05,0]},bay:{p:[3.9,2.4,1.6],t:[1.45,.95,0]}
 };
 function setView(v){const V=VIEWS[v]||VIEWS.front34;camera.position.set(...V.p);controls.target.set(...V.t);controls.update();}
 function resize(){const w=cv.clientWidth,h=cv.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;

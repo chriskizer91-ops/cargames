@@ -10,4 +10,8 @@ function hdBuild(out){
   const fx=new MB();if(lk.face==='classic')hdFaceClassic(fx,out);if(lk.tail==='classic')hdTailClassic(fx,out);out.hd.face=fx;
   /* moulded wheel-house liners in place of the game's flat panels (73_arch) */
   const ar=new MB();hdArches(ar,out);out.hd.arches=ar;const fl=new MB();hdFlares(fl);out.hd.flares=fl;
+  /* the shell opened behind the side glass and a cabin built inside (75_cabin) */
+  const cb=new MB();hdCabin(cb,out);out.hd.cabin=cb;
+  /* mirrors, door handles and roof rails modelled again (76_trim) */
+  const tr=new MB();hdMirrors(tr,out);hdHandles(tr,out);hdRails(tr,out);out.hd.trim=tr;
 }
