@@ -25,7 +25,7 @@ for(let i=0;i<POL_MAX;i++)POL.cars.push(polNew());
 /* ---------- your trail: where you were, every 4 m ---------- */
 function polCrumb(){const p=GAME.car.p,k=POL.k;if(k>0){const j=(k-1)%POL_CRUMBS,dx=p[0]-POL.cx[j],dz=p[2]-POL.cz[j];if(dx*dx+dz*dz<16)return;
     /* (a jump: a reset or a teleport starts the trail again) */
-    if(dx*dx+dz*dz>3600){POL.k=0;for(const P of POL.cars)P.ck=0;}}
+    if(dx*dx+dz*dz>3600){POL.k=0;for(let _i22=0;_i22<POL.cars.length;_i22++){const P=POL.cars[_i22];P.ck=0;}}}
   const j=k%POL_CRUMBS;POL.cx[j]=p[0];POL.cz[j]=p[2];POL.k++;}
 /* nothing the physics would stop on (a tree, a post, a wall, a building) along the line from a to b, every 5 m */
 function polClear(ax,az,bx,bz){const dx=bx-ax,dz=bz-az,d=Math.hypot(dx,dz),n=Math.ceil(d/5);
@@ -54,8 +54,8 @@ function polRespawn(P){
   const M=t.M,hl=Math.hypot(M[0],M[6])||1,fx=M[0]/hl,fz=M[6]/hl;
   for(const back of [want,want+60,want+120]){const x=t.p[0]-fx*back,z=t.p[2]-fz*back;if(!inView(x,z)&&!polCrowded(P,x,z)){polPlace(P,x,z,Math.atan2(-fz,fx),v*.6);POL.respawns++;return true;}}
   return false;}
-const polCrowded=(P,x,z)=>{for(const o of POL.cars){if(o===P||!o.V)continue;if(Math.hypot(o.V.p[0]-x,o.V.p[2]-z)<10)return true;}for(const c of TRF_ON)if(Math.hypot(c.x-x,c.z-z)<8)return true;return false;};
-function policeClear(){for(const P of POL.cars){P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;VOX.startT=-1;VOX.place='';}
+const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(Math.hypot(o.V.p[0]-x,o.V.p[2]-z)<10)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(Math.hypot(c.x-x,c.z-z)<8)return true;}return false;};
+function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;VOX.startT=-1;VOX.place='';}
 
 /* ---------- each frame (60_game's step, before the traffic and the physics) ---------- */
 function policeFrame(dt){
@@ -63,21 +63,21 @@ function policeFrame(dt){
   const t=GAME.car,N=polCount();
   if(!POL.live){POL.live=true;POL.k=0;polCrumb();truckFar(APP.bi);say('POLICE!',2.2,PAL.red);}
   /* the build changed: they come after you in the new one */
-  if(POL.bi!==APP.bi){POL.bi=APP.bi;truckFar(APP.bi);for(const P of POL.cars)P.V=null;}
+  if(POL.bi!==APP.bi){POL.bi=APP.bi;truckFar(APP.bi);for(let _i26=0;_i26<POL.cars.length;_i26++){const P=POL.cars[_i26];P.V=null;}}
   polCrumb();
   /* new ones in behind you, one a second */
   POL.spawnT-=dt;for(let i=0;i<POL_MAX;i++){const P=POL.cars[i];if(i>=N){P.V=null;continue;}if(!P.V&&POL.spawnT<=0){P.V=polMake();if(!polRespawn(P))P.V=null;POL.spawnT=1;}}
   /* busted: stopped with one beside you for three seconds */
-  let near=1e9;for(const P of POL.cars)if(P.V)near=Math.min(near,Math.hypot(P.V.p[0]-t.p[0],P.V.p[2]-t.p[2]));POL.near=near;
-  if(POL.holdT>0){POL.holdT-=dt;if(POL.holdT<=0)for(const P of POL.cars)if(P.V)polRespawn(P);}
+  let near=1e9;for(let _i27=0;_i27<POL.cars.length;_i27++){const P=POL.cars[_i27];if(P.V)near=Math.min(near,Math.hypot(P.V.p[0]-t.p[0],P.V.p[2]-t.p[2]));}POL.near=near;
+  if(POL.holdT>0){POL.holdT-=dt;if(POL.holdT<=0)for(let _i28=0;_i28<POL.cars.length;_i28++){const P=POL.cars[_i28];if(P.V)polRespawn(P);}}
   else if(t.speed<1.5&&near<8){POL.bustT+=dt;if(POL.bustT>3)polBust();}else POL.bustT=Math.max(0,POL.bustT-dt*2);
-  for(const P of POL.cars)if(P.V)polDrive(P,dt);
+  for(let _i29=0;_i29<POL.cars.length;_i29++){const P=POL.cars[_i29];if(P.V)polDrive(P,dt);}
   voxChase(dt);
 }
 function polBust(){POL.bustT=0;POL.holdT=6;POL.busts++;
   if(CAREER.on){const fine=Math.min(500,Math.max(0,cash()));spend(fine);say('BUSTED · $'+fine+' FINE',3.5,PAL.red);}else say('BUSTED',3,PAL.red);
   say('THEY\'LL BE BACK',3,PAL.amber);buzz([60,40,60]);
-  let P=null;for(const c of POL.cars)if(c.V&&(!P||c.d<P.d))P=c;if(P)voxSay('police_pa_engine_off','pa',P.V.p[0],P.V.p[2],0);setTimeout(()=>voxSay('radio_stopped','radio',0,0,0),3600);}
+  let P=null;for(let _i30=0;_i30<POL.cars.length;_i30++){const c=POL.cars[_i30];if(c.V&&(!P||c.d<P.d))P=c;}if(P)voxSay('police_pa_engine_off','pa',P.V.p[0],P.V.p[2],0);setTimeout(()=>voxSay('radio_stopped','radio',0,0,0),3600);}
 function polDrive(P,dt){
   const V=P.V,t=GAME.car,inp=P.inp,spd=V.speed,dx=t.p[0]-V.p[0],dz=t.p[2]-V.p[2],d=Math.hypot(dx,dz);P.d=d;
   /* holding back after a bust */
@@ -107,7 +107,7 @@ function polDrive(P,dt){
   inp.steer=steer;inp.thr=thr;inp.brk=brk;inp.hb=vt<.5&&spd<1?1:0;inp.nos=false;
 }
 /* each physics step, with the traffic's (60_traffic trafficSub): the police on the physics, into the contact list */
-function policeSub(dt,list){if(!POL.live)return;for(const P of POL.cars)if(P.V){P.V.step(dt,P.inp);list.push(P.V);}}
+function policeSub(dt,list){if(!POL.live)return;for(let _i31=0;_i31<POL.cars.length;_i31++){const P=POL.cars[_i31];if(P.V){P.V.step(dt,P.inp);list.push(P.V);}}}
 
 /* ---------- drawing ---------- */
 /* the light bar: a black base, a red lens on the left and a blue on the right, each lit or dark */
@@ -120,14 +120,14 @@ function polBarAt(V){const T=TRUCKF[V.build.id]||truckFar(V.bi),D=T.D;if(D._bar)
   if(!D.G){return D._bar=[0,(D.H||1.6)+.05];}
   const u=(D.G.rf+D.G.rr)/2,r=secRing(D,u);let y=0;for(const p of r.p)y=Math.max(y,p[1]);return D._bar=[D.X(u),y];}
 const polFlash=()=>{const a=(APP.t*1.5)%1,s=(APP.t*9)%1<.55;return [a<.5&&s,a>=.5&&s];};
-function policePrep(){if(!POL.live)return;for(const P of POL.cars){if(!P.V)continue;const V=P.V,R=V.M,M=P.M,cg=V.cg;
+function policePrep(){if(!POL.live)return;for(let _i32=0;_i32<POL.cars.length;_i32++){const P=POL.cars[_i32];if(!P.V)continue;const V=P.V,R=V.M,M=P.M,cg=V.cg;
   M[0]=R[0];M[1]=R[3];M[2]=R[6];M[3]=0;M[4]=R[1];M[5]=R[4];M[6]=R[7];M[7]=0;M[8]=R[2];M[9]=R[5];M[10]=R[8];M[11]=0;M[15]=1;
   M[12]=V.p[0]-R[0]*cg[0]-R[1]*cg[1]-RO[0];M[13]=V.p[1]-R[3]*cg[0]-R[4]*cg[1]-RO[1];M[14]=V.p[2]-R[6]*cg[0]-R[7]*cg[1]-RO[2];
   if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}}
 const POL_PAINT=Float32Array.from(lin('#141518')),POL_WHITE=Float32Array.from(lin('#f0f0ec')),POL_RIM=Float32Array.from(lin('#2a2b2e')),POL_WP=new Float32Array(16);
 function policeDraw(U,eye){
   if(!POL.live)return 0;const u=CUR.u,F=frustum(U.uVP),[rOn,bOn]=polFlash(),B=polBar();let tris=0;
-  for(const P of POL.cars){if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T){P.prev=false;continue;}
+  for(let _i33=0;_i33<POL.cars.length;_i33++){const P=POL.cars[_i33];if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T){P.prev=false;continue;}
     const x=V.p[0]-RO[0],y=V.p[1]-RO[1],z=V.p[2]-RO[2],r=V.c.body.L*.6+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-r){inside=false;break;}}
     if(!inside||Math.hypot(V.p[0]-eye[0],V.p[2]-eye[2])>GFX.far+20){P.prev=false;continue;}
     gl.uniform3fv(u.uPaint,POL_PAINT);gl.uniform3fv(u.uPaint2,POL_WHITE);gl.uniform3fv(u.uRim,POL_RIM);gl.uniform3fv(u.uCal,POL_RIM);gl.uniform3fv(u.uClad,POL_PAINT);
@@ -146,22 +146,22 @@ function policeDraw(U,eye){
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);
   return tris;}
 function policeShadow(F,used,G,VP){if(!POL.live)return used;
-  for(const P of POL.cars){if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T)continue;const x=V.p[0],y=V.p[1],z=V.p[2],r=V.c.body.L*.6+1;let inside=true;
+  for(let _i34=0;_i34<POL.cars.length;_i34++){const P=POL.cars[_i34];if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T)continue;const x=V.p[0],y=V.p[1],z=V.p[2],r=V.c.body.L*.6+1;let inside=true;
     for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-r){inside=false;break;}}if(!inside)continue;
     if(!used){used=true;useLit(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);gl.disable(gl.CULL_FACE);}
     gl.uniformMatrix4fv(CUR.u.uM,false,P.M);drawMesh(T.body);}
   return used;}
 /* the bar's flashes as the frame's own lamps at night: red, then blue */
 function policeLights(L){if(!POL.live||!SKY.lightsOn)return;const [rOn,bOn]=polFlash();
-  for(const P of POL.cars){if(!P.V||L.dyn.length>=16||P.d>220)continue;const M=P.M,[bx,by]=polBarAt(P.V),q=P.lamp;if(!rOn&&!bOn)continue;
+  for(let _i35=0;_i35<POL.cars.length;_i35++){const P=POL.cars[_i35];if(!P.V||L.dyn.length>=16||P.d>220)continue;const M=P.M,[bx,by]=polBarAt(P.V),q=P.lamp;if(!rOn&&!bOn)continue;
     q.pos[0]=M[12]+M[0]*bx+M[4]*(by+.3);q.pos[1]=M[13]+M[1]*bx+M[5]*(by+.3);q.pos[2]=M[14]+M[2]*bx+M[6]*(by+.3);
     if(rOn){q.col[0]=70;q.col[1]=3;q.col[2]=2;}else{q.col[0]=3;q.col[1]=10;q.col[2]=80;}L.dyn.push(q);}}
-function policeOcc(occ){if(!POL.live)return;for(const P of POL.cars){if(!P.V||occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=Math.hypot(M[0],M[6])||1,D=carD(V);
+function policeOcc(occ){if(!POL.live)return;for(let _i36=0;_i36<POL.cars.length;_i36++){const P=POL.cars[_i36];if(!P.V||occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=Math.hypot(M[0],M[6])||1,D=carD(V);
   o[0]=V.p[0]-RO[0];o[1]=V.p[1]-RO[1];o[2]=V.p[2]-RO[2];o[3]=V.cg[1];o[4]=M[0]/l;o[5]=M[6]/l;o[6]=D.L/2;o[7]=V.build.look.track/2+.12;occ.push(o);}}
 
 /* ---------- the siren: a wail, a yelp up close; each car its own, where it is, with the Doppler ---------- */
 function policeSound(c){const A=ENG.audio;if(!A||!c)return;const ctx=A.ctx,now=ctx.currentTime;
-  for(const P of POL.cars){
+  for(let _i37=0;_i37<POL.cars.length;_i37++){const P=POL.cars[_i37];
     if(!P.V||!POL.live||GAME.state!=='drive'||POL.holdT>0){if(P.vox)P.vox.g.gain.setTargetAtTime(0,now,.1);continue;}
     if(!P.vox){const o=ctx.createOscillator(),o2=ctx.createOscillator(),m2=ctx.createGain(),f=ctx.createBiquadFilter(),g=ctx.createGain(),p=ctx.createStereoPanner?ctx.createStereoPanner():null;
       o.type='sawtooth';o2.type='square';m2.gain.value=.35;f.type='bandpass';f.Q.value=1.1;g.gain.value=0;o.connect(f);o2.connect(m2);m2.connect(f);f.connect(g);
@@ -176,7 +176,7 @@ function policeSound(c){const A=ENG.audio;if(!A||!c)return;const ctx=A.ctx,now=c
 /* ---------- the HUD: the nearest one's distance, flashing; the dots on the maps ---------- */
 function policeHud(C){if(!POL.live||!(POL.near<1e8))return;const [r,b]=polFlash();C.push(['POLICE '+fmtDist(POL.near),true,r?PAL.red:b?PAL.cyan:PAL.white]);
   if(POL.bustT>.3)C.push(['STOPPING YOU '+Math.max(0,3-POL.bustT).toFixed(1),true,PAL.red]);}
-function policeMapDots(toXY){if(!POL.live)return;const [r]=polFlash();for(const P of POL.cars){if(!P.V)continue;const q=toXY(P.V.p[0],P.V.p[2]);if(q)hDisc(q[0],q[1],1.3,r?PAL.red:PAL.cyan);}}
+function policeMapDots(toXY){if(!POL.live)return;const [r]=polFlash();for(let _i38=0;_i38<POL.cars.length;_i38++){const P=POL.cars[_i38];if(!P.V)continue;const q=toXY(P.V.p[0],P.V.p[2]);if(q)hDisc(q[0],q[1],1.3,r?PAL.red:PAL.cyan);}}
 
 /* ---------- the voices (49_voices.js, from VOICE_PROMPTS.md): the police radio in your car, the loudspeaker from
    theirs, a driver you've hit. Each decoded once, the first time police mode comes on; a line with no recording
@@ -210,7 +210,7 @@ function voxChase(dt){
   const td=Math.max(Math.abs(t.p[0]),Math.abs(t.p[2])),pl=td<WG.EDGE?'town':WG.saltD(t.p[0],t.p[2])>WG.LAND+80?'salt':'country';
   if(pl!==VOX.place){if(pl==='town'&&VOX.place)voxSay('radio_in_town','radio',0,0,40);if(pl==='salt')voxSay('radio_heading_salt','radio',0,0,40);VOX.place=pl;}
   /* lost sight of you for six seconds, and found you again */
-  let see=false,close=null;for(const P of POL.cars){if(!P.V)continue;if(P.see)see=true;if(P.see&&P.d<50&&(!close||P.d<close.d))close=P;}
+  let see=false,close=null;for(let _i39=0;_i39<POL.cars.length;_i39++){const P=POL.cars[_i39];if(!P.V)continue;if(P.see)see=true;if(P.see&&P.d<50&&(!close||P.d<close.d))close=P;}
   VOX.lostT=see?0:VOX.lostT+dt;if(!VOX.lost&&VOX.lostT>6){VOX.lost=true;voxSay('radio_lost_visual','radio',0,0,20);}
   if(VOX.lost&&see){VOX.lost=false;voxSay('radio_back_on','radio',0,0,20);}
   if(!VOX.backup&&now-VOX.startT>90){VOX.backup=true;voxSay('radio_backup','radio',0,0,120);setTimeout(()=>voxSay('radio_copy','radio',0,0,120),2600);}

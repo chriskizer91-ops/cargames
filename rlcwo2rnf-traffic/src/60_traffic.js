@@ -128,7 +128,7 @@ function trfNew(){return {on:false,look:160,m:null,L:null,goL:null,goK:-1,mode:'
 for(let i=0;i<TRF_MAX;i++)TRF.cars.push(trfNew());
 /* the cars that are out, nearest first (for the lamps and the shade under them) */
 const TRF_ON=[];
-function trfClear(){for(const c of TRF.cars){if(c.mode!=='kin')trfFree(c);c.on=false;}TRF.live=false;TRF_ON.length=0;TRF_PHYS.length=0;}
+function trfClear(){for(let _i1=0;_i1<TRF.cars.length;_i1++){const c=TRF.cars[_i1];if(c.mode!=='kin')trfFree(c);c.on=false;}TRF.live=false;TRF_ON.length=0;TRF_PHYS.length=0;}
 /* a car's place on the road from where it is along its loop: position, heading, pitch; the model matrix's turn (its
    place relative to the floating origin is put in each frame by trafficPrep) */
 function trfPose(c){
@@ -159,12 +159,12 @@ function trfIdm(c,v0,gap,vL){const v=c.v,dv=v-vL,ss=c.s0+Math.max(0,v*c.T+v*dv/(
 const ACT=[];
 function trfAhead(c,lp,v0,k){
   const m=c.m,L=c.L;let acc=c.a*(1-Math.pow(c.v/Math.max(v0,.5),4)),why=0;if(k===undefined)k=L.k;
-  for(const o of TRF_ON){if(o===c||o.mode!=='kin')continue;let gap;
+  for(let _i2=0;_i2<TRF_ON.length;_i2++){const o=TRF_ON[_i2];if(o===c||o.mode!=='kin')continue;let gap;
     if(c.dir!==0&&o.dir===c.dir){const al=(o.x-c.x)*c.dir;if(al<=0||al>200||Math.abs(o.lp-lp)>(m.W+o.m.W)/2+.3&&o.L.k!==k)continue;gap=al-(m.L+o.m.L)/2;}
     else if(o.L===L&&lp===c.lp){let d=o.s-c.s;if(d<0)d+=L.len;if(d<=0||d>200)continue;gap=d-(m.L+o.m.L)/2;}
     else continue;
     const a=trfIdm(c,v0,gap,o.v);if(a<acc){acc=a;why=1;}}
-  for(const t of ACT){const dx=t.p[0]-c.x,dz=t.p[2]-c.z,al=dx*c.fx+dz*c.fz;if(al<=-2||al>c.look)continue;
+  for(let _i3=0;_i3<ACT.length;_i3++){const t=ACT[_i3];const dx=t.p[0]-c.x,dz=t.p[2]-c.z,al=dx*c.fx+dz*c.fz;if(al<=-2||al>c.look)continue;
     const lr=-dx*c.fz+dz*c.fx,M=t.M,hf=Math.hypot(M[0],M[6])||1,ct=(M[0]*c.fx+M[6]*c.fz)/hf,sn=(-M[0]*c.fz+M[6]*c.fx)/hf,tL=t.c.body.L/2,tW=t.c.body.W/2,
       pa=Math.abs(ct)*tL+Math.abs(sn)*tW,pw=Math.abs(sn)*tL+Math.abs(ct)*tW;
     if(Math.abs(c.lp+lr-lp)>m.W/2+pw+.4)continue;
@@ -194,11 +194,11 @@ function trafficFrame(dt){
   TRF.live=true;TRF.t+=dt;
   TRF_ON.length=0;for(let i=0;i<TRF_MAX;i++){const c=TRF.cars[i];if(!c.on)continue;if(i>=N||!near){if(c.mode!=='kin')trfFree(c);c.on=false;continue;}TRF_ON.push(c);}
   /* what the cars keep clear of on the physics: you, and the cars of theirs on it */
-  ACT.length=0;ACT.push(GAME.car);if(POL.live)for(const P of POL.cars)if(P.V)ACT.push(P.V);
-  TRF_PHYS.length=0;for(const c of TRF_ON)if(c.mode!=='kin'){TRF_PHYS.push(c);ACT.push(c.veh);}
+  ACT.length=0;ACT.push(GAME.car);if(POL.live)for(let _i4=0;_i4<POL.cars.length;_i4++){const P=POL.cars[_i4];if(P.V)ACT.push(P.V);}
+  TRF_PHYS.length=0;for(let _i5=0;_i5<TRF_ON.length;_i5++){const c=TRF_ON[_i5];if(c.mode!=='kin'){TRF_PHYS.push(c);ACT.push(c.veh);}}
   for(let i=0;i<TRF_ON.length;i++){const c=TRF_ON[i];if(c.mode==='kin'){trfDrive(c,dt);if(TRF_PHYS.length<TRF_PHYS_MAX&&trfThreat(c))trfEngage(c);}else trfPhysDrive(c,dt);}
   /* one that has fallen out of range goes, and starts again out of sight (two a frame at most) */
-  for(const c of TRF_ON){const dx=c.x-px,dz=c.z-pz;c.d2=dx*dx+dz*dz;if(c.d2>keep*keep||c.mode!=='kin'&&c.wreck&&c.d2>far*far){if(c.mode!=='kin')trfFree(c);c.on=false;TRF.recycled++;}}
+  for(let _i6=0;_i6<TRF_ON.length;_i6++){const c=TRF_ON[_i6];const dx=c.x-px,dz=c.z-pz;c.d2=dx*dx+dz*dz;if(c.d2>keep*keep||c.mode!=='kin'&&c.wreck&&c.d2>far*far){if(c.mode!=='kin')trfFree(c);c.on=false;TRF.recycled++;}}
   if(near){let tries=0;for(let i=0;i<N&&tries<2;i++){const c=TRF.cars[i];if(c.on)continue;tries++;trfSpawn(c,px,pz,far,keep);}}
   TRF_ON.length=0;for(let i=0;i<TRF_MAX;i++){const c=TRF.cars[i];if(!c.on)continue;
     /* (nearest first: an insertion, no sort's scratch) */
@@ -228,10 +228,10 @@ function trfNearStop(c){const S=c.L.stopS,fr=c.s+c.m.L/2;for(let k=0;k<S.length;
 /* room to move into lane k (at lp): nothing alongside, nothing just ahead, nothing just behind that would have to brake
    hard for it (a car already moving into that lane counts as in it), you nowhere near that bit of the lane */
 function trfRoom(c,lp,k){const m=c.m;
-  for(const o of TRF_ON){if(o===c||o.mode!=='kin'||o.dir!==c.dir||Math.abs(o.lp-lp)>(m.W+o.m.W)/2+.4&&o.L.k!==k)continue;const al=(o.x-c.x)*c.dir,h=(m.L+o.m.L)/2;
+  for(let _i7=0;_i7<TRF_ON.length;_i7++){const o=TRF_ON[_i7];if(o===c||o.mode!=='kin'||o.dir!==c.dir||Math.abs(o.lp-lp)>(m.W+o.m.W)/2+.4&&o.L.k!==k)continue;const al=(o.x-c.x)*c.dir,h=(m.L+o.m.L)/2;
     if(al>0){if(al-h<Math.max(6,c.v*.6))return false;}
     else{const gap=-al-h,dv=o.v-c.v;if(gap<Math.max(5,o.v*.5))return false;if(dv>0&&gap<dv*dv/(2*2.5)+o.v*.8)return false;}}
-  for(const t of ACT){const dx=t.p[0]-c.x,dz=t.p[2]-c.z,al=dx*c.fx+dz*c.fz,lr=-dx*c.fz+dz*c.fx;if(Math.abs(c.lp+lr-lp)<m.W/2+1.6&&al>-14&&al<Math.max(14,c.v*1.2))return false;}
+  for(let _i8=0;_i8<ACT.length;_i8++){const t=ACT[_i8];const dx=t.p[0]-c.x,dz=t.p[2]-c.z,al=dx*c.fx+dz*c.fz,lr=-dx*c.fz+dz*c.fx;if(Math.abs(c.lp+lr-lp)<m.W/2+1.6&&al>-14&&al<Math.max(14,c.v*1.2))return false;}
   return true;}
 /* out where it can't be seen: past the draw distance, or out of the camera's view and at least 60 m off; on a straight,
    in a lane with nobody within 45 m of the spot; going the way that brings it towards you (by your own speed along the
@@ -244,7 +244,7 @@ function trfSpawn(c,px,pz,far,keep){
       okE=side*(ve-vp)<0,okW=side*(-ve-vp)<0,dir=okE&&okW?(trfRnd()<.5?1:-1):okE?1:okW?-1:(trfRnd()<.5?1:-1);
     if(Math.abs(x)>L.turnX||!hwReady(x))continue;
     const z=dir>0?L.zk:-L.zk,dd=Math.hypot(x-px,z-pz);if(dd<60||dd>keep)continue;
-    let clash=false;for(const o of TRF.cars){if(o.on&&o!==c&&o.dir===dir&&Math.abs(o.x-x)<45&&Math.abs(o.lp-L.zk)<3){clash=true;break;}}if(clash)continue;
+    let clash=false;for(let _i9=0;_i9<TRF.cars.length;_i9++){const o=TRF.cars[_i9];if(o.on&&o!==c&&o.dir===dir&&Math.abs(o.x-x)<45&&Math.abs(o.lp-L.zk)<3){clash=true;break;}}if(clash)continue;
     if(dd<far+10&&F){const y=hwY(x).y+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3){inside=false;break;}}if(inside)continue;}
     /* (about one driver in ten has their eyes elsewhere: a stopped car in their lane is seen only 25 to 45 m off) */
     c.look=trfRnd()<.1?25+trfRnd()*20:160;
@@ -252,7 +252,7 @@ function trfSpawn(c,px,pz,far,keep){
     c.v=L.vA[Math.floor(c.s/L.ds)%L.n]*c.vk;c.lcNext=TRF.t+trfRnd();c.prev=false;c.wa=trfRnd()*TAU;c.wap=c.wa;
     /* (no faster than it could stop comfortably for a light that isn't green, or the nearest car ahead) */
     c.goK=-1;trfPose(c);trfLight(c,c.v);c.goK=-1;if(TRF.lgap<1e8)c.v=Math.min(c.v,Math.sqrt(2*2.5*Math.max(0,TRF.lgap-3)));
-    for(const o of TRF_ON){if(o.dir!==dir||Math.abs(o.lp-L.zk)>2.5)continue;const al=(o.x-x)*dir;if(al>0)c.v=Math.min(c.v,o.v+Math.sqrt(2*2.5*Math.max(0,al-(m.L+o.m.L)/2-4)));}
+    for(let _i10=0;_i10<TRF_ON.length;_i10++){const o=TRF_ON[_i10];if(o.dir!==dir||Math.abs(o.lp-L.zk)>2.5)continue;const al=(o.x-x)*dir;if(al>0)c.v=Math.min(c.v,o.v+Math.sqrt(2*2.5*Math.max(0,al-(m.L+o.m.L)/2-4)));}
     const pc=lin(TRF_PAINT[Math.floor(trfRnd()*TRF_PAINT.length)]);c.paint[0]=pc[0];c.paint[1]=pc[1];c.paint[2]=pc[2];c.dirt=trfRnd()*.12;
     trfPose(c);c.d2=dd*dd;c.born=TRF.t;TRF.spawned++;return true;}
   return false;}
@@ -261,7 +261,7 @@ function trfSpawn(c,px,pz,far,keep){
 /* each frame once the floating origin is set (60_game's render): every car's matrix relative to it, and last frame's moved
    with it when it stepped */
 function trafficPrep(){if(!TRF.live)return;
-  for(const c of TRF_ON){const M=c.M;if(c.mode!=='kin')trfPhysPose(c);M[12]=c.ox-RO[0];M[13]=c.oy-RO[1];M[14]=c.oz-RO[2];
+  for(let _i11=0;_i11<TRF_ON.length;_i11++){const c=TRF_ON[_i11];const M=c.M;if(c.mode!=='kin')trfPhysPose(c);M[12]=c.ox-RO[0];M[13]=c.oy-RO[1];M[14]=c.oz-RO[2];
     if(c.ro0!==RO[0]||c.ro2!==RO[2]){if(c.prev){c.Mp[12]-=RO[0]-c.ro0;c.Mp[14]-=RO[2]-c.ro2;}c.ro0=RO[0];c.ro2=RO[2];}}}
 /* the camera's (origin-relative) frustum against a sphere round the car */
 function trfVisible(F,c,r){const x=c.x-RO[0],y=c.y+1-RO[1],z=c.z-RO[2];for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-r)return false;}return true;}
@@ -271,7 +271,7 @@ const TRF_WP=new Float32Array(16);
 function trafficDraw(U,eye){
   TRF.tris=0;if(!TRF.live||!TRF_ON.length)return 0;
   const u=CUR.u,F=frustum(U.uVP),far=(SKY.night&&SKY.draw?SKY.draw:GFX.far)+20,lamps=SKY.lightsOn?1:0,big=GFX.level!=='mobile',mid=TRF_MID[GFX.level]||60;let tris=0,set=false;
-  for(const c of TRF_ON){const dx=c.x-eye[0],dz=c.z-eye[2],d=Math.sqrt(dx*dx+dz*dz);
+  for(let _i12=0;_i12<TRF_ON.length;_i12++){const c=TRF_ON[_i12];const dx=c.x-eye[0],dz=c.z-eye[2],d=Math.sqrt(dx*dx+dz*dz);
     c.vis=d<=far&&trfVisible(F,c,c.m.L*.6+1);if(!c.vis){c.prev=false;continue;}
     if(!set){set=true;gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uPrevOn,1);gl.uniform1f(u.uLiv,0);gl.uniform3f(u.uGlow,0,0,0);gl.uniform1f(u.uLamps,lamps);}
     const m=c.m;gl.uniform3fv(u.uPaint,c.paint);gl.uniform3fv(u.uPaint2,c.paint);gl.uniform3fv(u.uRim,m.rim);gl.uniform3fv(u.uCal,m.cal);gl.uniform3fv(u.uClad,m.clad);
@@ -296,19 +296,19 @@ function trafficDraw(U,eye){
    cascade's frustum in world space) */
 function trafficShadow(F,used,G,VP,eye){
   if(!TRF.live)return used;const r=TRF_SHD[GFX.level]||60;
-  for(const c of TRF_ON){const dx=c.x-eye[0],dz=c.z-eye[2];if(dx*dx+dz*dz>r*r)break;
+  for(let _i13=0;_i13<TRF_ON.length;_i13++){const c=TRF_ON[_i13];const dx=c.x-eye[0],dz=c.z-eye[2];if(dx*dx+dz*dz>r*r)break;
     const x=c.x,y=c.y+1,z=c.z,rr=c.m.L*.6+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-rr){inside=false;break;}}if(!inside)continue;
     if(!used){used=true;useLit(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);gl.disable(gl.CULL_FACE);}
     gl.uniformMatrix4fv(CUR.u.uM,false,c.M);drawMesh(c.m.T.far);}
   return used;}
 /* at night the nearest few headlights as the frame's own lamps */
 function trafficLights(L){if(!TRF.live||!SKY.lightsOn)return;let n=TRF_LAMPS[GFX.level]||3;
-  for(const c of TRF_ON){if(n<=0||L.dyn.length>=16)break;if(!c.vis)continue;const m=c.m,M=c.M,q=c.lamp;
+  for(let _i14=0;_i14<TRF_ON.length;_i14++){const c=TRF_ON[_i14];if(n<=0||L.dyn.length>=16)break;if(!c.vis)continue;const m=c.m,M=c.M,q=c.lamp;
     q.pos[0]=M[12]+M[0]*m.lampX+M[4]*m.lampY;q.pos[1]=M[13]+M[1]*m.lampX+M[5]*m.lampY;q.pos[2]=M[14]+M[2]*m.lampX+M[6]*m.lampY;
     const dx=M[0]-M[4]*.08,dy=M[1]-M[5]*.08-.04,dz=M[2]-M[6]*.08,l=Math.hypot(dx,dy,dz)||1;q.dir[0]=dx/l;q.dir[1]=dy/l;q.dir[2]=dz/l;
     L.dyn.push(q);n--;}}
 /* the soft shade under the nearest cars (the renderer takes eight in all) */
-function trafficOcc(occ){if(!TRF.live)return;for(const c of TRF_ON){if(occ.length>=8||c.d2>2500)break;const o=c.occ,m=c.m;
+function trafficOcc(occ){if(!TRF.live)return;for(let _i15=0;_i15<TRF_ON.length;_i15++){const c=TRF_ON[_i15];if(occ.length>=8||c.d2>2500)break;const o=c.occ,m=c.m;
   o[0]=c.x-RO[0];o[1]=c.y+m.rideH-RO[1];o[2]=c.z-RO[2];o[3]=m.cg1;o[4]=c.fx;o[5]=c.fz;o[6]=m.L/2;o[7]=m.b.look.track/2+.12;occ.push(o);}}
 
 /* ---------- near you: the physics ---------- */
@@ -323,7 +323,7 @@ function trfBoxes(ax,az,afx,afz,aL,aW,bx,bz,bfx,bfz,bL,bW){
    brake harder for you than a car can? */
 function trfThreat(c){
   if(c.accYou<-8.5)return true;
-  for(const t of ACT){const dx=t.p[0]-c.x,dz=t.p[2]-c.z;if(dx*dx+dz*dz>1600)continue;
+  for(let _i16=0;_i16<ACT.length;_i16++){const t=ACT[_i16];const dx=t.p[0]-c.x,dz=t.p[2]-c.z;if(dx*dx+dz*dz>1600)continue;
     const M=t.M,hf=Math.hypot(M[0],M[6])||1,afx=M[0]/hf,afz=M[6]/hf,rvx=t.v[0]-c.fx*c.v,rvz=t.v[2]-c.fz*c.v;
     for(let k=0;k<=4;k++){const tt=k*.15;if(trfBoxes(0,0,c.fx,c.fz,c.m.L+.6,c.m.W+.6,dx+rvx*tt,dz+rvz*tt,afx,afz,t.c.body.L,t.c.body.W))return true;}}
   return false;}
@@ -372,7 +372,7 @@ function trfPhysDrive(c,dt){
   const inp=c.inp,spd=V.speed;
   if(c.wreck){inp.steer=0;inp.thr=0;inp.brk=1;inp.hb=1;
     /* still, and nothing near: not stepped (stepped again the moment anything comes close) */
-    let near=false;for(const t of ACT){if(t===V)continue;const dx=t.p[0]-c.x,dz=t.p[2]-c.z;if(dx*dx+dz*dz<196){near=true;break;}}
+    let near=false;for(let _i17=0;_i17<ACT.length;_i17++){const t=ACT[_i17];if(t===V)continue;const dx=t.p[0]-c.x,dz=t.p[2]-c.z;if(dx*dx+dz*dz<196){near=true;break;}}
     c.mode=spd<.3&&!near?'park':'phys';c.brake=true;return;}
   c.stopT-=dt;
   /* the pedals from the following it would do on its lane */
@@ -386,13 +386,15 @@ function trfPhysDrive(c,dt){
     kk=2*side/Math.max(L2,1),ang=Math.atan(V.c.wb*kk),lim=Math.min(V.c.lock,V.tyre.aPk*1.6+V.c.wb*9/Math.max(spd*spd,1));inp.steer=Math.max(-1,Math.min(1,ang/lim));
   c.brake=inp.brk>.1;c.st=V.steer;
   /* back to riding its lane: nothing about to touch it, upright, within a metre of its lane's middle and pointing along it */
-  let clear=true;for(const t of ACT){if(t===V)continue;const dx2=t.p[0]-c.x,dz2=t.p[2]-c.z;if(dx2*dx2+dz2*dz2<144){clear=false;break;}}
+  let clear=true;for(let _i18=0;_i18<ACT.length;_i18++){const t=ACT[_i18];if(t===V)continue;const dx2=t.p[0]-c.x,dz2=t.p[2]-c.z;if(dx2*dx2+dz2*dz2<144){clear=false;break;}}
+  /* (and no car riding its lane within 12 m either: one could have pulled up beside it or behind it meanwhile) */
+  if(clear)for(let q=0;q<TRF_ON.length;q++){const o=TRF_ON[q];if(o===c||o.mode!=='kin')continue;const ex=o.x-c.x,ez=o.z-c.z;if(ex*ex+ez*ez<144){clear=false;break;}}
   if(clear&&c.stopT<=0&&up>.9&&Math.abs(lo)<1.2&&Math.abs(he)<.15&&!trfThreatPhys(c))c.safeT+=dt;else c.safeT=0;
   if(c.safeT>1){const v=Math.max(0,V.vf);trfFree(c);c.v=v;c.lat0=lo;c.lcT=0;c.lcDur=2;c.goK=-1;trfPose(c);TRF.released=(TRF.released||0)+1;}
 }
 /* (the threat check for a car already on the physics, by its own velocity) */
 function trfThreatPhys(c){const V=c.veh;
-  for(const t of ACT){if(t===V)continue;const dx=t.p[0]-c.x,dz=t.p[2]-c.z;if(dx*dx+dz*dz>1600)continue;
+  for(let _i19=0;_i19<ACT.length;_i19++){const t=ACT[_i19];if(t===V)continue;const dx=t.p[0]-c.x,dz=t.p[2]-c.z;if(dx*dx+dz*dz>1600)continue;
     const M=t.M,hf=Math.hypot(M[0],M[6])||1,afx=M[0]/hf,afz=M[6]/hf,rvx=t.v[0]-V.v[0],rvz=t.v[2]-V.v[2];
     for(let k=0;k<=6;k++){const tt=k*.15;if(trfBoxes(0,0,c.fx,c.fz,c.m.L+.6,c.m.W+.6,dx+rvx*tt,dz+rvz*tt,afx,afz,t.c.body.L,t.c.body.W))return true;}}
   return false;}
@@ -401,8 +403,8 @@ function trfThreatPhys(c){const V=c.veh;
 function trafficSub(dt){
   if(!TRF_PHYS.length&&!POL.live)return;TRF_CC.length=0;TRF_CC.push(GAME.car);policeSub(dt,TRF_CC);
   /* (a car let off the physics earlier this frame is on the list until the next: skipped) */
-  for(const c of TRF_PHYS){if(c.mode!=='phys'||!c.veh)continue;c.veh.step(dt,c.inp);TRF_CC.push(c.veh);}
-  for(const c of TRF_PHYS)if(c.mode==='park'&&c.veh)TRF_CC.push(c.veh);
+  for(let _i20=0;_i20<TRF_PHYS.length;_i20++){const c=TRF_PHYS[_i20];if(c.mode!=='phys'||!c.veh)continue;c.veh.step(dt,c.inp);TRF_CC.push(c.veh);}
+  for(let _i21=0;_i21<TRF_PHYS.length;_i21++){const c=TRF_PHYS[_i21];if(c.mode==='park'&&c.veh)TRF_CC.push(c.veh);}
   if(TRF_CC.length>1)carContacts(TRF_CC);
 }
 const TRF_YELL=['traffic_hey','traffic_watch_it','traffic_seriously','traffic_learn_to_drive'];

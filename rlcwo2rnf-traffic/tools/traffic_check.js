@@ -55,7 +55,7 @@ const which=(process.argv[2]||'park,drive').split(',');
         offLane:W.offLane,minGapYou:W.minGapYou<1e8?+W.minGapYou.toFixed(2):null,laneChanges:T.laneChanges-W.lc0,spawned:T.spawned-W.sp0,onPhysics:(T.engaged||0)-W.en0,backOnLane:(T.released||0)-W.re0,physFrames:W.physFrames,hits:g.TRF.cars.reduce((a,c)=>a+c.hits,0),wrecks:g.TRF_ON.filter(c=>c.wreck).length,worstMs:+W.ms.toFixed(2),avgMs:+((W.msSum||0)/Math.max(1,W.frames-120)).toFixed(3),
         cars:g.TRF_ON.map(c=>c.m.id+' '+(c.dir>0?'E':c.dir<0?'W':'T')+c.L.k+' x'+Math.round(c.x)+' '+Math.round(c.v*2.237)+'mph')};}};});
   const run=async(name,fn)=>{const t=Date.now();try{const r=await pg.evaluate(fn);
-      const bad=[];if(r.nan)bad.push('NaN');if(r.maxOn>r.budget)bad.push('over budget');if(r.carCar)bad.push('cars overlapping');if(r.carYou)bad.push('a car through you');if(r.redRuns)bad.push('red light run');if(r.offLane)bad.push('off its lane');
+      const bad=[];if(!r.maxOn)bad.push('no traffic');if(r.nan)bad.push('NaN');if(r.maxOn>r.budget)bad.push('over budget');if(r.carCar)bad.push('cars overlapping');if(r.carYou)bad.push('a car through you');if(r.redRuns)bad.push('red light run');if(r.offLane)bad.push('off its lane');
       if(bad.length)fails++;console.log(name,((Date.now()-t)/1000).toFixed(0)+'s',bad.length?'FAIL: '+bad.join(', '):'pass',JSON.stringify(r));}
     catch(e){fails++;errs.push(name+': '+e.message.slice(0,300));console.log(name,'FAILED',e.message.slice(0,300));}};
   if(which.includes('park'))await run('park',async()=>{
