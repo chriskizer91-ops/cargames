@@ -9,9 +9,10 @@
      town    a drive through town (west on Highway 40, six turns on the streets, out east), the police behind: how
              often they hit a wall, a car or you, roll, get stuck, or have to come back in behind you
      hwy     east on Highway 40 in its traffic at 65 mph, the police behind: the same count
+     heli    level 5 on the salt: the helicopter keeps up at 77 and 268 mph, and loses you at 313 mph
      evade   round and round town at up to 50 mph, never stopping, the wanted level held at each of LEVELS (1,3,5):
              whether they stop you (a bust), how long it takes, their PITs, your spins, their wall hits
-   usage: node tools/police_check.js [chase,bust,town,hwy,evade]      env: QUALITY (mobile), CAR (a build id, default the stock SUV), FILE, W, H */
+   usage: node tools/police_check.js [chase,bust,town,hwy,evade,heli]      env: QUALITY (mobile), CAR (a build id, default the stock SUV), FILE, W, H */
 const {chromium}=require('playwright');const path=require('path');
 const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','rlcwo2rnf-traffic.html');
 const which=(process.argv[2]||'chase,bust').split(',');
@@ -85,9 +86,29 @@ const which=(process.argv[2]||'chase,bust').split(',');
     return {level:L,bustedAfter:bust<0?null:+bust.toFixed(1),pits:g.POL.pits-p0,yourSpins:spins,yourSecondsSlow:+slowT.toFixed(0),policeWallHits:m.wall,carHitsBy:m.by,flips:m.flips,stuck:m.stucks,
       respawns:g.POL.respawns,cars:g.POL.cars.filter(c=>c.V).length,nan,log:m.last.slice(0,10)};},
     r=>{const bad=[];if(r.nan)bad.push('NaN');if(r.level>=3&&r.bustedAfter===null)bad.push('never stopped you');return bad;},[L]);
+  /* heli: the wanted level held at 5 on the salt flats. You at 77 mph for a minute (it must keep up), then held at 120
+     m/s (268 mph: it must still keep up), then at 140 m/s (313 mph: it must lose you, the chase end, the police go).
+     Over 250 mph no build of ours goes, so the test sets your car's speed itself each frame */
+  if(which.includes('heli'))await run('heli',async()=>{
+    const g=window.__game,G=g.GAME,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms)),t=G.car,H=g.HELI;
+    g.applyTod('day');g.closeMenu();G.state='drive';g.APP.police=false;g.step(dt);g.DEVW.wanted='5';g.DEVW.heliV='290';
+    g.placeCar(3400,40,0);g.APP.police=true;g.render(dt);
+    const inp={steer:0,thr:0,brk:0,hb:0,nos:false},out={};let nan=0;
+    const phase=async(secs,vk,name)=>{let maxD=0,seenShare=0,n=0,lost=-1,e0=H.escapes;
+      for(let f=0;f<secs*60;f++){if(vk){t.v[0]=vk;t.v[2]=0;t.w.fill(0);}
+        inp.thr=Math.max(0,Math.min(1,(34-t.speed)*.3));inp.steer=Math.max(-.3,Math.min(.3,.03*(40-t.p[2])-1.2*t.M[6]));g.setTestInput(vk?{steer:0,thr:0,brk:0,hb:0,nos:false}:inp);
+        g.APP.t+=dt;g.step(dt);if(!H.p.every(Number.isFinite))nan++;
+        if(H.on){n++;maxD=Math.max(maxD,H.d||0);if((H.d||0)<350)seenShare++;}
+        if(lost<0&&H.escapes>e0)lost=f*dt;if(f%300===299){g.render(dt);await wait(0);}}
+      out[name]={heliShare:+(n/(secs*60)).toFixed(2),within350:+(seenShare/Math.max(1,n)).toFixed(2),maxGap:Math.round(maxD),lostYouAfter:lost<0?null:+lost.toFixed(1),
+        policeOut:g.POL.cars.filter(c=>c.V).length,holding:+g.POL.holdT.toFixed(0),level:g.wantedLvl()};};
+    await phase(60,0,'77mph');await phase(40,120,'268mph');await phase(60,140,'313mph');
+    g.setTestInput(null);g.DEVW.wanted='auto';out.nan=nan;return out;},
+    r=>{const bad=[];if(r.nan)bad.push('NaN');if(r['77mph'].within350<.95)bad.push('lost you at 77 mph');if(r['268mph'].lostYouAfter!==null)bad.push('lost you at 268 mph');
+      if(r['313mph'].lostYouAfter===null)bad.push('never lost you at 313 mph');return bad;});
   if(which.includes('chase'))await run('chase',async()=>{
     const g=window.__game,G=g.GAME,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));
-    g.applyTod('day');g.closeMenu();G.state='drive';g.placeCar(1800,40,0);g.APP.cam=1;g.APP.police=true;g.DEVW.wanted='1';g.render(dt);
+    g.applyTod('day');g.closeMenu();G.state='drive';g.APP.police=false;g.step(dt);g.placeCar(1800,40,0);g.APP.cam=1;g.APP.police=true;g.DEVW.wanted='1';g.render(dt);
     const t=G.car,inp={steer:0,thr:0,brk:0,hb:0,nos:false},vt=36,zt=40;let nan=0,within=0,frames=0,maxD=0,sum=0,out=0;const trace=[];
     for(let f=0;f<120*60;f++){const M=t.M,hl=Math.hypot(M[0],M[6])||1,hz=M[6]/hl;inp.steer=Math.max(-.3,Math.min(.3,.03*(zt-t.p[2])-1.2*hz));
       inp.thr=Math.max(0,Math.min(1,(vt-t.speed)*.3));inp.brk=t.speed>vt+3?.3:0;g.setTestInput(inp);g.APP.t+=dt;g.step(dt);

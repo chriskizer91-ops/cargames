@@ -580,7 +580,8 @@ body.bayfull>.bar{display:none}
           <div><h2 class="sub">Traffic cars (Level: 8 on Mobile to 32 on Ultra)</h2><div class="seg" id="dTraf" role="group" aria-label="Traffic cars"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Wanted level (Auto: it rises with the chase)</h2><div class="seg" id="dWanted" role="group" aria-label="Wanted level"></div></div>
           <div><h2 class="sub">Police cars (Wanted: one a level, up to 3 on Mobile and Low, 4 on Medium, 5 on High and Ultra)</h2><div class="seg" id="dPol" role="group" aria-label="Police cars"></div></div></div>
-        <div class="row2" style="margin-top:12px"><div><h2 class="sub">Police engines (by level: yours, then 15% more torque a level)</h2><div class="seg" id="dPolPow" role="group" aria-label="Police engines"></div></div><div></div></div>
+        <div class="row2" style="margin-top:12px"><div><h2 class="sub">Police engines (by level: yours, then 15% more torque a level)</h2><div class="seg" id="dPolPow" role="group" aria-label="Police engines"></div></div>
+          <div><h2 class="sub">Helicopter top speed (level 5: outrun it to get away)</h2><div class="seg" id="dHeliV" role="group" aria-label="Helicopter top speed"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Siren pitch</h2><div class="seg" id="dSirP" role="group" aria-label="Siren pitch"></div></div>
           <div><h2 class="sub">Siren volume</h2><div class="seg" id="dSirV" role="group" aria-label="Siren volume"></div></div></div>
         <h2 class="sub" style="margin-top:12px">Passes off (for measuring on a phone: switch one off and watch the frame time)</h2><div class="devchks" id="dPasses"></div>
@@ -11860,7 +11861,7 @@ function worldGL(){
 /* ---------- the open world's side of the developer's panel (Mini Dirt Run Open World's): the world's own numbers,
    how far it's drawn, worker or not, and a cruise control that holds the road (for the long straight runs).
    The handling and Sim switches are HD's own (54_dev). ---------- */
-const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto',wanted:'auto',polPow:'level',sirP:'deep',sirV:'40'};
+const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto',wanted:'auto',polPow:'level',sirP:'deep',sirV:'40',heliV:'290'};
 try{const d=JSON.parse(store.get('rt-devworld','{}'))||{};for(const k of Object.keys(DEVW))if(d[k]!==undefined)DEVW[k]=d[k];}catch(e){}
 DEVW.cruise='off';if(DEVW.gen==='main')WORLD.forceLocal=true;
 /* (the numbers on screen: off, the small readout, or everything; a save from before had on or off) */
@@ -11969,6 +11970,7 @@ function buildDevWorld(){
   segButtons($('dWanted'),[['auto','Auto'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5']],v=>{DEVW.wanted=v;saveDev();syncDevWorld();});
   segButtons($('dPolPow'),[['level','By wanted level'],['same','Same as yours']],v=>{DEVW.polPow=v;saveDev();syncDevWorld();});
   segButtons($('dSirP'),[['deep','Deeper'],['lower','A little deeper'],['orig','As before']],v=>{DEVW.sirP=v;saveDev();syncDevWorld();});
+  segButtons($('dHeliV'),[['200','200 mph'],['250','250 mph'],['290','290 mph']],v=>{DEVW.heliV=v;saveDev();syncDevWorld();});
   segButtons($('dSirV'),[['25','25%'],['40','40%'],['60','60%'],['100','As before']],v=>{DEVW.sirV=v;saveDev();syncDevWorld();});
   segButtons($('dTraf'),[['auto','Level'],['0','0'],['8','8'],['16','16'],['24','24'],['32','32'],['40','40']],v=>{DEVW.trafN=v;saveDev();syncDevWorld();});
   segButtons($('dGen'),[['worker','Worker'],['main','Main thread']],v=>{DEVW.gen=v;saveDev();if(v==='main'){WORLD.forceLocal=true;workerDown();}else{WORLD.forceLocal=false;WORLD.mode='starting';}syncDevWorld();});
@@ -11980,7 +11982,7 @@ function buildDevWorld(){
   $('dReset').addEventListener('click',()=>{const S=WORLD.st;S.n=[0,0,0];S.ms=[0,0,0];S.mx=[0,0,0];S.sn=0;S.sms=0;S.smx=0;S.fn=0;S.fms=0;S.missT=0;S.odo=0;S.top=0;syncDevWorld();});
 }
 function syncDevWorld(){
-  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dPol',String(DEVW.polN||'auto')],['dWanted',String(DEVW.wanted||'auto')],['dPolPow',DEVW.polPow||'level'],['dSirP',DEVW.sirP||'deep'],['dSirV',String(DEVW.sirV||'40')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
+  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dPol',String(DEVW.polN||'auto')],['dWanted',String(DEVW.wanted||'auto')],['dPolPow',DEVW.polPow||'level'],['dSirP',DEVW.sirP||'deep'],['dSirV',String(DEVW.sirV||'40')],['dHeliV',String(DEVW.heliV||'290')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
   const S=WORLD.st;$('dNote').textContent=`Made on: ${WORLD.mode}. ${WORLD.chunks.size} chunks and ${WORLD.far.size} far tiles loaded, ${(S.bytes/1048576).toFixed(1)} MB of them on the graphics card. `+
     `City Limits' town in the middle, Highway 40 straight through it east and west, country out to about two miles, then the salt flats to the edge, ${WG.HALF*2/1609.34|0} miles across.`;
 }
@@ -14876,7 +14878,7 @@ function polRespawn(P){
   for(const back of [want,want+60,want+120]){const x=t.p[0]-fx*back,z=t.p[2]-fz*back;if(!inView(x,z)&&!polCrowded(P,x,z)){polPlace(P,x,z,Math.atan2(-fz,fx),v*.8);POL.respawns++;return true;}}
   return false;}
 const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(Math.hypot(o.V.p[0]-x,o.V.p[2]-z)<14)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(Math.hypot(c.x-x,c.z-z)<30)return true;}return false;};
-function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';}
+function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';heliOff();}
 
 /* ---------- each frame (60_game's step, before the traffic and the physics) ---------- */
 function policeFrame(dt){
@@ -14900,7 +14902,7 @@ function policeFrame(dt){
      running. So they have to stop you: hem you in, or you give up */
   else if(t.speed<.3&&near<8){POL.bustT+=dt;if(POL.bustT>3)polBust();}else if(t.speed>.6||near>=8)POL.bustT=0;
   for(let _i29=0;_i29<POL.cars.length;_i29++){const P=POL.cars[_i29];if(P.V)polDrive(P,dt);}
-  voxChase(dt);
+  voxChase(dt);heliFrame(dt);
 }
 /* the heat, and the level it makes (Auto) */
 function polHeat(dt,t,near){
@@ -15074,7 +15076,7 @@ const polFlash=()=>{const a=(APP.t*1.5)%1,s=(APP.t*9)%1<.55;return [a<.5&&s,a>=.
 function policePrep(){if(!POL.live)return;for(let _i32=0;_i32<POL.cars.length;_i32++){const P=POL.cars[_i32];if(!P.V)continue;const V=P.V,R=V.M,M=P.M,cg=V.cg;
   M[0]=R[0];M[1]=R[3];M[2]=R[6];M[3]=0;M[4]=R[1];M[5]=R[4];M[6]=R[7];M[7]=0;M[8]=R[2];M[9]=R[5];M[10]=R[8];M[11]=0;M[15]=1;
   M[12]=V.p[0]-R[0]*cg[0]-R[1]*cg[1]-RO[0];M[13]=V.p[1]-R[3]*cg[0]-R[4]*cg[1]-RO[1];M[14]=V.p[2]-R[6]*cg[0]-R[7]*cg[1]-RO[2];
-  if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}}
+  if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}heliPrep();}
 const POL_PAINT=Float32Array.from(lin('#141518')),POL_WHITE=Float32Array.from(lin('#f0f0ec')),POL_RIM=Float32Array.from(lin('#2a2b2e')),POL_WP=new Float32Array(16);
 function policeDraw(U,eye){
   if(!POL.live)return 0;const u=CUR.u,F=frustum(U.uVP),[rOn,bOn]=polFlash(),B=polBar();let tris=0;
@@ -15094,6 +15096,7 @@ function policeDraw(U,eye){
     for(const A of [P.MB,P.MBp]){A[12]+=A[0]*bx+A[4]*by;A[13]+=A[1]*bx+A[5]*by;A[14]+=A[2]*bx+A[6]*by;}
     gl.uniformMatrix4fv(u.uM,false,P.MB);gl.uniformMatrix4fv(u.uPrevM,false,P.MBp);drawMesh(B.base);drawMesh(rOn?B.rOn:B.rOff);drawMesh(bOn?B.bOn:B.bOff);
     P.Mp.set(P.M);P.prev=true;}
+  tris+=heliDraw(U,u);
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);
   return tris;}
 function policeShadow(F,used,G,VP){if(!POL.live)return used;
@@ -15106,7 +15109,7 @@ function policeShadow(F,used,G,VP){if(!POL.live)return used;
 function policeLights(L){if(!POL.live||!SKY.lightsOn)return;const [rOn,bOn]=polFlash();
   for(let _i35=0;_i35<POL.cars.length;_i35++){const P=POL.cars[_i35];if(!P.V||L.dyn.length>=16||P.d>220)continue;const M=P.M,[bx,by]=polBarAt(P.V),q=P.lamp;if(!rOn&&!bOn)continue;
     q.pos[0]=M[12]+M[0]*bx+M[4]*(by+.3);q.pos[1]=M[13]+M[1]*bx+M[5]*(by+.3);q.pos[2]=M[14]+M[2]*bx+M[6]*(by+.3);
-    if(rOn){q.col[0]=70;q.col[1]=3;q.col[2]=2;}else{q.col[0]=3;q.col[1]=10;q.col[2]=80;}L.dyn.push(q);}}
+    if(rOn){q.col[0]=70;q.col[1]=3;q.col[2]=2;}else{q.col[0]=3;q.col[1]=10;q.col[2]=80;}L.dyn.push(q);}heliLight(L);}
 function policeOcc(occ){if(!POL.live)return;for(let _i36=0;_i36<POL.cars.length;_i36++){const P=POL.cars[_i36];if(!P.V||occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=Math.hypot(M[0],M[6])||1,D=carD(V);
   o[0]=V.p[0]-RO[0];o[1]=V.p[1]-RO[1];o[2]=V.p[2]-RO[2];o[3]=V.cg[1];o[4]=M[0]/l;o[5]=M[6]/l;o[6]=D.L/2;o[7]=V.build.look.track/2+.12;occ.push(o);}}
 
@@ -15126,13 +15129,14 @@ function policeSound(c){const A=ENG.audio;if(!A||!c)return;const ctx=A.ctx,now=c
     if(v.f.type!==ft){v.f.type=ft;v.f.Q.value=ft==='lowpass'?.7:1.1;}
     v.o.frequency.setTargetAtTime(f,now,.02);v.o2.frequency.setTargetAtTime(f*.5,now,.02);v.f.frequency.setTargetAtTime(f*(ft==='lowpass'?2.2:1.4),now,.05);
     v.g.gain.setTargetAtTime(.22*vk/(1+Math.pow(d/30,1.3)),now,.05);
-    if(v.p){const rx=-c.fwd[2],rz=c.fwd[0];v.p.pan.setTargetAtTime(Math.max(-1,Math.min(1,(dx*rx+dz*rz)/d*.85)),now,.05);}}}
+    if(v.p){const rx=-c.fwd[2],rz=c.fwd[0];v.p.pan.setTargetAtTime(Math.max(-1,Math.min(1,(dx*rx+dz*rz)/d*.85)),now,.05);}}
+  heliSound(c,A);}
 
 /* ---------- the HUD: the nearest one's distance, flashing; the dots on the maps ---------- */
 const WANT_TXT=['','WANTED *....','WANTED **...','WANTED ***..','WANTED ****.','WANTED *****'];
-function policeHud(C){if(!POL.live||POL.home)return;C.push([WANT_TXT[wantedLvl()],true,PAL.red]);if(!(POL.near<1e8))return;const [r,b]=polFlash();C.push(['POLICE '+fmtDist(POL.near),true,r?PAL.red:b?PAL.cyan:PAL.white]);
+function policeHud(C){if(!POL.live||POL.home)return;C.push([WANT_TXT[wantedLvl()],true,PAL.red]);heliHud(C);if(!(POL.near<1e8))return;const [r,b]=polFlash();C.push(['POLICE '+fmtDist(POL.near),true,r?PAL.red:b?PAL.cyan:PAL.white]);
   if(POL.bustT>.3)C.push(['STOPPING YOU '+Math.max(0,3-POL.bustT).toFixed(1),true,PAL.red]);}
-function policeMapDots(toXY){if(!POL.live)return;const [r]=polFlash();for(let _i38=0;_i38<POL.cars.length;_i38++){const P=POL.cars[_i38];if(!P.V)continue;const q=toXY(P.V.p[0],P.V.p[2]);if(q)hDisc(q[0],q[1],1.3,r?PAL.red:PAL.cyan);}}
+function policeMapDots(toXY){if(!POL.live)return;const [r]=polFlash();for(let _i38=0;_i38<POL.cars.length;_i38++){const P=POL.cars[_i38];if(!P.V)continue;const q=toXY(P.V.p[0],P.V.p[2]);if(q)hDisc(q[0],q[1],1.3,r?PAL.red:PAL.cyan);}heliMapDot(toXY);}
 
 /* ---------- the voices (49_voices.js, from VOICE_PROMPTS.md): the police radio in your car, the loudspeaker from
    theirs (the traffic's drivers don't talk: they honk). Each decoded once, the first time police mode comes on; a line with no recording
@@ -15176,6 +15180,100 @@ function voxChase(dt){
   /* the loudspeaker, close behind you and you still going */
   if(close&&t.speed>3&&now-(VOX.paT||-99)>9+Math.random()*5){VOX.paT=now;const V=close.V;voxSay(pl==='salt'&&Math.random()<.4?'police_pa_salt':VOX_PA[Math.floor(Math.random()*VOX_PA.length)],'pa',V.p[0],V.p[2],0);}
 }
+/* ---------- the police helicopter (wanted level 5) ----------
+   Up high (85 m over the ground under it), it flies after you at up to 130 m/s (290 mph; Dev: Helicopter top speed),
+   a little behind you and leading you by a second, never on the physics: nothing to hit. Drawn plain (a dark body,
+   tail and skids, two thin blades turning, a red light blinking under it and a white one on the tail): from down here it's a silhouette. At night
+   its searchlight lights the ground round you. Its own dot on the maps, its rotors' thud and the turbine's whine in
+   your ears (made here, no recording). Outrun it (more than 350 m from it, across the ground, for six seconds) and it
+   has lost you: the chase is over, the police gone for 45 s, the level back to 1 */
+const HELI={on:false,p:new Float64Array(3),v:new Float64Array(3),yaw:0,pitch:0,lostT:0,M:new Float32Array(16),Mp:new Float32Array(16),MR:new Float32Array(16),
+  prev:false,ro0:0,ro2:0,vox:null,mesh:null,escapes:0,
+  lamp:{pos:[0,0,0],r:150,col:[0,0,0],type:1,dir:[0,-1,0],cosO:.9}};
+const HELI_ALT=85,HELI_A=14,HELI_SEE=350,HELI_LOSE=6;
+const heliVmax=()=>({'200':89.4,'250':111.8,'290':129.6})[DEVW.heliV]||129.6;
+function heliOff(){HELI.on=false;HELI.lostT=0;HELI.prev=false;}
+function heliFrame(dt){
+  if(!(POL.live&&!POL.home&&POL.outT<=0&&POL.holdT<=0&&wantedLvl()>=5)){if(HELI.on)heliOff();return;}
+  const t=GAME.car,p=HELI.p,v=HELI.v;
+  if(!HELI.on){
+    /* in from behind you, 600 m back, already flying */
+    const M=t.M,hl=Math.hypot(M[0],M[6])||1,fx=M[0]/hl,fz=M[6]/hl;p[0]=t.p[0]-fx*600;p[2]=t.p[2]-fz*600;p[1]=RANCH.W.heightAt(p[0],p[2])+HELI_ALT;
+    v[0]=fx*70;v[1]=0;v[2]=fz*70;HELI.on=true;HELI.lostT=0;HELI.prev=false;say('HELICOPTER!',2.5,PAL.red);
+    /* (the pilot's call, once it's over you: a line not recorded yet is simply not heard) */
+    HELI.called=false;}
+  if(!HELI.called&&HELI.d<200){HELI.called=true;voxSay('radio_air_on','radio',0,0,0);}
+  /* where it wants to be: over you, 25 m back, a second ahead of where you are; the speed for that, as fast as it goes */
+  const tv=Math.hypot(t.v[0],t.v[2]),hx=tv>2?t.v[0]/tv:0,hz=tv>2?t.v[2]/tv:0,gx=t.p[0]+t.v[0]-hx*25,gz=t.p[2]+t.v[2]-hz*25,
+    ex=gx-p[0],ez=gz-p[2],vm=heliVmax();
+  let wx=t.v[0]+ex*.6,wz=t.v[2]+ez*.6;const wl=Math.hypot(wx,wz);if(wl>vm){wx*=vm/wl;wz*=vm/wl;}
+  let ax=(wx-v[0])/dt,az=(wz-v[2])/dt;const al=Math.hypot(ax,az);if(al>HELI_A){ax*=HELI_A/al;az*=HELI_A/al;}
+  v[0]+=ax*dt;v[2]+=az*dt;p[0]+=v[0]*dt;p[2]+=v[2]*dt;
+  /* up and down with the ground under it, gently */
+  const gy=RANCH.W.heightAt(p[0],p[2])+HELI_ALT;v[1]=Math.max(-8,Math.min(8,(gy-p[1])*.8));p[1]+=v[1]*dt;
+  const sp=Math.hypot(v[0],v[2]);if(sp>3)HELI.yaw=Math.atan2(-v[2],v[0]);HELI.pitch=Math.min(.22,sp/vm*.22);
+  /* has it got you */
+  const dh=Math.hypot(t.p[0]-p[0],t.p[2]-p[2]);HELI.d=dh;HELI.lostT=dh>HELI_SEE?HELI.lostT+dt:0;
+  if(HELI.lostT>HELI_LOSE)heliEscape();}
+/* lost you: the chase is over */
+function heliEscape(){HELI.escapes++;heliOff();
+  for(let i=0;i<POL.cars.length;i++)POL.cars[i].V=null;POL.holdT=45;POL.bustT=0;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;
+  say('YOU LOST THEM',3.5,PAL.green);say('THE POLICE ARE BACK IN 45 S',3,PAL.amber);
+  if(!voxSay('radio_air_lost','radio',0,0,0))voxSay('radio_lost_visual','radio',0,0,0);}
+
+/* ---------- drawing it ---------- */
+function heliMesh(){if(HELI.mesh)return HELI.mesh;const body=new MB(),dark=[.035,.038,.045],glass=[.012,.016,.022],skid=[.05,.05,.055];
+  /* (nose along +x, up +y, across z, as the cars) */
+  body.box(-2.1,0,-.85,1.6,1.55,.85,dark);body.box(1.6,.25,-.75,2.6,1.35,.75,glass);body.box(-1.2,1.55,-.5,.9,1.85,.5,dark);
+  body.box(-7.2,.75,-.16,-2.1,1.15,.16,dark);body.box(-7.4,.75,-.07,-6.5,2.45,.07,dark);body.box(-7.3,.95,-.9,-6.7,1.05,.9,dark);
+  for(const s of [-1,1]){body.box(-1.7,-.62,s*.95-.07,1.9,-.52,s*.95+.07,skid);body.box(-1.1,-.52,s*.9-.05,-.95,0,s*.9+.05,skid);body.box(.95,-.52,s*.9-.05,1.1,0,s*.9+.05,skid);}
+  /* the main rotor: two thin blades across each other (turned each frame), the tail rotor a small dark disc */
+  const rotor=new MB();rotor.box(-5.6,1.98,-.16,5.6,2.04,.16,[.03,.03,.035]);rotor.box(-.16,1.98,-5.6,.16,2.04,5.6,[.03,.03,.035]);rotor.box(-.25,1.85,-.25,.25,2.05,.25,dark);
+  body.cyl([-6.95,1.75,-.22],.85,.04,10,'z',[.02,.02,.025],0,MAT.COL);
+  const lamp=on=>{const mb=new MB();mb.box(-.15,-.12,-.15,.15,0,.15,on?[1,.05,.03]:[.18,.01,.01],on?9:0,on?MAT.EMIT:MAT.COL);mb.box(-7.45,2.4,-.08,-7.3,2.55,.08,on?[1,1,1]:[.2,.2,.2],on?9:0,on?MAT.EMIT:MAT.COL);return mb.build();};
+  return HELI.mesh={body:body.build(),rotor:rotor.build(),on:lamp(true),off:lamp(false)};}
+/* its place for the frame (after the floating origin has moved): yawed to where it's going, nose down with speed */
+function heliPrep(){if(!HELI.on)return;const M=HELI.M,cy=Math.cos(HELI.yaw),sy=Math.sin(HELI.yaw),cp=Math.cos(HELI.pitch),sp=Math.sin(HELI.pitch);
+  M[0]=cy*cp;M[1]=-sp;M[2]=-sy*cp;M[3]=0;M[4]=cy*sp;M[5]=cp;M[6]=-sy*sp;M[7]=0;M[8]=sy;M[9]=0;M[10]=cy;M[11]=0;
+  M[12]=HELI.p[0]-RO[0];M[13]=HELI.p[1]-RO[1];M[14]=HELI.p[2]-RO[2];M[15]=1;
+  if(HELI.ro0!==RO[0]||HELI.ro2!==RO[2]){if(HELI.prev){HELI.Mp[12]-=RO[0]-HELI.ro0;HELI.Mp[14]-=RO[2]-HELI.ro2;}HELI.ro0=RO[0];HELI.ro2=RO[2];}}
+function heliDraw(U,u){if(!HELI.on)return 0;const F=frustum(U.uVP),x=HELI.M[12],y=HELI.M[13],z=HELI.M[14];
+  for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-9){HELI.prev=false;return 0;}}
+  const H=heliMesh();gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,1);
+  gl.uniformMatrix4fv(u.uM,false,HELI.M);gl.uniformMatrix4fv(u.uPrevM,false,HELI.prev?HELI.Mp:HELI.M);
+  drawMesh(H.body);drawMesh((APP.t*1.2)%1<.12?H.on:H.off);
+  /* the blades turned about the mast (5.3 turns a second: fast enough to read as turning, slow enough not to strobe
+     backwards at 60 frames a second) */
+  const M=HELI.M,R=HELI.MR,a=APP.t*33,ca=Math.cos(a),sa=Math.sin(a);R.set(M);
+  for(let k=0;k<3;k++){R[k]=M[k]*ca+M[8+k]*sa;R[8+k]=-M[k]*sa+M[8+k]*ca;}
+  gl.uniformMatrix4fv(u.uM,false,R);gl.uniformMatrix4fv(u.uPrevM,false,R);drawMesh(H.rotor);
+  HELI.Mp.set(HELI.M);HELI.prev=true;return 700;}
+/* the searchlight, at night: from under its nose, down at you */
+function heliLight(L){if(!HELI.on||!SKY.lightsOn||L.dyn.length>=16)return;const t=GAME.car,q=HELI.lamp,M=HELI.M;
+  q.pos[0]=M[12]+M[0]*1.8-M[4]*.3;q.pos[1]=M[13]+M[1]*1.8-M[5]*.3;q.pos[2]=M[14]+M[2]*1.8-M[6]*.3;
+  const dx=t.p[0]-RO[0]-q.pos[0],dy=t.p[1]-RO[1]-q.pos[1],dz=t.p[2]-RO[2]-q.pos[2],d=Math.hypot(dx,dy,dz)||1;
+  if(d>140)return;q.dir[0]=dx/d;q.dir[1]=dy/d;q.dir[2]=dz/d;q.r=Math.max(60,d*1.35);q.col[0]=5200;q.col[1]=5000;q.col[2]=4600;L.dyn.push(q);}
+
+/* ---------- its sound: the rotors' thud (noise, low, pulsed at the blades' rate), a low beat under it, the turbine's
+   whine; quieter with distance, panned, a touch of Doppler ---------- */
+function heliSound(c,A){const ctx=A.ctx,now=ctx.currentTime;
+  if(!HELI.on||GAME.state!=='drive'){if(HELI.vox)HELI.vox.g.gain.setTargetAtTime(0,now,.4);return;}
+  if(!HELI.vox){const n=ctx.createBufferSource(),b=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    n.buffer=b;n.loop=true;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=380;lp.Q.value=.8;
+    const am=ctx.createGain();am.gain.value=.5;const lfo=ctx.createOscillator();lfo.type='sawtooth';lfo.frequency.value=17;const lg=ctx.createGain();lg.gain.value=.48;lfo.connect(lg);lg.connect(am.gain);
+    const th=ctx.createOscillator();th.type='sine';th.frequency.value=52;const tg=ctx.createGain();tg.gain.value=0;const lg2=ctx.createGain();lg2.gain.value=.5;lfo.connect(lg2);lg2.connect(tg.gain);
+    const wh=ctx.createOscillator();wh.type='sine';wh.frequency.value=2150;const wg=ctx.createGain();wg.gain.value=.01;
+    const g=ctx.createGain();g.gain.value=0;const p=ctx.createStereoPanner?ctx.createStereoPanner():null;
+    n.connect(lp);lp.connect(am);am.connect(g);th.connect(tg);tg.connect(g);wh.connect(wg);wg.connect(g);if(p){g.connect(p);p.connect(A.master);}else g.connect(A.master);
+    n.start();lfo.start();th.start();wh.start();HELI.vox={g,p,lfo,wh};}
+  const v=HELI.vox,dx=HELI.p[0]-c.eye[0],dy=HELI.p[1]-c.eye[1],dz=HELI.p[2]-c.eye[2],d=Math.hypot(dx,dy,dz)||1,
+    vr=((HELI.v[0]-GAME.car.v[0])*dx+(HELI.v[2]-GAME.car.v[2])*dz)/d,dop=1/(1+Math.max(-.3,Math.min(.3,vr/343)));
+  v.lfo.frequency.setTargetAtTime(17*dop,now,.1);v.wh.frequency.setTargetAtTime(2150*dop,now,.1);
+  v.g.gain.setTargetAtTime(.55/(1+Math.pow(d/70,1.6)),now,.2);
+  if(v.p){const rx=-c.fwd[2],rz=c.fwd[0];v.p.pan.setTargetAtTime(Math.max(-1,Math.min(1,(dx*rx+dz*rz)/d*.7)),now,.1);}}
+/* the HUD and the maps */
+function heliHud(C){if(!HELI.on)return;C.push([HELI.lostT>0?'HELICOPTER LOSING YOU '+Math.max(0,HELI_LOSE-HELI.lostT).toFixed(0):'HELICOPTER',true,HELI.lostT>0?PAL.amber:PAL.red]);}
+function heliMapDot(toXY){if(!HELI.on)return;const q=toXY(HELI.p[0],HELI.p[2]);if(!q)return;hDisc(q[0],q[1],2.4,PAL.white);hDisc(q[0],q[1],1.3,(APP.t*1.2)%1<.5?PAL.red:PAL.ink);}
 /* =====================================================================================
    THE CLOCKS. Laps on the park's three circuits (Speedway 25, the short course and the mud track) and on the
    Outer Loop round the city: over the line, past every checkpoint in turn (a third and two thirds of the way
@@ -17734,7 +17832,7 @@ else{
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
   /* the traffic (60_traffic) for the tools */
-  Object.assign(window.__game,{VOX,VOICES,voxSay,voxWarm,WANTED,wantedLvl,polPower,POL,policeFrame,polRespawn,polCount,TRF,HW,TRF_ON,TRF_N,TRF_PHYS,trfEngage,trfThreat,trafficFrame,trfModelsStep,trafficWanted,trfCount,truckLite,TRUCKL,trfKeeps,SKY,frustum,saveDev,syncMenu,syncDevWorld});
+  Object.assign(window.__game,{VOX,VOICES,voxSay,voxWarm,WANTED,wantedLvl,polPower,HELI,heliFrame,POL,policeFrame,polRespawn,polCount,TRF,HW,TRF_ON,TRF_N,TRF_PHYS,trfEngage,trfThreat,trafficFrame,trfModelsStep,trafficWanted,trfCount,truckLite,TRUCKL,trfKeeps,SKY,frustum,saveDev,syncMenu,syncDevWorld});
 }
 
 })();

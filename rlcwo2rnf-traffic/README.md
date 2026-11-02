@@ -110,6 +110,18 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   touching; "come back in" counts the first time in too. Before, the police in town knocked the test's own car off its
   route in all six runs, by 37 to 164 m. What's left: on High, two police cars on Highway 40 still brush a car of the
   traffic now and then, a car changing lanes into them or one they squeeze past.)
+- **The helicopter** (`src/60_heli.js`), at wanted level 5: 85 m over the ground under it, after you at up to 130 m/s
+  (290 mph; Dev: Helicopter top speed 200, 250, 290 mph), a little behind you and leading you by a second; not on
+  the physics. Drawn plain, for a silhouette up there: a dark body, tail and skids, two thin blades turning, a red light
+  blinking under it and a white one on the tail. At night its searchlight lights the ground round you (faint on the
+  salt, which is bright at night anyway). Its own dot on both maps (white, blinking red); HELICOPTER on the HUD, then
+  HELICOPTER LOSING YOU and the seconds left. Its sound is made, not recorded: low noise pulsed at the blades' 17 a
+  second, a beat under it, the turbine's whine; panned, quieter with distance, a touch of Doppler. Outrun it (more
+  than 350 m from it across the ground for six seconds) and it has lost you: the chase is over, the police gone for
+  45 s, the level back to 1. No build of ours goes that fast yet (the fastest stock: 247 mph), so at 290 mph level 5
+  is for good until there is one. `police_check.js heli`: with you at 77 and 268 mph it keeps up (264 m behind at
+  most at 268), at 313 mph (the test setting your speed itself) it loses you after 46 s. The pilot's two radio calls
+  are in `VOICE_PROMPTS.md`, not recorded yet (till then: the officer's "Lost visual").
 - **Busted**: at a standstill (under 0.3 m/s: shoving a police car out of the way doesn't count) with a police car
   within 8 m, three seconds running. So they have to stop you: hem you in, or you give up. Then, after a moment,
   you're taken back to Marisol's garage (and fined $500 in the career); the chase is over and the level back to 1, and
@@ -131,7 +143,7 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   over it. On the phone a REAR button, top of the left-hand column (above CAM): one tap looks back, another looks
   ahead again (lit while it's on; a toggle, as both thumbs are busy). On the keyboard G, held; on a gamepad the right
   stick pressed in, held. REAR VIEW shows under the instruments while it's on.
-- **Check**: `node tools/police_check.js [chase,bust,town,hwy,evade]` (town, hwy, chase and bust hold the level at 1).
+- **Check**: `node tools/police_check.js [chase,bust,town,hwy,evade,heli]` (town, hwy, chase and bust hold the level at 1).
 
 ---
 

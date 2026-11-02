@@ -64,7 +64,7 @@ function polRespawn(P){
   for(const back of [want,want+60,want+120]){const x=t.p[0]-fx*back,z=t.p[2]-fz*back;if(!inView(x,z)&&!polCrowded(P,x,z)){polPlace(P,x,z,Math.atan2(-fz,fx),v*.8);POL.respawns++;return true;}}
   return false;}
 const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(Math.hypot(o.V.p[0]-x,o.V.p[2]-z)<14)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(Math.hypot(c.x-x,c.z-z)<30)return true;}return false;};
-function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';}
+function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';heliOff();}
 
 /* ---------- each frame (60_game's step, before the traffic and the physics) ---------- */
 function policeFrame(dt){
@@ -88,7 +88,7 @@ function policeFrame(dt){
      running. So they have to stop you: hem you in, or you give up */
   else if(t.speed<.3&&near<8){POL.bustT+=dt;if(POL.bustT>3)polBust();}else if(t.speed>.6||near>=8)POL.bustT=0;
   for(let _i29=0;_i29<POL.cars.length;_i29++){const P=POL.cars[_i29];if(P.V)polDrive(P,dt);}
-  voxChase(dt);
+  voxChase(dt);heliFrame(dt);
 }
 /* the heat, and the level it makes (Auto) */
 function polHeat(dt,t,near){
@@ -262,7 +262,7 @@ const polFlash=()=>{const a=(APP.t*1.5)%1,s=(APP.t*9)%1<.55;return [a<.5&&s,a>=.
 function policePrep(){if(!POL.live)return;for(let _i32=0;_i32<POL.cars.length;_i32++){const P=POL.cars[_i32];if(!P.V)continue;const V=P.V,R=V.M,M=P.M,cg=V.cg;
   M[0]=R[0];M[1]=R[3];M[2]=R[6];M[3]=0;M[4]=R[1];M[5]=R[4];M[6]=R[7];M[7]=0;M[8]=R[2];M[9]=R[5];M[10]=R[8];M[11]=0;M[15]=1;
   M[12]=V.p[0]-R[0]*cg[0]-R[1]*cg[1]-RO[0];M[13]=V.p[1]-R[3]*cg[0]-R[4]*cg[1]-RO[1];M[14]=V.p[2]-R[6]*cg[0]-R[7]*cg[1]-RO[2];
-  if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}}
+  if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}heliPrep();}
 const POL_PAINT=Float32Array.from(lin('#141518')),POL_WHITE=Float32Array.from(lin('#f0f0ec')),POL_RIM=Float32Array.from(lin('#2a2b2e')),POL_WP=new Float32Array(16);
 function policeDraw(U,eye){
   if(!POL.live)return 0;const u=CUR.u,F=frustum(U.uVP),[rOn,bOn]=polFlash(),B=polBar();let tris=0;
@@ -282,6 +282,7 @@ function policeDraw(U,eye){
     for(const A of [P.MB,P.MBp]){A[12]+=A[0]*bx+A[4]*by;A[13]+=A[1]*bx+A[5]*by;A[14]+=A[2]*bx+A[6]*by;}
     gl.uniformMatrix4fv(u.uM,false,P.MB);gl.uniformMatrix4fv(u.uPrevM,false,P.MBp);drawMesh(B.base);drawMesh(rOn?B.rOn:B.rOff);drawMesh(bOn?B.bOn:B.bOff);
     P.Mp.set(P.M);P.prev=true;}
+  tris+=heliDraw(U,u);
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);
   return tris;}
 function policeShadow(F,used,G,VP){if(!POL.live)return used;
@@ -294,7 +295,7 @@ function policeShadow(F,used,G,VP){if(!POL.live)return used;
 function policeLights(L){if(!POL.live||!SKY.lightsOn)return;const [rOn,bOn]=polFlash();
   for(let _i35=0;_i35<POL.cars.length;_i35++){const P=POL.cars[_i35];if(!P.V||L.dyn.length>=16||P.d>220)continue;const M=P.M,[bx,by]=polBarAt(P.V),q=P.lamp;if(!rOn&&!bOn)continue;
     q.pos[0]=M[12]+M[0]*bx+M[4]*(by+.3);q.pos[1]=M[13]+M[1]*bx+M[5]*(by+.3);q.pos[2]=M[14]+M[2]*bx+M[6]*(by+.3);
-    if(rOn){q.col[0]=70;q.col[1]=3;q.col[2]=2;}else{q.col[0]=3;q.col[1]=10;q.col[2]=80;}L.dyn.push(q);}}
+    if(rOn){q.col[0]=70;q.col[1]=3;q.col[2]=2;}else{q.col[0]=3;q.col[1]=10;q.col[2]=80;}L.dyn.push(q);}heliLight(L);}
 function policeOcc(occ){if(!POL.live)return;for(let _i36=0;_i36<POL.cars.length;_i36++){const P=POL.cars[_i36];if(!P.V||occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=Math.hypot(M[0],M[6])||1,D=carD(V);
   o[0]=V.p[0]-RO[0];o[1]=V.p[1]-RO[1];o[2]=V.p[2]-RO[2];o[3]=V.cg[1];o[4]=M[0]/l;o[5]=M[6]/l;o[6]=D.L/2;o[7]=V.build.look.track/2+.12;occ.push(o);}}
 
@@ -314,13 +315,14 @@ function policeSound(c){const A=ENG.audio;if(!A||!c)return;const ctx=A.ctx,now=c
     if(v.f.type!==ft){v.f.type=ft;v.f.Q.value=ft==='lowpass'?.7:1.1;}
     v.o.frequency.setTargetAtTime(f,now,.02);v.o2.frequency.setTargetAtTime(f*.5,now,.02);v.f.frequency.setTargetAtTime(f*(ft==='lowpass'?2.2:1.4),now,.05);
     v.g.gain.setTargetAtTime(.22*vk/(1+Math.pow(d/30,1.3)),now,.05);
-    if(v.p){const rx=-c.fwd[2],rz=c.fwd[0];v.p.pan.setTargetAtTime(Math.max(-1,Math.min(1,(dx*rx+dz*rz)/d*.85)),now,.05);}}}
+    if(v.p){const rx=-c.fwd[2],rz=c.fwd[0];v.p.pan.setTargetAtTime(Math.max(-1,Math.min(1,(dx*rx+dz*rz)/d*.85)),now,.05);}}
+  heliSound(c,A);}
 
 /* ---------- the HUD: the nearest one's distance, flashing; the dots on the maps ---------- */
 const WANT_TXT=['','WANTED *....','WANTED **...','WANTED ***..','WANTED ****.','WANTED *****'];
-function policeHud(C){if(!POL.live||POL.home)return;C.push([WANT_TXT[wantedLvl()],true,PAL.red]);if(!(POL.near<1e8))return;const [r,b]=polFlash();C.push(['POLICE '+fmtDist(POL.near),true,r?PAL.red:b?PAL.cyan:PAL.white]);
+function policeHud(C){if(!POL.live||POL.home)return;C.push([WANT_TXT[wantedLvl()],true,PAL.red]);heliHud(C);if(!(POL.near<1e8))return;const [r,b]=polFlash();C.push(['POLICE '+fmtDist(POL.near),true,r?PAL.red:b?PAL.cyan:PAL.white]);
   if(POL.bustT>.3)C.push(['STOPPING YOU '+Math.max(0,3-POL.bustT).toFixed(1),true,PAL.red]);}
-function policeMapDots(toXY){if(!POL.live)return;const [r]=polFlash();for(let _i38=0;_i38<POL.cars.length;_i38++){const P=POL.cars[_i38];if(!P.V)continue;const q=toXY(P.V.p[0],P.V.p[2]);if(q)hDisc(q[0],q[1],1.3,r?PAL.red:PAL.cyan);}}
+function policeMapDots(toXY){if(!POL.live)return;const [r]=polFlash();for(let _i38=0;_i38<POL.cars.length;_i38++){const P=POL.cars[_i38];if(!P.V)continue;const q=toXY(P.V.p[0],P.V.p[2]);if(q)hDisc(q[0],q[1],1.3,r?PAL.red:PAL.cyan);}heliMapDot(toXY);}
 
 /* ---------- the voices (49_voices.js, from VOICE_PROMPTS.md): the police radio in your car, the loudspeaker from
    theirs (the traffic's drivers don't talk: they honk). Each decoded once, the first time police mode comes on; a line with no recording

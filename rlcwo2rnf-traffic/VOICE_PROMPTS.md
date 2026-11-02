@@ -44,6 +44,15 @@ while driving), and a dispatcher (a different voice, even and practiced, slower)
 | `radio_copy.mp3` | dispatcher | "Copy, Unit Four." |
 | `radio_stopped.mp3` | officer | "Vehicle is stopped. One in custody." |
 
+## The police helicopter (new, not recorded yet: wanted level 5)
+
+Voice: the pilot, a third voice, calm and clipped over the rotor noise (record it dry; the game adds the radio).
+
+| File | Line |
+|---|---|
+| `radio_air_on.mp3` | "Air One, overhead. I have the vehicle." |
+| `radio_air_lost.mp3` | "Air One, I've lost the vehicle. It's too fast for us." |
+
 ## The traffic (a driver you've just hit, through an open window): left out
 
 The owner's call, 2 November: the traffic's drivers don't talk, they honk. These four were recorded but are not in the
