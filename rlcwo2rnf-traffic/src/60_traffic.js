@@ -244,7 +244,9 @@ function trfSpawn(c,px,pz,far,keep){
       okE=side*(ve-vp)<0,okW=side*(-ve-vp)<0,dir=okE&&okW?(trfRnd()<.5?1:-1):okE?1:okW?-1:(trfRnd()<.5?1:-1);
     if(Math.abs(x)>L.turnX||!hwReady(x))continue;
     const z=dir>0?L.zk:-L.zk,dd=Math.hypot(x-px,z-pz);if(dd<60||dd>keep)continue;
-    let clash=false;for(let _i9=0;_i9<TRF.cars.length;_i9++){const o=TRF.cars[_i9];if(o.on&&o!==c&&o.dir===dir&&Math.abs(o.x-x)<45&&Math.abs(o.lp-L.zk)<3){clash=true;break;}}if(clash)continue;
+    let clash=false;for(let _i9=0;_i9<TRF.cars.length;_i9++){const o=TRF.cars[_i9];if(o.on&&o!==c&&o.dir===dir&&Math.abs(o.x-x)<45&&Math.abs(o.lp-L.zk)<3){clash=true;break;}}
+    /* (nor on top of a police car, or just in front of one) */
+    for(let _i9b=0;_i9b<ACT.length&&!clash;_i9b++){const t=ACT[_i9b];if(Math.abs(t.p[0]-x)<40&&Math.abs(t.p[2]-z)<4)clash=true;}if(clash)continue;
     if(dd<far+10&&F){const y=hwY(x).y+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3){inside=false;break;}}if(inside)continue;}
     /* (about one driver in ten has their eyes elsewhere: a stopped car in their lane is seen only 25 to 45 m off) */
     c.look=trfRnd()<.1?25+trfRnd()*20:160;

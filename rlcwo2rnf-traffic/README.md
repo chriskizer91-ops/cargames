@@ -56,8 +56,22 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   and into the shadow maps; up close the race's coarse copy (the light body on a phone) with its wheels turning. The
   full and coarse cars are untouched: `node tools/mesh_same.js` builds every build's meshes here and in Wide Open 2 and
   compares their vertex buffers byte for byte. At night their lamps are on and the nearest few light the road.
-- **How many**: 8 on Mobile, 10 Low, 14 Medium, 24 High, 32 Ultra (the Dev tab's Traffic cars sets its own). Off for
-  races and timed challenges; the Drive tab's Traffic switches it off.
+- **The wanted level**, 1 to 5 (`WANTED`). It rises with the chase: the heat is a second of pursuit (1 a second; 1.5
+  over 100 mph), 12 for hitting a police car, 6 for hitting one of the traffic; level 2 at 45, 3 at 110, 4 at 200,
+  5 at 320 (about 45 s, 2 min, 3.3 min and 5.3 min of plain chase). Each level brings one more car (up to 3 on Mobile
+  and Low, 4 on Medium, 5 on High and Ultra), a stronger engine than yours (0, 15, 30, 45, 60% more torque: each car
+  out there is refitted where it is when the level changes) and braver driving (85% of the grip round the bends at
+  level 1 to 95% at 5; following 8 m + 0.3 s at 1, 7 m + 0.25 s at 2, 6 m + 0.2 s from 3). Dev: Wanted level (Auto, or
+  held at 1 to 5), Police cars (Wanted, or 1 to 5), Police engines (By wanted level, Same as yours). Off for races and
+  timed challenges. Traffic brakes for them and goes onto the physics near them, as for you.
+- **How they stop you**: level 1, one car follows and pulls up behind you when you stop. From level 2, with you slowed
+  right down (crashed, spun, stuck: under 4 m/s for a second) they hem you in: the nearest gets past you and across
+  your front, slowing; the next comes up to your back, the third alongside, each closing to about half a metre and
+  holding; any more wait 15 m off. From level 3, with you between 8 and 30 m/s, the nearest tries a PIT: lines its
+  nose up with your back wheel a hand's width off, then nudges through your back corner to turn you round (one at a
+  time, six seconds between). `police_check.js evade` (round and round town at up to 50 mph, the test's driver never
+  stopping): level 1 never stops it; levels 3 and 5 did in 29 to 127 s (Mobile and High, one run each), with 1 to 9
+  PITs; their own wall hits there, 0 to 8 a run, mostly in the mess after a PIT.
 - **Checks**: `node tools/traffic_check.js [park,drive,ram]` (you parked across a lane; you through town at 70; you
   into the traffic at 90): no NaNs, never over the budget, no two lane cars overlapping, none into you, no red run, all
   in their lanes; `node tools/rt_check.js` has a traffic scene.
@@ -68,7 +82,7 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   salt and across it, and never give up.
 - **They drive what you drive**: your build, on the same physics, with the robot's stability control, ABS and traction
   control, in black and white (the doors and roof white: the livery shader's style 5) with a light bar flashing red
-  and blue; so on a straight they hold whatever gap you leave them.
+  and blue; with a stronger engine as the wanted level rises (below).
 - **The pursuit**: a police car drives your trail (where you were every 4 m, the last few minutes: a line you drove, so
   one that can be driven), steering for a point along it (nearer in a corner, so it doesn't cut through a building's
   corner) and reading the trail further on for the bends: no faster than 80% of the grip allows round the tightest one
@@ -96,10 +110,15 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   touching; "come back in" counts the first time in too. Before, the police in town knocked the test's own car off its
   route in all six runs, by 37 to 164 m. What's left: on High, two police cars on Highway 40 still brush a car of the
   traffic now and then, a car changing lanes into them or one they squeeze past.)
-- **Busted**: stopped with a police car beside you for three seconds. A $500 fine in the career (free play counts
-  them); they hold off six seconds, then it starts again.
-- **The siren** wails, yelps once they're within 45 m, each car its own voice, panned and with the Doppler. At night
-  the bar lights the ground round them. They're blinking dots on both maps; the HUD shows POLICE and the distance.
+- **Busted**: at a standstill (under 0.3 m/s: shoving a police car out of the way doesn't count) with a police car
+  within 8 m, three seconds running. So they have to stop you: hem you in, or you give up. Then, after a moment,
+  you're taken back to Marisol's garage (and fined $500 in the career); the chase is over and the level back to 1, and
+  they come after you again once you're 120 m out of the garage's block.
+- **The siren** wails, yelps once they're within 45 m, each car its own voice, panned and with the Doppler. Deeper
+  and quieter than it was: the sweep 28% lower with a low-pass in place of the band-pass, at 40% of the old volume
+  (Dev: Siren pitch Deeper, A little deeper, As before; Siren volume 25%, 40%, 60%, As before). At night the bar lights
+  the ground round them. They're blinking dots on both maps; the HUD shows WANTED and the level as stars, POLICE and
+  the distance.
 - **How many**: 1 on Mobile and Low, 2 on Medium and High, 3 on Ultra (Dev: Police cars). Off for races and timed
   challenges. Traffic brakes for them and goes onto the physics near them, as for you.
 - **Voices**: 14 recorded lines (`voices/`, the owner's pack, made to `VOICE_PROMPTS.md`; packed into the page by
@@ -112,7 +131,7 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   over it. On the phone a REAR button, top of the left-hand column (above CAM): one tap looks back, another looks
   ahead again (lit while it's on; a toggle, as both thumbs are busy). On the keyboard G, held; on a gamepad the right
   stick pressed in, held. REAR VIEW shows under the instruments while it's on.
-- **Check**: `node tools/police_check.js [chase,bust,town,hwy]`.
+- **Check**: `node tools/police_check.js [chase,bust,town,hwy,evade]` (town, hwy, chase and bust hold the level at 1).
 
 ---
 

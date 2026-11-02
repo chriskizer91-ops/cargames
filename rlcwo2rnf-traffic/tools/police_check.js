@@ -3,12 +3,15 @@
              for two minutes (a little controller of the test's own holding the heading): how far behind they keep,
              how often one had to come back in behind you, that none is ever lost for good
      bust    then you stop: they catch up and call it, and after holding off they come back
+   town, hwy, chase and bust hold the wanted level at 1 (one car, following: how well they drive); evade sets its own.
    Checks: no NaNs; police out the whole time; the nearest within 300 m at least 90% of the chase; a bust within 40 s
    of stopping. Any failure, or a page error, makes the exit code 1.
      town    a drive through town (west on Highway 40, six turns on the streets, out east), the police behind: how
              often they hit a wall, a car or you, roll, get stuck, or have to come back in behind you
      hwy     east on Highway 40 in its traffic at 65 mph, the police behind: the same count
-   usage: node tools/police_check.js [chase,bust,town,hwy]      env: QUALITY (mobile), CAR (a build id, default the stock SUV), FILE, W, H */
+     evade   round and round town at up to 50 mph, never stopping, the wanted level held at each of LEVELS (1,3,5):
+             whether they stop you (a bust), how long it takes, their PITs, your spins, their wall hits
+   usage: node tools/police_check.js [chase,bust,town,hwy,evade]      env: QUALITY (mobile), CAR (a build id, default the stock SUV), FILE, W, H */
 const {chromium}=require('playwright');const path=require('path');
 const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','rlcwo2rnf-traffic.html');
 const which=(process.argv[2]||'chase,bust').split(',');
@@ -53,7 +56,7 @@ const which=(process.argv[2]||'chase,bust').split(',');
   const townRoute=[[700,-5.5],[120,-5.5],[120,-240],[-120,-240],[-120,120],[240,120],[240,5.5],[1700,5.5]];
   for(const [name,route,vmax,secs] of [['town',townRoute,20,200],['hwy',[[500,5.7],[3000,5.7]],29,110]])if(which.includes(name))await run(name,async([route,vmax,secs])=>{
     const g=window.__game,G=g.GAME,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));
-    g.applyTod('day');g.closeMenu();G.state='drive';g.APP.police=false;g.step(dt);
+    g.applyTod('day');g.closeMenu();G.state='drive';g.APP.police=false;g.step(dt);g.DEVW.wanted='1';
     g.placeCar(route[0][0],route[0][1],Math.atan2(-(route[1][1]-route[0][1]),route[1][0]-route[0][0]));g.APP.cam=1;g.APP.police=true;g.render(dt);
     const t=G.car,drv=window.__drv(g,route,vmax),PM=window.__pm(g),r0=g.POL.respawns;let nan=0,done=-1,f=0,offR=0;
     for(;f<secs*60;f++){const fin=drv.go();g.setTestInput(drv.inp);g.APP.t+=dt;g.step(dt);PM.tick(f);
@@ -61,13 +64,30 @@ const which=(process.argv[2]||'chase,bust').split(',');
       {let best=1e9;for(let i=0;i+1<route.length;i++){const [ax,az]=route[i],[bx,bz]=route[i+1],ux=bx-ax,uz=bz-az,L2=ux*ux+uz*uz,q=Math.max(0,Math.min(1,((t.p[0]-ax)*ux+(t.p[2]-az)*uz)/L2));best=Math.min(best,Math.hypot(t.p[0]-ax-ux*q,t.p[2]-az-uz*q));}offR=Math.max(offR,best);}
       for(const P of g.POL.cars)if(P.V&&!P.V.p.every(Number.isFinite))nan++;
       if(f%300===299){g.render(dt);await wait(0);}}
-    g.setTestInput(null);const m=PM.m;
+    g.setTestInput(null);const m=PM.m;g.DEVW.wanted='auto';
     return {you:[Math.round(t.p[0]),Math.round(t.p[2])],secs:+(f*dt).toFixed(0),finished:done>=0,yourWorstOffRoute:+offR.toFixed(1),policeWallHits:m.wall,policeCarHits:m.car,carHitsBy:m.by,hitYou:m.you,flips:m.flips,stuck:m.stucks,
       respawns:g.POL.respawns-r0,meanGap:Math.round(m.sum/Math.max(1,m.frames)),within80Share:+(m.within80/Math.max(1,m.frames)).toFixed(2),policeTop:Math.round(m.maxSpd*2.237)+'mph',nan,log:m.last.filter((x,i,a)=>i===0||x.split('@')[0]!==a[i-1].split('@')[0]).slice(0,24)};},
     r=>{const bad=[];if(r.nan)bad.push('NaN');if(!r.finished)bad.push('your car never got round');if(r.yourWorstOffRoute>8)bad.push('your car left the route (the test driver)');return bad;},[route,vmax,secs]);
+  /* evade: round and round town at up to 50 mph (the test's driver never gives up and never stops), the wanted level
+     held at 1, 3 and 5: can they stop you, how (PITs), and how long it takes; how often they hit a wall */
+  if(which.includes('evade'))for(const L of (process.env.LEVELS||'1,3,5').split(',').map(Number))await run('evade L'+L,async([L])=>{
+    const g=window.__game,G=g.GAME,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));
+    g.applyTod('day');g.closeMenu();G.state='drive';g.APP.police=false;g.step(dt);g.DEVW.wanted=String(L);
+    const A=[120,-5.5],B=[120,-240],C=[-120,-240],D=[-120,120],E=[240,120],F=[240,-5.5],route=[[600,-5.5],A,B,C,D,E,F,A,B,C,D,E,F,A,B,C,D,E,F];
+    g.placeCar(600,-5.5,Math.PI);g.APP.police=true;g.render(dt);
+    const t=G.car,drv=window.__drv(g,route,22),PM=window.__pm(g),b0=g.POL.busts,p0=g.POL.pits;let nan=0,bust=-1,spins=0,spinT=0,f=0,slowT=0;
+    for(;f<150*60;f++){drv.go();g.setTestInput(drv.inp);g.APP.t+=dt;g.step(dt);PM.tick(f);
+      const yr=Math.abs(t.w?t.w[1]:0);if(yr>1.6&&spinT<=0){spins++;spinT=2;}spinT-=dt;if(t.speed<3)slowT+=dt;
+      for(const P of g.POL.cars)if(P.V&&!P.V.p.every(Number.isFinite))nan++;
+      if(g.POL.busts>b0){bust=f*dt;break;}
+      if(f%300===299){g.render(dt);await wait(0);}}
+    g.setTestInput(null);const m=PM.m;g.DEVW.wanted='auto';
+    return {level:L,bustedAfter:bust<0?null:+bust.toFixed(1),pits:g.POL.pits-p0,yourSpins:spins,yourSecondsSlow:+slowT.toFixed(0),policeWallHits:m.wall,carHitsBy:m.by,flips:m.flips,stuck:m.stucks,
+      respawns:g.POL.respawns,cars:g.POL.cars.filter(c=>c.V).length,nan,log:m.last.slice(0,10)};},
+    r=>{const bad=[];if(r.nan)bad.push('NaN');if(r.level>=3&&r.bustedAfter===null)bad.push('never stopped you');return bad;},[L]);
   if(which.includes('chase'))await run('chase',async()=>{
     const g=window.__game,G=g.GAME,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));
-    g.applyTod('day');g.closeMenu();G.state='drive';g.placeCar(1800,40,0);g.APP.cam=1;g.APP.police=true;g.render(dt);
+    g.applyTod('day');g.closeMenu();G.state='drive';g.placeCar(1800,40,0);g.APP.cam=1;g.APP.police=true;g.DEVW.wanted='1';g.render(dt);
     const t=G.car,inp={steer:0,thr:0,brk:0,hb:0,nos:false},vt=36,zt=40;let nan=0,within=0,frames=0,maxD=0,sum=0,out=0;const trace=[];
     for(let f=0;f<120*60;f++){const M=t.M,hl=Math.hypot(M[0],M[6])||1,hz=M[6]/hl;inp.steer=Math.max(-.3,Math.min(.3,.03*(zt-t.p[2])-1.2*hz));
       inp.thr=Math.max(0,Math.min(1,(vt-t.speed)*.3));inp.brk=t.speed>vt+3?.3:0;g.setTestInput(inp);g.APP.t+=dt;g.step(dt);
