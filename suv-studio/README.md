@@ -2,8 +2,10 @@
 
 The stock truck from Redline County: Wide Open 2: Road Not Found + Traffic, alone on a plain studio backdrop,
 modelled for a close look. One self-contained page: `suv-studio.html` (open it in any browser with WebGL2).
-Drag to turn round it, pinch or scroll to come closer; the buttons jump to views, open the hood, switch the
-backdrop and repaint it in the game's eight colours.
+Drag (one finger) to turn round it, all the way over and underneath; pinch or scroll to come closer or back off,
+toward whatever is under your finger or pointer; two fingers or a right drag to slide; double-tap or double-click a
+part to swing round it. The buttons jump to views (framed to fit a phone held upright), spin it on a turntable, reset
+the view, open the hood, switch the backdrop and repaint it in the game's eight colours.
 
 ## How it is made
 

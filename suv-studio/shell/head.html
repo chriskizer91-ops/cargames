@@ -3,7 +3,7 @@
 <style>
 :root{color-scheme:light dark}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;font:13px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;font:13px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{background:#e6e5e2;color:#222}
 body[data-back=dark]{background:#17181b;color:#ddd}
 #cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
@@ -17,13 +17,19 @@ button.on{background:#222;color:#fff}
 #views{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 #paints{display:flex;gap:6px}
 .sw{width:22px;height:22px;padding:0;border-radius:50%;border:2px solid rgba(255,255,255,.7)}
+#hint{position:fixed;left:50%;top:calc(42px + env(safe-area-inset-top));transform:translateX(-50%);font-size:12px;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis;transition:opacity .6s;pointer-events:none}
+#hint.gone{opacity:0}
+/* (an element hidden by its attribute stays hidden: #loading sets its own display, which would beat it) */
+[hidden]{display:none!important}
 #loading{position:fixed;inset:0;display:grid;place-items:center;letter-spacing:.12em;text-transform:uppercase;font-size:12px;opacity:.6}
-@media (max-width:620px){#views button:nth-child(n+5){display:none}}
+#paintb{display:none}
+@media (max-width:620px){#stats{left:14px;right:auto;top:calc(28px + env(safe-area-inset-top))}#hint{top:calc(52px + env(safe-area-inset-top))}#views button:nth-child(n+5){display:none}#paintb{display:inline-block}#paints{display:none;width:100%;justify-content:center}#paints.open{display:flex}#ui{gap:6px}button{padding:6px 10px}}
 </style></head><body data-back="light">
 <canvas id="cv"></canvas>
 <div id="title">Redline County · SUV Studio</div><div id="stats"></div>
 <div id="loading">Building the truck…</div>
+<div id="hint">Drag to turn · pinch or scroll to zoom · double-tap a part to look at it</div>
 <div id="ui">
- <div id="views"><button data-v="front34">Front ¾</button><button data-v="rear34">Rear ¾</button><button data-v="side">Side</button><button data-v="wheel">Wheel</button><button data-v="lamp">Lamp</button><button data-v="tail">Tail</button><button data-v="cabin">Cabin</button><button data-v="low">Low</button><button data-v="top">Top</button></div>
- <button id="hood">Hood</button><button id="back">Backdrop</button><div id="paints"></div>
+ <div id="views"><button data-v="front34">Front ¾</button><button data-v="rear34">Rear ¾</button><button data-v="side">Side</button><button data-v="wheel">Wheel</button><button data-v="lamp">Lamp</button><button data-v="tail">Tail</button><button data-v="cabin">Cabin</button><button data-v="low">Low</button><button data-v="under">Under</button><button data-v="top">Top</button></div>
+ <button id="spin">Spin</button><button id="reset">Reset</button><button id="hood">Hood</button><button id="back">Backdrop</button><button id="paintb">Paint</button><div id="paints"></div>
 </div>

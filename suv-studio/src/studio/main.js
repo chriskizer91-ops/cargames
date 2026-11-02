@@ -18,8 +18,13 @@ renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=1.0;
 renderer.shadowMap.enabled=Q.get('shadow')!=='0';renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(28,1,.05,200);
-const controls=new OrbitControls(camera,cv);controls.enableDamping=true;controls.target.set(0,.82,0);
-controls.minDistance=1.2;controls.maxDistance=18;controls.maxPolarAngle=Math.PI*.497;
+/* the camera goes anywhere round the truck: drag (one finger) to turn, pinch or scroll to come closer or back off
+   (toward whatever is under the pointer), two fingers or a right drag to slide; underneath too (the floor gets out
+   of the way); double-tap or double-click a part to swing round it */
+const controls=new OrbitControls(camera,cv);controls.enableDamping=true;controls.dampingFactor=.08;controls.target.set(0,.82,0);
+controls.minDistance=.35;controls.maxDistance=32;controls.minPolarAngle=0;controls.maxPolarAngle=Math.PI;
+controls.enablePan=true;controls.screenSpacePanning=true;controls.zoomToCursor=true;controls.zoomSpeed=1.1;controls.rotateSpeed=.85;
+controls.autoRotateSpeed=1.4;
 
 /* ---------- the backdrop: a plain colour, a floor that only shows the car's shadow ---------- */
 const BACK={light:{bg:'#e6e5e2',sh:.34,env:1,key:1.8},dark:{bg:'#17181b',sh:.55,env:.8,key:1.4}};
@@ -192,9 +197,14 @@ const VIEWS={
   front34:{p:[5.6,1.55,4.6],t:[.15,.8,0]},rear34:{p:[-5.4,1.7,4.8],t:[-.1,.85,0]},side:{p:[0,1.0,8.2],t:[0,.85,0]},
   front:{p:[8.2,1.0,0],t:[0,.8,0]},rear:{p:[-8.2,1.1,0],t:[0,.85,0]},top:{p:[.01,9.5,0],t:[0,.6,0]},
   wheel:{p:[2.6,.55,2.35],t:[1.36,.4,.8]},lamp:{p:[3.9,1.0,1.55],t:[2.35,.88,.55]},tail:{p:[-3.6,1.15,1.6],t:[-2.35,1.0,.6]},
-  low:{p:[4.4,.25,3.4],t:[0,.55,0]},rglass:{p:[-3.9,2.1,2.4],t:[-2.25,1.5,.6]},cabin:{p:[1.6,1.75,2.2],t:[-.2,1.05,0]},bay:{p:[3.9,2.4,1.6],t:[1.45,.95,0]}
+  low:{p:[4.4,.25,3.4],t:[0,.55,0]},under:{p:[2.6,-1.9,2.4],t:[0,.4,0]},rglass:{p:[-3.9,2.1,2.4],t:[-2.25,1.5,.6]},cabin:{p:[1.6,1.75,2.2],t:[-.2,1.05,0]},bay:{p:[3.9,2.4,1.6],t:[1.45,.95,0]}
 };
-function setView(v){const V=VIEWS[v]||VIEWS.front34;camera.position.set(...V.p);controls.target.set(...V.t);controls.update();}
+/* the views are framed for a landscape screen (16:10); a narrower one (a phone held upright) widens the lens and
+   backs the camera off along the same line, so the same width of truck fits across it */
+function setView(v){const V=VIEWS[v]||VIEWS.front34,a=camera.aspect;camera.fov=a<1?42:28;camera.updateProjectionMatrix();
+  const hf=Math.tan(camera.fov*Math.PI/360)*a,ref=Math.tan(14*Math.PI/180)*1.6,k=Math.max(1,ref/hf);
+  const t=new THREE.Vector3(...V.t),p=new THREE.Vector3(...V.p).sub(t).multiplyScalar(k).add(t);
+  camera.position.copy(p);controls.target.copy(t);controls.update();}
 function resize(){const w=cv.clientWidth,h=cv.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;
   /* a tall phone frames the car by its width: pull back so it fits */
   camera.updateProjectionMatrix();}
@@ -205,17 +215,37 @@ function hud(){const el=document.getElementById('stats');if(el)el.textContent=`$
 
 /* ---------- the loop (held by the screenshot tool) ---------- */
 let held=false;
-function frame(){hoodStep();controls.update();renderer.render(scene,camera);}
+/* keep the point turned about near the truck, and take the floor away when the camera goes under it */
+function keepNear(){const t=controls.target;t.x=Math.max(-3.6,Math.min(3.6,t.x));t.y=Math.max(-.4,Math.min(2.6,t.y));t.z=Math.max(-2.2,Math.min(2.2,t.z));
+  const under=camera.position.y<.01;floor.visible=!under;pool.visible=!under;}
+/* a double tap or click on the truck: turn about the spot hit, and come in a little */
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();let fly=null;
+function focusAt(cx,cy){const r=cv.getBoundingClientRect();ndc.set((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObject(car,true).find(h=>h.object.visible&&!(h.object.material&&h.object.material.transparent));if(!hit)return false;
+  const p=hit.point,d=camera.position.distanceTo(controls.target),nd=Math.max(.6,Math.min(d*.55,3)),dir=camera.position.clone().sub(controls.target).normalize();
+  fly={t0:performance.now(),a:controls.target.clone(),b:p.clone(),ca:camera.position.clone(),cb:p.clone().add(dir.multiplyScalar(nd))};return true;}
+function flyStep(){if(!fly)return;const k=Math.min(1,(performance.now()-fly.t0)/650),e=k*k*(3-2*k);
+  controls.target.lerpVectors(fly.a,fly.b,e);camera.position.lerpVectors(fly.ca,fly.cb,e);if(k>=1)fly=null;}
+let lastTap={t:0,x:0,y:0},downAt=null;
+cv.addEventListener('pointerdown',e=>{downAt={x:e.clientX,y:e.clientY};hideHint();});
+cv.addEventListener('pointerup',e=>{if(!downAt||Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)>8)return;const now=performance.now();
+  if(now-lastTap.t<320&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<30){focusAt(e.clientX,e.clientY);lastTap.t=0;}else lastTap={t:now,x:e.clientX,y:e.clientY};});
+function hideHint(){const h=document.getElementById('hint');if(h)h.classList.add('gone');}
+function frame(){hoodStep();flyStep();controls.update();keepNear();renderer.render(scene,camera);}
 function loop(){if(!held)frame();requestAnimationFrame(loop);}
 addEventListener('resize',resize);
 setBack(back);build();resize();setView(Q.get('view')||'front34');loop();
-window.STUDIO={THREE,scene,camera,controls,renderer,car,setView,setBack,setPaint,setHood,build,
+window.STUDIO={THREE,scene,camera,controls,renderer,car,focusAt,setView,setBack,setPaint,setHood,build,
   hold(h){held=h;},snap(){frame();return cv.toDataURL('image/png');},settle(){hoodA=hoodT;hoodStep();},stats:()=>stats,VIEWS};
 
 /* ---------- the controls ---------- */
 const $=id=>document.getElementById(id);
 $('views').addEventListener('click',e=>{const v=e.target.dataset.v;if(v)setView(v);});
 $('back').addEventListener('click',()=>setBack(back==='light'?'dark':'light'));
+$('spin').addEventListener('click',()=>{controls.autoRotate=!controls.autoRotate;$('spin').classList.toggle('on',controls.autoRotate);});
+$('paintb').addEventListener('click',()=>{$('paints').classList.toggle('open');$('paintb').classList.toggle('on');});
+$('reset').addEventListener('click',()=>{fly=null;setView('front34');});
+cv.addEventListener('wheel',hideHint,{passive:true});
 $('hood').addEventListener('click',()=>{setHood(hoodT<.5);$('hood').classList.toggle('on',hoodT>.5);});
 const sw=$('paints');for(const [n,h] of K.PAINTS){const b=document.createElement('button');b.className='sw';b.style.background=h;b.title=n;b.onclick=()=>setPaint(h);sw.appendChild(b);}
 document.getElementById('loading').hidden=true;
