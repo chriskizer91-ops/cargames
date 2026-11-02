@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SUV: Super Unlimited Venture</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;font:13px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#9fb3c6;color:#fff}
+[hidden]{display:none!important}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.panel{background:rgba(12,14,18,.62);backdrop-filter:blur(6px);border-radius:10px;padding:8px 11px}
+#top{position:fixed;left:10px;top:calc(10px + env(safe-area-inset-top));right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
+#title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+#perf{font-size:12px;font-variant-numeric:tabular-nums;max-width:58vw}
+#perf b{font-weight:600}
+.dim{opacity:.6;font-size:11px}
+#speed{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+#bar{position:fixed;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:6px;justify-content:center;pointer-events:none}
+#bar>*{pointer-events:auto}
+#trucks{display:flex;gap:4px;background:rgba(12,14,18,.55);border-radius:999px;padding:3px}
+button{font:inherit;color:#fff;background:rgba(12,14,18,.55);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:6px 12px;cursor:pointer}
+#trucks button{border:none;background:transparent}
+button.on{background:#fff;color:#111}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.25);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+#results{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);max-width:94vw;z-index:5}
+#results table{border-collapse:collapse;font-variant-numeric:tabular-nums}
+#results td,#results th{padding:4px 8px;text-align:right;font-size:12px}
+#results td:first-child,#results th:first-child{text-align:left}
+#results h3{margin:2px 0 8px;font-size:14px}
+#results p{max-width:420px}
+/* the touch pedals and steering, only on a touch screen */
+.tc{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));width:74px;height:74px;border-radius:18px;display:none;place-items:center;font-size:12px;letter-spacing:.06em;
+  background:rgba(12,14,18,.38);border:1px solid rgba(255,255,255,.25);user-select:none;-webkit-user-select:none}
+body.touch .tc{display:grid}
+.tc.on{background:rgba(255,255,255,.4)}
+#tl{left:12px}#tr{left:96px}#tb{right:96px}#tg{right:12px;height:110px}#th{right:12px;bottom:calc(184px + env(safe-area-inset-bottom));height:46px}
+@media (max-width:620px){#perf{max-width:70vw;font-size:11px}#bar{gap:4px}button{padding:5px 9px}}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div id="top"><div class="panel"><div id="title">SUV · Super Unlimited Venture</div><div id="perf"></div></div><div class="panel"><div id="speed"></div></div></div>
+<div id="bar">
+ <div id="trucks"><button data-k="game">Game</button><button data-k="studio">Studio</button><button data-k="baked">Baked</button></div>
+ <button id="bench">Benchmark</button><button id="lot">×10</button><button id="cam">Chase</button><button id="level">Middle</button><button id="reset">Reset</button>
+</div>
+<div class="tc" id="tl">◀</div><div class="tc" id="tr">▶</div><div class="tc" id="tb">BRAKE</div><div class="tc" id="tg">GAS</div><div class="tc" id="th">E-BRAKE</div>
+<div id="results" class="panel" hidden></div>
+<div id="loading">Building…</div>
