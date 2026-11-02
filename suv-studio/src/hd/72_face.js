@@ -108,7 +108,7 @@ function hdFaceClassic(out,car){
     const L=[[s*.488,Y(.81)],[s*.86,Y(.816)],[s*.9,Y(.88)],[s*.885,Y(1.01)],[s*.488,Y(1.024)]],Lr=hdResample(L,.006);
     for(const c of cuts)hdCut(c,'F',L);
     const amb=z=>Math.abs(z)>.832;
-    hdRecess(out,'F',L,.085,.9,HC.GB,(z)=>amb(z)?SV([1,1,1],MAT.AMBER):HC.REFLC,7);
+    hdRecess(out,'F',L,.085,.9,HC.SATIN,()=>HC.REFLC,7);
     /* a bezel band across the lamp's inner part, black, the projectors set in it */
     for(const zp of [.58,.72]){const z=s*zp,y=Y(.918),b=hdS('F',z,y,-.048);
       hdRevAt(out,'F',b,[[.062,-.03],[.06,.004],[.056,.0105],[.05,.012],[.046,.008],[.044,0]],MM.CHROME,64);
@@ -118,7 +118,8 @@ function hdFaceClassic(out,car){
     /* the amber corner's bulb, and a ribbed amber reflector face */
     {const b=hdS('F',s*.865,Y(.9),-.07);hdPart(out,mb=>{ball(mb,b,.007,14,HC.BULB);},50);}
     /* the clear outer lens, proud of the opening by a few millimetres in the middle, and its black seal */
-    hdPart(out,mb=>{hdGrid(mb,'F',L,()=>.0015,()=>HC.LENS,.01);},40);
+    /* (amber over the corner, clear over the rest: the divider below covers the seam) */
+    hdPart(out,mb=>{hdGrid(mb,'F',L,()=>.0015,(z)=>amb(z)?HC.AMBERL:HC.LENS,.006);},40);
     /* a chrome divider between the clear part and the amber corner */
     {const p=[];for(let y=.83;y<=1.0;y+=.01)p.push([s*.832,Y(y)]);hdTrim(out,'F',p,.006,.07,MM.CHROME,false,50,-.078);}
     hdTrim(out,'F',Lr,.007,.003,HC.SEAL,true,50);

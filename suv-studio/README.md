@@ -25,6 +25,18 @@ backdrop and repaint it in the game's eight colours.
 - `node tools/shot.js <out-dir> front34 rear34:dark wheel bay::open ...` takes pictures (views: front34 rear34 side
   front rear top wheel lamp tail low cabin bay; backdrop light or dark; `open` for the hood).
 
+## The same truck, path traced in Blender
+
+`tools/export_parts.js` writes the truck out exactly as the page builds it (every part split by material, flat
+triangle lists, with where each wheel goes); `tools/cycles_render.py` loads that into Blender (its Python module,
+`pip install bpy`, no Blender window needed) and renders it with Cycles, Blender's path tracer: soft boxes over a
+floor that keeps only the shadow, real light bouncing round the cabin and through the glass, on the page's grey.
+Nothing about the model changes; only the way the light is worked out. A 1600 x 1000 frame at 96 samples takes a few
+minutes on two processor cores.
+
+    node tools/export_parts.js /tmp/suv-export
+    python3 tools/cycles_render.py /tmp/suv-export docs/cycles_front34.png front34 1600 1000 96
+
 ## The parts so far
 
 | Part | What it is |

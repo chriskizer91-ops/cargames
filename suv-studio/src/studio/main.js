@@ -11,23 +11,25 @@ const K=window.KIT,MAT=K.MAT,SM=K.SM,Q=new URLSearchParams(location.search);
 const BUILD=Q.get('build')||'stock',LOD=+(Q.get('lod')||.25);
 const cv=document.getElementById('cv');
 const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+/* (a phone: a little under full sharpness and a smaller shadow map, so it turns smoothly) */
+const PHONE=matchMedia('(hover: none)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,PHONE?1.5:2));
 renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=1.0;
-renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled=Q.get('shadow')!=='0';renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(28,1,.05,200);
 const controls=new OrbitControls(camera,cv);controls.enableDamping=true;controls.target.set(0,.82,0);
 controls.minDistance=1.2;controls.maxDistance=18;controls.maxPolarAngle=Math.PI*.497;
 
 /* ---------- the backdrop: a plain colour, a floor that only shows the car's shadow ---------- */
-const BACK={light:{bg:'#e6e5e2',sh:.32,env:1,key:2.2},dark:{bg:'#17181b',sh:.55,env:.9,key:2}};
+const BACK={light:{bg:'#e6e5e2',sh:.34,env:1,key:1.8},dark:{bg:'#17181b',sh:.55,env:.8,key:1.4}};
 let back=Q.get('back')||'light';
 const pmrem=new THREE.PMREMGenerator(renderer);
 /* the reflections: a photo studio made of light. A grey dome (light floor, darker walls, a soft ceiling), a long
    soft box overhead, two tall strips either side, a broad box in front and a dimmer one behind. Its long clean
    highlights are what read as paint on the body. */
 function studioEnvScene(){const s=new THREE.Scene(),g=new THREE.SphereGeometry(40,64,32),c=[];
-  const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/40,v=y>0?.17+.08*y:.17+(.3-.17)*Math.min(1,-y*4);c.push(v,v,v*.98);}
+  const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/40,v=y>0?.12+.06*y:.12+(.22-.12)*Math.min(1,-y*4);c.push(v,v,v*.98);}
   g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));s.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide})));
   const box=(w,h,pos,look,k,tint=[1,1,1])=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
     m.material.color.setRGB(k*tint[0],k*tint[1],k*tint[2]);m.position.set(...pos);m.lookAt(...look);s.add(m);};
@@ -47,7 +49,7 @@ const pool=(()=>{const c=document.createElement('canvas');c.width=c.height=256;c
   m.rotation.x=-Math.PI/2;m.position.y=.002;m.renderOrder=-1;return m;})();
 scene.add(pool);
 const key=new THREE.DirectionalLight(0xffffff,2.6);key.position.set(3.2,7.5,2.4);key.castShadow=true;
-key.shadow.mapSize.set(4096,4096);key.shadow.camera.left=-4;key.shadow.camera.right=4;key.shadow.camera.top=4;key.shadow.camera.bottom=-4;
+key.shadow.mapSize.set(PHONE?2048:4096,PHONE?2048:4096);key.shadow.camera.left=-4;key.shadow.camera.right=4;key.shadow.camera.top=4;key.shadow.camera.bottom=-4;
 key.shadow.camera.near=1;key.shadow.camera.far=20;key.shadow.radius=6;key.shadow.blurSamples=16;key.shadow.bias=-.0004;key.shadow.normalBias=.02;
 scene.add(key);scene.add(key.target);
 const rim=new THREE.DirectionalLight(0xdfe8ff,.7);rim.position.set(-6,3,-4);scene.add(rim);
@@ -73,7 +75,7 @@ function matFor(id,em,b){const m=matFor0(id,em,b);if(INSIDE.has(id)){m.envMapInt
 function matFor0(id,em,b){
   const vc={vertexColors:true};
   switch(id){
-    case MAT.PAINT:return P({color:col(b.paint),metalness:.22,roughness:.42,clearcoat:1,clearcoatRoughness:.03});
+    case MAT.PAINT:return P({color:col(b.paint),metalness:.1,roughness:.5,clearcoat:1,clearcoatRoughness:.03});
     case MAT.ACCENT:return P({color:col(b.paint2),metalness:.22,roughness:.42,clearcoat:1,clearcoatRoughness:.03});
     case MAT.GLASS:return P({color:col('#05070a'),metalness:0,roughness:.02,transparent:true,opacity:.72,depthWrite:false,envMapIntensity:1.4,specularIntensity:1});
     case MAT.GLASSL:return P({color:col('#0a0e12'),metalness:0,roughness:.02,transparent:true,opacity:.42,depthWrite:false,envMapIntensity:1.4,specularIntensity:1});
@@ -85,7 +87,7 @@ function matFor0(id,em,b){
     case MAT.AMBER:return P({color:col('#c9661c'),roughness:.08,metalness:.15,clearcoat:1,clearcoatRoughness:.02,emissive:col('#ff7a10'),emissiveIntensity:.04});
     case MAT.MESH:return P({color:col('#0c0c0d'),roughness:.55,metalness:.2});
     case MAT.RIM:return P({color:col(b.rim),metalness:1,roughness:.22});
-    case MAT.CLAD:return P({color:col(b.clad),roughness:.78,normalMap:GRAIN,normalScale:new THREE.Vector2(.5,.5)});
+    case MAT.CLAD:return P({color:col(b.clad),roughness:.74,normalMap:GRAIN,normalScale:new THREE.Vector2(.25,.25)});
     case MAT.SHUT:return P({color:col('#0a0a0a'),roughness:.7});
     case MAT.EMIT:return P({...vc,emissive:col('#ffffff'),emissiveIntensity:1});
     case MAT.METAL:return P({...vc,metalness:.55,roughness:.45});
@@ -136,8 +138,13 @@ function meshes(src,name,b){
   for(let t=0;t<nt;t++){const id=M[t*3]|0,em=C[t*12+3]>0?1:0,k=id*2+em;let a=by.get(k);if(!a)by.set(k,a=[]);a.push(t);}
   const g=new THREE.Group();g.name=name;
   for(const [k,ts] of by){const id=k>>1,em=k&1,n=ts.length,pp=new Float32Array(n*9),nn=new Float32Array(n*9),cc=new Float32Array(n*9);
-    for(let i=0;i<n;i++){const t=ts[i];pp.set(P.slice?P.slice(t*9,t*9+9):P.subarray(t*9,t*9+9),i*9);nn.set(N.slice(t*9,t*9+9),i*9);
-      for(let v=0;v<3;v++){cc[i*9+v*3]=C[t*12+v*4];cc[i*9+v*3+1]=C[t*12+v*4+1];cc[i*9+v*3+2]=C[t*12+v*4+2];}}
+    for(let i=0;i<n;i++){const t=ts[i],o=t*9;
+      /* the game keeps no one winding (its two sides are mirrored in the same order): each triangle is turned so its own
+         facing agrees with its normals, or a double-sided material, taking it as seen from behind, would light it from
+         the inside */
+      const ux=P[o+3]-P[o],uy=P[o+4]-P[o+1],uz=P[o+5]-P[o+2],vx=P[o+6]-P[o],vy=P[o+7]-P[o+1],vz=P[o+8]-P[o+2],
+        gx=uy*vz-uz*vy,gy=uz*vx-ux*vz,gz=ux*vy-uy*vx,ok=gx*(N[o]+N[o+3]+N[o+6])+gy*(N[o+1]+N[o+4]+N[o+7])+gz*(N[o+2]+N[o+5]+N[o+8])>=0,ord=ok?[0,1,2]:[0,2,1];
+      for(let v=0;v<3;v++){const s=ord[v];for(let k=0;k<3;k++){pp[i*9+v*3+k]=P[o+s*3+k];nn[i*9+v*3+k]=N[o+s*3+k];cc[i*9+v*3+k]=C[t*12+s*4+k];}}}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pp,3));geo.setAttribute('normal',new THREE.BufferAttribute(nn,3));geo.setAttribute('color',new THREE.BufferAttribute(cc,3));
     if(MAT_UV[id])addUV(geo,MAT_UV[id]);
     const m=new THREE.Mesh(geo,matFor(id,em,b));m.castShadow=!(id===MAT.GLASS||id===MAT.GLASSL);m.receiveShadow=id!==SM.LINER;m.userData.mat=id;g.add(m);}
