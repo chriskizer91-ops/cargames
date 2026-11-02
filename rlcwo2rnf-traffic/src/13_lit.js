@@ -317,8 +317,11 @@ void main(){
     if(lv<(ed*ed*1.15-.2)*kf)discard;}
   if(m==1||m==4){
     vec3 pc=m==4?uPaint2:uPaint;
+    /* police (60_police): black and white, the doors and the roof white */
+    if(uLiv>4.5&&m==1){float xn=(vL.x-uLivP.y)/(uLivP.x-uLivP.y);
+      if(abs(N.z)>.35&&xn>.3&&xn<.66&&vL.y<uLivP.z+.03&&vL.y>uLivP.z-.62||N.y>.5&&vL.y>uLivP.z+.08&&xn>.26&&xn<.76)pc=uPaint2;}
     /* race livery: a swept band low on the sides, twin stripes down the middle */
-    if(uLiv>.5&&m==1){
+    else if(uLiv>.5&&m==1){
       float xn=(vL.x-uLivP.y)/(uLivP.x-uLivP.y);
       float band=uLivP.z-.30+.34*smoothstep(.15,.85,1.-xn);
       bool l2=uLiv>1.5;

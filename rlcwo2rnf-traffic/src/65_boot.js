@@ -44,4 +44,6 @@ else{
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,NOS,nosQuote,nosOrder,nosStep,syncNos,spend,GLC,makeMesh,drawMesh,meshRetry,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
+  /* the traffic (60_traffic) for the tools */
+  Object.assign(window.__game,{VOX,VOICES,POL,policeFrame,polRespawn,polCount,TRF,HW,TRF_ON,TRF_N,TRF_PHYS,trfEngage,trfThreat,trafficFrame,trfModelsStep,trafficWanted,trfCount,truckLite,TRUCKL,trfKeeps,SKY,frustum,saveDev,syncMenu,syncDevWorld});
 }

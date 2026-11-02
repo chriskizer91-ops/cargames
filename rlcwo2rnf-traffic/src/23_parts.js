@@ -4,7 +4,7 @@
    ===================================================================================== */
 function buildParts(K){
   const lk=K.D.look;
-  underbody(K);flares(K);roof(K);spoiler(K);exhausts(K);
+  if(!BODY_NOUNDER)underbody(K);flares(K);roof(K);spoiler(K);exhausts(K);
   if(FRONTS[lk.front])FRONTS[lk.front](K);if(REARS[lk.rear])REARS[lk.rear](K);
   if(HOODS[lk.hood])HOODS[lk.hood](K);
   for(const x of lk.extras||[])if(EXTRAS[x])EXTRAS[x](K);

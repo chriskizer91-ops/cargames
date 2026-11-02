@@ -114,3 +114,20 @@ function buildWheel(w){
   const m=mb.build();m.tris=mb.p.length/9;WHEELMESH[key]=m;return m;
 }
 
+/* a plain wheel for the traffic's light copy (33_car_mesh truckLite): the tyre's outline turned in fourteen steps,
+   the wheel's face a shallow disc in the rim's colour, the back closed: about two hundred triangles to the full
+   wheel's two or three thousand. Handed back unbuilt: the light copy puts four of them into the car's own mesh */
+const WHEELLITE={};
+function wheelLiteMB(w){
+  const key=JSON.stringify(w);if(WHEELLITE[key])return WHEELLITE[key];
+  const mb=new MB(),R=w.R,hw=w.W/2,rimR=w.rim*.0254/2,seg=14,TY=[.032,.032,.034],RIM=[1,1,1],C=Math.cos,S=Math.sin;
+  const prof=[[rimR+.012,-hw*.86],[R-.05,-hw],[R-.006,-hw*.8],[R-.006,hw*.8],[R-.05,hw],[rimR+.012,hw*.86]];
+  for(let i=0;i<seg;i++){const a=i/seg*TAU,b=(i+1)/seg*TAU;
+    for(let k=0;k<prof.length-1;k++){const p=prof[k],q=prof[k+1];mb.quad([C(a)*p[0],S(a)*p[0],p[1]],[C(b)*p[0],S(b)*p[0],p[1]],[C(b)*q[0],S(b)*q[0],q[1]],[C(a)*q[0],S(a)*q[0],q[1]],TY,0,MAT.TYRE);}}
+  const zf=hw*.86,face=zf-.035,ri=rimR*.9,zb=-hw*.86;
+  for(let i=0;i<seg;i++){const a=i/seg*TAU,b=(i+1)/seg*TAU;
+    mb.quad([C(a)*rimR*1.04,S(a)*rimR*1.04,zf],[C(b)*rimR*1.04,S(b)*rimR*1.04,zf],[C(b)*ri,S(b)*ri,face],[C(a)*ri,S(a)*ri,face],RIM,0,MAT.RIM);
+    mb.tri([0,0,face+.025],[C(a)*ri,S(a)*ri,face],[C(b)*ri,S(b)*ri,face],RIM,0,MAT.RIM);
+    mb.tri([0,0,zb],[C(b)*(rimR+.012),S(b)*(rimR+.012),zb],[C(a)*(rimR+.012),S(a)*(rimR+.012),zb],[.02,.02,.022],0,MAT.COL);}
+  mb.smooth(30);return WHEELLITE[key]=mb;
+}

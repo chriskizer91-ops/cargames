@@ -1,7 +1,8 @@
 /* The whole game in a real browser (headless Chromium, WebGL in software), drawn through the renderer: boots the built
    page, then drives several places (the car on the gas through the game's own step, frames drawn on the way, the
    floating origin stepping as it goes), a race with a robot in your seat, a challenge, the showroom (the shed, the
-   bay's window, the dyno lab). Prints what each did; any page error fails it.
+   bay's window, the dyno lab), the night, and a minute of the traffic on Highway 40. Prints what each did; any page
+   error fails it.
    usage: node tools/rt_check.js [places,comma,separated] [race id] [challenge id]     env: QUALITY (mobile), W, H, FILE */
 const {chromium}=require('playwright');const path=require('path');
 const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','rlcwo2rnf-traffic.html');
@@ -57,5 +58,15 @@ const places=(process.argv[2]||'garage,downtown,ring,hwyE,gas,ridge,oval,mud,str
     /* (with the performance overlay up, F: the renderer's numbers in it) */
     g.DEVW.hud=true;for(let i=0;i<8;i++){g.APP.t+=dt;g.render(dt);}g.DEVW.hud=false;
     const out={tris:g.APP.tris,lights:g.R.lights.stats.lights,dyn:g.R.U.uNDyn,hl:g.R.U.uHLShOn,overlay:g.rperfRows()};g.applyTod('day');g.APP.lights=false;return out;});
+  /* the traffic on Highway 40 (60_traffic): a minute parked on the shoulder east of town with the cars going by, a
+     frame drawn every two seconds; no NaNs, never more cars than the budget, none off its lane (tools/traffic_check.js
+     drives it harder: you parked across a lane, you through town at 70) */
+  await run('traffic',async()=>{const g=window.__game,G=g.GAME,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));g.closeMenu();G.state='drive';g.applyTod('day');g.goTo('gas');
+    for(let i=0;i<40;i++){g.worldUpdate([G.car.p[0],G.car.p[1]+3,G.car.p[2]],G.car);await wait(40);}
+    g.placeCar(900,-12.6,Math.PI);g.setTestInput({steer:0,thr:0,brk:1,hb:1,nos:false,park:true});let nan=0,maxOn=0,off=0,frames=0;
+    for(let k=0;k<3600;k++){g.APP.t+=dt;g.step(dt);if(k%120===0){g.render(dt);frames++;await wait(0);}maxOn=Math.max(maxOn,g.TRF_ON.length);
+      for(const c of g.TRF_ON){if(!Number.isFinite(c.x+c.y+c.z+c.v))nan++;if(c.lcT>=c.lcDur&&c.dir&&!g.HW.lanes.some(z=>Math.abs(Math.abs(c.lp)-z)<.05))off++;}}
+    g.setTestInput(null);const out={cars:g.TRF_ON.length,maxOn,budget:g.trfCount(),nan,off,frames,spawned:g.TRF.spawned,laneChanges:g.TRF.laneChanges,tris:g.TRF.tris};
+    if(nan||off||maxOn>out.budget)throw new Error('traffic: '+JSON.stringify(out));return out;});
   console.log(errs.length?'PAGE ERRORS ('+errs.length+'):\n  '+errs.slice(0,12).join('\n  '):'no page errors');
   await b.close();process.exit(errs.length?1:0);})();

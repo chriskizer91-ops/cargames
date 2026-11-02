@@ -1,7 +1,7 @@
 /* ---------- the open world's side of the developer's panel (Mini Dirt Run Open World's): the world's own numbers,
    how far it's drawn, worker or not, and a cruise control that holds the road (for the long straight runs).
    The handling and Sim switches are HD's own (54_dev). ---------- */
-const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{}};
+const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto'};
 try{const d=JSON.parse(store.get('rt-devworld','{}'))||{};for(const k of Object.keys(DEVW))if(d[k]!==undefined)DEVW[k]=d[k];}catch(e){}
 DEVW.cruise='off';if(DEVW.gen==='main')WORLD.forceLocal=true;
 /* (the numbers on screen: off, the small readout, or everything; a save from before had on or off) */
@@ -106,6 +106,8 @@ function buildDevWorld(){
   segButtons($('dHud'),[['off','Off'],['perf','Readout'],['full','Everything']],v=>{DEVW.hud=v;saveDev();});
   segButtons($('dView'),[['near','Near'],['normal','Normal'],['far','Far']],v=>{DEVW.view=v;saveDev();});
   segButtons($('dText'),[['smooth','Smooth'],['dots','Dots']],v=>{setDotText(v==='dots');syncDevWorld();});
+  segButtons($('dPol'),[['auto','Level'],['1','1'],['2','2'],['3','3'],['4','4']],v=>{DEVW.polN=v;saveDev();syncDevWorld();});
+  segButtons($('dTraf'),[['auto','Level'],['0','0'],['8','8'],['16','16'],['24','24'],['32','32'],['40','40']],v=>{DEVW.trafN=v;saveDev();syncDevWorld();});
   segButtons($('dGen'),[['worker','Worker'],['main','Main thread']],v=>{DEVW.gen=v;saveDev();if(v==='main'){WORLD.forceLocal=true;workerDown();}else{WORLD.forceLocal=false;WORLD.mode='starting';}syncDevWorld();});
   segButtons($('dCruise'),[['off','Off'],['max','Flat out'],['fast','100 mph'],['road','70 mph']],v=>{DEVW.cruise=v;if(v!=='off')DEVW.lastCruise=v;CRUISE.on=v!=='off';CRUISE.line=null;saveDev();});
   /* passes off, one at a time, to read the GPU's share by subtraction on a phone */
@@ -115,7 +117,7 @@ function buildDevWorld(){
   $('dReset').addEventListener('click',()=>{const S=WORLD.st;S.n=[0,0,0];S.ms=[0,0,0];S.mx=[0,0,0];S.sn=0;S.sms=0;S.smx=0;S.fn=0;S.fms=0;S.missT=0;S.odo=0;S.top=0;syncDevWorld();});
 }
 function syncDevWorld(){
-  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off']])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
+  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dPol',String(DEVW.polN||'auto')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
   const S=WORLD.st;$('dNote').textContent=`Made on: ${WORLD.mode}. ${WORLD.chunks.size} chunks and ${WORLD.far.size} far tiles loaded, ${(S.bytes/1048576).toFixed(1)} MB of them on the graphics card. `+
     `City Limits' town in the middle, Highway 40 straight through it east and west, country out to about two miles, then the salt flats to the edge, ${WG.HALF*2/1609.34|0} miles across.`;
 }

@@ -20,6 +20,7 @@ function drawMap(x0,y0,size){
   const t=GAME.car,n=size*HS;
   hRect(x0-1,y0-1,size+2,size+2,pack(0,0,0,200));
   mapFill(x0*HS,y0*HS,n,t.p[0],t.p[2],MINI_SPAN/n,MAPOFF);
+  policeMapDots((x,z)=>{const a=x0+size/2+(x-t.p[0])/MINI_SPAN*size,b=y0+size/2+(z-t.p[2])/MINI_SPAN*size;return a>=x0&&a<=x0+size&&b>=y0&&b<=y0+size?[a,b]:null;});
   mapArrow(x0+size/2,y0+size/2);
   hFrame(x0-1,y0-1,size+2,size+2,pack(255,255,255,60));
   txt3('N',x0+size/2-1,y0+1,pack(255,255,255,150));
@@ -36,6 +37,7 @@ function drawBigMap(){
   for(const r of BIGM.roads){const col=RC[r.cls];for(let k=2;k<r.pts.length;k+=2){const [a,b]=toM(r.pts[k-2],r.pts[k-1]),[c,d]=toM(r.pts[k],r.pts[k+1]);if(inR(a,b)&&inR(c,d))hLine(a,b,c,d,col);}}
   for(const tw of BIGM.towns){const [a,b]=toM(tw.x,tw.z);if(!inR(a,b))continue;hDisc(a,b,1.6,PAL.white);otxt3(tw.name.toUpperCase(),a+3,b-6,PAL.ink);}
   {const [a,b]=toM(37,-50);if(inR(a,b)){hDisc(a,b,1.6,PAL.gold);otxt3('GARAGE',a+3,b-6,PAL.gold);}}
+  policeMapDots((x,z)=>{const q=toM(x,z);return inR(q[0],q[1])?q:null;});
   mapArrow(x0+size/2,y0+size/2,1.3);
   hFrame(x0-2,y0-2,size+4,size+4,pack(255,255,255,70));
   const ew=t.p[0]/1609.34,ns=-t.p[2]/1609.34;otxt3(`${Math.abs(ew).toFixed(1)} MI ${ew>=0?'EAST':'WEST'}, ${Math.abs(ns).toFixed(1)} MI ${ns>=0?'NORTH':'SOUTH'} OF THE GARAGE`,x0+3,y0+3,PAL.ink);
@@ -82,7 +84,7 @@ function drawHud(c){
   if(e.nosKw){const k=clamp(pt.nos,0,1);hRect(bx,by,4,28,pack(30,26,40));hRect(bx,by+28-Math.round(28*k),4,Math.round(28*k),pt.nosOn&&(APP.t*10|0)%2?PAL.white:PAL.cyan);txt3('N',bx,by+30,PAL.dim);bx-=8;}
   /* bottom left: what the car is doing */
   const can=t.c.diff.can,C=[['TC',pt.tcOn||pt.etcOn,PAL.green],['ABS',t.absOn,PAL.amber],['ESC',t.escOn,PAL.amber]];
-  if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);nosHud(C);if(CRUISE.on)C.push(['CRUISE',true,PAL.cyan]);
+  if(can.low)C.push(['LOW',t.low,PAL.amber]);if(can.r)C.push(['LOCK',t.locked,PAL.amber]);if(hasOD(e))C.push(['O/D OFF',APP.od,PAL.amber]);if(e.jake)C.push(['JAKE',pt.jakeOn,PAL.amber]);if(e.nosKw)C.push(['N2O',pt.nosOn,PAL.cyan]);nosHud(C);policeHud(C);if(CRUISE.on)C.push(['CRUISE',true,PAL.cyan]);
   if(t.sim){let bf=1,sf=1,fl=false;for(const w of t.wheels){bf=Math.min(bf,w.bF);sf=Math.min(sf,w.shF);fl=fl||!!w.flat;}
     C.push(['FADE',bf<.92,PAL.red],['SHOCK',sf<.92,PAL.amber]);if(fl)C.push(['FLAT',true,PAL.red]);}C.push(['BANG',performance.now()-GAME.voice.popT<140,PAL.red]);
   let x=lx-1;const yc=tch?7+7*sc+28:H-7;for(const [s,v,col] of C){txt3(s,x,yc,v?col:pack(70,64,86));x+=tw3(s)+5;}

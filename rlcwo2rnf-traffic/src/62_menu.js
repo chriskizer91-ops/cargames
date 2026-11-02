@@ -75,6 +75,8 @@ function syncMenu(){
   syncSimCard();
   for(const el of $('mCam').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.cam));
   for(const el of $('mTod').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.tod));
+  for(const el of $('mTraffic').children)el.setAttribute('aria-pressed',String(el.dataset.v===(APP.traffic!==false?'on':'off')));
+  for(const el of $('mPolice').children)el.setAttribute('aria-pressed',String(el.dataset.v===(APP.police?'on':'off')));
   for(const el of $('sSteer').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.steer));
   $('sSteerHint').textContent={slide:'Put your left thumb down anywhere on the left side and slide it: how far from where it landed is how far the wheels turn.',
     tilt:'Tilt the phone like a steering wheel. It takes the way you hold it when you pick this as straight ahead.',buttons:'Two buttons, left and right, like before.'}[APP.steer];
@@ -127,6 +129,8 @@ function buildMenu(){buildNos();
   buildSimCard();
   segButtons($('mTod'),Object.entries(TOD).map(([k,v])=>[k,v.name]),id=>{APP.tod=id;applyTod(id);APP.lights=!!(TOD[id].beams??TOD[id].lightsOn);saveGame();syncTouch();});
   segButtons($('mCam'),CAMS.map((n,i)=>[i,n]),i=>{APP.cam=+i;CAM.cut=true;saveGame();});
+  segButtons($('mTraffic'),[['on','On'],['off','Off']],v=>{APP.traffic=v==='on';saveGame();});
+  segButtons($('mPolice'),[['off','Off'],['on','On']],v=>{APP.police=v==='on';saveGame();});
   const px=$('mPlaces');for(const [id,n] of PLACES){const el=document.createElement('button');el.type='button';el.className='place';el.textContent=n;
     el.addEventListener('click',()=>{goTo(id);closeMenu();});px.appendChild(el);}
   segButtons($('sSteer'),[['slide','Slide'],['tilt','Tilt'],['buttons','Buttons']],v=>{APP.steer=v;if(v==='tilt')enableTilt();saveGame();syncTouch();});

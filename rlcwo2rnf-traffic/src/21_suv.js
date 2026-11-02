@@ -225,6 +225,14 @@ function faceMat(D,u,K,y,gk,yG){
 /* ---------- the builder ---------- */
 /* how coarsely the body's stations are laid (1: as designed; RACE_LOD, 33_car_mesh: the copy the other cars in a race are drawn from) */
 let BODY_LOD=1;
+/* (true: hand back the pieces unbuilt, as mesh builders, for a copy that merges them with other parts: 33_car_mesh's truckLite) */
+let BODY_MB=false;
+/* (true: the body bare of its small parts (mirrors, handles, wipers, badges, rails and the like: 23_parts' buildParts),
+   keeping its skin, glass, faces and tails, lamps and all: the traffic's farthest copy) */
+let BODY_BARE=false;
+/* (true: no underside: the frame, drivetrain, tank and suspension under the car that nobody on the road sees: the
+   traffic's copies) */
+let BODY_NOUNDER=false;
 function buildSUV(look,build){
   const D=suvDesign(look),G=D.G,L=D.L,X=D.X,dy=D.dy,Q=BODY_LOD;
   const mb=new MB(),pm=new MB();
@@ -234,12 +242,18 @@ function buildSUV(look,build){
      stations either side: those were most of its skin) */
   const Q2=Q>1?Q*2:1;
   const US=[];{const s=new Set(),a=u=>{if(u>=0&&u<=L)s.add(Math.round(u*4000)/4000);};
+    /* (the traffic's farthest copy, Q 12 and up: only as many stations as keep the outline: the grid, one in from each
+       end, four round each arch, the greenhouse's ends and the creases) */
+    if(Q>=12){for(let u=0;u<=L+1e-6;u+=.05*Q)a(u);a(.06);a(L-.06);
+      for(const ua of [D.uFa,D.uRa]){for(let k=0;k<=3;k++)a(archPt(D,ua,k/3*PI)[0]);a(ua-D.arch.a-.012);a(ua+D.arch.a+.012);}
+      const B=D.B;for(const k of [G.cowl,G.rr,G.be,G.rf,G.cB,G.cT,B.bumperR,B.bumperF,B.dome[0],B.dome[1]])a(k);}
+    else{
     for(let u=0;u<=L+1e-6;u+=.05*Q)a(u);
     for(let u=0;u<.2;u+=.005*Q2)a(u);for(let u=L-.2;u<=L+1e-6;u+=.005*Q2)a(u);
     const na=Math.max(7,Math.round(28/Q));for(const ua of [D.uFa,D.uRa]){for(let k=0;k<=na;k++)a(archPt(D,ua,k/na*PI)[0]);a(ua-D.arch.a-.012);a(ua+D.arch.a+.012);}
     for(let u=G.cowl-.06;u<G.cowl+.3;u+=.012*Q2)a(u);for(let u=G.rr-.06;u<G.be+.06;u+=.012*Q2)a(u);
     const B=D.B;for(const k of [G.rf,G.cB,G.cT,B.bumperR,B.bumperF,...B.clad.slice(1,-1).map(c=>c[0]),B.dome[0],B.dome[1]]){a(k);if(Q===1)a(k-.012),a(k+.012);}
-    for(const [pu,ln,w] of G.pillars)for(const o of [-w,w])a(pu+o),a(pu+ln+o);
+    for(const [pu,ln,w] of G.pillars)for(const o of [-w,w])a(pu+o),a(pu+ln+o);}
     const srt=[...s].sort((p,q)=>p-q);for(const u of srt)if(!US.length||u-US[US.length-1]>.002)US.push(u);
     if(US[US.length-1]<L-1e-6)US.push(L);else US[US.length-1]=L;}
   const memo=new Map(),ringAt=u=>{const k=Math.round(u*1e4);let r=memo.get(k);if(!r){r=secRing(D,k/1e4);memo.set(k,r);}return r;};
@@ -306,7 +320,7 @@ function buildSUV(look,build){
   const K={D,G,L,X,dy,mb,pm,decal,line,ring2,pair,uFront,uRear,topY,sideZ,ringAt,secKeys:u=>secKeys(D,u),inside};
   bodyCommon(K);
   if(FACES[look.face])FACES[look.face](K);if(TAILS[look.tail])TAILS[look.tail](K);
-  buildParts(K);
+  if(!BODY_BARE)buildParts(K);
   const S={skin:mb.p.length/9,parts:0};
   mb.smooth(34,[0,D.B.oy+dy*.5,0]);pm.smooth(28);S.parts=pm.p.length/9;
   /* the hood comes away from the body so it can open in the garage, and what lies under it (the floor and
@@ -343,6 +357,7 @@ function buildSUV(look,build){
   /* from the skin only its underside is hidden; from the parts only the wheel wells */
   split(mb,t=>mb.m[t*3]===MAT.METAL&&Math.abs(mb.c[t*12]-MM.UNDER[0][0])<1e-6,true);split(pm,t=>t>=ww0&&t<ww1,false);
   const n=out[0].p.length+out[1].p.length+out[2].p.length;
+  if(BODY_MB)return {mbs:out,D,bay:BY,tris:n/9,stats:S};
   return {body:out[0].build(),hood:out[1].build(),hide:out[2].build(),D,bay:BY,tris:n/9,stats:S};
 }
 /* ---------- glass, pillars, shut lines, handles, markers, mirrors, wipers: every build has these ---------- */

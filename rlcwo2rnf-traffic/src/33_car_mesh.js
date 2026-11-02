@@ -23,6 +23,33 @@ function truckFar(i){const b=BUILDS[i];if(TRUCKF[b.id])return TRUCKF[b.id];
   const w=buildWheel(b.look.tyre),wr=b.look.tyreR?buildWheel(b.look.tyreR):w;
   return TRUCKF[b.id]={body:s.body,hood:s.hood,D:s.D,bay:s.bay,engineOut:!!s.bay,wheel:w,wheelR:wr,
     tris:(s.body.n+s.hood.n+(s.bay?s.bay.engine.n:0))/3+w.tris*2+wr.tris*2,ms:performance.now()-t0};}
+/* the traffic's light copies (60_traffic): the body with its stations BODY_LITE times apart (the race's coarse copy has
+   them three times apart), the hood and the spares on it, and four plain wheels (30_wheels wheelLiteMB) where the
+   car settled on its springs has them, all in one mesh: one draw a car a pass. Farther off, the same with the
+   stations BODY_FAR apart and the body bare of its small parts (21_suv BODY_BARE: the skin, glass, faces and tails,
+   so its lamps still show at night). Also the light body alone and the plain wheels on their own, for a car near
+   enough that its wheels should be seen to turn. hubs: [x, y, z, side, front] for each wheel in the model's frame
+   (60_traffic, from the car settled on flat ground) */
+const TRUCKL={},BODY_LITE=8,BODY_FAR=16;
+function truckLite(i,hubs){const b=BUILDS[i];if(TRUCKL[b.id])return TRUCKL[b.id];if(b.machine)return null;
+  const t0=performance.now(),wF=wheelLiteMB(b.look.tyre),wR=b.look.tyreR?wheelLiteMB(b.look.tyreR):wF;
+  const one=(q,bare)=>{BODY_LOD=q;BODY_MB=true;BODY_BARE=bare;BODY_NOUNDER=true;let s;try{s=buildSUV(b.look,b);}finally{BODY_LOD=1;BODY_MB=false;BODY_BARE=false;BODY_NOUNDER=false;}
+    const D=s.D,fx=D.X(D.uFa),R0=b.look.tyre.R,Mp=D.pitch?M4.mul(M4T(fx,R0,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R0,0))):M4.id();
+    /* (tail-up over big rear tyres, as drawWorldCar sits the body) */
+    const body=new MB();mbAppendX(body,s.mbs[0],Mp);mbAppendX(body,s.mbs[1],Mp);
+    (D.spares||[]).forEach(sp=>mbAppendX(body,sp.rear?wR:wF,M4.mul(Mp,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1)))));
+    const all=new MB().append(body);for(const [x,y,z,sd,front] of hubs)mbAppendX(all,front?wF:wR,M4.mul(M4T(x,y,z),M4S(1,1,sd)));
+    return {D,body,all,stats:s.stats};};
+  const A=one(BODY_LITE,false),B=one(BODY_FAR,true);
+  const T={all:A.all.build(),body:A.body.build(),far:B.all.build(),wheel:wF.build(),wheelR:null,D:A.D,
+    tris:A.all.p.length/9,trisBody:A.body.p.length/9,trisFar:B.all.p.length/9,trisWheel:wF.p.length/9,stats:A.stats,statsFar:B.stats};
+  T.wheelR=wR===wF?T.wheel:wR.build();T.ms=performance.now()-t0;return TRUCKL[b.id]=T;}
+/* a mesh builder's triangles into another, moved by a model matrix (its normals turned with it) */
+function mbAppendX(dst,src,M){const P=src.p,N=src.n;
+  for(let i=0;i<P.length;i+=3){const x=P[i],y=P[i+1],z=P[i+2],nx=N[i],ny=N[i+1],nz=N[i+2];
+    dst.p.push(M[0]*x+M[4]*y+M[8]*z+M[12],M[1]*x+M[5]*y+M[9]*z+M[13],M[2]*x+M[6]*y+M[10]*z+M[14]);
+    const ax=M[0]*nx+M[4]*ny+M[8]*nz,ay=M[1]*nx+M[5]*ny+M[9]*nz,az=M[2]*nx+M[6]*ny+M[10]*nz,l=Math.hypot(ax,ay,az)||1;dst.n.push(ax/l,ay/l,az/l);}
+  for(let i=0;i<src.c.length;i++)dst.c.push(src.c[i]);for(let i=0;i<src.m.length;i++)dst.m.push(src.m[i]);return dst;}
 /* the engine bay: built the first time this build's hood opens, never with it shut */
 const bayOf=i=>{const T=truck(i);return T.bay||(T.bay=buildBay(BUILDS[i],T.D));};
 /* ---------- matrices ---------- */

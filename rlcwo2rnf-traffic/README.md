@@ -22,7 +22,67 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   `15_digital_engine.js`, `32_builds.js`, `37_newbuilds.js` and `34_machines.js` are byte for byte Wide Open 2's;
   `16_engines.js` and `43_sim.js` differ only in their save keys' prefix (`rt-tune`, `rt-sim`), the way Wide Open 2's
   fork changed Wide Open's `cc-`. `node tools/physcheck.js` says 0; `node tools/proving.js` prints `QA.md`'s table.
-- **Life on the roads** and **the map with waypoints**: not started.
+- **Traffic on Highway 40** (`src/60_traffic.js`): done. Below.
+- **Police mode** (`src/60_police.js`): done. Below.
+- **Next**: the town's streets and the country roads, parked cars, people at the markers; the map with waypoints.
+
+## Traffic on Highway 40 (`src/60_traffic.js`)
+
+- **The lanes**: three each way on the right, where the road's paint has them (3.6 m lanes either side of a 0.3 m
+  median). Each lane is a loop: out along one side, round on the pavement just short of the barrels where the highway
+  runs out on the salt (a left turn across the median on an 8.5 m circle), back along the other.
+- **The drivers** (off the physics): the intelligent driver model. Each wants the road's speed (60 mph in the country,
+  35 through town, slow round the turns at the ends; a little over or under, by the driver), keeps a time gap to
+  whatever is ahead in its lane (another car, you, a red light) and brakes no harder than a car can. Blocked, it moves
+  over when the next lane has room (a car already moving into a lane counts as in it); free, it keeps right; never
+  within 80 m of a stop line. About one driver in ten has their eyes elsewhere and sees you stopped in their lane only
+  25 to 45 m off: at highway speed that's too late, so stopping in a lane is a risk.
+- **The lights**: the town's signals, on the same 30 s cycle the signal heads show. On the amber a driver goes if it
+  will reach the line before the red at the speed it has, and holds that speed; otherwise it stops, as hard as it
+  must. Through on the red only when it can't stop at all.
+- **Round you**: out to just past the draw distance. A car that falls out of that range starts again where you can't
+  see it (past the draw distance, or out of the camera's view), heading towards you (by your own speed), no faster
+  than it could stop for what's ahead of it. Nothing pops into sight.
+- **Near you, the physics**: a car goes onto the physics the moment it would touch you (or the police, or another car
+  on the physics) within the next 0.6 s, or would have to brake harder than a car can for you. Then it is a real car
+  (its own steering and pedals, the same following rules) and the contacts are the physics' own, as in a race: stop
+  dead in a lane in front of a car that can't stop and it hits you. A car that hits or is hit stops and honks; clear,
+  upright and back by its lane for a second, it rides the lane again and moves on. One left wrecked stays put (not
+  stepped once it's still) until it's out of sight. Each kind keeps two cars for the physics, made at the boot.
+- **The cars**: the factory SUV, wagon, pickup, hatch, electric, 4x4, coupe and muscle car, each in a paint of its own.
+  Drawn from light copies (`33_car_mesh.js` truckLite), each one mesh, one draw a car a pass: the light one (the body's
+  stations eight times apart, no underside, plain 196-triangle wheels: 9 to 12 thousand triangles) at middle distance,
+  the far one (stations sixteen apart only where the outline needs them, no small parts: 5 to 7 thousand) beyond that
+  and into the shadow maps; up close the race's coarse copy (the light body on a phone) with its wheels turning. The
+  full and coarse cars are untouched: `node tools/mesh_same.js` builds every build's meshes here and in Wide Open 2 and
+  compares their vertex buffers byte for byte. At night their lamps are on and the nearest few light the road.
+- **How many**: 8 on Mobile, 10 Low, 14 Medium, 24 High, 32 Ultra (the Dev tab's Traffic cars sets its own). Off for
+  races and timed challenges; the Drive tab's Traffic switches it off.
+- **Checks**: `node tools/traffic_check.js [park,drive,ram]` (you parked across a lane; you through town at 70; you
+  into the traffic at 90): no NaNs, never over the budget, no two lane cars overlapping, none into you, no red run, all
+  in their lanes; `node tools/rt_check.js` has a traffic scene.
+
+## Police mode (`src/60_police.js`)
+
+- **On the Drive tab** (Police: Off, On; saved). They come after you anywhere: town, country, off the road, onto the
+  salt and across it, and never give up.
+- **They drive what you drive**: your build, on the same physics, with the robot's stability control, ABS and traction
+  control, in black and white (the doors and roof white: the livery shader's style 5) with a light bar flashing red
+  and blue; so on a straight they hold whatever gap you leave them.
+- **The pursuit**: in sight of you (nothing in the way, 140 m at most) a car aims at where you'll be; out of sight it
+  follows your trail (where you were every 4 m, the last few minutes), round the corners you took. As fast as the turn
+  ahead allows; your speed and a little once on your bumper; pulls up a few metres off when you stop. Stuck, it backs
+  off and goes again. Lost (far behind, rolled, stuck for good), it comes back in behind you out of sight, on your trail,
+  already moving.
+- **Busted**: stopped with a police car beside you for three seconds. A $500 fine in the career (free play counts
+  them); they hold off six seconds, then it starts again.
+- **The siren** wails, yelps once they're within 45 m, each car its own voice, panned and with the Doppler. At night
+  the bar lights the ground round them. They're blinking dots on both maps; the HUD shows POLICE and the distance.
+- **How many**: 1 on Mobile and Low, 2 on Medium and High, 3 on Ultra (Dev: Police cars). Off for races and timed
+  challenges. Traffic brakes for them and goes onto the physics near them, as for you.
+- **Voices**: `VOICE_PROMPTS.md` lists the recorded lines the chase could use (the loudspeaker, the radio, the drivers
+  you hit), for the owner to have made.
+- **Check**: `node tools/police_check.js [chase,bust]`.
 
 ---
 

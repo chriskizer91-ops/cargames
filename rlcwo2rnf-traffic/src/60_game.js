@@ -16,7 +16,7 @@ const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'p
 for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('rt-game','{}'))||{};
   if(CAR_PARTS[s.car])APP.car=s.car;if(['real','middle','kids','sim'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
-  if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;
+  if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;if(s.traffic===false)APP.traffic=false;if(s.police===true)APP.police=true;
   if(s.rigs)for(const car in s.rigs)if(CAR_PARTS[car])RIGS[car]=cleanRig(car,s.rigs[car]);}catch(e){}
 /* a saved rig against today's parts: anything that no longer exists goes back to stock */
 function cleanRig(car,r){const base=presetRig(CAR_STOCK[car]),out=Object.assign({},base);
@@ -25,7 +25,7 @@ function cleanRig(car,r){const base=presetRig(CAR_STOCK[car]),out=Object.assign(
   return fixRig(car,out);}
 const rigOf=car=>RIGS[car]||(RIGS[car]=presetRig(CAR_STOCK[car]));
 const saveGame=()=>{if(CAREER.on)careerSync();const F=CAREER.on&&CAREER.free;
-  store.set('rt-game',JSON.stringify({car:F?F.car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,rigs:F?F.rigs:RIGS}));};
+  store.set('rt-game',JSON.stringify({car:F?F.car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,traffic:APP.traffic!==false,police:!!APP.police,rigs:F?F.rigs:RIGS}));};
 const LEVELS=[['real','Realistic','The car as it is: ABS, the automatic gearbox and, on the cars that have it, the factory traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
   ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.'],
@@ -102,7 +102,7 @@ const SETTLE_IN={steer:0,thr:0,brk:0,hb:1,nos:false};
 function settleCar(){const t=GAME.car;for(let k=0;k<360;k++)t.step(DT,SETTLE_IN);t.takeEvents();GAME.acc=0;}
 /* the meshes of builds no longer driven or raced are let go (the wheels are shared and stay) */
 function truckEvict(keep){
-  for(const id of Object.keys(TRUCKF)){if(keep.includes(id))continue;const F=TRUCKF[id];if(!F.shared)for(const m of [F.body,F.hood,F.bay&&F.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCKF[id];}
+  for(const id of Object.keys(TRUCKF)){if(keep.includes(id)||trfKeeps(id))continue;const F=TRUCKF[id];if(!F.shared)for(const m of [F.body,F.hood,F.bay&&F.bay.engine])if(m&&m.vao)freeMesh(m);delete TRUCKF[id];}
   for(const id of Object.keys(TRUCK)){if(keep.includes(id))continue;const T=TRUCK[id],B=T.bay;for(const m of [T.body,T.hood,T.hide,B&&B.engine,B&&B.bay,B&&B.liner,T.rider&&T.rider.lo,T.rider&&T.rider.up])if(m&&m.vao)freeMesh(m);delete TRUCK[id];}}
 const RECENT=[];
 /* what the Sim level builds the car with: roof loads move its centre of gravity, plus any cargo */
@@ -263,6 +263,8 @@ function step(dt){
   /* a machine's rider leans; a rider who has bailed lets go of everything */
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
+  /* the police (60_police) and the traffic (60_traffic): where each of them goes this frame, before the physics */
+  policeFrame(dt);trafficFrame(dt);
   GAME.acc+=dt;let n=0;
   /* the race runs on the time the physics does this frame (below 30 fps that is less than the frame's: the
      robots riding their lines and the clock must not run on ahead of the cars on the physics) */
@@ -271,7 +273,7 @@ function step(dt){
   /* at most eight steps (a thirtieth of a second) a frame: below 30 fps the game runs a little slow rather than
      spending a slow frame catching up and making the next one slow too */
   const tp=performance.now();
-  while(GAME.acc>=DT&&n<8){t.step(DT,drive);if(RACE.on)raceSub(DT);GAME.acc-=DT;n++;GAME.time+=DT;}
+  while(GAME.acc>=DT&&n<8){t.step(DT,drive);if(RACE.on)raceSub(DT);else trafficSub(DT);GAME.acc-=DT;n++;GAME.time+=DT;}
   /* a last line: if the car's numbers ever break, it goes back to where it last was whole, on its wheels, and the
      camera starts afresh (one broken frame used to leave the screen black until a restart) */
   if(carWhole(t)){if(GAME.time-(GAME.safeT||-9)>.5){GAME.safeT=GAME.time;GAME.safe=[t.p[0],t.p[2],Math.atan2(-t.M[6],t.M[0])];}}
@@ -480,10 +482,11 @@ const CARHOOK={c:null,skip0:false,
       if(!used){used=true;useLit(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);gl.disable(gl.CULL_FACE);}drawWorldCar(t,null,0,far,true);};
     if(kind!=='hl')one(GAME.car,k>=1&&budgetOn()&&BUDGET.carLod>.5);
     for(const o of raceCars())one(o,true);
+    if(kind!=='hl'){used=policeShadow(F,used,G,VP);used=trafficShadow(F,used,G,VP,c.eye);}
     if(used)G.use(Pd);},
   opaque(R,U,texs){const c=this.c;if(!c||showActive())return;const G=R.G,P=G.use(P_LAND);gl.disable(gl.CULL_FACE);G.set(P,U);G.tex(P,texs);landUniforms(P);CUR=litOf(P);
     let tris=drawWorldCar(GAME.car,GAME.voice,GAME.dirt,false,false);
-    tris+=raceDraw({eye:c.eye,VPw:toWorld(U.uVP)});APP.carTris=tris;}
+    tris+=raceDraw({eye:c.eye,VPw:toWorld(U.uVP)});tris+=policeDraw(U,c.eye);tris+=trafficDraw(U,c.eye);APP.carTris=tris;}
 };
 /* the soft occlusion under a car, for the renderer: where it is (relative to the origin), its height, which way it
    faces, its size */
@@ -492,7 +495,7 @@ function occOf(t){const D=carD(t),M=t.M,l=Math.hypot(M[0],M[6])||1;return [t.p[0
 function viewCut(){CAM.cutFrame=true;if(R)R.probeFilled=0;}
 function render(dt){
   /* the opening screen and the garage: the showroom (63_showroom) */
-  if(showActive()){renderShow(dt);return;}
+  if(showActive()){renderShow(dt);if(GFX.frame%6===0)trfModelsStep();return;}
   hClear();
   let tq=performance.now();
   /* a reset or a teleport (60_game's placeCar, a race's grid) asks for a fresh start of the probe and the history */
@@ -500,14 +503,14 @@ function render(dt){
   let cw=camUpdate(dt);
   /* (a camera that lost its numbers starts again behind the car rather than staying lost) */
   if(![...cw.eye,...cw.fwd].every(Number.isFinite)){CAM.cut=true;CAM.yaw=null;CAM.off=null;CAM.fq=null;cw=camUpdate(dt);viewCut();}
-  const t=GAME.car;worldUpdate(cw.eye,t);setOrigin(cw.eye);const c=CAM.last=camMats(cw,PIC.w/PIC.h);GFX.frame++;
+  const t=GAME.car;worldUpdate(cw.eye,t);setOrigin(cw.eye);trafficPrep();policePrep();const c=CAM.last=camMats(cw,PIC.w/PIC.h);GFX.frame++;
   tq=psT(PS_WORLD,tq);
   const cut=!!CAM.cutFrame;CAM.cutFrame=false;
   /* the lamps: yours, the yard lights nearest you, and at night the others' headlights */
   const L={dyn:[],headlights:null};carLights(t,L);
-  const others=raceCars();if(SKY.lightsOn&&others.length)rivalLights(L,others,c.eye);
+  const others=raceCars();if(SKY.lightsOn&&others.length)rivalLights(L,others,c.eye);trafficLights(L);policeLights(L);
   yardLights(L,t.p,14);APP.dynN=L.dyn.length;
-  const occ=[occOf(t)];for(const o of others){if(occ.length>=8)break;occ.push(occOf(o));}
+  const occ=[occOf(t)];for(const o of others){if(occ.length>=8)break;occ.push(occOf(o));}policeOcc(occ);trafficOcc(occ);
   /* the HUD first: the LED display lights its dots as part of the picture */
   drawHud(c);hudUpload();tq=psT(PS_HUD,tq);
   LAND.c=CARHOOK.c=GLASSHOOK.c=c;LAND.dt=dt;R.U.uStudio=0;
@@ -548,7 +551,7 @@ function frame(ts){
   const dt=Math.min(.05,LAST?(ts-LAST)/1000:1/60);LAST=ts;APP.t+=dt;
   /* (a test can hold the loop still and draw frames itself) */
   perfBegin();
-  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last,dt);raceSound(CAM.last);}psT(PS_SOUND,ts0);drsStep(dt);}catch(e){console.error(e);}
+  if(!GAME.hold)try{step(dt);GAME.voice.flame=Math.max(0,GAME.voice.flame-dt*9);render(dt);const ts0=performance.now();if(showActive())showSound(dt);else if(CAM.last){soundUpdate(CAM.last,dt);raceSound(CAM.last);policeSound(CAM.last);}psT(PS_SOUND,ts0);drsStep(dt);}catch(e){console.error(e);}
   perfEnd(dt);APP.fps=lerp(APP.fps,1/Math.max(dt,1e-3),.05);gfxWatch(dt);perfReadout();
   if((APP.t*4|0)!==(APP.st4|0)){APP.st4=APP.t*4;$('stat').textContent=fmt(APP.tris/1000)+'k tris · '+APP.fps.toFixed(0)+' fps · '+WORLD.chunks.size+' chunks';}
 }
