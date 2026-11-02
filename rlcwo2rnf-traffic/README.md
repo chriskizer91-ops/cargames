@@ -80,12 +80,12 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   the bar lights the ground round them. They're blinking dots on both maps; the HUD shows POLICE and the distance.
 - **How many**: 1 on Mobile and Low, 2 on Medium and High, 3 on Ultra (Dev: Police cars). Off for races and timed
   challenges. Traffic brakes for them and goes onto the physics near them, as for you.
-- **Voices**: 18 recorded lines (`voices/`, the owner's pack, made to `VOICE_PROMPTS.md`; packed into the page by
-  `tools/pack_voices.py` as `src/49_voices.js`, 520 KB). The police radio plays in your car through a scanner's narrow
+- **Voices**: 14 recorded lines (`voices/`, the owner's pack, made to `VOICE_PROMPTS.md`; packed into the page by
+  `tools/pack_voices.py` as `src/49_voices.js`, 470 KB). The police radio plays in your car through a scanner's narrow
   band with a squelch click either side: the call when a chase starts, into town, out onto the salt, lost you, found
   you, backup after a minute and a half, stopped. Their loudspeaker comes from the nearest police car, through a
   megaphone, every 9 to 14 s while it's close and you're still going ("There's nothing out there" on the salt), and
-  at a bust. A driver you hit shouts. Decoded the first frame the sound is up; one line at a time.
+  at a bust. The traffic's drivers don't talk: they honk. Decoded the first frame the sound is up; one line at a time.
 - **Check**: `node tools/police_check.js [chase,bust]`.
 
 ---

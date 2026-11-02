@@ -179,7 +179,7 @@ function policeHud(C){if(!POL.live||!(POL.near<1e8))return;const [r,b]=polFlash(
 function policeMapDots(toXY){if(!POL.live)return;const [r]=polFlash();for(let _i38=0;_i38<POL.cars.length;_i38++){const P=POL.cars[_i38];if(!P.V)continue;const q=toXY(P.V.p[0],P.V.p[2]);if(q)hDisc(q[0],q[1],1.3,r?PAL.red:PAL.cyan);}}
 
 /* ---------- the voices (49_voices.js, from VOICE_PROMPTS.md): the police radio in your car, the loudspeaker from
-   theirs, a driver you've hit. Each decoded once, the first time police mode comes on; a line with no recording
+   theirs (the traffic's drivers don't talk: they honk). Each decoded once, the first time police mode comes on; a line with no recording
    yet is simply not heard (VOX.log keeps every cue, heard or not, for the tools) ---------- */
 const VOX={buf:{},warm:false,until:0,log:[],heard:[],inP:false,t:{},lostT:0,lost:false,place:'',startT:-1,backup:false};
 function voxWarm(){const A=ENG.audio;if(!A||VOX.warm)return;VOX.warm=true;for(const k in VOICES)if(VOX.buf[k]===undefined){VOX.buf[k]=null;
@@ -203,7 +203,7 @@ function voxSay(name,kind,x,z,wait=8){
       for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.25;n.buffer=nb;const ng=ctx.createGain();ng.gain.value=.35;n.connect(ng);ng.connect(A.master);n.start(at);}}
   return true;}
 const VOX_PA=['police_pa_pull_over','police_pa_stop_vehicle','police_pa_pull_over_now','police_pa_slow_down'];
-/* the cues, each frame of a chase (from policeFrame); the drivers' lines come from 60_traffic, when you hit one */
+/* the cues, each frame of a chase (from policeFrame) */
 function voxChase(dt){
   const t=GAME.car,now=APP.t;if(VOX.startT<0){VOX.startT=now;VOX.lost=false;VOX.lostT=0;VOX.backup=false;VOX.inP=false;}
   /* (the sound starts with the engine, at the first touch of the gas: the voices are decoded the first frame it's up) */

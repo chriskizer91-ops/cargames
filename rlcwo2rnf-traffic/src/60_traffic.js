@@ -365,9 +365,7 @@ function trfPhysDrive(c,dt){
   for(let k=-40;k<=40;k++){const i=((i0+k)%n+n)%n,dx=L.x[i]-c.x,dz=L.z[i]-c.z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}
   c.s=bi*L.ds;const tx=L.tx[bi],tz=L.tz[bi],lo=-(c.x-L.x[bi])*tz+(c.z-L.z[bi])*tx,he=Math.atan2(c.fx*tz-c.fz*tx,c.fx*tx+c.fz*tz),up=V.M[4];
   /* a knock: stop, honk */
-  if(V.ev.car>0){V.ev.car=0;c.hits++;c.stopT=2.5;if(c.honkT<=0){trfHonk(c);c.honkT=3;
-    /* (a driver you've just hit has something to say) */
-    const t=GAME.car;voxWarm();if(Math.hypot(t.p[0]-c.x,t.p[2]-c.z)<9)voxSay(TRF_YELL[Math.floor(trfRnd()*TRF_YELL.length)],'yell',c.x,c.z,4);}}
+  if(V.ev.car>0){V.ev.car=0;c.hits++;c.stopT=2.5;if(c.honkT<=0){trfHonk(c);c.honkT=3;}}
   if(up<.5||Math.abs(lo)>9)c.wreck=true;
   const inp=c.inp,spd=V.speed;
   if(c.wreck){inp.steer=0;inp.thr=0;inp.brk=1;inp.hb=1;
@@ -407,7 +405,6 @@ function trafficSub(dt){
   for(let _i21=0;_i21<TRF_PHYS.length;_i21++){const c=TRF_PHYS[_i21];if(c.mode==='park'&&c.veh)TRF_CC.push(c.veh);}
   if(TRF_CC.length>1)carContacts(TRF_CC);
 }
-const TRF_YELL=['traffic_hey','traffic_watch_it','traffic_seriously','traffic_learn_to_drive'];
 /* ---------- the horn: a car's two notes, where it is ---------- */
 let TRF_HORN=null;
 function trfHonk(c){const A=ENG.audio,cam=CAM.last;if(!A||!cam)return;const ctx=A.ctx,now=ctx.currentTime;

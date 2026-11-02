@@ -3,7 +3,7 @@
 Recorded lines for police mode and the traffic. Each file goes in `rlcwo2rnf-traffic/voices/` under the name given; a
 packer puts them into the page, so it stays one self-contained file. A line with no file yet is simply not heard.
 
-**Delivered, 2 November 2026**: all 18, in the owner's voice pack (generated with HeyGen Voice: the officer "Intense
+**Delivered, 2 November 2026**: all 18 (14 in the game: the drivers' four left out, below), in the owner's voice pack (generated with HeyGen Voice: the officer "Intense
 Isaac - Serious" for the loudspeaker and the radio, the dispatcher "Ellie Faye - Serious", four voices for the
 drivers). Mono MP3, 48 kHz, 96 kbps, peaks about -1 dB; `radio_backup` runs 4.7 s. Checked: each decodes in the
 browser to its listed length. Not yet checked by ear on the laptop and the phone.
@@ -44,7 +44,10 @@ while driving), and a dispatcher (a different voice, even and practiced, slower)
 | `radio_copy.mp3` | dispatcher | "Copy, Unit Four." |
 | `radio_stopped.mp3` | officer | "Vehicle is stopped. One in custody." |
 
-## The traffic (a driver you've just hit, through an open window)
+## The traffic (a driver you've just hit, through an open window): left out
+
+The owner's call, 2 November: the traffic's drivers don't talk, they honk. These four were recorded but are not in the
+game (the files are not in `voices/`); the lines are kept here only as a record.
 
 Voices: a mix if you can, one line each; annoyed rather than furious, shouted from a few metres away.
 
