@@ -69,11 +69,33 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
 - **They drive what you drive**: your build, on the same physics, with the robot's stability control, ABS and traction
   control, in black and white (the doors and roof white: the livery shader's style 5) with a light bar flashing red
   and blue; so on a straight they hold whatever gap you leave them.
-- **The pursuit**: in sight of you (nothing in the way, 140 m at most) a car aims at where you'll be; out of sight it
-  follows your trail (where you were every 4 m, the last few minutes), round the corners you took. As fast as the turn
-  ahead allows; your speed and a little once on your bumper; pulls up a few metres off when you stop. Stuck, it backs
-  off and goes again. Lost (far behind, rolled, stuck for good), it comes back in behind you out of sight, on your trail,
-  already moving.
+- **The pursuit**: a police car drives your trail (where you were every 4 m, the last few minutes: a line you drove, so
+  one that can be driven), steering for a point along it (nearer in a corner, so it doesn't cut through a building's
+  corner) and reading the trail further on for the bends: no faster than 80% of the grip allows round the tightest one
+  ahead, braking for it in time. The nearest car, close and in sight of you, settles a few car lengths back (8 m and
+  0.3 s at your speed: about 19 m at 77 mph) and holds it; when you stop it pulls up just behind you, a little to one
+  side. The others keep their distance from the one ahead, counted along the trail, so round a corner too. A car in its
+  way it slows for in time (and drops back if touching); the traffic it goes round when there's room beside it, you and
+  the other police it never does. Stuck, it backs off and goes again. Lost (far behind, rolled, stuck for good), it
+  comes back in behind you out of sight, on your trail, already moving, clear of the traffic.
+- **How they drove before and after** (`tools/police_check.js town,hwy`, three runs each, averages; the town run is
+  west on Highway 40 into town, six turns on its streets, out east; the highway run east in its traffic at 65 mph):
+
+  | | wall hits | car contacts | touching you | rolled | stuck | come back in |
+  |---|---|---|---|---|---|---|
+  | Town, Mobile, before | 13.3 | 93 | 67 | 0 | 13.3 | 10 |
+  | Town, Mobile, after | 0 | 0 | 0 | 0 | 0 | 1 |
+  | Town, High, before | 24.3 | 109 | 37 | 0.7 | 41 | 8.7 |
+  | Town, High, after | 0 | 8.3 | 0 | 0 | 0 | 3 |
+  | Highway, Mobile, before | 0 | 93 | 93 | 0 | 0 | 1 |
+  | Highway, Mobile, after | 0 | 0 | 0 | 0 | 0 | 1 |
+  | Highway, High, before | 0 | 146 | 42 | 0.7 | 0 | 7.3 |
+  | Highway, High, after | 0 | 15.3 | 0 | 0 | 0 | 5 |
+
+  (A contact is counted at most one and a half times a second for each police car, so it is near enough seconds of
+  touching; "come back in" counts the first time in too. Before, the police in town knocked the test's own car off its
+  route in all six runs, by 37 to 164 m. What's left: on High, two police cars on Highway 40 still brush a car of the
+  traffic now and then, a car changing lanes into them or one they squeeze past.)
 - **Busted**: stopped with a police car beside you for three seconds. A $500 fine in the career (free play counts
   them); they hold off six seconds, then it starts again.
 - **The siren** wails, yelps once they're within 45 m, each car its own voice, panned and with the Doppler. At night
@@ -90,7 +112,7 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   over it. On the phone a REAR button, top of the left-hand column (above CAM): one tap looks back, another looks
   ahead again (lit while it's on; a toggle, as both thumbs are busy). On the keyboard G, held; on a gamepad the right
   stick pressed in, held. REAR VIEW shows under the instruments while it's on.
-- **Check**: `node tools/police_check.js [chase,bust]`.
+- **Check**: `node tools/police_check.js [chase,bust,town,hwy]`.
 
 ---
 

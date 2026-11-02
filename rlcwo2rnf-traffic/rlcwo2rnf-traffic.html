@@ -14817,7 +14817,7 @@ function trfHonk(c){const A=ENG.audio,cam=CAM.last;if(!A||!cam)return;const ctx=
    blue, and lights the ground round them at night. They're dots on the corner map and the big one.
    ===================================================================================== */
 const POL_N={mobile:1,low:1,medium:2,high:2,ultra:3},POL_MAX=4,POL_CRUMBS=600;
-const POL={live:false,cars:[],k:0,cx:new Float64Array(POL_CRUMBS),cz:new Float64Array(POL_CRUMBS),bustT:0,holdT:0,busts:0,respawns:0,bi:-1,bar:null,spawnT:0};
+const POL={live:false,cars:[],k:0,cx:new Float64Array(POL_CRUMBS),cz:new Float64Array(POL_CRUMBS),bustT:0,holdT:0,busts:0,respawns:0,bi:-1,bar:null,spawnT:0,lead:null};
 const polCount=()=>{const v=DEVW.polN;return v===undefined||v==='auto'?POL_N[GFX.level]||2:Math.max(1,Math.min(POL_MAX,+v||1));};
 const policeWanted=()=>!!APP.police&&!RACE.on&&!(CHAL.run&&CHAL.run.phase!=='done');
 function polNew(){return {V:null,inp:{steer:0,thr:0,brk:0,hb:0,nos:false},ck:0,stuckT:0,revT:0,flipT:0,lostT:0,hold:false,M:new Float32Array(16),Mp:new Float32Array(16),prev:false,ro0:0,ro2:0,
@@ -14825,10 +14825,10 @@ function polNew(){return {V:null,inp:{steer:0,thr:0,brk:0,hb:0,nos:false},ck:0,s
 for(let i=0;i<POL_MAX;i++)POL.cars.push(polNew());
 
 /* ---------- your trail: where you were, every 4 m ---------- */
-function polCrumb(){const p=GAME.car.p,k=POL.k;if(k>0){const j=(k-1)%POL_CRUMBS,dx=p[0]-POL.cx[j],dz=p[2]-POL.cz[j];if(dx*dx+dz*dz<16)return;
-    /* (a jump: a reset or a teleport starts the trail again) */
+function polCrumb(){const p=GAME.car.p;if(POL.k>0){const j=(POL.k-1)%POL_CRUMBS,dx=p[0]-POL.cx[j],dz=p[2]-POL.cz[j];if(dx*dx+dz*dz<16)return;
+    /* (a jump: a reset or a teleport starts the trail again, from here) */
     if(dx*dx+dz*dz>3600){POL.k=0;for(let _i22=0;_i22<POL.cars.length;_i22++){const P=POL.cars[_i22];P.ck=0;}}}
-  const j=k%POL_CRUMBS;POL.cx[j]=p[0];POL.cz[j]=p[2];POL.k++;}
+  const j=POL.k%POL_CRUMBS;POL.cx[j]=p[0];POL.cz[j]=p[2];POL.k++;}
 /* nothing the physics would stop on (a tree, a post, a wall, a building) along the line from a to b, every 5 m */
 function polClear(ax,az,bx,bz){const dx=bx-ax,dz=bz-az,d=Math.hypot(dx,dz),n=Math.ceil(d/5);
   for(let i=1;i<n;i++){const x=ax+dx*i/n,z=az+dz*i/n,L=WW.colliders.near(x,z);
@@ -14847,16 +14847,16 @@ function polPlace(P,x,z,yaw,v){const V=P.V;V.place([x,RANCH.W.heightAt(x,z)+.15,
 /* back in behind you, out of sight: back along your trail 130 to 320 m (a place you drove, so it can be driven), facing
    along it, at your pace; with no trail yet, behind you the way you're facing */
 function polRespawn(P){
-  const t=GAME.car,cam=CAM.last,F=cam&&cam.VPw?frustum(cam.VPw):null,want=GFX.level==='mobile'?130:160,v=Math.min(Math.max(8,t.speed*.9),40);
+  const t=GAME.car,cam=CAM.last,F=cam&&cam.VPw?frustum(cam.VPw):null,want=GFX.level==='mobile'?130:160,v=Math.min(Math.max(12,t.speed*.9),40);
   const inView=(x,z)=>{if(!F)return false;const y=RANCH.W.heightAt(x,z)+1;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3)return false;}return Math.hypot(x-cam.eye[0],z-cam.eye[2])<(GFX.far+40);};
   let k=POL.k-1,acc=0,px=t.p[0],pz=t.p[2];
   while(k>0&&k>POL.k-POL_CRUMBS+1){const j=k%POL_CRUMBS,x=POL.cx[j],z=POL.cz[j],sd=Math.hypot(x-px,z-pz);if(sd>40)break;acc+=sd;px=x;pz=z;
     if(acc>=want&&!inView(x,z)&&!polCrowded(P,x,z)){const j2=(k+1)%POL_CRUMBS,yaw=Math.atan2(-(POL.cz[j2]-z),POL.cx[j2]-x);polPlace(P,x,z,yaw,v);P.ck=k+1;POL.respawns++;return true;}
     if(acc>320)break;k--;}
   const M=t.M,hl=Math.hypot(M[0],M[6])||1,fx=M[0]/hl,fz=M[6]/hl;
-  for(const back of [want,want+60,want+120]){const x=t.p[0]-fx*back,z=t.p[2]-fz*back;if(!inView(x,z)&&!polCrowded(P,x,z)){polPlace(P,x,z,Math.atan2(-fz,fx),v*.6);POL.respawns++;return true;}}
+  for(const back of [want,want+60,want+120]){const x=t.p[0]-fx*back,z=t.p[2]-fz*back;if(!inView(x,z)&&!polCrowded(P,x,z)){polPlace(P,x,z,Math.atan2(-fz,fx),v*.8);POL.respawns++;return true;}}
   return false;}
-const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(Math.hypot(o.V.p[0]-x,o.V.p[2]-z)<10)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(Math.hypot(c.x-x,c.z-z)<8)return true;}return false;};
+const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(Math.hypot(o.V.p[0]-x,o.V.p[2]-z)<14)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(Math.hypot(c.x-x,c.z-z)<30)return true;}return false;};
 function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;VOX.startT=-1;VOX.place='';}
 
 /* ---------- each frame (60_game's step, before the traffic and the physics) ---------- */
@@ -14870,7 +14870,7 @@ function policeFrame(dt){
   /* new ones in behind you, one a second */
   POL.spawnT-=dt;for(let i=0;i<POL_MAX;i++){const P=POL.cars[i];if(i>=N){P.V=null;continue;}if(!P.V&&POL.spawnT<=0){P.V=polMake();if(!polRespawn(P))P.V=null;POL.spawnT=1;}}
   /* busted: stopped with one beside you for three seconds */
-  let near=1e9;for(let _i27=0;_i27<POL.cars.length;_i27++){const P=POL.cars[_i27];if(P.V)near=Math.min(near,Math.hypot(P.V.p[0]-t.p[0],P.V.p[2]-t.p[2]));}POL.near=near;
+  let near=1e9;POL.lead=null;for(let _i27=0;_i27<POL.cars.length;_i27++){const P=POL.cars[_i27];if(!P.V)continue;const d=Math.hypot(P.V.p[0]-t.p[0],P.V.p[2]-t.p[2]);if(d<near){near=d;POL.lead=P;}}POL.near=near;
   if(POL.holdT>0){POL.holdT-=dt;if(POL.holdT<=0)for(let _i28=0;_i28<POL.cars.length;_i28++){const P=POL.cars[_i28];if(P.V)polRespawn(P);}}
   else if(t.speed<1.5&&near<8){POL.bustT+=dt;if(POL.bustT>3)polBust();}else POL.bustT=Math.max(0,POL.bustT-dt*2);
   for(let _i29=0;_i29<POL.cars.length;_i29++){const P=POL.cars[_i29];if(P.V)polDrive(P,dt);}
@@ -14880,33 +14880,98 @@ function polBust(){POL.bustT=0;POL.holdT=6;POL.busts++;
   if(CAREER.on){const fine=Math.min(500,Math.max(0,cash()));spend(fine);say('BUSTED · $'+fine+' FINE',3.5,PAL.red);}else say('BUSTED',3,PAL.red);
   say('THEY\'LL BE BACK',3,PAL.amber);buzz([60,40,60]);
   let P=null;for(let _i30=0;_i30<POL.cars.length;_i30++){const c=POL.cars[_i30];if(c.V&&(!P||c.d<P.d))P=c;}if(P)voxSay('police_pa_engine_off','pa',P.V.p[0],P.V.p[2],0);setTimeout(()=>voxSay('radio_stopped','radio',0,0,0),3600);}
+/* how a police car drives. It follows your trail (where you drove, so it can be driven), steering for a point a little
+   way along it, and reads the trail further on for the bends: no faster than the tightest bend ahead allows, braking in
+   time for it. Close behind you and in plain sight it takes a place a few car lengths back (beside you when you stop)
+   instead of your bumper. A car in its way (the traffic, another police car, you) it slows for, and goes round when
+   there's room. Nothing here knows the physics: it only works the pedals and the wheel, as you do */
+const POL_AB=.55,POL_MU=.8;
+/* (the working values a police car's drive passes to its helpers: module level, so a frame makes no garbage) */
+const PD={px:0,pz:0,fx:0,fz:0,lx:0,lz:0,Lm:0,Wm:0,spd:0,aB:0,probe:0,tl:0,tx:0,tz:0,vt:0,off:0,nf:0,slow:false};
+/* the point L along your trail from the car (past the end of it, you) */
+function polAlong(P,L){const t=GAME.car,N=POL_CRUMBS;let acc=0,qx=PD.px,qz=PD.pz;PD.tx=t.p[0];PD.tz=t.p[2];
+  for(let k=P.ck;k<POL.k;k++){const j=k%N,x=POL.cx[j],z=POL.cz[j],sd=Math.hypot(x-qx,z-qz);
+    if(acc+sd>=L){const u=(L-acc)/Math.max(sd,1e-6);PD.tx=qx+(x-qx)*u;PD.tz=qz+(z-qz)*u;return;}acc+=sd;qx=x;qz=z;}}
+/* a car in the way (kind 0: one of the traffic, c; 1: another police car's vehicle; 2: you): slow for it, or (the
+   traffic only) go round it. (It's handed the car, not its numbers: a number handed to a function is a little garbage) */
+function polObst(c,kind){let ox,oz,ofx,ofz,ov,oL,oW;
+  if(kind===0){ox=c.x;oz=c.z;}else{ox=c.p[0];oz=c.p[2];}
+  /* (most of the traffic is nowhere near: out before any more sums) */
+  const r=PD.probe+8;if(ox<PD.px-r||ox>PD.px+r||oz<PD.pz-r||oz>PD.pz+r)return;
+  if(kind===0){ofx=c.fx;ofz=c.fz;ov=c.v;oL=c.m.L;oW=c.m.W;}
+  else{const M=c.M,ml=Math.hypot(M[0],M[6])||1;ofx=M[0]/ml;ofz=M[6]/ml;ov=c.v[0]*ofx+c.v[2]*ofz;oL=c.c.body.L;oW=c.c.body.W;}
+  const you=kind===2,pass=kind===0,rx=ox-PD.px,rz=oz-PD.pz,f=rx*PD.fx+rz*PD.fz,ext=(PD.Lm+oL)*.5;if(f<-ext||f>PD.probe)return;
+  const sd=rx*PD.lx+rz*PD.lz,half=(PD.Wm+oW)*.5,clear=half+.8;if(Math.abs(sd)>clear+1.5)return;
+  const vo=ov*(ofx*PD.fx+ofz*PD.fz),room=f-ext-(you&&PD.slow?1.2:2.5),inPath=f>0&&Math.abs(sd)<half+.3,tl=PD.tl;
+  if(inPath&&(PD.spd-vo>.5||room<3)){let cap=room>0?Math.max(0,vo)+Math.sqrt(2*PD.aB*room):Math.max(0,vo+room*1.2);
+    if(pass&&room>0&&f<PD.nf){const sg=tl-sd>.3?1:tl-sd<-.3?-1:(sd>0?-1:1),want=sd+sg*clear-tl;
+      if(Math.abs(tl+want)<4.5&&polClear(PD.px,PD.pz,PD.tx+PD.lx*want,PD.tz+PD.lz*want)){PD.nf=f;PD.off=want;cap=Math.max(cap,Math.min(vo+9,99));}}
+    if(cap<PD.vt)PD.vt=cap;}
+  else if(!you&&f<PD.nf&&Math.abs(tl-sd)<clear){const sg=tl-sd>=0?1:-1,want=sd+sg*clear-tl;if(Math.abs(tl+want)<4.5){PD.nf=f;PD.off=want;}}}
 function polDrive(P,dt){
-  const V=P.V,t=GAME.car,inp=P.inp,spd=V.speed,dx=t.p[0]-V.p[0],dz=t.p[2]-V.p[2],d=Math.hypot(dx,dz);P.d=d;
+  const V=P.V,t=GAME.car,inp=P.inp,spd=V.speed,R=V.M,dx=t.p[0]-V.p[0],dz=t.p[2]-V.p[2],d=Math.hypot(dx,dz);P.d=d;
   /* holding back after a bust */
   if(POL.holdT>0){inp.thr=0;inp.brk=spd>.6?1:0;inp.hb=spd<.6?1:0;inp.steer=0;return;}
   /* lost you, rolled, or stuck for good: back in behind you */
-  P.lostT=d>(GFX.level==='mobile'?240:300)?P.lostT+dt:0;P.flipT=V.M[4]<.4?P.flipT+dt:0;
+  P.lostT=d>(GFX.level==='mobile'?240:300)?P.lostT+dt:0;P.flipT=R[4]<.4?P.flipT+dt:0;
   if(P.lostT>3||P.flipT>2||P.stuckT>6){polRespawn(P);return;}
-  /* where to aim: at you (where you'll be) in plain sight, else along your trail */
-  let tx,tz;P.see=d<140&&polClear(V.p[0],V.p[2],t.p[0],t.p[2]);
-  if(P.see){const tau=Math.min(1.2,d/Math.max(8,spd))*.8;tx=t.p[0]+t.v[0]*tau;tz=t.p[2]+t.v[2]*tau;P.ck=Math.max(P.ck,POL.k-2);}
-  else{if(P.ck<POL.k-POL_CRUMBS+1)P.ck=POL.k-POL_CRUMBS+1;
-    while(P.ck<POL.k-1){const j=P.ck%POL_CRUMBS;if(Math.hypot(POL.cx[j]-V.p[0],POL.cz[j]-V.p[2])>Math.max(10,spd*.5))break;P.ck++;}
-    const ahead=Math.min(POL.k-1,P.ck+Math.max(1,Math.round(spd*.25))),j=ahead%POL_CRUMBS;tx=POL.cx[j];tz=POL.cz[j];if(ahead>=POL.k-1){tx=t.p[0];tz=t.p[2];}}
-  /* steering: the arc that reaches it, as a share of what the steering can do at this speed (44_ai's _aim) */
-  const ax=tx-V.p[0],az=tz-V.p[2],L2=ax*ax+az*az,side=ax*V.M[2]+az*V.M[8],fwd=ax*V.M[0]+az*V.M[6],kk=2*side/Math.max(L2,1),ang=Math.atan(V.c.wb*kk),
+  const N=POL_CRUMBS,hl=Math.hypot(R[0],R[6])||1,fx=R[0]/hl,fz=R[6]/hl,ll=Math.hypot(R[2],R[8])||1,lx=R[2]/ll,lz=R[8]/ll,
+    mu=V.tyre.mu||1,aB=POL_AB*mu*9.81,px0=V.p[0],pz0=V.p[2],Lm=V.c.body.L,Wm=V.c.body.W;
+  P.see=d<140&&polClear(px0,pz0,t.p[0],t.p[2]);
+  /* where it is on your trail: past the crumbs it has reached, or left behind it */
+  const k0=Math.max(0,POL.k-N+1);if(P.ck<k0)P.ck=k0;
+  while(P.ck<POL.k-1){const j=P.ck%N,ex=POL.cx[j]-px0,ez=POL.cz[j]-pz0,e2=ex*ex+ez*ez;if(e2>36&&(ex*fx+ez*fz>0||e2>400))break;P.ck++;}
+  /* the point to steer for: Ld along the trail (at the end of it, you) */
+  PD.px=px0;PD.pz=pz0;let Ld=Math.max(8,Math.min(34,6+spd*.5));polAlong(P,Ld);
+  /* (round a corner the straight line to that point would cut it, through the corner of a building: a nearer one) */
+  for(let q=0;q<3&&Ld>5&&!polClear(px0,pz0,PD.tx,PD.tz);q++){Ld*=.6;polAlong(P,Ld);}
+  let tx=PD.tx,tz=PD.tz;
+  /* the bends ahead on the trail: the turn over each 8 m, the speed it allows (POL_MU of the grip), braking for it */
+  let vt=99;
+  {let acc=0,qx=px0,qz=pz0;const look=Math.min(190,spd*spd/(2*aB)+25);
+    for(let k=P.ck;k<POL.k-2&&acc<look;k++){const j=k%N,x=POL.cx[j],z=POL.cz[j];acc+=Math.hypot(x-qx,z-qz);qx=x;qz=z;if(k-2<k0)continue;
+      const ja=(k-2)%N,jb=(k+2)%N,ax=x-POL.cx[ja],az=z-POL.cz[ja],bx=POL.cx[jb]-x,bz=POL.cz[jb]-z,la=Math.hypot(ax,az),lb=Math.hypot(bx,bz);if(la<1||lb<1)continue;
+      const th=Math.acos(Math.max(-1,Math.min(1,(ax*bx+az*bz)/(la*lb)))),kap=th/((la+lb)*.5);if(kap<1e-3)continue;
+      const vc=Math.sqrt(POL_MU*mu*9.81/kap),va=Math.sqrt(vc*vc+2*aB*Math.max(0,acc-4));if(va<vt)vt=va;}}
+  /* close behind you and in sight (the nearest one only): a place a few car lengths back, at your speed; when you
+     stop, just behind you and a little to one side */
+  const tv=Math.hypot(t.v[0],t.v[2]),tM=t.M,thl=Math.hypot(tM[0],tM[6])||1,hx=tv>2?t.v[0]/tv:tM[0]/thl,hz=tv>2?t.v[2]/tv:tM[6]/thl;
+  let close=false;
+  if(P.see&&d<60&&POL.lead===P){close=true;let sx,sz;
+    if(t.speed<3){const rx=-hz,rz=hx,sd=(px0-t.p[0])*rx+(pz0-t.p[2])*rz>=0?1:-1,gap=(Lm+t.c.body.L)*.5+1.5;sx=t.p[0]+rx*sd*1.2-hx*gap;sz=t.p[2]+rz*sd*1.2-hz*gap;}
+    else{const gap=8+tv*.3;sx=t.p[0]-hx*gap;sz=t.p[2]-hz*gap;}
+    /* (it still steers along your trail, round the corners you took; the place only sets its speed. Stopped, it
+       steers for the place itself) */
+    const ex=sx-px0,ez=sz-pz0,ds=Math.hypot(ex,ez);
+    if(t.speed<3){if(ds>Ld){tx=sx;tz=sz;}else{tx=sx+hx*(Ld-ds);tz=sz+hz*(Ld-ds);}}
+    const alg=ex*hx+ez*hz;
+    vt=Math.min(vt,t.speed<3?Math.sqrt(2*3*Math.max(0,ds-.8)):Math.max(0,tv+Math.max(-tv-2,Math.min(14,alg*.6))));}
+  /* in its way: a car of the traffic, another police car, or you. Ahead in its path, it slows to that car's speed in
+     time (and drops back if it's touching); if it's the traffic and there's room beside it, it goes round instead, its
+     line moved over to clear it by a lane's margin, and keeps clear of it while alongside. You, and the other police,
+     it never goes round: it falls in behind */
+  PD.fx=fx;PD.fz=fz;PD.lx=lx;PD.lz=lz;PD.Lm=Lm;PD.Wm=Wm;PD.spd=spd;PD.aB=aB;PD.probe=Math.max(14,spd*1.8+8);PD.tx=tx;PD.tz=tz;PD.tl=(tx-px0)*lx+(tz-pz0)*lz;PD.vt=vt;PD.off=0;PD.nf=1e9;PD.slow=t.speed<3;
+  for(let i=0;i<TRF_ON.length;i++)polObst(TRF_ON[i],0);
+  for(let i=0;i<POL.cars.length;i++){const o=POL.cars[i];if(o!==P&&o.V)polObst(o.V,1);}
+  polObst(t,2);
+  vt=PD.vt;
+  /* another police car ahead of it on your trail: it keeps its distance, counted along the trail, so round a corner too */
+  for(let i=0;i<POL.cars.length;i++){const o=POL.cars[i];if(o===P||!o.V||o.ck<=P.ck||o.ck-P.ck>20)continue;
+    const room=(o.ck-P.ck)*4.2-(Lm+o.V.c.body.L)*.5-4-spd*.3,vo=o.V.speed,cap=room>0?vo+Math.sqrt(2*aB*room):Math.max(0,vo+room*1.2);if(cap<vt)vt=cap;}
+  if(PD.off){tx+=lx*PD.off;tz+=lz*PD.off;}
+  /* steering: the arc that reaches the point, as a share of what the steering can do at this speed (44_ai's _aim),
+     turned no faster than a driver would */
+  const ax=tx-px0,az=tz-pz0,L2=ax*ax+az*az,side=ax*R[2]+az*R[8],fwd=ax*R[0]+az*R[6],ang=Math.atan(V.c.wb*2*side/Math.max(L2,1)),
     lim=Math.min(V.c.lock,V.tyre.aPk*1.6+V.c.wb*9/Math.max(spd*spd,1));let steer=Math.max(-1,Math.min(1,ang/lim));
-  /* how fast: flat out when far, as fast as the turn to the target allows, and your speed (and a little) on your bumper */
-  const dl=Math.sqrt(L2)||1,sa=Math.abs(side)/dl,R=Math.max(4,dl/(2*Math.max(.05,sa))),vc=fwd<0?6:Math.sqrt(9.81*(V.tyre.mu||1)*R)*1.15;
-  /* (you stopped or nearly: it pulls up a few metres off rather than shoving you along) */
-  const vt=Math.min(t.speed<3&&d<25?Math.max(0,(d-6)*.7):d>45?99:Math.max(t.speed*1.04+(d>14?5:1.5),6),vc);
-  let thr=spd<vt?1:spd<vt+2?.3:0,brk=spd>vt+3?Math.min(1,(spd-vt)/8):0;
+  if(fwd<0&&!close)vt=Math.min(vt,6);
+  let thr=spd<vt+1?Math.max(0,Math.min(1,(vt-spd)*.5+.3)):0,brk=spd>vt+1.5?Math.min(1,(spd-vt)/6):0;
   /* (holding still: on the handbrake, not the brake, which held at a standstill would be reverse) */
   if(vt<.5&&spd<1){thr=0;brk=0;}
   /* stuck against something: back off, turning the other way, then go again */
   if(P.revT>0){P.revT-=dt;thr=0;brk=1;steer=-steer;}
   else{if(spd<1.2&&thr>.5&&d>8)P.stuckT+=dt;else P.stuckT=Math.max(0,P.stuckT-dt*.5);if(P.stuckT>1.6&&P.stuckT<1.6+dt*1.5)P.revT=1.6;}
-  inp.steer=steer;inp.thr=thr;inp.brk=brk;inp.hb=vt<.5&&spd<1?1:0;inp.nos=false;
+  const rate=(2.5+30/(spd+5))*dt;inp.steer=P.revT>0?steer:inp.steer+Math.max(-rate,Math.min(rate,steer-inp.steer));
+  inp.thr=thr;inp.brk=brk;inp.hb=vt<.5&&spd<1?1:0;inp.nos=false;
 }
 /* each physics step, with the traffic's (60_traffic trafficSub): the police on the physics, into the contact list */
 function policeSub(dt,list){if(!POL.live)return;for(let _i31=0;_i31<POL.cars.length;_i31++){const P=POL.cars[_i31];if(P.V){P.V.step(dt,P.inp);list.push(P.V);}}}

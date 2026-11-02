@@ -1,7 +1,7 @@
 /* Where the garbage comes from: the game is booted, driven a little, then V8's sampling heap profiler watches a
    run of frames and the allocation sites are printed largest first (bytes per frame, the function and the line
    in the built page). Software rendering makes the frames slow, not different.
-   usage: node tools/alloc_rt.js [scene]      scenes: day night menu hwy (default day)
+   usage: node tools/alloc_rt.js [scene]      scenes: day night menu hwy police (default day; police: hwy with police on)
    env: QUALITY (high), W, H (480 x 270), FRAMES (frames watched, 60), FILE, TOP (sites printed, 40) */
 const {chromium}=require('playwright');const path=require('path');
 const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','rlcwo2rnf-traffic.html');
@@ -15,7 +15,7 @@ const Q=process.env.QUALITY||'high',FRAMES=+(process.env.FRAMES||60),sc=process.
   await p.goto('file://'+file+`?quality=${Q}&display=clear`);
   await p.waitForFunction(()=>window.__game&&!(document.getElementById('loading')&&!document.getElementById('loading').hidden),null,{timeout:400000,polling:500});
   await p.evaluate(async([sc])=>{const g=__game,G=g.GAME,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms));
-    const place={day:'downtown',night:'neon',menu:'downtown',hwy:'hwyE'}[sc]||sc;
+    const place={day:'downtown',night:'neon',menu:'downtown',hwy:'hwyE',police:'hwyE'}[sc]||sc;g.APP.police=sc==='police';
     g.applyTod(sc==='night'?'night':'day');g.APP.tod=sc==='night'?'night':'day';g.APP.lights=sc==='night';
     g.closeMenu();G.state='drive';g.goTo(place);g.APP.cam=1;
     for(let f=0;f<180;f++){g.setTestInput({steer:0,thr:.6,brk:0,hb:0,nos:false});g.APP.t+=dt;g.step(dt);if(f%20===19){g.render(dt);await wait(5);}}
