@@ -6,14 +6,14 @@
    ===================================================================================== */
 /* the studio's own materials (the game's run to 31; 13_lit leaves 70 and up free) */
 const SM={LENS:70,BULB:71,GLOSSBLK:72,VINYL:73,CARPET:74,DASH:75,TREAD:76,WALL:77,BRUSH:78,LUG:79,ROTORF:80,
-  REFLC:81,AMBERL:82,REDL:83,SEAT:84,HEADLINER:85,GAUGE:86,SATIN:87,BOLT:88,SEAL:89,MIRROR:90,TINT:91,HONEY:92,CAST:93};
+  REFLC:81,AMBERL:82,REDL:83,SEAT:84,HEADLINER:85,GAUGE:86,SATIN:87,BOLT:88,SEAL:89,MIRROR:90,TINT:91,HONEY:92,CAST:93,LINER:94,CLADS:95};
 const SV=(c,m,em=0)=>[c,em,m];
 const HC={LENS:SV([1,1,1],SM.LENS),BULB:SV([1,1,1],SM.BULB),GB:SV([.012,.012,.013],SM.GLOSSBLK),VINYL:SV(lin('#2b2a29'),SM.VINYL),
   CARPET:SV(lin('#242322'),SM.CARPET),DASH:SV(lin('#262524'),SM.DASH),TREAD:SV([.028,.028,.03],SM.TREAD),WALL:SV([.03,.03,.032],SM.WALL),
   BRUSH:SV(lin('#9a9ca0'),SM.BRUSH),LUG:SV([1,1,1],SM.LUG),ROTORF:SV(lin('#7d7c7a'),SM.ROTORF),REFLC:SV([1,1,1],SM.REFLC),
   AMBERL:SV([1,1,1],SM.AMBERL),REDL:SV([1,1,1],SM.REDL),SEAT:SV(lin('#3a3836'),SM.SEAT),HEADLINER:SV(lin('#8f8a82'),SM.HEADLINER),
   GAUGE:SV(lin('#0d0e10'),SM.GAUGE),SATIN:SV(lin('#55575b'),SM.SATIN),BOLT:SV(lin('#8a8c90'),SM.BOLT),SEAL:SV([.015,.015,.016],SM.SEAL),
-  MIRROR:SV([1,1,1],SM.MIRROR),TINT:SV([1,1,1],SM.TINT),HONEY:SV([.01,.01,.011],SM.HONEY),CAST:SV(lin('#3c3d40'),SM.CAST)};
+  MIRROR:SV([1,1,1],SM.MIRROR),TINT:SV([1,1,1],SM.TINT),HONEY:SV([.01,.01,.011],SM.HONEY),CAST:SV(lin('#3c3d40'),SM.CAST),LINER:SV(lin('#111112'),SM.LINER)};
 /* a part list: many MBs poured into one (each already smoothed) */
 function hdPut(dst,src){for(let i=0;i<src.p.length;i++)dst.p.push(src.p[i]);for(let i=0;i<src.n.length;i++)dst.n.push(src.n[i]);
   for(let i=0;i<src.c.length;i++)dst.c.push(src.c[i]);for(let i=0;i<src.m.length;i++)dst.m.push(src.m[i]);return dst;}

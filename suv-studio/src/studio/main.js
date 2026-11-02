@@ -20,19 +20,19 @@ const controls=new OrbitControls(camera,cv);controls.enableDamping=true;controls
 controls.minDistance=1.2;controls.maxDistance=18;controls.maxPolarAngle=Math.PI*.497;
 
 /* ---------- the backdrop: a plain colour, a floor that only shows the car's shadow ---------- */
-const BACK={light:{bg:'#e6e5e2',sh:.32,env:1.0,key:2.6},dark:{bg:'#17181b',sh:.55,env:.85,key:2.2}};
+const BACK={light:{bg:'#e6e5e2',sh:.32,env:1,key:2.2},dark:{bg:'#17181b',sh:.55,env:.9,key:2}};
 let back=Q.get('back')||'light';
 const pmrem=new THREE.PMREMGenerator(renderer);
 /* the reflections: a photo studio made of light. A grey dome (light floor, darker walls, a soft ceiling), a long
    soft box overhead, two tall strips either side, a broad box in front and a dimmer one behind. Its long clean
    highlights are what read as paint on the body. */
 function studioEnvScene(){const s=new THREE.Scene(),g=new THREE.SphereGeometry(40,64,32),c=[];
-  const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/40,v=y>0?.34+.22*y:.34+(.30-.34)*Math.min(1,-y*4);c.push(v,v,v*.98);}
+  const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/40,v=y>0?.17+.08*y:.17+(.3-.17)*Math.min(1,-y*4);c.push(v,v,v*.98);}
   g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));s.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide})));
   const box=(w,h,pos,look,k,tint=[1,1,1])=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
     m.material.color.setRGB(k*tint[0],k*tint[1],k*tint[2]);m.position.set(...pos);m.lookAt(...look);s.add(m);};
-  box(14,4.5,[0,12,0],[0,0,0],7);
-  for(const z of [-11,11])box(1.6,9,[1.5,5,z],[0,1,0],5);
+  box(14,4.5,[0,12,0],[0,0,0],9);
+  for(const z of [-11,11])box(1.6,9,[1.5,5,z],[0,1,0],6);
   box(7,5,[13,5,3],[0,1,0],3.2,[1,.97,.93]);box(7,4,[-13,5,-2],[0,1,0],2.2,[.92,.96,1]);
   box(30,.5,[0,.25,-16],[0,0,0],1.2);
   return s;}
@@ -48,7 +48,7 @@ const pool=(()=>{const c=document.createElement('canvas');c.width=c.height=256;c
 scene.add(pool);
 const key=new THREE.DirectionalLight(0xffffff,2.6);key.position.set(3.2,7.5,2.4);key.castShadow=true;
 key.shadow.mapSize.set(4096,4096);key.shadow.camera.left=-4;key.shadow.camera.right=4;key.shadow.camera.top=4;key.shadow.camera.bottom=-4;
-key.shadow.camera.near=1;key.shadow.camera.far=20;key.shadow.radius=6;key.shadow.blurSamples=16;key.shadow.bias=-.0002;key.shadow.normalBias=.012;
+key.shadow.camera.near=1;key.shadow.camera.far=20;key.shadow.radius=6;key.shadow.blurSamples=16;key.shadow.bias=-.0004;key.shadow.normalBias=.02;
 scene.add(key);scene.add(key.target);
 const rim=new THREE.DirectionalLight(0xdfe8ff,.7);rim.position.set(-6,3,-4);scene.add(rim);
 
@@ -121,6 +121,8 @@ function matFor(id,em,b){
     case SM.TINT:return P({color:col('#000000'),metalness:0,roughness:.03,transparent:true,opacity:.6,depthWrite:false});
     case SM.HONEY:return P({...vc,roughness:.35,clearcoat:.5});
     case SM.CAST:return P({...vc,metalness:.7,roughness:.55});
+    case SM.CLADS:return P({color:col(b.clad),roughness:.72});
+    case SM.LINER:return P({...vc,roughness:.8,normalMap:GRAIN,normalScale:new THREE.Vector2(.4,.4)});
     default:return P({...vc,roughness:.55,...(em>0?{emissive:col('#ffffff'),emissiveIntensity:1}:{})});
   }
 }
@@ -134,12 +136,12 @@ function meshes(src,name,b){
       for(let v=0;v<3;v++){cc[i*9+v*3]=C[t*12+v*4];cc[i*9+v*3+1]=C[t*12+v*4+1];cc[i*9+v*3+2]=C[t*12+v*4+2];}}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pp,3));geo.setAttribute('normal',new THREE.BufferAttribute(nn,3));geo.setAttribute('color',new THREE.BufferAttribute(cc,3));
     if(MAT_UV[id])addUV(geo,MAT_UV[id]);
-    const m=new THREE.Mesh(geo,matFor(id,em,b));m.castShadow=!(id===MAT.GLASS||id===MAT.GLASSL);m.receiveShadow=true;m.userData.mat=id;g.add(m);}
+    const m=new THREE.Mesh(geo,matFor(id,em,b));m.castShadow=!(id===MAT.GLASS||id===MAT.GLASSL);m.receiveShadow=id!==SM.LINER;m.userData.mat=id;g.add(m);}
   return g;
 }
 /* a box projection for the grain maps (textured plastic, rubber): metres times k */
 const MAT_UV={};MAT_UV[MAT.CLAD]=18;MAT_UV[MAT.TYRE]=30;
-for(const [k,v] of [['TREAD',40],['WALL',36],['VINYL',14],['CARPET',30],['DASH',20],['SEAT',16]])MAT_UV[SM[k]]=v;
+for(const [k,v] of [['LINER',24],['TREAD',40],['WALL',36],['VINYL',14],['CARPET',30],['DASH',20],['SEAT',16]])MAT_UV[SM[k]]=v;
 function addUV(geo,k){const p=geo.attributes.position.array,n=geo.attributes.normal.array,uv=new Float32Array(p.length/3*2);
   for(let i=0;i<p.length/3;i++){const ax=Math.abs(n[i*3]),ay=Math.abs(n[i*3+1]),az=Math.abs(n[i*3+2]);let u,v;
     if(ax>=ay&&ax>=az){u=p[i*3+2];v=p[i*3+1];}else if(ay>=az){u=p[i*3];v=p[i*3+2];}else{u=p[i*3];v=p[i*3+1];}uv[i*2]=u*k;uv[i*2+1]=v*k;}
@@ -160,7 +162,8 @@ function build(){
     w.position.set(x,front?R:D.Rr,s*tw);w.scale.set(1,1,s);car.add(w);}
   for(const sp of D.spares||[]){const w=meshes(sp.rear?T.wheelR:T.wheel,'spare',b);w.position.set(sp.p[0],sp.p[1],sp.p[2]);if(sp.face==='back')w.rotation.y=-Math.PI/2;else if(sp.p[2]<0)w.scale.z=-1;car.add(w);}
   /* the studio's own detail (src/hd), already in the car's coordinates */
-  for(const [name,src] of Object.entries(T.hd||{}))if(src&&src.p)car.add(meshes(src,name,b));
+  const HIDE=(Q.get('hide')||'').split(',');
+  for(const [name,src] of Object.entries(T.hd||{}))if(src&&src.p&&!HIDE.includes(name))car.add(meshes(src,name,b));
   pool.scale.set(D.L*1.08,1,2.25);
   stats={tris:countTris(car),ms:T.ms};hud();
 }
