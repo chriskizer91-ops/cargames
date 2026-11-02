@@ -181,14 +181,15 @@ function policeMapDots(toXY){if(!POL.live)return;const [r]=polFlash();for(let _i
 /* ---------- the voices (49_voices.js, from VOICE_PROMPTS.md): the police radio in your car, the loudspeaker from
    theirs, a driver you've hit. Each decoded once, the first time police mode comes on; a line with no recording
    yet is simply not heard (VOX.log keeps every cue, heard or not, for the tools) ---------- */
-const VOX={buf:{},until:0,log:[],t:{},lostT:0,lost:false,place:'',startT:-1,backup:false};
-function voxWarm(){const A=ENG.audio;if(!A)return;for(const k in VOICES)if(VOX.buf[k]===undefined){VOX.buf[k]=null;
+const VOX={buf:{},warm:false,until:0,log:[],heard:[],inP:false,t:{},lostT:0,lost:false,place:'',startT:-1,backup:false};
+function voxWarm(){const A=ENG.audio;if(!A||VOX.warm)return;VOX.warm=true;for(const k in VOICES)if(VOX.buf[k]===undefined){VOX.buf[k]=null;
   fetch(VOICES[k]).then(r=>r.arrayBuffer()).then(a=>A.ctx.decodeAudioData(a)).then(d=>{VOX.buf[k]=d;}).catch(()=>{});}}
 /* one line: kind 'radio' (in your car, the scanner's band, a squelch click either side), 'pa' (from x, z: a megaphone)
    or 'yell' (from x, z); not over another line, and not the same line again within its own wait */
 function voxSay(name,kind,x,z,wait=8){
-  const now=APP.t;if(VOX.t[name]!==undefined&&now-VOX.t[name]<wait)return false;VOX.t[name]=now;VOX.log.push(name);if(VOX.log.length>40)VOX.log.shift();
-  const A=ENG.audio,b=VOX.buf[name];if(!A||!b)return false;const ctx=A.ctx,t0=ctx.currentTime;if(t0<VOX.until)return false;VOX.until=t0+b.duration+.3;
+  const now=APP.t;if(VOX.t[name]!==undefined&&now-VOX.t[name]<wait)return false;VOX.log.push(name);if(VOX.log.length>40)VOX.log.shift();
+  /* (not ready, or another line still going: not said, and not counted as said) */
+  const A=ENG.audio,b=VOX.buf[name];if(!A||!b)return false;const ctx=A.ctx,t0=ctx.currentTime;if(t0<VOX.until)return false;VOX.until=t0+b.duration+.3;VOX.t[name]=now;VOX.heard.push(name);if(VOX.heard.length>40)VOX.heard.shift();
   const src=ctx.createBufferSource();src.buffer=b;const g=ctx.createGain();let head=src;
   if(kind!=='yell'){const f=ctx.createBiquadFilter(),w=ctx.createWaveShaper(),k=kind==='radio'?2.2:4,c=new Float32Array(256);
     for(let i=0;i<256;i++){const x=i/127.5-1;c[i]=Math.tanh(x*k)/Math.tanh(k);}w.curve=c;f.type='bandpass';f.frequency.value=kind==='radio'?1700:1300;f.Q.value=kind==='radio'?.9:.7;src.connect(f);f.connect(w);head=w;}
@@ -202,10 +203,13 @@ function voxSay(name,kind,x,z,wait=8){
       for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.25;n.buffer=nb;const ng=ctx.createGain();ng.gain.value=.35;n.connect(ng);ng.connect(A.master);n.start(at);}}
   return true;}
 const VOX_PA=['police_pa_pull_over','police_pa_stop_vehicle','police_pa_pull_over_now','police_pa_slow_down'];
-/* the cues, each frame of a chase (from policeFrame) */
+/* the cues, each frame of a chase (from policeFrame); the drivers' lines come from 60_traffic, when you hit one */
 function voxChase(dt){
-  const t=GAME.car,now=APP.t;if(VOX.startT<0){VOX.startT=now;VOX.lost=false;VOX.lostT=0;VOX.backup=false;voxWarm();}
-  if(now-VOX.startT>1.5&&now-VOX.startT<2)voxSay('radio_in_pursuit','radio',0,0,60);
+  const t=GAME.car,now=APP.t;if(VOX.startT<0){VOX.startT=now;VOX.lost=false;VOX.lostT=0;VOX.backup=false;VOX.inP=false;}
+  /* (the sound starts with the engine, at the first touch of the gas: the voices are decoded the first frame it's up) */
+  if(!VOX.warm)voxWarm();
+  /* the call that starts it: as soon as it can be heard, within the chase's first twelve seconds */
+  if(!VOX.inP&&now-VOX.startT>1.5&&now-VOX.startT<12&&voxSay('radio_in_pursuit','radio',0,0,0))VOX.inP=true;
   /* where the chase has got to: into town, out onto the salt */
   const td=Math.max(Math.abs(t.p[0]),Math.abs(t.p[2])),pl=td<WG.EDGE?'town':WG.saltD(t.p[0],t.p[2])>WG.LAND+80?'salt':'country';
   if(pl!==VOX.place){if(pl==='town'&&VOX.place)voxSay('radio_in_town','radio',0,0,40);if(pl==='salt')voxSay('radio_heading_salt','radio',0,0,40);VOX.place=pl;}

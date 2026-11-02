@@ -367,7 +367,7 @@ function trfPhysDrive(c,dt){
   /* a knock: stop, honk */
   if(V.ev.car>0){V.ev.car=0;c.hits++;c.stopT=2.5;if(c.honkT<=0){trfHonk(c);c.honkT=3;
     /* (a driver you've just hit has something to say) */
-    const t=GAME.car;if(Math.hypot(t.p[0]-c.x,t.p[2]-c.z)<9)voxSay(TRF_YELL[Math.floor(trfRnd()*TRF_YELL.length)],'yell',c.x,c.z,4);}}
+    const t=GAME.car;voxWarm();if(Math.hypot(t.p[0]-c.x,t.p[2]-c.z)<9)voxSay(TRF_YELL[Math.floor(trfRnd()*TRF_YELL.length)],'yell',c.x,c.z,4);}}
   if(up<.5||Math.abs(lo)>9)c.wreck=true;
   const inp=c.inp,spd=V.speed;
   if(c.wreck){inp.steer=0;inp.thr=0;inp.brk=1;inp.hb=1;
