@@ -174,7 +174,7 @@ function soundUpdate(c,dt=1/60){
 
 /* ---------- keyboard, game controller and the touch controls ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],stats:['KeyF'],cruise:['KeyY'],pitch:['KeyV'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],od:['KeyO'],trac:['KeyT']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],stats:['KeyF'],cruise:['KeyY'],pitch:['KeyV'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],od:['KeyO'],trac:['KeyT'],rear:['KeyG']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -200,7 +200,7 @@ function pollInput(dt){
   INPUT.wWas=wOn;if(!wOn)INPUT.kick=false;
   const foot=ENG.gas==='foot'&&!INPUT.kick?.5:1;
   INPUT.thr+=clamp((keyOn('thr')?foot:pth)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
-  out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
+  out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');out.rear=keyOn('rear');
   for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map','od','trac','stats','cruise','pitch'])out[k]=keyHit(k);
   /* the touch controls: analog steering (slide or tilt), a gas pedal set by how high the thumb sits, the brake and the e-brake */
   if(TOUCH.on){if(TOUCH.steerActive||APP.steer==='tilt')out.steer=TOUCH.steer;if(TOUCH.thr>0)out.thr=Math.max(out.thr,pedalMap(TOUCH.thr));if(TOUCH.brk>0)out.brk=Math.max(out.brk,TOUCH.brk);if(TOUCH.hb)out.hb=1;}
@@ -209,7 +209,7 @@ function pollInput(dt){
     if(Math.abs(sx)>0||rt>.02||lt>.02||gp.buttons.some(b=>b.pressed))INPUT.usingPad=true;
     if(INPUT.usingPad){const pr=i=>gp.buttons[i]&&gp.buttons[i].pressed&&!INPUT.padPrev[i];
       out.steer=Math.sign(sx)*Math.pow(Math.abs(sx),1.35);out.thr=pedalMap(rt);out.brk=lt;out.hb=gp.buttons[0]&&gp.buttons[0].pressed?1:0;out.nos=!!(gp.buttons[1]&&gp.buttons[1].pressed);
-      out.up=out.up||pr(5);out.down=out.down||pr(4);out.cam=out.cam||pr(3);out.reset=out.reset||pr(8);out.menu=out.menu||pr(9);out.low=out.low||pr(2);}
+      out.up=out.up||pr(5);out.down=out.down||pr(4);out.cam=out.cam||pr(3);out.reset=out.reset||pr(8);out.menu=out.menu||pr(9);out.low=out.low||pr(2);out.rear=out.rear||!!(gp.buttons[11]&&gp.buttons[11].pressed);}
     INPUT.padPrev=gp.buttons.map(b=>b.pressed);}
   INPUT.pressed.clear();return out;
 }
@@ -234,6 +234,8 @@ function step(dt){
     if(inp.od)say(setOD(!APP.od)?(APP.od?'Overdrive off':'Overdrive on'):pt.e.cvt?'No overdrive on a belt drive':'No overdrive button on a manual',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
+    /* the rear view: G held, the gamepad's right stick held in, or the phone's REAR button (on until pressed again) */
+    {const rear=!!(inp.rear||TOUCH.rear);if(rear!==!!CAM.rear){CAM.rear=rear;CAM.cut=true;}}
     if(inp.stats){DEVW.hud=DEVW.hud==='off'?'perf':DEVW.hud==='perf'?'full':'off';saveDev();say(DEVW.hud==='off'?'Numbers off':DEVW.hud==='perf'?'Performance readout':'Every number',1.2);}
     if(inp.cruise)toggleCruise();
     if(inp.pitch){ENG.pitch=ENG.pitch===1?.9:ENG.pitch===.9?.8:1;saveEng();syncSound();say('ENGINE PITCH '+Math.round(ENG.pitch*100)+'%'+(ENG.pitch===1?' (TRUE)':''),1.8);}
@@ -369,6 +371,13 @@ function camUpdate(dt){
   CAM.shake=Math.max(0,CAM.shake-dt*3);
   /* (a fixed view from somewhere else, for the tools: {eye, at, fov}) */
   if(CAM.over){const o=CAM.over;return {eye:o.eye.slice(),fwd:norm2(sub2(o.at,o.eye)),up:[0,1,0],fov:o.fov||1};}
+  /* the rear view: the chase camera turned round, out in front of the car and looking back over it, so you see
+     your car and whoever is behind you (held level to the way the car faces, no lag, so it reads at a glance) */
+  if(CAM.rear&&!APP.orbit){const fl=Math.hypot(F[0],F[2])||1,fx=F[0]/fl,fz=F[2]/fl,hs=.6+.4*D.Hr/1.79;
+    const dist=5.6*kl+lift*2.5,ht=2.1*hs+lift*1.4,eye=[t.p[0]+fx*dist,t.p[1]+ht,t.p[2]+fz*dist];
+    const gy=RANCH.W.heightAt(eye[0],eye[2])+.9;if(eye[1]<gy)eye[1]=gy;
+    const at=[t.p[0]-fx*9*kl,t.p[1]+.7*hs+lift,t.p[2]-fz*9*kl];
+    CAM.yaw=null;CAM.off=null;CAM.fq=null;return {eye,fwd:norm2(sub2(at,eye)),up:[0,1,0],fov:1.08};}
   const body=(x,y,z)=>add(t.p,mvec(M,[x-t.cg[0],y-t.cg[1],z]));let eye,fwd,up=[0,1,0],fov=1.02;
   if(APP.orbit){
     /* the garage: round and round the car, a little above it */

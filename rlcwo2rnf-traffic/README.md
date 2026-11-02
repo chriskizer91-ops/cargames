@@ -86,6 +86,10 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   you, backup after a minute and a half, stopped. Their loudspeaker comes from the nearest police car, through a
   megaphone, every 9 to 14 s while it's close and you're still going ("There's nothing out there" on the salt), and
   at a bust. The traffic's drivers don't talk: they honk. Decoded the first frame the sound is up; one line at a time.
+- **The rear view**: to see who's behind you. The chase camera turned round, out in front of your car and looking back
+  over it. On the phone a REAR button, top of the left-hand column (above CAM): one tap looks back, another looks
+  ahead again (lit while it's on; a toggle, as both thumbs are busy). On the keyboard G, held; on a gamepad the right
+  stick pressed in, held. REAR VIEW shows under the instruments while it's on.
 - **Check**: `node tools/police_check.js [chase,bust]`.
 
 ---

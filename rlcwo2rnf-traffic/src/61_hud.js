@@ -101,6 +101,8 @@ function drawHud(c){
     otxt3(r.name.toUpperCase(),W/2,y-10,PAL.gold,1,'c');otxt5(fmtLive(el),W/2,y,el>r.par?GR.red:GR.volt,1,'c');otxt3(fmtDist(d)+'  PAR '+fmtLap(r.par),W/2,y+9,PAL.dim,1,'c');
     /* an arrow at the top of the screen pointing to the finish */
     const ax=W/2+(tch?-48:0),ay=tch?50:30,dx=-Math.sin(a),dy=-Math.cos(a);hLine(ax,ay,ax+dx*7,ay+dy*7,PAL.gold);hDisc(ax+dx*7,ay+dy*7,1.4,PAL.gold);}
+  /* the rear view's tag, small, under the instruments' row */
+  if(CAM.rear)otxt3('REAR VIEW',W/2,tch?Math.round(H*.36):Math.round(H*.12),PAL.cyan,1,'c');
   /* messages */
   let y=Math.round(H*.3);
   for(let i=GAME.msgs.length-1;i>=0;i--){const m=GAME.msgs[i];m.a=APP.t-m.t0;if(m.a>m.k){GAME.msgs.splice(i,1);continue;}

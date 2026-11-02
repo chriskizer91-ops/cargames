@@ -487,7 +487,7 @@ body.bayfull>.bar{display:none}
 <div id="touch" hidden>
   <div id="steerZone" data-mode="slide"><div id="steerTrack"><b id="steerKnob"></b></div><span id="steerHint">SLIDE TO STEER</span>
     <div id="steerBtns" hidden><button class="tb big" id="tLeft" type="button" aria-label="Steer left">◀</button><button class="tb big" id="tRight" type="button" aria-label="Steer right">▶</button></div></div>
-  <div class="tside L"><button class="tb" data-k="cam" type="button">CAM</button><button class="tb" data-k="reset" type="button">RESET</button><button class="tb" data-k="horn" type="button">HORN</button><button class="tb" data-k="lights" id="tLights" type="button">LIGHTS</button></div>
+  <div class="tside L"><button class="tb" id="tRear" type="button" aria-label="Rear view">REAR</button><button class="tb" data-k="cam" type="button">CAM</button><button class="tb" data-k="reset" type="button">RESET</button><button class="tb" data-k="horn" type="button">HORN</button><button class="tb" data-k="lights" id="tLights" type="button">LIGHTS</button></div>
   <div class="tside R"><button class="tb" data-k="nos" id="tNos" type="button">N2O</button><button class="tb" data-k="low" id="tLow" type="button">LOW</button><button class="tb" data-k="lock" id="tLock" type="button">LOCK</button><button class="tb" data-k="od" id="tOD" type="button">O/D OFF</button></div>
   <div class="tpedals">
     <div class="tcol"><button class="tb" id="tHb" type="button">E-BRAKE</button><div class="pedal brk" id="tBrk" role="button" aria-label="Brake"><i></i><span>BRAKE</span></div></div>
@@ -567,7 +567,7 @@ body.bayfull>.bar{display:none}
       <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>
       <section><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
       <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>1</kbd>–<kbd>9</kbd> part gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> e-brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>O</kbd> overdrive off ·
-        <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>F</kbd> world numbers · <kbd>Y</kbd> cruise · <kbd>V</kbd> engine pitch · <kbd>R</kbd> reset (in a race: back onto the course) · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
+        <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>G</kbd> look behind (held) · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>F</kbd> world numbers · <kbd>Y</kbd> cruise · <kbd>V</kbd> engine pitch · <kbd>R</kbd> reset (in a race: back onto the course) · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
       <p class="status" id="mStatus"></p>
     </div>
     <div class="tab" data-tab="dev" hidden>
@@ -13632,7 +13632,7 @@ function soundUpdate(c,dt=1/60){
 
 /* ---------- keyboard, game controller and the touch controls ---------- */
 const KEYS={thr:['ArrowUp','KeyW'],brk:['ArrowDown','KeyS'],left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],hb:['Space'],nos:['ShiftLeft','ShiftRight','KeyN'],
-  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],stats:['KeyF'],cruise:['KeyY'],pitch:['KeyV'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],od:['KeyO'],trac:['KeyT']};
+  up:['KeyE','KeyX'],down:['KeyQ','KeyZ'],cam:['KeyC'],stats:['KeyF'],cruise:['KeyY'],pitch:['KeyV'],reset:['KeyR'],menu:['Escape','KeyP'],low:['KeyL'],lockers:['KeyK'],lights:['KeyJ'],ign:['KeyI'],purge:['KeyB'],horn:['KeyH'],map:['KeyM'],od:['KeyO'],trac:['KeyT'],rear:['KeyG']};
 const INPUT={down:new Set(),pressed:new Set(),steer:0,thr:0,brk:0,usingPad:false,padPrev:[]};
 addEventListener('keydown',e=>{if(typing(e.target)||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!e.repeat){INPUT.down.add(e.code);INPUT.pressed.add(e.code);}
@@ -13658,7 +13658,7 @@ function pollInput(dt){
   INPUT.wWas=wOn;if(!wOn)INPUT.kick=false;
   const foot=ENG.gas==='foot'&&!INPUT.kick?.5:1;
   INPUT.thr+=clamp((keyOn('thr')?foot:pth)-INPUT.thr,-8*dt,6*dt);INPUT.brk+=clamp((keyOn('brk')?1:0)-INPUT.brk,-10*dt,8*dt);
-  out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');
+  out.steer=INPUT.steer;out.thr=INPUT.thr;out.brk=INPUT.brk;out.hb=keyOn('hb')?1:0;out.nos=keyOn('nos');out.rear=keyOn('rear');
   for(const k of ['up','down','cam','reset','menu','low','lockers','lights','ign','purge','map','od','trac','stats','cruise','pitch'])out[k]=keyHit(k);
   /* the touch controls: analog steering (slide or tilt), a gas pedal set by how high the thumb sits, the brake and the e-brake */
   if(TOUCH.on){if(TOUCH.steerActive||APP.steer==='tilt')out.steer=TOUCH.steer;if(TOUCH.thr>0)out.thr=Math.max(out.thr,pedalMap(TOUCH.thr));if(TOUCH.brk>0)out.brk=Math.max(out.brk,TOUCH.brk);if(TOUCH.hb)out.hb=1;}
@@ -13667,7 +13667,7 @@ function pollInput(dt){
     if(Math.abs(sx)>0||rt>.02||lt>.02||gp.buttons.some(b=>b.pressed))INPUT.usingPad=true;
     if(INPUT.usingPad){const pr=i=>gp.buttons[i]&&gp.buttons[i].pressed&&!INPUT.padPrev[i];
       out.steer=Math.sign(sx)*Math.pow(Math.abs(sx),1.35);out.thr=pedalMap(rt);out.brk=lt;out.hb=gp.buttons[0]&&gp.buttons[0].pressed?1:0;out.nos=!!(gp.buttons[1]&&gp.buttons[1].pressed);
-      out.up=out.up||pr(5);out.down=out.down||pr(4);out.cam=out.cam||pr(3);out.reset=out.reset||pr(8);out.menu=out.menu||pr(9);out.low=out.low||pr(2);}
+      out.up=out.up||pr(5);out.down=out.down||pr(4);out.cam=out.cam||pr(3);out.reset=out.reset||pr(8);out.menu=out.menu||pr(9);out.low=out.low||pr(2);out.rear=out.rear||!!(gp.buttons[11]&&gp.buttons[11].pressed);}
     INPUT.padPrev=gp.buttons.map(b=>b.pressed);}
   INPUT.pressed.clear();return out;
 }
@@ -13692,6 +13692,8 @@ function step(dt){
     if(inp.od)say(setOD(!APP.od)?(APP.od?'Overdrive off':'Overdrive on'):pt.e.cvt?'No overdrive on a belt drive':'No overdrive button on a manual',1.4);
     if(inp.lights){APP.lights=!APP.lights;say(APP.lights?'Lights on':'Lights off',1);}
     if(inp.map)APP.bigMap=!APP.bigMap;
+    /* the rear view: G held, the gamepad's right stick held in, or the phone's REAR button (on until pressed again) */
+    {const rear=!!(inp.rear||TOUCH.rear);if(rear!==!!CAM.rear){CAM.rear=rear;CAM.cut=true;}}
     if(inp.stats){DEVW.hud=DEVW.hud==='off'?'perf':DEVW.hud==='perf'?'full':'off';saveDev();say(DEVW.hud==='off'?'Numbers off':DEVW.hud==='perf'?'Performance readout':'Every number',1.2);}
     if(inp.cruise)toggleCruise();
     if(inp.pitch){ENG.pitch=ENG.pitch===1?.9:ENG.pitch===.9?.8:1;saveEng();syncSound();say('ENGINE PITCH '+Math.round(ENG.pitch*100)+'%'+(ENG.pitch===1?' (TRUE)':''),1.8);}
@@ -13827,6 +13829,13 @@ function camUpdate(dt){
   CAM.shake=Math.max(0,CAM.shake-dt*3);
   /* (a fixed view from somewhere else, for the tools: {eye, at, fov}) */
   if(CAM.over){const o=CAM.over;return {eye:o.eye.slice(),fwd:norm2(sub2(o.at,o.eye)),up:[0,1,0],fov:o.fov||1};}
+  /* the rear view: the chase camera turned round, out in front of the car and looking back over it, so you see
+     your car and whoever is behind you (held level to the way the car faces, no lag, so it reads at a glance) */
+  if(CAM.rear&&!APP.orbit){const fl=Math.hypot(F[0],F[2])||1,fx=F[0]/fl,fz=F[2]/fl,hs=.6+.4*D.Hr/1.79;
+    const dist=5.6*kl+lift*2.5,ht=2.1*hs+lift*1.4,eye=[t.p[0]+fx*dist,t.p[1]+ht,t.p[2]+fz*dist];
+    const gy=RANCH.W.heightAt(eye[0],eye[2])+.9;if(eye[1]<gy)eye[1]=gy;
+    const at=[t.p[0]-fx*9*kl,t.p[1]+.7*hs+lift,t.p[2]-fz*9*kl];
+    CAM.yaw=null;CAM.off=null;CAM.fq=null;return {eye,fwd:norm2(sub2(at,eye)),up:[0,1,0],fov:1.08};}
   const body=(x,y,z)=>add(t.p,mvec(M,[x-t.cg[0],y-t.cg[1],z]));let eye,fwd,up=[0,1,0],fov=1.02;
   if(APP.orbit){
     /* the garage: round and round the car, a little above it */
@@ -15916,6 +15925,8 @@ function drawHud(c){
     otxt3(r.name.toUpperCase(),W/2,y-10,PAL.gold,1,'c');otxt5(fmtLive(el),W/2,y,el>r.par?GR.red:GR.volt,1,'c');otxt3(fmtDist(d)+'  PAR '+fmtLap(r.par),W/2,y+9,PAL.dim,1,'c');
     /* an arrow at the top of the screen pointing to the finish */
     const ax=W/2+(tch?-48:0),ay=tch?50:30,dx=-Math.sin(a),dy=-Math.cos(a);hLine(ax,ay,ax+dx*7,ay+dy*7,PAL.gold);hDisc(ax+dx*7,ay+dy*7,1.4,PAL.gold);}
+  /* the rear view's tag, small, under the instruments' row */
+  if(CAM.rear)otxt3('REAR VIEW',W/2,tch?Math.round(H*.36):Math.round(H*.12),PAL.cyan,1,'c');
   /* messages */
   let y=Math.round(H*.3);
   for(let i=GAME.msgs.length-1;i>=0;i--){const m=GAME.msgs[i];m.a=APP.t-m.t0;if(m.a>m.k){GAME.msgs.splice(i,1);continue;}
@@ -17462,7 +17473,7 @@ function buildTuneCareer(){$('dlBuyYes').addEventListener('click',thBuy);$('dlBu
    brake pedal that works the same way, and the e-brake between them. Small buttons down the sides
    for the camera, reset, horn, lights and whatever this car has (nitrous, low range, lockers, overdrive).
    ===================================================================================== */
-const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false,lets:[]};
+const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false,lets:[],rear:false};
 /* the menu opening lets go of every pedal, the handbrake and the steering, and the controls show it (a finger still
    down on one takes it again only once it lifts and presses again) */
 function touchLetGo(){for(const f of TOUCH.lets)f();}
@@ -17472,7 +17483,7 @@ function syncTouch(){
   const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='drive');if(!GAME.car)return;
   const e=GAME.car.pt.e,c=GAME.car.c.diff.can;
   $('tNos').hidden=!e.nosKw;$('tLow').hidden=!c.low;$('tLock').hidden=!c.r;$('tOD').hidden=!e.conv;$('tLights').hidden=!SKY.lightsOn;
-  $('tOD').classList.toggle('lit',!!APP.od);$('tLow').classList.toggle('lit',!!GAME.car.low);$('tLock').classList.toggle('lit',!!GAME.car.locked);$('tLights').classList.toggle('lit',!!APP.lights);
+  $('tOD').classList.toggle('lit',!!APP.od);$('tRear').classList.toggle('lit',!!TOUCH.rear);$('tLow').classList.toggle('lit',!!GAME.car.low);$('tLock').classList.toggle('lit',!!GAME.car.locked);$('tLights').classList.toggle('lit',!!APP.lights);
   $('steerZone').dataset.mode=APP.steer;$('steerBtns').hidden=APP.steer!=='buttons';$('steerHint').textContent=APP.steer==='tilt'?'TILT TO STEER':'SLIDE TO STEER';
 }
 function bindTouch(){
@@ -17480,6 +17491,8 @@ function bindTouch(){
   /* a tap on the corner map opens the big map; any tap closes it */
   cv.addEventListener('pointerdown',e=>{if(GAME.state!=='drive')return;const hx=(e.clientX-RECT.x)/RECT.w*W,hy=(e.clientY-RECT.y)/RECT.h*H,[x0,y0,s]=miniRect();
     if(APP.bigMap)APP.bigMap=false;else if(hx>=x0-2&&hx<=x0+s+2&&hy>=y0-2&&hy<=y0+s+2)APP.bigMap=true;});
+  /* the rear view: a tap looks back, another looks forward again (both thumbs are busy, so no holding) */
+  {const b=$('tRear');b.addEventListener('pointerdown',e=>{e.preventDefault();TOUCH.rear=!TOUCH.rear;b.classList.toggle('lit',TOUCH.rear);buzz(8);});b.addEventListener('contextmenu',e=>e.preventDefault());}
   /* the small buttons press keys */
   for(const b of document.querySelectorAll('#touch .tb[data-k]')){const k=TOUCH_KEY[b.dataset.k];
     const on=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}INPUT.down.add(k);INPUT.pressed.add(k);b.classList.add('on');buzz(8);setTimeout(syncTouch,60);},

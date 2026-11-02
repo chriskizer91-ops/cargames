@@ -7,7 +7,7 @@
    brake pedal that works the same way, and the e-brake between them. Small buttons down the sides
    for the camera, reset, horn, lights and whatever this car has (nitrous, low range, lockers, overdrive).
    ===================================================================================== */
-const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false,lets:[]};
+const TOUCH={on:false,steer:0,steerActive:false,thr:0,brk:0,hb:0,tilt0:null,tiltOK:false,lets:[],rear:false};
 /* the menu opening lets go of every pedal, the handbrake and the steering, and the controls show it (a finger still
    down on one takes it again only once it lifts and presses again) */
 function touchLetGo(){for(const f of TOUCH.lets)f();}
@@ -17,7 +17,7 @@ function syncTouch(){
   const el=$('touch');el.hidden=!(GAME.touch&&GAME.state==='drive');if(!GAME.car)return;
   const e=GAME.car.pt.e,c=GAME.car.c.diff.can;
   $('tNos').hidden=!e.nosKw;$('tLow').hidden=!c.low;$('tLock').hidden=!c.r;$('tOD').hidden=!e.conv;$('tLights').hidden=!SKY.lightsOn;
-  $('tOD').classList.toggle('lit',!!APP.od);$('tLow').classList.toggle('lit',!!GAME.car.low);$('tLock').classList.toggle('lit',!!GAME.car.locked);$('tLights').classList.toggle('lit',!!APP.lights);
+  $('tOD').classList.toggle('lit',!!APP.od);$('tRear').classList.toggle('lit',!!TOUCH.rear);$('tLow').classList.toggle('lit',!!GAME.car.low);$('tLock').classList.toggle('lit',!!GAME.car.locked);$('tLights').classList.toggle('lit',!!APP.lights);
   $('steerZone').dataset.mode=APP.steer;$('steerBtns').hidden=APP.steer!=='buttons';$('steerHint').textContent=APP.steer==='tilt'?'TILT TO STEER':'SLIDE TO STEER';
 }
 function bindTouch(){
@@ -25,6 +25,8 @@ function bindTouch(){
   /* a tap on the corner map opens the big map; any tap closes it */
   cv.addEventListener('pointerdown',e=>{if(GAME.state!=='drive')return;const hx=(e.clientX-RECT.x)/RECT.w*W,hy=(e.clientY-RECT.y)/RECT.h*H,[x0,y0,s]=miniRect();
     if(APP.bigMap)APP.bigMap=false;else if(hx>=x0-2&&hx<=x0+s+2&&hy>=y0-2&&hy<=y0+s+2)APP.bigMap=true;});
+  /* the rear view: a tap looks back, another looks forward again (both thumbs are busy, so no holding) */
+  {const b=$('tRear');b.addEventListener('pointerdown',e=>{e.preventDefault();TOUCH.rear=!TOUCH.rear;b.classList.toggle('lit',TOUCH.rear);buzz(8);});b.addEventListener('contextmenu',e=>e.preventDefault());}
   /* the small buttons press keys */
   for(const b of document.querySelectorAll('#touch .tb[data-k]')){const k=TOUCH_KEY[b.dataset.k];
     const on=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}INPUT.down.add(k);INPUT.pressed.add(k);b.classList.add('on');buzz(8);setTimeout(syncTouch,60);},
