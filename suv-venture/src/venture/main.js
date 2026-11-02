@@ -23,7 +23,7 @@ const {meshes}=makeMats(THREE,K);
 /* ---------- the sky, the sun and the light the sky gives (its picture, for reflections) ---------- */
 const sky=new Sky();sky.scale.setScalar(1000);const su=sky.material.uniforms;
 su.turbidity.value=4;su.rayleigh.value=1.4;su.mieCoefficient.value=.004;su.mieDirectionalG.value=.8;
-const SUN=new THREE.Vector3().setFromSphericalCoords(1,THREE.MathUtils.degToRad(50),THREE.MathUtils.degToRad(40));su.sunPosition.value.copy(SUN);
+const SUN=new THREE.Vector3().setFromSphericalCoords(1,THREE.MathUtils.degToRad(42),THREE.MathUtils.degToRad(-50));su.sunPosition.value.copy(SUN);
 scene.add(sky);
 {const pm=new THREE.PMREMGenerator(renderer),s2=new THREE.Scene(),k=new Sky();k.scale.setScalar(1000);Object.assign(k.material.uniforms.sunPosition.value,SUN);
   for(const n of ['turbidity','rayleigh','mieCoefficient','mieDirectionalG'])k.material.uniforms[n].value=su[n].value;s2.add(k);

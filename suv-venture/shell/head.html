@@ -11,13 +11,13 @@ html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-ac
 #perf{font-size:12px;font-variant-numeric:tabular-nums;max-width:58vw}
 #perf b{font-weight:600}
 .dim{opacity:.6;font-size:11px}
-#speed{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+#speed{white-space:nowrap;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
 #bar{position:fixed;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:6px;justify-content:center;pointer-events:none}
 #bar>*{pointer-events:auto}
 #trucks{display:flex;gap:4px;background:rgba(12,14,18,.55);border-radius:999px;padding:3px}
 button{font:inherit;color:#fff;background:rgba(12,14,18,.55);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:6px 12px;cursor:pointer}
 #trucks button{border:none;background:transparent}
-button.on{background:#fff;color:#111}
+button.on,#trucks button.on{background:#fff;color:#111}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.25);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
 #results{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);max-width:94vw;z-index:5}
 #results table{border-collapse:collapse;font-variant-numeric:tabular-nums}
@@ -29,6 +29,10 @@ button.on{background:#fff;color:#111}
 .tc{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));width:74px;height:74px;border-radius:18px;display:none;place-items:center;font-size:12px;letter-spacing:.06em;
   background:rgba(12,14,18,.38);border:1px solid rgba(255,255,255,.25);user-select:none;-webkit-user-select:none}
 body.touch .tc{display:grid}
+/* (on a touch screen the buttons go up under the readout, and the bottom is the pedals') */
+body.touch #bar{bottom:auto;top:calc(122px + env(safe-area-inset-top))}
+body.touch .tc{bottom:calc(14px + env(safe-area-inset-bottom))}
+body.touch #th{bottom:calc(134px + env(safe-area-inset-bottom))}
 .tc.on{background:rgba(255,255,255,.4)}
 #tl{left:12px}#tr{left:96px}#tb{right:96px}#tg{right:12px;height:110px}#th{right:12px;bottom:calc(184px + env(safe-area-inset-bottom));height:46px}
 @media (max-width:620px){#perf{max-width:70vw;font-size:11px}#bar{gap:4px}button{padding:5px 9px}}
