@@ -7,8 +7,8 @@ was baked into three pictures laid onto the game's own truck mesh, the same bake
 (`../suv-venture/`) Baked truck, and the game draws it with its own renderer, lights, shadows, reflections and mud.
 Anything that breaks here breaks only here: its own page, its own save keys (`bst-`), its own tools.
 
-Open `baked-suv-test.html` in a browser with WebGL2 (one self-contained page, about 11.4 MB: the baked pictures add
-2.3 MB). `sh build.sh` rebuilds it, and `dist/baked-suv-test.artifact.html` beside it, from `src/` and `shell/`.
+Open `baked-suv-test.html` in a browser with WebGL2 (one self-contained page, about 12 MB: the baked pictures add
+2.9 MB). `sh build.sh` rebuilds it, and `dist/baked-suv-test.artifact.html` beside it, from `src/` and `shell/`.
 
 ## The baked truck
 
@@ -29,8 +29,16 @@ Open `baked-suv-test.html` in a browser with WebGL2 (one self-contained page, ab
 - **The pictures** are 2048 x 3072 at Medium and up (about 100 MB of graphics memory with their mips) and half that
   each way at Mobile and Low (about 25 MB). They load the first time the truck is drawn (about a second); until then the
   game's own truck shows.
-- **What is lost**: the rim, caliper and cladding colours of the garage (a build with other ones is drawn the
-  game's way); a livery; the headlamps' faint glow in the shed is weaker than the game's flat white lamps.
+- **What is lost**: the garage's rim, caliper and cladding colours (a build with other ones is drawn the game's
+  way) and a livery. The headlamps are drawn as pale glass over the baked reflectors, glowing as the game's do: the
+  bake looked at them with their lenses off, and as dark cups they looked dead next to the game's white lamps.
+- **One bug found on the way**: WebP throws away the colour under a fully clear alpha unless told not to (`exact`),
+  and here the alphas are masks (paint, clear coat). Without it the tyres and the trim came out black and mirror
+  smooth. `tools/bake/pack_game.py` keeps it now.
+
+![The shed: the game's own truck above, the baked one below](docs/shed_game_vs_baked.png)
+
+![On Ridge Road: the game's own truck, left; the baked one, right](docs/road_game_vs_baked.png)
 - **The readout** (Dev tab, Numbers on screen: Readout, or F) has a fifth line here: which truck is drawn, the
   cars' triangles and the frame's draw calls.
 

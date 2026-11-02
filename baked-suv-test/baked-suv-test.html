@@ -4477,8 +4477,10 @@ void main(){
     shin=mix(2./(r*r)-2.,60.,pm);metal=mix(o.b,.4,pm);spec=.5;ao=o.r;clear=max(o.a,pm);clearR=.035;dirty=true;
     if(pm>.5){vec3 fc=floor(vL*420.);float fl=h13(fc),fk=near(.004)*(pm-.5)*2.;alb*=1.+(.05*fl-.025)*fk;
       N=normalize(N+(vec3(fl,h13(fc+17.1),h13(fc+31.7))-.5)*.35*fk);}
-    if(m==33){float on=max(uLamps*.5,uBrake);emc=vec3(1.,.05,.03)*(.25+on*2.6)*(.3+.7*c.r);}
-    else if(m==34)emc=vec3(1.,.97,.9)*(uLamps*5.+.06)*(.4+.6*lum(c.rgb));
+    /* (the lamps glow as the game's do; the headlamps read as pale glass over the baked reflectors, as the game's
+       white lamps do, rather than as the dark cups the bake sees with their lenses taken off) */
+    if(m==33){float on=max(uLamps*.5,uBrake);emc=vec3(1.,.05,.03)*(.25+on*2.6);}
+    else if(m==34){emc=vec3(1.,.97,.9)*(uLamps*5.+.06);alb=mix(vec3(.5),c.rgb,.35);metal=0.;spec=1.;shin=90.;clear=1.;}
     else if(m==35)emc=vec3(1.,.48,.06)*(.12+uLamps*.5);
     else if(m==36)emc=vec3(.9)*uLamps*.25;}
   else if(m>=40){
