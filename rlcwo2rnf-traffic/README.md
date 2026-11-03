@@ -219,8 +219,9 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
 
 ## Graphics, the phone and the Dev tab
 
-- **Tiers** (`55_gfx.js`): Mobile to Ultra. Every start is on Low (the owner's call: a tier too heavy for the device
-  can't leave the game stuck loading start after start). Changing the tier in the menu starts the page again on it,
+- **Tiers** (`55_gfx.js`): Mobile to Ultra. Every start is on Mobile on a touch screen and Low elsewhere (the owner's
+  call: a tier too heavy for the device can't leave the game stuck loading start after start; on a phone Low is the
+  heavier tier). Changing the tier in the menu starts the page again on it,
   for that start only (`rt-gfx-next`, read once and cleared); the page's `?quality=` still picks one for the tools.
 - **The phone's budgets** (Dev tab, `52_world_gl.js` `BUDGET`, Mobile only; the other tiers always draw
   everything): the render scale's ceiling, the shadow distance, the trees' distance and how near they are full, the

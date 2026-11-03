@@ -12298,8 +12298,8 @@ function syncDev(){
    pixels per CSS pixel it draws at most, how far the render scale may climb before TAA rebuilds the rest) and, below,
    this game's: how much detail is cut into the ground, how far the streamed world reaches (its chunks, their levels
    of detail, the things on them, the far tiles to the horizon), how near a tree is drawn in full, how far the probe
-   sees. Every start is on Low; a Pixel 7a runs Mobile. Changing the tier starts the page again on it (the renderer's
-   targets are sized by it), for that start only.
+   sees. Every start is on Mobile on a touch screen (a Pixel 7a runs it), Low elsewhere. Changing the tier starts the
+   page again on it (the renderer's targets are sized by it), for that start only.
    The weather the Sim level sets is drawn (Damp, Rain, Downpour): an overcast sky turning grey and low, thicker haze
    (the volumetric fog), dark wet ground with a sheen and puddles, rain rings in the water and the puddles, the
    renderer's rain and its splashes (53_fx), spray off wet tarmac, and drops on the lens from the hood camera.
@@ -12321,14 +12321,16 @@ const GFX_Q={
   high:  {detail:1, far:620,near:820,farR:3000,lodD:[200,420],propD:560,treeNear:110,probeFar:340,texRes:1024,texAniso:8},
   ultra: {detail:1, far:700,near:980,farR:3600,lodD:[250,500],propD:680,treeNear:130,probeFar:400,texRes:1024,texAniso:8}};
 const GFX={level:'high',q:GFX_Q.high,far:620,frame:0,fromUrl:false};
-/* every start is on Low (the owner's call: a tier too heavy for the device can't leave the game stuck loading, start
-   after start). A tier chosen in the menu is kept for the one start that puts it in (setGfx: the page starts again on
-   it), and no further. The page's ?quality= (the tools) still picks one */
+/* every start is on the light tier for the device (the owner's call: a tier too heavy for it can't leave the game stuck
+   loading, start after start): Mobile on a touch screen (a phone: Low is the heavier tier there), Low on a laptop or a
+   desktop. A tier chosen in the menu is kept for the one start that puts it in (setGfx: the page starts again on it),
+   and no further. The page's ?quality= (the tools) still picks one */
+const GFX_START=matchMedia('(pointer: coarse)').matches?'mobile':'low';
 {const Q=new URLSearchParams(location.search),next=store.get('rt-gfx-next','');if(next)store.set('rt-gfx-next','');
-  let g=Q.get('quality')||next||'low';GFX.fromUrl=!!Q.get('quality');
+  let g=Q.get('quality')||next||GFX_START;GFX.fromUrl=!!Q.get('quality');
   /* (Wide Open's own levels) */
   g={mini:'mobile',phone:'mobile',plus:'mobile',laptop:'high'}[g]||g;
-  GFX.level=GFX_Q[g]?g:'low';}
+  GFX.level=GFX_Q[g]?g:GFX_START;}
 function gfxApply(){const q=GFX.q=GFX_Q[GFX.level];GFX.far=q.far;}
 gfxApply();
 /* a new tier: the renderer's targets are sized by it, so the page starts again on it (the game is saved first) */
