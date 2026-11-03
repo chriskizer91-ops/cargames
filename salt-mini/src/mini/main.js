@@ -225,24 +225,24 @@ function soundUpdate(dt){
 
 /* ---------- the cameras: the game's Chase, Far and Hood, the rear view, Cinematic, and free round the truck in the bay ---------- */
 /* Cinematic: a camera standing still by the road ahead of the truck, turning to follow it as it comes and goes by
-   and zooming to keep it framed (wide close up, long lens far off), the way a camera crew shoots a car. Once the
-   truck is well past, the next camera is set up further on, on the other side most of the time, at another
+   and zooming to keep it framed (wide close up, long lens far off), the way a camera crew shoots a car. Each shot
+   runs about fourteen seconds whatever the speed. Once the truck is well past, the next camera is set up further on, on the other side most of the time, at another
    height. Stopped, it stands a little way off to one side. Its sound is heard from where it stands. */
 const cine={p:new THREE.Vector3(),dir:new THREE.Vector3(1,0,0),look:new THREE.Vector3(),fov:30,ok:false,side:1,d:10};
 const CINE_H=[.6,1.2,1.8,3.2,6];
 function cineSpot(){const v=car.speed,dir=FW.clone();if(v>2){const vv=new THREE.Vector3(car.v[0],0,car.v[2]);if(vv.lengthSq()>1)dir.copy(vv.normalize());}
   const right=new THREE.Vector3(-dir.z,0,dir.x);cine.side=Math.random()<.75?-cine.side:cine.side;
-  const ahead=v<2?0:clamp(v*3.3,30,420)*(.75+Math.random()*.5),lat=(v<2?11:7+Math.random()*11)*cine.side,h=CINE_H[(Math.random()*CINE_H.length)|0];
-  cine.p.copy(CP).addScaledVector(dir,ahead).addScaledVector(right,lat);cine.p.y=h;cine.dir.copy(dir);cine.look.copy(CP).addScaledVector(UP,.8);cine.ok=true;cine.cut=true;}
+  const ahead=v<2?0:clamp(v*8.2,60,1050)*(.8+Math.random()*.4),lat=(v<2?11:7+Math.random()*11)*cine.side,h=CINE_H[(Math.random()*CINE_H.length)|0];
+  cine.p.copy(CP).addScaledVector(dir,ahead).addScaledVector(right,lat);cine.p.y=h;cine.dir.copy(dir);cine.look.copy(CP).addScaledVector(UP,.8);cine.ok=true;cine.cut=true;cine.n=(cine.n||0)+1;}
 function cineStep(dt,cut){
   if(!cine.ok||cut)cineSpot();
   const rel=CP.clone().sub(cine.p),along=rel.dot(cine.dir),d=rel.length(),v=car.speed;
   /* the truck well past (or gone somewhere else, or parked far off): the next camera */
-  if(along>clamp(v*2.4,25,320)||d>800||v<2&&d>70)cineSpot();
+  if(along>clamp(v*6,60,800)||d>2500||v<2&&d>70)cineSpot();
   const k=cine.cut?1:1-Math.exp(-dt*7);cine.look.lerp(CP.clone().addScaledVector(UP,.8),k);
   cine.d=cine.p.distanceTo(cine.look);
   /* the zoom: the truck about a quarter of the frame's height, whatever the distance */
-  const want=clamp(2*Math.atan(3.6/Math.max(cine.d,1))*180/Math.PI,3.5,55);cine.fov=cine.cut?want:cine.fov+(want-cine.fov)*(1-Math.exp(-dt*3));cine.cut=false;
+  const want=clamp(2*Math.atan(3.6/Math.max(cine.d,1))*180/Math.PI,1.2,55);cine.fov=cine.cut?want:cine.fov+(want-cine.fov)*(1-Math.exp(-dt*1.5));cine.cut=false;
   camera.position.copy(cine.p);camera.lookAt(cine.look);}
 const CAMV=['Chase','Far','Hood','Cinematic'];
 const orbit=new OrbitControls(camera,cv);orbit.enabled=false;orbit.enableDamping=true;orbit.maxPolarAngle=Math.PI*.495;orbit.minDistance=2.5;orbit.maxDistance=40;
@@ -269,7 +269,7 @@ function camStep(dt){const M=car.M;CP.set(car.p[0],car.p[1],car.p[2]);FW.set(M[0
   else if(mode==='Rear'){camera.position.copy(CP).add(chase.off);camera.lookAt(CP.clone().addScaledVector(FW,-8).addScaledVector(UP,.6));}
   else{camera.position.copy(CP).add(chase.off);camera.lookAt(chase.l);}
   /* (on the long lens the near plane moves out with the truck, so the road and the salt keep their depth apart a quarter of a mile off) */
-  camera.fov=mode==='Cinematic'?cine.fov:baseFov+(mode==='Look'?0:fovK);camera.near=mode==='Cinematic'?clamp(cine.d*.12,.25,40):.25;camera.updateProjectionMatrix();
+  camera.fov=mode==='Cinematic'?cine.fov:baseFov+(mode==='Look'?0:fovK);camera.near=mode==='Cinematic'?clamp(cine.d*.12,.25,120):.25;camera.updateProjectionMatrix();
   /* the sun's shadow and the salt follow the truck */
   sun.position.copy(CP).addScaledVector(SUN,30);sun.target.position.copy(CP);sky.position.copy(camera.position);saltFollow(CP.x,CP.z);frameView();}
 
@@ -416,4 +416,4 @@ setTimeout(()=>{buildTruck();place();$('loading').hidden=true;syncTouch();reques
 window.MINI={THREE,scene,camera,renderer,state,spawn,bayOpen,bayClose,bayTab,tuner,TOUCH,VOICE,wakeAudio,get car(){return car;},get truck(){return truck;},hold(h){held=h;},
   step(t,inp){/* (the tools' drive: t seconds of the given input, then a frame) */const n=Math.round(t/STEP);for(let i=0;i<n;i++){car.step(STEP,inp||{steer:0,thr:0,brk:0,hb:0});if(i%24===0)nosStep(STEP*24,inp||{});}place();camStep(1);},
   snap(){place();camStep(.05);renderer.render(scene,camera);if(!bay.open){hudDraw();UI.txtFlush();}return cv.toDataURL('image/png');},
-  set rear(v){rearOn=v;},PERF,GPU,get E(){return car&&car.pt.e;}};
+  set rear(v){rearOn=v;},get cine(){return cine;},PERF,GPU,get E(){return car&&car.pt.e;}};

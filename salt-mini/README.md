@@ -37,11 +37,12 @@ Open `salt-mini.html` in a browser with WebGL2 (one self-contained page, about 2
 The fourth camera (C, or CAM on a phone). A camera stands still by the road ahead of the truck and turns to follow it
 as it comes and goes by, zooming to keep it framed: wide close up, a long lens far off, the way a camera crew shoots
 a car. Once the truck is well past, the next camera is set up further on, usually on the other side, at another
-height (from just off the ground to up high). Stopped, it stands a little way off to one side. The sound is heard
+height (from just off the ground to up high). Each shot runs about fourteen seconds at any speed, about eight
+seconds coming in and six going away, so the angle changes slowly. Stopped, it stands a little way off to one side. The sound is heard
 from where the camera stands: louder and brighter close by, with the pitch rising as the truck comes in and falling
 as it goes away.
 
-![The Cinematic camera, four moments of one run](docs/cinematic.png)
+![The Cinematic camera: one shot coming in, going by and away, then the next camera far up the road](docs/cinematic.png)
 
 ## Traction (the game's developer panel)
 
