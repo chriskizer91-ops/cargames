@@ -23,7 +23,8 @@ const which=(process.argv[2]||'town,neon,country,cross').split(','),SECS=+(proce
     const r=await p.evaluate(async([sc,SECS])=>{
       const g=__game,G=g.GAME,dt=1/60,wait=ms=>new Promise(r=>setTimeout(r,ms)),ST=g.ST,TRF=g.TRF;
       g.applyTod(sc==='neon'?'night':'day');g.APP.tod=sc==='neon'?'night':'day';g.APP.lights=sc==='neon';g.closeMenu();G.state='drive';g.APP.cam=1;g.APP.police=false;
-      if(sc==='cross'){const J=ST.J.find(j=>j.kind==='hwy'&&j.x>0)||ST.J.find(j=>j.kind==='hwy');g.placeCar(J.x+30,J.z+30,0);}
+      /* (the junctions are listed on the traffic's first frame) */
+      if(sc==='cross'){if(!ST.J.length){g.goTo('hwyE');for(let f=0;f<3;f++){g.APP.t+=dt;g.step(dt);}}const J=ST.J.find(j=>j.kind==='hwy'&&j.x>0)||ST.J.find(j=>j.kind==='hwy');g.placeCar(J.x+30,J.z+30,0);}
       else g.goTo({town:'downtown',neon:'neon',country:'ridge'}[sc]);
       const cruise=sc==='country';
       const t0=performance.now();let built=0;
