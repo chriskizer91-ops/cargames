@@ -33,11 +33,8 @@ function heliFrame(dt){
   /* has it got you */
   const dh=Math.hypot(t.p[0]-p[0],t.p[2]-p[2]);HELI.d=dh;HELI.lostT=dh>HELI_SEE?HELI.lostT+dt:0;
   if(HELI.lostT>HELI_LOSE)heliEscape();}
-/* lost you: the chase is over */
-function heliEscape(){HELI.escapes++;heliOff();
-  for(let i=0;i<POL.cars.length;i++)POL.cars[i].V=null;POL.holdT=45;POL.bustT=0;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;
-  say('YOU LOST THEM',3.5,PAL.green);say('THE POLICE ARE BACK IN 45 S',3,PAL.amber);
-  if(!voxSay('radio_air_lost','radio',0,0,0))voxSay('radio_lost_visual','radio',0,0,0);}
+/* lost you: the chase is over (60_police's polEscape) */
+function heliEscape(){HELI.escapes++;HELI.escaping=true;polEscape();}
 
 /* ---------- drawing it ---------- */
 function heliMesh(){if(HELI.mesh)return HELI.mesh;const body=new MB(),dark=[.035,.038,.045],glass=[.012,.016,.022],skid=[.05,.05,.055];

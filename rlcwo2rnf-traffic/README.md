@@ -59,19 +59,24 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
 - **The wanted level**, 1 to 5 (`WANTED`). It rises with the chase: the heat is a second of pursuit (1 a second; 1.5
   over 100 mph), 12 for hitting a police car, 6 for hitting one of the traffic; level 2 at 45, 3 at 110, 4 at 200,
   5 at 320 (about 45 s, 2 min, 3.3 min and 5.3 min of plain chase). Each level brings one more car (up to 3 on Mobile
-  and Low, 4 on Medium, 5 on High and Ultra), a stronger engine than yours (0, 15, 30, 45, 60% more torque: each car
-  out there is refitted where it is when the level changes) and braver driving (85% of the grip round the bends at
-  level 1 to 95% at 5; following 8 m + 0.3 s at 1, 7 m + 0.25 s at 2, 6 m + 0.2 s from 3). Dev: Wanted level (Auto, or
-  held at 1 to 5), Police cars (Wanted, or 1 to 5), Police engines (By wanted level, Same as yours). Off for races and
-  timed challenges. Traffic brakes for them and goes onto the physics near them, as for you.
+  and Low, 4 on Medium, 5 on High and Ultra), faster cars and braver driving. Their cars top out at 125, 145, 165,
+  190 and 215 mph by level on flat tarmac, whatever you drive (`polTune`: your build's engine scaled, down as well as
+  up, and its gearing taller where its limiter would stop it short, by the garage ratings' top-speed sum, for 8% over
+  the level's speed; the driver holds it to the level's speed. Measured on the salt: the stock SUV's police 120, 139,
+  160, 188, 216 mph; the sleeper's 114, 130, 157, 184, 207). Each car out there is refitted where it is when the level
+  changes. So a car faster than the level's police gets away on the straights; a slower one has to out-drive them.
+  Dev: Wanted level (Auto, or held at 1 to 5), Police cars (Wanted, or 1 to 5), Police cars' speed (By wanted level,
+  or Your build as it is). Off for races and timed challenges. Traffic brakes for them and goes onto the physics near
+  them, as for you.
 - **How they stop you**: level 1, one car follows and pulls up behind you when you stop. From level 2, with you slowed
   right down (crashed, spun, stuck: under 4 m/s for a second) they hem you in: the nearest gets past you and across
   your front, slowing; the next comes up to your back, the third alongside, each closing to about half a metre and
   holding; any more wait 15 m off. From level 3, with you between 8 and 30 m/s, the nearest tries a PIT: lines its
   nose up with your back wheel a hand's width off, then nudges through your back corner to turn you round (one at a
   time, six seconds between). `police_check.js evade` (round and round town at up to 50 mph, the test's driver never
-  stopping): level 1 never stops it; levels 3 and 5 did in 29 to 127 s (Mobile and High, one run each), with 1 to 9
-  PITs; their own wall hits there, 0 to 8 a run, mostly in the mess after a PIT.
+  stopping, and shoving out of a box): level 1 never stops it; at 3 and 5 they stop it (29 to 137 s) or stay on it
+  (within 80 m 90% of the time), with up to 7 PITs. Rough at those levels: 0 to 12 wall hits a run, and they knock
+  the traffic about where the highway meets the queue at the town's edge light.
 - **Checks**: `node tools/traffic_check.js [park,drive,ram]` (you parked across a lane; you through town at 70; you
   into the traffic at 90): no NaNs, never over the budget, no two lane cars overlapping, none into you, no red run, all
   in their lanes; `node tools/rt_check.js` has a traffic scene.
@@ -82,16 +87,23 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   salt and across it, and never give up.
 - **They drive what you drive**: your build, on the same physics, with the robot's stability control, ABS and traction
   control, in black and white (the doors and roof white: the livery shader's style 5) with a light bar flashing red
-  and blue; with a stronger engine as the wanted level rises (below).
+  and blue; tuned for the wanted level (below), so what they can do is the level's, whatever you drive.
 - **The pursuit**: a police car drives your trail (where you were every 4 m, the last few minutes: a line you drove, so
   one that can be driven), steering for a point along it (nearer in a corner, so it doesn't cut through a building's
-  corner) and reading the trail further on for the bends: no faster than 80% of the grip allows round the tightest one
-  ahead, braking for it in time. The nearest car, close and in sight of you, settles a few car lengths back (8 m and
-  0.3 s at your speed: about 19 m at 77 mph) and holds it; when you stop it pulls up just behind you, a little to one
-  side. The others keep their distance from the one ahead, counted along the trail, so round a corner too. A car in its
-  way it slows for in time (and drops back if touching); the traffic it goes round when there's room beside it, you and
-  the other police it never does. Stuck, it backs off and goes again. Lost (far behind, rolled, stuck for good), it
-  comes back in behind you out of sight, on your trail, already moving, clear of the traffic.
+  corner) and reading the trail further on for the bends: no faster than 85% of the grip allows round the tightest one
+  ahead (95% at level 5), braking for it in time. The nearest car, close and in sight of you, settles a few car lengths
+  back and holds it; when you stop it pulls up just behind you, a little to one side. The others keep their distance
+  from the one ahead, counted along the trail, so round a corner too (the one behind gives way, so two can't wait on
+  each other). A car in its way it slows for in time (and drops back if touching); the traffic it goes round when
+  there's room beside it, you and the other police it never does. Stuck (or wanting to stay put three seconds with you
+  20 m off), it backs off and goes again. Rolled or stuck for good, it comes back in further back than it was: a crash
+  costs them ground. Left behind, it does not jump back in behind you: it keeps on after you along your trail.
+- **Getting away**: every police car further than the escape distance (800 m; Dev: Escape distance 400, 800, 1200 m)
+  for five seconds running, and at level 5 the helicopter has lost you too (below): YOU LOST THEM, the chase over, the
+  police gone for 45 s, the level back to 1. LOSING THEM and the seconds left on the HUD on the way. New cars (a level
+  up) join at the back of the pursuit, not on your bumper. `police_check.js escape`: 15 mph faster than the level's
+  police you get away (73 s at level 1 from 140 mph, 64 s at 3 from 180), with none of them jumping back in; at 5 the
+  cars are left 1.6 km behind at 230 mph but the helicopter keeps you.
 - **How they drove before and after** (`tools/police_check.js town,hwy`, three runs each, averages; the town run is
   west on Highway 40 into town, six turns on its streets, out east; the highway run east in its traffic at 65 mph):
 
@@ -119,7 +131,7 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   second, a beat under it, the turbine's whine; panned, quieter with distance, a touch of Doppler. Outrun it (more
   than 350 m from it across the ground for six seconds) and it has lost you: the chase is over, the police gone for
   45 s, the level back to 1. No build of ours goes that fast yet (the fastest stock: 247 mph), so at 290 mph level 5
-  is for good until there is one. `police_check.js heli`: with you at 77 and 268 mph it keeps up (264 m behind at
+  is for good until there is one (the cars you can leave behind: they top out at 215). `police_check.js heli`: with you at 77 and 268 mph it keeps up (264 m behind at
   most at 268), at 313 mph (the test setting your speed itself) it loses you after 46 s. The pilot's two radio calls
   are in `VOICE_PROMPTS.md`, not recorded yet (till then: the officer's "Lost visual").
 - **Busted**: at a standstill (under 0.3 m/s: shoving a police car out of the way doesn't count) with a police car
@@ -143,7 +155,7 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   over it. On the phone a REAR button, top of the left-hand column (above CAM): one tap looks back, another looks
   ahead again (lit while it's on; a toggle, as both thumbs are busy). On the keyboard G, held; on a gamepad the right
   stick pressed in, held. REAR VIEW shows under the instruments while it's on.
-- **Check**: `node tools/police_check.js [chase,bust,town,hwy,evade,heli]` (town, hwy, chase and bust hold the level at 1).
+- **Check**: `node tools/police_check.js [chase,bust,town,hwy,evade,heli,escape]` (town, hwy, chase and bust hold the level at 1).
 
 ---
 

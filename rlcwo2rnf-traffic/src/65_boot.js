@@ -45,5 +45,5 @@ else{
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
   /* the traffic (60_traffic) for the tools */
-  Object.assign(window.__game,{VOX,VOICES,voxSay,voxWarm,WANTED,wantedLvl,polPower,HELI,heliFrame,POL,policeFrame,polRespawn,polCount,TRF,HW,TRF_ON,TRF_N,TRF_PHYS,trfEngage,trfThreat,trafficFrame,trfModelsStep,trafficWanted,trfCount,truckLite,TRUCKL,trfKeeps,SKY,frustum,saveDev,syncMenu,syncDevWorld});
+  Object.assign(window.__game,{VOX,VOICES,voxSay,voxWarm,WANTED,wantedLvl,polTune,polTarget,polMake,HELI,heliFrame,POL,policeFrame,polRespawn,polCount,TRF,HW,TRF_ON,TRF_N,TRF_PHYS,trfEngage,trfThreat,trafficFrame,trfModelsStep,trafficWanted,trfCount,truckLite,TRUCKL,trfKeeps,SKY,frustum,saveDev,syncMenu,syncDevWorld});
 }
