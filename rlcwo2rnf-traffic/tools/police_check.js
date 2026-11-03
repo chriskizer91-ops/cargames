@@ -14,7 +14,7 @@
      heli    level 5 on the salt: the helicopter keeps up at 77 and 268 mph, and loses you at 313 mph
      evade   round and round town at up to 50 mph, never stopping, the wanted level held at each of LEVELS (1,3,5):
              whether they stop you (a bust), how long it takes, their PITs, your spins, their wall hits
-   usage: node tools/police_check.js [chase,bust,town,hwy,evade,heli,escape]      env: QUALITY (mobile), CAR (a build id, default the stock SUV), FILE, W, H */
+   usage: node tools/police_check.js [chase,bust,town,hwy,evade,heli,escape]      env: QUALITY (mobile), CAR (a build id, default the stock SUV), STREETS (off: no street traffic), FILE, W, H */
 const {chromium}=require('playwright');const path=require('path');
 const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','rlcwo2rnf-traffic.html');
 const which=(process.argv[2]||'chase,bust').split(',');
@@ -27,7 +27,7 @@ const which=(process.argv[2]||'chase,bust').split(',');
   const t0=Date.now();await pg.goto('file://'+file+`?quality=${process.env.QUALITY||'mobile'}`);
   try{await pg.waitForFunction(()=>window.__game&&document.getElementById('loading').hidden,null,{timeout:600000,polling:1000});}catch(e){errs.push('boot timed out');}
   console.log('boot',((Date.now()-t0)/1000).toFixed(1)+'s');
-  await pg.evaluate(car=>{window.requestAnimationFrame=()=>0;const g=window.__game;g.GAME.hold=true;if(car){const i=g.BUILDS.findIndex(b=>b.id===car);if(i>=0)g.spawnCar(i);}},process.env.CAR||'');
+  await pg.evaluate(([car,st])=>{window.requestAnimationFrame=()=>0;const g=window.__game;g.GAME.hold=true;if(st)g.DEVW.stS=st;if(car){const i=g.BUILDS.findIndex(b=>b.id===car);if(i>=0)g.spawnCar(i);}},[process.env.CAR||'',process.env.STREETS||'']);
   const run=async(name,fn,check,arg)=>{const t=Date.now();try{const r=await pg.evaluate(fn,arg);const bad=check(r);if(bad.length)fails++;
       console.log(name,((Date.now()-t)/1000).toFixed(0)+'s',bad.length?'FAIL: '+bad.join(', '):'pass',JSON.stringify(r));}
     catch(e){fails++;errs.push(name+': '+e.message.slice(0,300));console.log(name,'FAILED',e.message.slice(0,300));}};
