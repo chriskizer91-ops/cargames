@@ -93,6 +93,7 @@ nearby traffic car adds lamps. Tests 2 to 6 show it in numbers.
 | 7 | **Render-size steps without new buffers** | each dynamic resolution change reallocates the targets: a hitch | low |
 | 8 | **Smaller vertices** (52 → 24 bytes) | memory bandwidth, a phone's real limit | medium: a lot of code touches the mesh layout |
 | 9 | **Split the 9 MB page** | load time and memory | medium: changes how the game ships |
+| 9b | **Traffic's car models made on the loading screen** | the first time traffic starts, each kind of car is made and settled one a frame: 77 ms frames here (a phone: a few hundred), a stutter the first seconds of a drive | low: the same models, made earlier |
 | 10 | **Lean ground, round 2** (each its own Dev A/B): one photo tap instead of two on the salt, mud, tarmac, gravel and concrete; the rock in the ground from one tap instead of three; the leaves' three noise lookups shared | each saves texture taps or noise on a lot of pixels | each has a look cost, judged by you on the phone: tiling showing in the distance, smeared steep rock, plainer tree edges |
 
 Not doing, as decided: the lower resolution cap on Mobile (held for now), and baking what never moves (reflections

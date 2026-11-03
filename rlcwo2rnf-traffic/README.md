@@ -31,7 +31,7 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   (it allocates on every call here, and is kept: a square root rounds differently) and the numbers handed to the
   world's `groundAt(x, z, out)`; before the step is optimized every number in it is boxed, whatever the code.
 - **Traffic on Highway 40** (`src/60_traffic.js`): done. Below.
-- **Traffic on the town's streets and the country roads** (`src/60_streets.js`): first cut, being checked. Below.
+- **Traffic on the town's streets and the country roads** (`src/60_streets.js`): done (first cut). Below.
 - **Police mode** (`src/60_police.js`): done. Below.
 - **Next**: the town's streets and the country roads, parked cars, people at the markers; the map with waypoints.
 
@@ -118,7 +118,12 @@ the drawing are the highway's own code.
   needs them.
 - Checked by `tools/streets_check.js` (town, Neon Row at night, the country on the cruise, the highway crossing): no two
   street cars through each other, none stuck over 40 s, no junction held over 25 s, no signal's line crossed more than
-  0.6 s into the red.
+  0.6 s into the red; downtown on Mobile 5 street cars out of 5 wanted, Neon Row about 4, the country about 1; the
+  crossing's car waits for a gap in the highway's traffic (up to 17 s) and crosses. The streets' share of a frame: 2 to
+  4 ms at most (the loops made a slice at a time, the country's runs found a slice at a time). `traffic_check.js
+  drive` passes with the streets off (the highway as it was) and on; `police_check.js town,hwy` passes (in town, two
+  runs each: no contacts with the streets off; with them on, the police touched you 0, 1 and 3 times, never a street
+  car); `rt_check.js` passes.
 
 ## Police mode (`src/60_police.js`)
 
