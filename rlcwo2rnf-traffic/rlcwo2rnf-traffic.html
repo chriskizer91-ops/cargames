@@ -14965,12 +14965,12 @@ function trafficFrame(dt){
   if(!trafficWanted()){if(TRF.live)trfClear();ACT.length=0;return;}
   const t0=performance.now();
   if(!HW.loops){stJunctions();hwBuild();}
-  stBuildStep();
-  trfModelsStep();
+  let ts=performance.now();stBuildStep();ST.ms=performance.now()-ts;
+  ts=performance.now();trfModelsStep();TRF.modelMs=performance.now()-ts;
   const P=GAME.car.p,px=P[0],pz=P[2],far=SKY.night&&SKY.draw?Math.min(SKY.draw,GFX.far):GFX.far,keep=far+80,N=Math.min(trfCount(),TRF_MAX),
     near=Math.abs(pz)<keep&&Math.abs(px)<WG.HWY_X+keep;
   if(near)hwFill(px,1);
-  TRF.live=true;TRF.t+=dt;stWant(px,pz,keep,N);
+  TRF.live=true;TRF.t+=dt;ts=performance.now();stWant(px,pz,keep,N);ST.ms+=performance.now()-ts;
   /* (a street car goes only when the streets' share is set to none: otherwise each goes when it falls out of range) */
   TRF_ON.length=0;for(let i=0;i<TRF_ALL;i++){const c=TRF.cars[i];if(!c.on)continue;if(i<TRF_MAX?i>=N||!near:!stShare()){trfOff(c);continue;}TRF_ON.push(c);}
   /* what the cars keep clear of on the physics: you, and the cars of theirs on it */
@@ -14981,7 +14981,7 @@ function trafficFrame(dt){
   for(let _i6=0;_i6<TRF_ON.length;_i6++){const c=TRF_ON[_i6];const dx=c.x-px,dz=c.z-pz;c.d2=dx*dx+dz*dz;if(c.d2>keep*keep||c.mode!=='kin'&&c.wreck&&c.d2>far*far){trfOff(c);TRF.recycled++;}}
   if(near){let tries=0;for(let i=0;i<N&&tries<2;i++){const c=TRF.cars[i];if(c.on)continue;tries++;trfSpawn(c,px,pz,far,keep);}}
   /* the streets' and country roads' cars: one started a frame while there are fewer round you than wanted */
-  if(ST.want>0){let on=0,free=null;for(let i=TRF_MAX;i<TRF_ALL;i++){const c=TRF.cars[i];if(c.on)on++;else if(!free)free=c;}if(on<ST.want&&free)trfSpawnStreet(free,px,pz,far,keep);}
+  if(ST.want>0){ts=performance.now();let on=0,free=null;for(let i=TRF_MAX;i<TRF_ALL;i++){const c=TRF.cars[i];if(c.on)on++;else if(!free)free=c;}if(on<ST.want&&free)trfSpawnStreet(free,px,pz,far,keep);ST.ms+=performance.now()-ts;}
   TRF_ON.length=0;for(let i=0;i<TRF_ALL;i++){const c=TRF.cars[i];if(!c.on)continue;
     /* (nearest first: an insertion, no sort's scratch) */
     let j=TRF_ON.length;TRF_ON.push(c);while(j>0&&TRF_ON[j-1].d2>c.d2){TRF_ON[j]=TRF_ON[j-1];j--;}TRF_ON[j]=c;}
