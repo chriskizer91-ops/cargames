@@ -118,3 +118,17 @@ and made the lean build slower (−16% against −22%), so the lean ground ships
 noise whole. The ground's dirt made only where it shows took the normal build's Ridge Road frame from 1186 to 1102
 ms (−7%, the same picture: High within the run-to-run noise at three places). The pictures barely differ: the lean gravel and verges are a little smoother right
 in front of the car.
+
+### Race vs traffic vs a chase (Mobile tier, the game's step only: physics and AI; this machine's CPU)
+
+| Scene | Cars on the physics | Step a frame | of it physics / AI |
+|---|---|---|---|
+| Free drive on Highway 40, traffic out | 1 (you) | 0.21 ms | 0.13 / 0.07 |
+| Race start, Boulevard Run (field of 6) | 6 | 0.91 ms | 0.76 / 0.09 |
+| Chase, 1 star, in the traffic | 2 | 0.45 ms | 0.30 / 0.09 |
+| Chase, 3 stars | 4–5 | 0.84 ms | 0.66 / 0.12 |
+| Chase, 5 stars (the helicopter) | 4–5 | 0.57 ms | 0.43 / 0.10 |
+
+A race's start is as heavy as a 3-star chase: the cost follows the cars on the physics, and the drivers' thinking
+(AI) stays small. A crash in traffic adds up to 6 more cars on the physics for a few seconds; the readout's on-physics
+count shows it. A phone's CPU is a few times slower than this one, so multiply by about 3 to 5.
