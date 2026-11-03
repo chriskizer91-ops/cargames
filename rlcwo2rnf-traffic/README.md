@@ -286,13 +286,14 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
 - **The lean ground** (Mobile and Low): the world's surface shader (`13_lit.js`) built without the ground's fine
   detail (`LEAN_D`: the clods, stones, cracks, tufts, tarmac grain and their bumps, the leaves' bump, the rain's
   rings; as Ground detail at 0, but gone from the compiled shader, where a phone's GPU keeps registers for code it
-  skips) and with its colour noise summed in two layers instead of four (`LEAN_N`, the two finest layers' mean added
-  back, so every threshold on it still cuts where it did). The ground photographs, the lighting and the cars are as
-  they were; High and Ultra never get it unless Dev says On. Dev: Lean ground, Auto (Mobile, Low), On, Off. It,
+  skips). Its colour noise in two layers instead of four (`LEAN_N`, the two finest layers' mean added back) is there
+  for the tools only: timed, it never paid. The ground photographs, the lighting and the cars are as they were; High and Ultra never get it unless Dev says On. Dev: Lean ground, Auto (Mobile, Low), On, Off. It,
   Half-precision lighting and the new Lighting shortcuts (the lighting's two early-outs, Off to see whether they pay on
   a device; the picture is the same either way) switch on the spot: the two lit programs are made again
   (`landRebuild`, a short pause). The readouts say which build is drawing (`lean`, `half`, `noskip` after the tier)
   and how many cars the physics is stepping. What it saved here, and how to measure it on the phone: `PERF_PLAN.md`.
+  With it, for every tier and the same picture: the ground's dirt made only where some of it shows (not under whole
+  grass), the road paint's photo only on the lines, the gravel verge only where it shows.
 - **The performance readout** (F, or Dev: Numbers on screen, Readout): frames a second against the beat, the frame
   time and its worst, the CPU's and the GPU's time, the render size, triangles, chunks and lights, under the HUD's
   name block. Everything shows the world's own numbers as well.

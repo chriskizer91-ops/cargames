@@ -13,8 +13,9 @@ const DEBUG_VIEW=new URLSearchParams(location.search).get('debug')||null;
 /* the land's programs: the lit pass, the cheaper one the probe sees, and the depth pass for the shadow maps */
 let P_LAND=null,P_LANDP=null,P_DEPTH=null;
 /* how the land's lit programs are built: half-precision lighting (11_sl3's HALF: Mobile by default; Dev: Half-precision
-   lighting) and the lean ground (13_lit's LEAN_D, the fine detail left out, and LEAN_N, the colour noise in two layers:
-   Mobile and Low by default; Dev: Lean ground). ?lean=d, n, dn or off overrides the Dev choice, for the tools. And the
+   lighting) and the lean ground (13_lit's LEAN_D, the fine detail left out: Mobile and Low by default; Dev: Lean ground).
+   LEAN_N (the colour noise in two layers) is only for the tools: timed here it never paid, on its own or with LEAN_D.
+   ?lean=d, n, dn or off overrides the Dev choice, for the tools. And the
    lighting's two shortcuts (11_sl3: a pixel past both headlamps' reach, or past the last shadow cascade, skips their
    sums: the same picture), which Dev: Lighting shortcuts turns off (NO_SKIP), to see on the phone whether they pay */
 const halfOn=()=>DEVW.half==='on'||DEVW.half!=='off'&&GFX.level==='mobile';
@@ -23,7 +24,7 @@ let LEAN_Q=new URLSearchParams(location.search).get('lean');
 const landTag=()=>P_LAND&&P_LAND.defs?(P_LAND.defs.LEAN_D||P_LAND.defs.LEAN_N?'  LEAN':'')+(P_LAND.defs.HALF?'  HALF':'')+(P_LAND.defs.NO_SKIP?'  NOSKIP':''):'';
 const leanOn=()=>DEVW.lean==='on'||DEVW.lean!=='off'&&(GFX.level==='mobile'||GFX.level==='low');
 function landDefs(){const d={};if(halfOn())d.HALF=1;if(DEVW.skip==='off')d.NO_SKIP=1;
-  const L=LEAN_Q?(LEAN_Q==='off'?'':LEAN_Q):leanOn()?'dn':'';if(L.includes('d'))d.LEAN_D=1;if(L.includes('n'))d.LEAN_N=1;return d;}
+  const L=LEAN_Q?(LEAN_Q==='off'?'':LEAN_Q):leanOn()?'d':'';if(L.includes('d'))d.LEAN_D=1;if(L.includes('n'))d.LEAN_N=1;return d;}
 function landPrograms(){if(P_LAND)return;const S=rutShaders(),G=R.G,h=landDefs();
   P_LAND=G.program('land',S.VS,S.FS,Object.assign(DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?{DEBUG_SHADOW:+(DEBUG_VIEW.slice(6)||0)}:{},h));
   P_LANDP=G.program('landProbe',S.VS,S.FS,Object.assign({PROBE:1},h));if(!P_DEPTH)P_DEPTH=G.program('landDepth',S.DEPTH_VS,S.DEPTH_FS);}

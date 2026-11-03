@@ -584,7 +584,7 @@ body.bayfull>.bar{display:none}
           <div><h2 class="sub">Traffic cars (Level: 8 on Mobile to 32 on Ultra)</h2><div class="seg" id="dTraf" role="group" aria-label="Traffic cars"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">GPU load target (the render scale aims the GPU's time at this share of each frame; Auto: 70% on a touch screen, cooler, 88% elsewhere; Off: by dropped frames alone)</h2><div class="seg" id="dGpuT" role="group" aria-label="GPU load target"></div></div>
           <div><h2 class="sub">Half-precision lighting (a phone's GPU runs it twice as fast; Auto: on Mobile; switches on the spot, after a short pause)</h2><div class="seg" id="dHalf" role="group" aria-label="Half-precision lighting"></div></div>
-          <div><h2 class="sub">Lean ground (the ground's fine detail left out of the shader and its colour noise halved: cheaper to draw, a plainer ground up close; Auto: on Mobile and Low; switches on the spot, after a short pause)</h2><div class="seg" id="dLean" role="group" aria-label="Lean ground"></div></div>
+          <div><h2 class="sub">Lean ground (the ground's fine detail left out of the shader: cheaper to draw, a plainer ground up close; Auto: on Mobile and Low; switches on the spot, after a short pause)</h2><div class="seg" id="dLean" role="group" aria-label="Lean ground"></div></div>
           <div><h2 class="sub">Lighting shortcuts (a pixel out of both headlamps' reach, or past the last sun shadow, skips their sums; the picture is the same either way: Off to see whether they pay on this device)</h2><div class="seg" id="dSkip" role="group" aria-label="Lighting shortcuts"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Wanted level (Auto: it rises with the chase)</h2><div class="seg" id="dWanted" role="group" aria-label="Wanted level"></div></div>
           <div><h2 class="sub">Police cars (Wanted: one a level, up to 3 on Mobile and Low, 4 on Medium, 5 on High and Ultra)</h2><div class="seg" id="dPol" role="group" aria-label="Police cars"></div></div></div>
@@ -12019,8 +12019,9 @@ const DEBUG_VIEW=new URLSearchParams(location.search).get('debug')||null;
 /* the land's programs: the lit pass, the cheaper one the probe sees, and the depth pass for the shadow maps */
 let P_LAND=null,P_LANDP=null,P_DEPTH=null;
 /* how the land's lit programs are built: half-precision lighting (11_sl3's HALF: Mobile by default; Dev: Half-precision
-   lighting) and the lean ground (13_lit's LEAN_D, the fine detail left out, and LEAN_N, the colour noise in two layers:
-   Mobile and Low by default; Dev: Lean ground). ?lean=d, n, dn or off overrides the Dev choice, for the tools. And the
+   lighting) and the lean ground (13_lit's LEAN_D, the fine detail left out: Mobile and Low by default; Dev: Lean ground).
+   LEAN_N (the colour noise in two layers) is only for the tools: timed here it never paid, on its own or with LEAN_D.
+   ?lean=d, n, dn or off overrides the Dev choice, for the tools. And the
    lighting's two shortcuts (11_sl3: a pixel past both headlamps' reach, or past the last shadow cascade, skips their
    sums: the same picture), which Dev: Lighting shortcuts turns off (NO_SKIP), to see on the phone whether they pay */
 const halfOn=()=>DEVW.half==='on'||DEVW.half!=='off'&&GFX.level==='mobile';
@@ -12029,7 +12030,7 @@ let LEAN_Q=new URLSearchParams(location.search).get('lean');
 const landTag=()=>P_LAND&&P_LAND.defs?(P_LAND.defs.LEAN_D||P_LAND.defs.LEAN_N?'  LEAN':'')+(P_LAND.defs.HALF?'  HALF':'')+(P_LAND.defs.NO_SKIP?'  NOSKIP':''):'';
 const leanOn=()=>DEVW.lean==='on'||DEVW.lean!=='off'&&(GFX.level==='mobile'||GFX.level==='low');
 function landDefs(){const d={};if(halfOn())d.HALF=1;if(DEVW.skip==='off')d.NO_SKIP=1;
-  const L=LEAN_Q?(LEAN_Q==='off'?'':LEAN_Q):leanOn()?'dn':'';if(L.includes('d'))d.LEAN_D=1;if(L.includes('n'))d.LEAN_N=1;return d;}
+  const L=LEAN_Q?(LEAN_Q==='off'?'':LEAN_Q):leanOn()?'d':'';if(L.includes('d'))d.LEAN_D=1;if(L.includes('n'))d.LEAN_N=1;return d;}
 function landPrograms(){if(P_LAND)return;const S=rutShaders(),G=R.G,h=landDefs();
   P_LAND=G.program('land',S.VS,S.FS,Object.assign(DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?{DEBUG_SHADOW:+(DEBUG_VIEW.slice(6)||0)}:{},h));
   P_LANDP=G.program('landProbe',S.VS,S.FS,Object.assign({PROBE:1},h));if(!P_DEPTH)P_DEPTH=G.program('landDepth',S.DEPTH_VS,S.DEPTH_FS);}

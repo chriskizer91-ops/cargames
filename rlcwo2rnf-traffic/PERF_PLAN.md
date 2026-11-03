@@ -113,6 +113,8 @@ do (a phone's GPU also gains from a smaller shader needing fewer registers, whic
 | Highway 40, day | 1190 ms | −13% | +4% | −17% |
 
 Leaving the fine detail out is the half that pays: 9–24% of the *whole frame* (shadows, fog, reflections and the
-rest included). Halving the colour noise doesn't show on its own (the spread is the measurement's noise); paired with
-the first it adds a few percent. The pictures barely differ: the lean gravel and verges are a little smoother right
+rest included). Halving the colour noise never paid: timed again on Ridge Road with more frames it was +4% on its own
+and made the lean build slower (−16% against −22%), so the lean ground ships with the fine detail out and the colour
+noise whole. The ground's dirt made only where it shows took the normal build's Ridge Road frame from 1186 to 1102
+ms (−7%, the same picture: High within the run-to-run noise at three places). The pictures barely differ: the lean gravel and verges are a little smoother right
 in front of the car.
