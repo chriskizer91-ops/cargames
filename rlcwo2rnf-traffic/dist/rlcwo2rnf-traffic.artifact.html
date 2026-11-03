@@ -96,7 +96,11 @@ h3{margin:0;font:600 11px/1.2 var(--f);letter-spacing:.12em;text-transform:upper
 .wallet{text-align:right}
 .wallet b{display:block;font:700 22px/1 var(--f);letter-spacing:.06em;color:var(--go);font-variant-numeric:tabular-nums}
 .wallet small{font:600 10px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--edge);margin:0 -18px;padding:0 18px;overflow-x:auto;scrollbar-width:none}
+/* (the tabs wrap onto a second line when they don't fit, so every one of them is on screen: a row that scrolled sideways
+   hid Settings and Dev past the edge of a phone held upright) */
+.tabs{display:flex;flex-wrap:wrap;gap:0 4px;border-bottom:1px solid var(--edge);margin:0 -18px;padding:0 18px}
+.tabs button{flex:none;white-space:nowrap}
+@media (max-width:520px){.tabs button{padding:0 9px}}
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{border:0;background:none;height:36px;padding:0 12px;cursor:pointer;font:600 11.5px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
   border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
