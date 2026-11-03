@@ -123,7 +123,7 @@ function buildDevWorld(){
   segButtons($('dHalf'),[['auto','Auto (Mobile)'],['on','On'],['off','Off']],v=>{DEVW.half=v;saveDev();landRebuild();syncDevWorld();});
   segButtons($('dLean'),[['auto','Auto (Mobile, Low)'],['on','On'],['off','Off']],v=>{DEVW.lean=v;saveDev();landRebuild();syncDevWorld();});
   segButtons($('dSkip'),[['on','On'],['off','Off']],v=>{DEVW.skip=v;saveDev();landRebuild();syncDevWorld();});
-  segButtons($('dGpuT'),[['auto','Auto'],['off','Off'],['60','60%'],['70','70%'],['80','80%'],['88','88%']],v=>{DEVW.gpuT=v;saveDev();syncDevWorld();});
+  segButtons($('dGpuT'),[['auto','Auto'],['off','Off'],['60','60%'],['70','70%'],['80','80%'],['88','88%'],['hold','Hold']],v=>{DEVW.gpuT=v;saveDev();syncDevWorld();});
   segButtons($('dEscD'),[['400','400 m'],['800','800 m'],['1200','1200 m']],v=>{DEVW.escD=v;saveDev();syncDevWorld();});
   segButtons($('dHeliV'),[['200','200 mph'],['250','250 mph'],['290','290 mph']],v=>{DEVW.heliV=v;saveDev();syncDevWorld();});
   segButtons($('dSirV'),[['25','25%'],['40','40%'],['60','60%'],['100','As before']],v=>{DEVW.sirV=v;saveDev();syncDevWorld();});

@@ -583,7 +583,7 @@ body.bayfull>.bar{display:none}
           <div><h2 class="sub">Cruise (Y)</h2><div class="seg" id="dCruise" role="group" aria-label="Cruise"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Text on screen</h2><div class="seg" id="dText" role="group" aria-label="Text on screen"></div></div>
           <div><h2 class="sub">Traffic cars (Level: 8 on Mobile to 32 on Ultra)</h2><div class="seg" id="dTraf" role="group" aria-label="Traffic cars"></div></div></div>
-        <div class="row2" style="margin-top:12px"><div><h2 class="sub">GPU load target (the render scale aims the GPU's time at this share of each frame; Auto: 70% on a touch screen, cooler, 88% elsewhere; Off: by dropped frames alone)</h2><div class="seg" id="dGpuT" role="group" aria-label="GPU load target"></div></div>
+        <div class="row2" style="margin-top:12px"><div><h2 class="sub">GPU load target (the render scale aims the GPU's time at this share of each frame; Auto: 70% on a touch screen, cooler, 88% elsewhere; Off: by dropped frames alone; Hold: the render size stays where it is, for comparing settings)</h2><div class="seg" id="dGpuT" role="group" aria-label="GPU load target"></div></div>
           <div><h2 class="sub">Half-precision lighting (a phone's GPU runs it twice as fast; Auto: on Mobile; switches on the spot, after a short pause)</h2><div class="seg" id="dHalf" role="group" aria-label="Half-precision lighting"></div></div>
           <div><h2 class="sub">Lean ground (the ground's fine detail left out of the shader: cheaper to draw, a plainer ground up close; Auto: on Mobile and Low; switches on the spot, after a short pause)</h2><div class="seg" id="dLean" role="group" aria-label="Lean ground"></div></div>
           <div><h2 class="sub">Lighting shortcuts (a pixel out of both headlamps' reach, or past the last sun shadow, skips their sums; the picture is the same either way: Off to see whether they pay on this device)</h2><div class="seg" id="dSkip" role="group" aria-label="Lighting shortcuts"></div></div></div>
@@ -12272,7 +12272,7 @@ function buildDevWorld(){
   segButtons($('dHalf'),[['auto','Auto (Mobile)'],['on','On'],['off','Off']],v=>{DEVW.half=v;saveDev();landRebuild();syncDevWorld();});
   segButtons($('dLean'),[['auto','Auto (Mobile, Low)'],['on','On'],['off','Off']],v=>{DEVW.lean=v;saveDev();landRebuild();syncDevWorld();});
   segButtons($('dSkip'),[['on','On'],['off','Off']],v=>{DEVW.skip=v;saveDev();landRebuild();syncDevWorld();});
-  segButtons($('dGpuT'),[['auto','Auto'],['off','Off'],['60','60%'],['70','70%'],['80','80%'],['88','88%']],v=>{DEVW.gpuT=v;saveDev();syncDevWorld();});
+  segButtons($('dGpuT'),[['auto','Auto'],['off','Off'],['60','60%'],['70','70%'],['80','80%'],['88','88%'],['hold','Hold']],v=>{DEVW.gpuT=v;saveDev();syncDevWorld();});
   segButtons($('dEscD'),[['400','400 m'],['800','800 m'],['1200','1200 m']],v=>{DEVW.escD=v;saveDev();syncDevWorld();});
   segButtons($('dHeliV'),[['200','200 mph'],['250','250 mph'],['290','290 mph']],v=>{DEVW.heliV=v;saveDev();syncDevWorld();});
   segButtons($('dSirV'),[['25','25%'],['40','40%'],['60','60%'],['100','As before']],v=>{DEVW.sirV=v;saveDev();syncDevWorld();});
@@ -12720,8 +12720,9 @@ function resize(){
 /* the GPU load the dynamic resolution aims at (Dev: GPU load target): Auto is 70% on a touch screen (the phone stays
    cooler: its GPU idle a third of every frame), 88% elsewhere (as it always was); Off goes by dropped frames alone, as
    a phone did before it could measure its GPU (55_post's fence: 11_sl3 G.fenceTimer) */
-const gpuShare=()=>{const v=DEVW.gpuT;return v==='off'?0:v&&v!=='auto'?+v/100:touchy?.7:.88;};
-function drsStep(dt){if(!RESO||!R||GAME.state!=='drive'&&!showActive())return;const sh=gpuShare();RESO.share=sh||.88;
+const gpuShare=()=>{const v=DEVW.gpuT;return v==='off'||v==='hold'?0:v&&v!=='auto'?+v/100:touchy?.7:.88;};
+/* (Dev: GPU load target, Hold: the render size stays where it is, for A/B tests where only the GPU's time should move) */
+function drsStep(dt){if(!RESO||!R||GAME.state!=='drive'&&!showActive()||DEVW.gpuT==='hold')return;const sh=gpuShare();RESO.share=sh||.88;
   const sc=RESO.update(dt*1000,sh?R.gpuMs:-1);if(Math.abs(sc-R.scale)>.001)R.resize(PIC.w,PIC.h,sc);}
 /* ---------- the HUD over the picture, in dots ---------- */
 const POST={quant:20,edge:[0,0,0],flash:[0,0,0]};
@@ -12789,7 +12790,7 @@ const RPERF={gpu:0,gpuN:0,t0:0,ms:-1};
 function rperfAcc(){if(!R)return;if(R.gpuMs>0){RPERF.gpu+=R.gpuMs;RPERF.gpuN++;}const now=performance.now();if(now-RPERF.t0>500){RPERF.ms=RPERF.gpuN?RPERF.gpu/RPERF.gpuN:-1;RPERF.gpu=0;RPERF.gpuN=0;RPERF.t0=now;}}
 function rperfRows(){if(!R)return [];const f=x=>x.toFixed(1);
   return [`RENDER ${R.iw}X${R.ih} OF ${R.W}X${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1].toUpperCase()}${landTag()}  ${DISP.mode==='dots'?'DOTS '+PIC.dots[0]+'X'+PIC.dots[1]:'CLEAR'}`,
-    `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS'+(R.gpuSrc==='fence'?' (FENCE)':''):'NOT REPORTED'}  AIM ${Math.round(gpuShare()*100)||'OFF'}${gpuShare()?'%':''}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
+    `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS'+(R.gpuSrc==='fence'?' (FENCE)':''):'NOT REPORTED'}  AIM ${DEVW.gpuT==='hold'?'HOLD':(Math.round(gpuShare()*100)||'OFF')+(gpuShare()?'%':'')}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
     `CHIP ${String(R.gpuName).toUpperCase().slice(0,52)}${R.software?' (SOFTWARE)':''}`];}
 /* ---------- the performance readout (F, or the Dev tab's Numbers on screen: Readout): small, under the HUD's name
    block, in Rut Access's style: frames a second against the beat, the frame's time and its worst, the CPU's share, the
