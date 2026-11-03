@@ -18,7 +18,7 @@ Open `salt-mini.html` in a browser with WebGL2 (one self-contained page, about 2
   lights, the tach and gear, and the speed in seven-segment figures with the boost and nitrous bars; the chips (TC,
   ABS, ESC, O/D OFF, N2O, BANG); and messages.
 - **Keys** (the game's): W/S or the arrows, A/D, Space for the e-brake, E/Q to shift, N or Shift for nitrous,
-  H horn, L low range, K lockers, O overdrive off, C camera (Chase, Far, Hood), G look behind (held), T traction,
+  H horn, L low range, K lockers, O overdrive off, C camera (Chase, Far, Hood, Cinematic), G look behind (held), T traction,
   I engine on and off, R back to the start, F numbers, Esc or P the menu. 1 to 9 is part gas. W is all or nothing,
   as in SUV.
 - **Phone** (the game's touch controls): slide to steer on the left (or tilt, or two buttons), and a tall gas pedal
@@ -31,6 +31,17 @@ Open `salt-mini.html` in a browser with WebGL2 (one self-contained page, about 2
   The salt runs on forever and uses the game's salt-flat surface (its `strip`), a little looser than the road.
 - **NOS** is the physics' own nitrous. A bottle lasts eight seconds and refills by itself in about twelve while
   you're off it. The page starts with a 125-shot fitted.
+
+## The Cinematic camera
+
+The fourth camera (C, or CAM on a phone). A camera stands still by the road ahead of the truck and turns to follow it
+as it comes and goes by, zooming to keep it framed: wide close up, a long lens far off, the way a camera crew shoots
+a car. Once the truck is well past, the next camera is set up further on, usually on the other side, at another
+height (from just off the ground to up high). Stopped, it stands a little way off to one side. The sound is heard
+from where the camera stands: louder and brighter close by, with the pitch rising as the truck comes in and falling
+as it goes away.
+
+![The Cinematic camera, four moments of one run](docs/cinematic.png)
 
 ## Traction (the game's developer panel)
 
