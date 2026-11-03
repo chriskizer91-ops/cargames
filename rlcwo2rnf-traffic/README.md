@@ -227,6 +227,16 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
   everything): the render scale's ceiling, the shadow distance, the trees' distance and how near they are full, the
   reflection probe's and the far cascade's cadence, the dust allowed at once, your car's coarse copy in the far
   cascades. The frame where the floating origin steps draws only the cascades that need it.
+- **Frame rate** (Settings): Auto (every second refresh on a touch screen at 85 Hz or more, every refresh elsewhere),
+  Every refresh, Every 2nd, Every 3rd; saved in `rt-game`. A frame every 2nd refresh halves the GPU's work (cooler,
+  longer on a battery); the hint says what that is on this screen.
+- **Made cheaper without changing the picture** (from the render review, 3 November; frames compared with
+  `tools/frame_rt.js` before and after): the headlights' shadow taps and beam skipped where both lamps are out of
+  range, the sun's shadow taps beyond the last cascade (both exactly zero there); on Mobile the TAA pass writes the
+  picture the bloom and the final read as a second output, in place of a full-screen copy pass; the HUD dots drawn in
+  the final pass, in place of a second full-screen pass over the canvas (at most 1/255 apart: no 8-bit picture
+  between); the HUD's pixel buffer cleared and sent to the GPU by the rows drawn since (`hMark`), not whole every
+  frame; the Dots display's target made only when the Dots display is used.
 - **The performance readout** (F, or Dev: Numbers on screen, Readout): frames a second against the beat, the frame
   time and its worst, the CPU's and the GPU's time, the render size, triangles, chunks and lights, under the HUD's
   name block. Everything shows the world's own numbers as well.
@@ -238,7 +248,7 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
 ## Saves
 
 Every setting and save is under an `rt-` key, so nothing is shared with Wide Open 2 (`wo2-`), Wide Open (`cc-`),
-Back Forty (`b40-`), City Limits (`cl-`) or Rut Access (`rut-`): free play `rt-game` (car, level, camera, time of day, the cars' rigs),
+Back Forty (`b40-`), City Limits (`cl-`) or Rut Access (`rut-`): free play `rt-game` (car, level, camera, time of day, frame rate, the cars' rigs),
 `rt-tune` (the Tune sheet and the Dev tab's traction), `rt-fchal` (free play's challenge bests), `rt-plus`,
 `rt-free`; the career `rt-career` and its feats `rt-cfeats`, `rt-mode` (which one you were in); `rt-races`,
 `rt-park`, `rt-laps`, `rt-runs`; the settings `rt-gfx-next` (one start only), `rt-display`, `rt-res`, `rt-dottext`, `rt-sim`,

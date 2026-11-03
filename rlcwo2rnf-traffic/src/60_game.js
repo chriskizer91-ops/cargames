@@ -16,7 +16,7 @@ const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'p
 for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('rt-game','{}'))||{};
   if(CAR_PARTS[s.car])APP.car=s.car;if(['real','middle','kids','sim'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
-  if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;if(s.traffic===false)APP.traffic=false;if(s.police===true)APP.police=true;
+  if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;if(['auto','1','2','3'].includes(String(s.fps)))APP.fpsMode=String(s.fps);if(s.traffic===false)APP.traffic=false;if(s.police===true)APP.police=true;
   if(s.rigs)for(const car in s.rigs)if(CAR_PARTS[car])RIGS[car]=cleanRig(car,s.rigs[car]);}catch(e){}
 /* a saved rig against today's parts: anything that no longer exists goes back to stock */
 function cleanRig(car,r){const base=presetRig(CAR_STOCK[car]),out=Object.assign({},base);
@@ -25,7 +25,7 @@ function cleanRig(car,r){const base=presetRig(CAR_STOCK[car]),out=Object.assign(
   return fixRig(car,out);}
 const rigOf=car=>RIGS[car]||(RIGS[car]=presetRig(CAR_STOCK[car]));
 const saveGame=()=>{if(CAREER.on)careerSync();const F=CAREER.on&&CAREER.free;
-  store.set('rt-game',JSON.stringify({car:F?F.car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,traffic:APP.traffic!==false,police:!!APP.police,rigs:F?F.rigs:RIGS}));};
+  store.set('rt-game',JSON.stringify({car:F?F.car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,fps:APP.fpsMode||'auto',traffic:APP.traffic!==false,police:!!APP.police,rigs:F?F.rigs:RIGS}));};
 const LEVELS=[['real','Realistic','The car as it is: ABS, the automatic gearbox and, on the cars that have it, the factory traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
   ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.'],
@@ -527,13 +527,13 @@ function render(dt){
   const env=envNow();rainUpdate(c.eye,t.v,env.rain);
   R.render({time:APP.t,dt,cam:{pos:c.eyeR,fwd:c.fwd,up:c.up,fov:c.fov,near:c.near,far:c.far,shift:c.shift||0},cut,env,flicker:FLICK,
     probePos:[t.p[0]-RO[0],t.p[1]+1.1-RO[1],t.p[2]-RO[2]],dyn:L.dyn,headlights:L.headlights,occ:LOOK.occ?occ:[],shutter:.5,lensRain:CAMS[APP.cam]==='Hood'&&!APP.orbit?env.rain*LOOK.rain*.8:0,
-    led:ledState(),after:DISP.mode==='clear'?hudOverlay:null,debug:DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?null:DEBUG_VIEW});
+    led:ledState(),hud:DISP.mode==='clear'?hudFinal():null,after:DISP.mode==='clear'?hudOverlay:null,debug:DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?null:DEBUG_VIEW});
   gl.bindVertexArray(null);APP.tris=LAND.tris+(APP.carTris||0);rperfAcc();
   psT(PS_SCENE,tq);
 }
 
 /* ---------- the matrix fills the window, 16:9 ---------- */
-function setRes(i,keep){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;if(!keep)store.set('rt-res',i);$('res').textContent='Dots '+BW+'×'+BH;if(R&&DISP.mode==='dots'&&!keep)resize();}
+function setRes(i,keep){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);HTEX_WH="";APP.res=i;if(!keep)store.set('rt-res',i);$('res').textContent='Dots '+BW+'×'+BH;if(R&&DISP.mode==='dots'&&!keep)resize();}
 function layout(){const vw=innerWidth,vh=innerHeight;
   /* the bay's window fills the whole screen, the car behind the lab's instruments: its dots take the window's shape */
   if(SHOW.full){bayFill(vw,vh);return;}if(BAYGRID.on){BAYGRID.on=false;setRes(APP.res,true);}
@@ -543,7 +543,7 @@ function layout(){const vw=innerWidth,vh=innerHeight;
 const BAYGRID={on:false,key:''};
 function bayFill(vw,vh){const [dw,dh,hs]=RES[APP.res];let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}const pitch=w/dw;
   const bw=Math.max(hs,Math.round(vw/pitch/hs)*hs),bh=Math.max(hs,Math.round(vh/pitch/hs)*hs),key=bw+'x'+bh+'/'+hs;
-  if(!BAYGRID.on||BAYGRID.key!==key){HS=hs;BW=bw;BH=bh;W=bw/hs;H=bh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);BAYGRID.key=key;}
+  if(!BAYGRID.on||BAYGRID.key!==key){HS=hs;BW=bw;BH=bh;W=bw/hs;H=bh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);HTEX_WH="";BAYGRID.key=key;}
   BAYGRID.on=true;RECT={x:0,y:0,w:vw,h:vh};}
 /* (the dots' old detail setting, kept in the save; the renderer's dynamic resolution does its job now) */
 function setDetail(id){APP.detail=id;saveGame();}

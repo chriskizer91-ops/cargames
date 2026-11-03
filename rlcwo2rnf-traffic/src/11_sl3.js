@@ -1050,6 +1050,8 @@ float hlShadow(vec3 P,vec3 N){
 vec3 headlights(Surf s){
   if(uHL[0].w<=0.0)return vec3(0);
   vec3 c=vec3(0);vec3 F=uHL[2].xyz,Rt=uHL[3].xyz,Up=cross(Rt,F);float range=uHL[4].w;
+  /* (beyond both lamps' reach falloff() is exactly 0: no shadow taps, no beam) */
+  {vec3 a=uHL[0].xyz-s.P,b=uHL[1].xyz-s.P;float r2=range*range;if(dot(a,a)>=r2&&dot(b,b)>=r2)return c;}
   float sh=hlShadow(s.P,s.N);if(sh<=0.0)return c;
   for(int i=0;i<2;i++){vec3 Lp=uHL[i].xyz,Lv=Lp-s.P;float d2=dot(Lv,Lv);vec3 L=Lv*inversesqrt(d2);
     float b=beam(-L,F,Rt,Up,uHL[1].w);if(b<=0.0)continue;
@@ -1073,6 +1075,8 @@ float csmLayer(vec3 P,vec3 N,int k,float rot){
 }
 float sunShadow(vec3 P,vec3 N,float vd,vec2 px){
   if(uCSMOn<=0.0)return 1.0;
+  /* (past the last cascade's far edge the fade below makes it 1 whatever the taps say) */
+  if(vd>=uCSMS.z)return 1.0;
   float rot=ign(px,uFrame)*6.283;
   int k=vd<uCSMS.x?0:vd<uCSMS.y?1:2;
   float s=csmLayer(P,N,k,rot);
@@ -1671,6 +1675,9 @@ void main(){
   vec3 c=mix(hist,cur,a);
   o=vec4(itm(max(c,vec3(0))),1.0);
 }`;
+  /* (with no motion blur, Mobile: the TAA pass writes the picture the particles, the bloom and the final read as its
+     second output, where a full-screen copy pass used to: the same values, one pass and its bandwidth less) */
+  var TAA_MRT_FS = TAA_FS.replace("out vec4 o;", "layout(location=0) out vec4 o;layout(location=1) out vec4 o2;").replace("void main(){", "void taaMain(){") + "\nvoid main(){taaMain();o2=o;}";
   var COPY_FS = `in vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform float uLod;void main(){o=textureLod(uSrc,vT,uLod);}`;
   var DOWN4_FS = `in vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform vec2 uPx;
 void main(){vec3 c=texture(uSrc,vT+uPx*vec2(-.5,-.5)).rgb+texture(uSrc,vT+uPx*vec2(.5,-.5)).rgb+texture(uSrc,vT+uPx*vec2(-.5,.5)).rgb+texture(uSrc,vT+uPx*vec2(.5,.5)).rgb;o=vec4(min(c*.25,vec3(200.)),1.0);}`;
@@ -1727,6 +1734,19 @@ void main(){
 in vec2 vT;out vec4 o;
 uniform sampler2D uSrc;uniform sampler2D uBloom;uniform sampler2D uExpo;uniform sampler2D uDirt;
 uniform float uBloomK;uniform vec2 uGrade;uniform float uExpoBias;uniform float uLensRain;uniform float uVig;uniform float uGrain;uniform vec2 uOutRes;uniform float uCA;
+/* the game's HUD dots over the finished picture, here rather than in a second full-screen pass (S.hud: the dot grid's
+   texture, its rect on the canvas in pixels, its size in dots, the edge glow's colour). The same maths as the game's
+   own overlay pass (55_post FS_HUDDOT) and the same blend (ONE, ONE_MINUS_SRC_ALPHA), without the 8-bit picture
+   between: at most 1/255 apart */
+uniform sampler2D uHud;uniform vec4 uHudRect;uniform vec2 uHudRes;uniform vec3 uHudEdge;uniform float uHudOn;
+vec3 hudOver(vec3 c){
+  vec2 p=(gl_FragCoord.xy-uHudRect.xy)/uHudRect.zw;vec3 add=vec3(0.);float a=0.;
+  vec2 qe=vT-.5;add+=uHudEdge*smoothstep(.15,.33,dot(qe,qe))*.6;
+  if(p.x>=0.&&p.y>=0.&&p.x<=1.&&p.y<=1.){vec2 cell=p*uHudRes,id=floor(cell),f=fract(cell)-.5;vec4 hu=texture(uHud,vec2((id.x+.5)/uHudRes.x,1.-(id.y+.5)/uHudRes.y));
+    if(hu.a>0.){float fw=max(fwidth(cell.x),fwidth(cell.y)),d=length(f),dm=1.-smoothstep(.42-fw*.6,.42+fw*.6,d),far=smoothstep(.38,.95,fw),
+      m=mix(dm*(.82+.4*(1.-smoothstep(0.,.42,d))),.62,far);
+      add+=min(hu.rgb*1.15,vec3(1.))*m*hu.a;a=hu.a*.82;}}
+  return add+clamp(c,0.,1.)*(1.-a);}
 /* Stephen Hill's fit of the ACES reference transform */
 vec3 aces(vec3 c){mat3 m1=mat3(.59719,.07600,.02840,.35458,.90834,.13383,.04823,.01566,.83777);mat3 m2=mat3(1.60475,-.10208,-.00327,-.53108,1.10813,-.07276,-.07367,-.00605,1.07602);
   vec3 v=m1*c;vec3 a=v*(v+.0245786)-.000090537,b=v*(.983729*v+.4329510)+.238081;return clamp(m2*(a/b),0.,1.);}
@@ -1756,6 +1776,7 @@ void main(){
   c=srgb(c);
   float e=dot(cq,cq);c*=1.0-e*uVig;
   c+=(h12(gl_FragCoord.xy+fract(uTime*7.3)*97.)-.5)*uGrain;
+  if(uHudOn>0.0)c=hudOver(c);
   o=vec4(c,1.0);
 }`;
   var LED_FS = `
@@ -1829,7 +1850,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         ssr: P("ssr", FS_VS, SSR_FS),
         fog: P("fog", FS_VS, FOG_FS),
         comp: P("comp", FS_VS, COMP_FS),
-        taa: P("taa", FS_VS, TAA_FS),
+        taa: P("taa", FS_VS, this.Q.mb ? TAA_FS : TAA_MRT_FS),
         copy: P("copy", FS_VS, COPY_FS),
         down4: P("down4", FS_VS, DOWN4_FS),
         mb: P("mb", FS_VS, MB_FS),
@@ -1969,9 +1990,9 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         this.H = H;
         for (const t of [this.hist, this.mbT, this.pyr, this.ldr].flat().filter(Boolean)) G.del(t);
         this.hist = [0, 1].map(() => G.texture(W, H, "rgba16f"));
-        this.histFB = this.hist.map((t) => G.target([t]));
-        this.histI = 0;
         this.mbT = G.texture(W, H, "rgba16f");
+        this.histFB = this.hist.map((t) => G.target(this.Q.mb ? [t] : [t, this.mbT]));
+        this.histI = 0;
         this.mbFB = G.target([this.mbT]);
         this.pyr = G.texture(Math.max(1, W >> 1), Math.max(1, H >> 1), "rgba16f", { mips: true });
         this.pyrFB = G.target([this.pyr]);
@@ -1983,8 +2004,9 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
           w >>= 1;
           h >>= 1;
         }
-        this.ldr = G.texture(W, H, "rgba8");
-        this.ldrFB = G.target([this.ldr]);
+        /* (the Dots display's target: made the first frame it's wanted, not in Clear) */
+        this.ldr = null;
+        this.ldrFB = null;
         this.resetTAA = true;
         this.hasPrev = false;
       }
@@ -2027,8 +2049,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         expoU: { uDt: 1 / 60, uKey: 0, uRange: null, uReset: 0 },
         expoTex: { uSrc: null, uPrev: null },
         expoRange: [0.05, 40],
-        finU: { uBloomK: 0, uGrade: null, uExpoBias: 1, uLensRain: 0, uVig: 0.35, uGrain: 0.018, uOutRes: [W, H], uCA: 0.6 },
-        finTex: { uSrc: this.mbT, uBloom: this.bl[0].t, uExpo: null }
+        finU: { uBloomK: 0, uGrade: null, uExpoBias: 1, uLensRain: 0, uVig: 0.35, uGrain: 0.018, uOutRes: [W, H], uCA: 0.6, uHudOn: 0, uHudRect: [0, 0, 1, 1], uHudRes: [1, 1], uHudEdge: [0, 0, 0] },
+        finTex: { uSrc: this.mbT, uBloom: this.bl[0].t, uExpo: null, uHud: this.bl[0].t }
       };
     }
     /* ---------- per-frame matrices ---------- */
@@ -2403,14 +2425,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         po.mbTex.uSrc = this.hist[ho];
         G.tex(Pm, po.mbTex);
         G.fullscreen();
-      } else {
-        const Pc2 = G.use(this.P.copy);
-        G.bind(this.mbFB);
-        G.uni(Pc2, "uLod", 0);
-        po.srcTex.uSrc = this.hist[ho];
-        G.tex(Pc2, po.srcTex);
-        G.fullscreen();
       }
+      /* (no motion blur: the TAA pass above wrote mbT too) */
       let anyP = false;
       for (const h of this.extra) if (h.particles) anyP = true;
       if (anyP) {
@@ -2465,7 +2481,13 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       }
       gl.disable(gl.BLEND);
       const Pfin = G.use(this.P.final);
-      if (S.led) G.bind(this.ldrFB);
+      if (S.led) {
+        if (!this.ldrFB) {
+          this.ldr = G.texture(this.W, this.H, "rgba8");
+          this.ldrFB = G.target([this.ldr]);
+        }
+        G.bind(this.ldrFB);
+      }
       else G.bind(null, [0, 0, this.canvas.width, this.canvas.height]);
       G.set(Pfin, U);
       const fu = po.finU;
@@ -2473,7 +2495,15 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       fu.uGrade = E.grade;
       fu.uExpoBias = E.expoBias || 1;
       fu.uLensRain = S.lensRain || 0;
+      const hud = S.hud && !S.debug ? S.hud : null;
+      fu.uHudOn = hud ? 1 : 0;
+      if (hud) {
+        fu.uHudRect = hud.rect;
+        fu.uHudRes = hud.res;
+        fu.uHudEdge = hud.edge;
+      }
       G.set(Pfin, fu);
+      po.finTex.uHud = hud ? hud.t : this.bl[0].t;
       po.finTex.uExpo = this.expo[eo];
       G.tex(Pfin, po.finTex);
       G.fullscreen();
@@ -2494,7 +2524,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         G.tex(Pl, Object.assign({ uSrc: this.ldr, uHud: S.led.hud }, S.led.textures || {}));
         G.fullscreen();
       }
-      if (S.after) S.after(this);
+      if (S.after && !(S.hud && !S.debug)) S.after(this);
       this.prevVP = this.VPnj;
       this.frameN++;
       if (this.timer) this.timer.end();

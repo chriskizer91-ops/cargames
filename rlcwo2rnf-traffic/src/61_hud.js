@@ -8,6 +8,7 @@
    been down them or not, the towns and the garage */
 const MAPOFF=pack(10,10,14,235),MINI_SPAN=480,BIG_SPAN=WG.L*4;
 function mapFill(X0,Y0,n,cx0,cz0,mpp,dark){
+  {const a=Math.max(0,Y0),b=Math.min(BH,Y0+n);if(b>a)hMark(a,b);}
   for(let j=0;j<n;j++){const Y=Y0+j;if(Y<0||Y>=BH)continue;const o=Y*BW+X0,z=cz0+(j+.5-n/2)*mpp,cz=Math.floor(z/CHK),fz=(z-cz*CHK)/CHK;let lk=-1,lt=null;
     for(let i=0;i<n;i++){const X=X0+i;if(X<0||X>=BW)continue;const x=cx0+(i+.5-n/2)*mpp,cx=Math.floor(x/CHK),k=ckey(cx,cz);if(k!==lk){lk=k;lt=WORLD.tiles.get(k)||null;}
       if(!lt){HB[o+i]=dark;continue;}const tn=lt.tn;HB[o+i]=lt.px[Math.min(tn-1,(fz*tn)|0)*tn+Math.min(tn-1,(((x-cx*CHK)/CHK)*tn)|0)];}}

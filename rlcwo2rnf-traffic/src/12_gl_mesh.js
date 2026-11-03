@@ -12,7 +12,9 @@ function glInit(){
 let HTEX_WH='';
 function hudUpload(){txtFlush();gl.bindTexture(gl.TEXTURE_2D,HTEX);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);const wh=BW+'x'+BH;
   if(wh!==HTEX_WH){gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,BW,BH,0,gl.RGBA,gl.UNSIGNED_BYTE,HB8);HTEX_WH=wh;}
-  else gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,BW,BH,gl.RGBA,gl.UNSIGNED_BYTE,HB8);}
+  /* (only the rows drawn or cleared since the last upload: 10_core's hMark) */
+  else{const a=Math.max(0,HU0),b=Math.min(BH,HU1);if(b>a)gl.texSubImage2D(gl.TEXTURE_2D,0,0,a,BW,b-a,gl.RGBA,gl.UNSIGNED_BYTE,HB8.subarray(a*BW*4,b*BW*4));}
+  HU0=1<<30;HU1=0;}
 /* =====================================================================================
    5. MESHES — a flat-shaded mesh builder (vertex colour + emissive + material id) and
       VAO helpers. Instanced meshes take per-instance [x,y,z,yaw][sx,sy,sz,seed][r,g,b,emissive].

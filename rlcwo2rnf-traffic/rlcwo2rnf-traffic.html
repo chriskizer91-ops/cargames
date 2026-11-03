@@ -565,6 +565,7 @@ body.bayfull>.bar{display:none}
       <section class="row2" id="sDotsRow"><div><h2>Detail</h2><div class="seg" id="sDetail" role="group" aria-label="Detail"></div></div>
         <div><h2>Dots</h2><div class="seg" id="sDots" role="group" aria-label="Dots"></div></div></section>
       <p class="hint" id="sDetailHint" style="margin-top:-6px"></p>
+      <section><h2>Frame rate</h2><div class="seg" id="sFps" role="group" aria-label="Frame rate"></div><p class="hint" id="sFpsHint" style="margin-top:6px"></p></section>
       <section><h2>Free play scores</h2><button class="btn sm" id="sClear" type="button">Clear money, cool stuff and bests</button> <span class="status" id="sNote"></span></section>
       <p class="keys"><kbd>W</kbd> <kbd>↑</kbd> gas · <kbd>1</kbd>–<kbd>9</kbd> part gas · <kbd>S</kbd> <kbd>↓</kbd> brake and reverse · <kbd>A</kbd> <kbd>D</kbd> steer · <kbd>Space</kbd> e-brake · <kbd>Q</kbd> <kbd>E</kbd> shift · <kbd>O</kbd> overdrive off ·
         <kbd>N</kbd> nitrous · <kbd>H</kbd> horn · <kbd>L</kbd> low range · <kbd>K</kbd> lockers · <kbd>J</kbd> headlights · <kbd>C</kbd> camera · <kbd>G</kbd> look behind (held) · <kbd>M</kbd> map · <kbd>T</kbd> traction (dev) · <kbd>F</kbd> world numbers · <kbd>Y</kbd> cruise · <kbd>V</kbd> engine pitch · <kbd>R</kbd> reset (in a race: back onto the course) · <kbd>I</kbd> engine · <kbd>Esc</kbd> menu</p>
@@ -792,7 +793,12 @@ function dtw3(s,sc=1){let w=0;for(const ch of s){const gg=G3[ch]||G3[ch.toUpperC
    buffer) is HS times finer: blocks, text and boxes cover HS x HS dots, while lines, discs, rings
    and dithers are drawn at the native dot pitch so needles and curves come out smooth. */
 let W=320,H=180,HS=1,BW=320,BH=180,HB=null,HB8=null;
-function hClear(){HB.fill(0);txtBegin();}
+/* the rows touched: HP0..HP1 since the last clear (the next clear wipes only those), HU0..HU1 since the last upload
+   (only those go up to the GPU: 12_gl_mesh's hudUpload). Every writer below marks its rows; the HUD lives in the top
+   and the bottom of the grid, so most frames clear and send a fraction of it */
+let HP0=0,HP1=1<<30,HU0=0,HU1=1<<30;
+function hMark(y0,y1){if(y0<HP0)HP0=y0;if(y1>HP1)HP1=y1;if(y0<HU0)HU0=y0;if(y1>HU1)HU1=y1;}
+function hClear(){const a=Math.max(0,HP0),b=Math.min(BH,HP1);if(b>a){HB.fill(0,a*BW,b*BW);if(a<HU0)HU0=a;if(b>HU1)HU1=b;}HP0=1<<30;HP1=0;txtBegin();}
 /* blend a packed colour (with alpha) onto buffer pixel i */
 function hBlend(i,c){
   const sa=c>>>24;if(sa===255){HB[i]=c;return;}if(sa===0)return;
@@ -803,10 +809,10 @@ function hBlend(i,c){
   HB[i]=((Math.round(oa*255)<<24)|(bl<<16)|(g<<8)|r)>>>0;
 }
 /* native-dot primitives */
-function nPx(X,Y,c){if(X>=0&&Y>=0&&X<BW&&Y<BH)hBlend(Y*BW+X,c);}
-function nSpan(X0,X1,Y,c){if(Y<0||Y>=BH)return;X0=Math.max(0,X0);X1=Math.min(BW,X1);if(X1<=X0)return;const o=Y*BW;
+function nPx(X,Y,c){if(X>=0&&Y>=0&&X<BW&&Y<BH){hMark(Y,Y+1);hBlend(Y*BW+X,c);}}
+function nSpan(X0,X1,Y,c){if(Y<0||Y>=BH)return;X0=Math.max(0,X0);X1=Math.min(BW,X1);if(X1<=X0)return;const o=Y*BW;hMark(Y,Y+1);
   if((c>>>24)===255)HB.fill(c,o+X0,o+X1);else for(let i=o+X0;i<o+X1;i++)hBlend(i,c);}
-function hPx(x,y,c){x|=0;y|=0;if(x<0||y<0||x>=W||y>=H)return;if(HS===1){hBlend(y*W+x,c);return;}
+function hPx(x,y,c){x|=0;y|=0;if(x<0||y<0||x>=W||y>=H)return;if(HS===1){hMark(y,y+1);hBlend(y*W+x,c);return;}
   const X=x*HS,Y=y*HS;for(let j=0;j<HS;j++)nSpan(X,X+HS,Y+j,c);}
 function hRect(x,y,w,h,c){x=Math.round(x);y=Math.round(y);w=Math.round(w);h=Math.round(h);
   const x0=Math.max(0,x),x1=Math.min(W,x+w),y0=Math.max(0,y),y1=Math.min(H,y+h);if(x1<=x0)return;
@@ -817,7 +823,7 @@ function hBox(x,y,w,h,fill,edge){if(fill)hRect(x+1,y+1,w-2,h-2,fill);if(edge){hR
 const BAY4=new Float32Array([0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5].map(v=>(v+.5)/16));
 /* ordered-dither fill: the signature way to show tone on a dot grid (at the native dot pitch) */
 function hDither(x,y,w,h,c,lev){x=Math.round(x);y=Math.round(y);
-  const X0=Math.max(0,x*HS),X1=Math.min(BW,(x+w)*HS),Y0=Math.max(0,y*HS),Y1=Math.min(BH,(y+h)*HS);
+  const X0=Math.max(0,x*HS),X1=Math.min(BW,(x+w)*HS),Y0=Math.max(0,y*HS),Y1=Math.min(BH,(y+h)*HS);if(Y1>Y0)hMark(Y0,Y1);
   for(let j=Y0;j<Y1;j++)for(let i=X0;i<X1;i++)if(BAY4[((j&3)<<2)|(i&3)]<lev)hBlend(j*BW+i,c);}
 /* a line HS dots thick, stepped one native dot at a time along its major axis */
 function hLine(x0,y0,x1,y1,c){
@@ -2010,6 +2016,8 @@ float hlShadow(vec3 P,vec3 N){
 vec3 headlights(Surf s){
   if(uHL[0].w<=0.0)return vec3(0);
   vec3 c=vec3(0);vec3 F=uHL[2].xyz,Rt=uHL[3].xyz,Up=cross(Rt,F);float range=uHL[4].w;
+  /* (beyond both lamps' reach falloff() is exactly 0: no shadow taps, no beam) */
+  {vec3 a=uHL[0].xyz-s.P,b=uHL[1].xyz-s.P;float r2=range*range;if(dot(a,a)>=r2&&dot(b,b)>=r2)return c;}
   float sh=hlShadow(s.P,s.N);if(sh<=0.0)return c;
   for(int i=0;i<2;i++){vec3 Lp=uHL[i].xyz,Lv=Lp-s.P;float d2=dot(Lv,Lv);vec3 L=Lv*inversesqrt(d2);
     float b=beam(-L,F,Rt,Up,uHL[1].w);if(b<=0.0)continue;
@@ -2033,6 +2041,8 @@ float csmLayer(vec3 P,vec3 N,int k,float rot){
 }
 float sunShadow(vec3 P,vec3 N,float vd,vec2 px){
   if(uCSMOn<=0.0)return 1.0;
+  /* (past the last cascade's far edge the fade below makes it 1 whatever the taps say) */
+  if(vd>=uCSMS.z)return 1.0;
   float rot=ign(px,uFrame)*6.283;
   int k=vd<uCSMS.x?0:vd<uCSMS.y?1:2;
   float s=csmLayer(P,N,k,rot);
@@ -2631,6 +2641,9 @@ void main(){
   vec3 c=mix(hist,cur,a);
   o=vec4(itm(max(c,vec3(0))),1.0);
 }`;
+  /* (with no motion blur, Mobile: the TAA pass writes the picture the particles, the bloom and the final read as its
+     second output, where a full-screen copy pass used to: the same values, one pass and its bandwidth less) */
+  var TAA_MRT_FS = TAA_FS.replace("out vec4 o;", "layout(location=0) out vec4 o;layout(location=1) out vec4 o2;").replace("void main(){", "void taaMain(){") + "\nvoid main(){taaMain();o2=o;}";
   var COPY_FS = `in vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform float uLod;void main(){o=textureLod(uSrc,vT,uLod);}`;
   var DOWN4_FS = `in vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform vec2 uPx;
 void main(){vec3 c=texture(uSrc,vT+uPx*vec2(-.5,-.5)).rgb+texture(uSrc,vT+uPx*vec2(.5,-.5)).rgb+texture(uSrc,vT+uPx*vec2(-.5,.5)).rgb+texture(uSrc,vT+uPx*vec2(.5,.5)).rgb;o=vec4(min(c*.25,vec3(200.)),1.0);}`;
@@ -2687,6 +2700,19 @@ void main(){
 in vec2 vT;out vec4 o;
 uniform sampler2D uSrc;uniform sampler2D uBloom;uniform sampler2D uExpo;uniform sampler2D uDirt;
 uniform float uBloomK;uniform vec2 uGrade;uniform float uExpoBias;uniform float uLensRain;uniform float uVig;uniform float uGrain;uniform vec2 uOutRes;uniform float uCA;
+/* the game's HUD dots over the finished picture, here rather than in a second full-screen pass (S.hud: the dot grid's
+   texture, its rect on the canvas in pixels, its size in dots, the edge glow's colour). The same maths as the game's
+   own overlay pass (55_post FS_HUDDOT) and the same blend (ONE, ONE_MINUS_SRC_ALPHA), without the 8-bit picture
+   between: at most 1/255 apart */
+uniform sampler2D uHud;uniform vec4 uHudRect;uniform vec2 uHudRes;uniform vec3 uHudEdge;uniform float uHudOn;
+vec3 hudOver(vec3 c){
+  vec2 p=(gl_FragCoord.xy-uHudRect.xy)/uHudRect.zw;vec3 add=vec3(0.);float a=0.;
+  vec2 qe=vT-.5;add+=uHudEdge*smoothstep(.15,.33,dot(qe,qe))*.6;
+  if(p.x>=0.&&p.y>=0.&&p.x<=1.&&p.y<=1.){vec2 cell=p*uHudRes,id=floor(cell),f=fract(cell)-.5;vec4 hu=texture(uHud,vec2((id.x+.5)/uHudRes.x,1.-(id.y+.5)/uHudRes.y));
+    if(hu.a>0.){float fw=max(fwidth(cell.x),fwidth(cell.y)),d=length(f),dm=1.-smoothstep(.42-fw*.6,.42+fw*.6,d),far=smoothstep(.38,.95,fw),
+      m=mix(dm*(.82+.4*(1.-smoothstep(0.,.42,d))),.62,far);
+      add+=min(hu.rgb*1.15,vec3(1.))*m*hu.a;a=hu.a*.82;}}
+  return add+clamp(c,0.,1.)*(1.-a);}
 /* Stephen Hill's fit of the ACES reference transform */
 vec3 aces(vec3 c){mat3 m1=mat3(.59719,.07600,.02840,.35458,.90834,.13383,.04823,.01566,.83777);mat3 m2=mat3(1.60475,-.10208,-.00327,-.53108,1.10813,-.07276,-.07367,-.00605,1.07602);
   vec3 v=m1*c;vec3 a=v*(v+.0245786)-.000090537,b=v*(.983729*v+.4329510)+.238081;return clamp(m2*(a/b),0.,1.);}
@@ -2716,6 +2742,7 @@ void main(){
   c=srgb(c);
   float e=dot(cq,cq);c*=1.0-e*uVig;
   c+=(h12(gl_FragCoord.xy+fract(uTime*7.3)*97.)-.5)*uGrain;
+  if(uHudOn>0.0)c=hudOver(c);
   o=vec4(c,1.0);
 }`;
   var LED_FS = `
@@ -2789,7 +2816,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         ssr: P("ssr", FS_VS, SSR_FS),
         fog: P("fog", FS_VS, FOG_FS),
         comp: P("comp", FS_VS, COMP_FS),
-        taa: P("taa", FS_VS, TAA_FS),
+        taa: P("taa", FS_VS, this.Q.mb ? TAA_FS : TAA_MRT_FS),
         copy: P("copy", FS_VS, COPY_FS),
         down4: P("down4", FS_VS, DOWN4_FS),
         mb: P("mb", FS_VS, MB_FS),
@@ -2929,9 +2956,9 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         this.H = H;
         for (const t of [this.hist, this.mbT, this.pyr, this.ldr].flat().filter(Boolean)) G.del(t);
         this.hist = [0, 1].map(() => G.texture(W, H, "rgba16f"));
-        this.histFB = this.hist.map((t) => G.target([t]));
-        this.histI = 0;
         this.mbT = G.texture(W, H, "rgba16f");
+        this.histFB = this.hist.map((t) => G.target(this.Q.mb ? [t] : [t, this.mbT]));
+        this.histI = 0;
         this.mbFB = G.target([this.mbT]);
         this.pyr = G.texture(Math.max(1, W >> 1), Math.max(1, H >> 1), "rgba16f", { mips: true });
         this.pyrFB = G.target([this.pyr]);
@@ -2943,8 +2970,9 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
           w >>= 1;
           h >>= 1;
         }
-        this.ldr = G.texture(W, H, "rgba8");
-        this.ldrFB = G.target([this.ldr]);
+        /* (the Dots display's target: made the first frame it's wanted, not in Clear) */
+        this.ldr = null;
+        this.ldrFB = null;
         this.resetTAA = true;
         this.hasPrev = false;
       }
@@ -2987,8 +3015,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         expoU: { uDt: 1 / 60, uKey: 0, uRange: null, uReset: 0 },
         expoTex: { uSrc: null, uPrev: null },
         expoRange: [0.05, 40],
-        finU: { uBloomK: 0, uGrade: null, uExpoBias: 1, uLensRain: 0, uVig: 0.35, uGrain: 0.018, uOutRes: [W, H], uCA: 0.6 },
-        finTex: { uSrc: this.mbT, uBloom: this.bl[0].t, uExpo: null }
+        finU: { uBloomK: 0, uGrade: null, uExpoBias: 1, uLensRain: 0, uVig: 0.35, uGrain: 0.018, uOutRes: [W, H], uCA: 0.6, uHudOn: 0, uHudRect: [0, 0, 1, 1], uHudRes: [1, 1], uHudEdge: [0, 0, 0] },
+        finTex: { uSrc: this.mbT, uBloom: this.bl[0].t, uExpo: null, uHud: this.bl[0].t }
       };
     }
     /* ---------- per-frame matrices ---------- */
@@ -3363,14 +3391,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         po.mbTex.uSrc = this.hist[ho];
         G.tex(Pm, po.mbTex);
         G.fullscreen();
-      } else {
-        const Pc2 = G.use(this.P.copy);
-        G.bind(this.mbFB);
-        G.uni(Pc2, "uLod", 0);
-        po.srcTex.uSrc = this.hist[ho];
-        G.tex(Pc2, po.srcTex);
-        G.fullscreen();
       }
+      /* (no motion blur: the TAA pass above wrote mbT too) */
       let anyP = false;
       for (const h of this.extra) if (h.particles) anyP = true;
       if (anyP) {
@@ -3425,7 +3447,13 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       }
       gl.disable(gl.BLEND);
       const Pfin = G.use(this.P.final);
-      if (S.led) G.bind(this.ldrFB);
+      if (S.led) {
+        if (!this.ldrFB) {
+          this.ldr = G.texture(this.W, this.H, "rgba8");
+          this.ldrFB = G.target([this.ldr]);
+        }
+        G.bind(this.ldrFB);
+      }
       else G.bind(null, [0, 0, this.canvas.width, this.canvas.height]);
       G.set(Pfin, U);
       const fu = po.finU;
@@ -3433,7 +3461,15 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       fu.uGrade = E.grade;
       fu.uExpoBias = E.expoBias || 1;
       fu.uLensRain = S.lensRain || 0;
+      const hud = S.hud && !S.debug ? S.hud : null;
+      fu.uHudOn = hud ? 1 : 0;
+      if (hud) {
+        fu.uHudRect = hud.rect;
+        fu.uHudRes = hud.res;
+        fu.uHudEdge = hud.edge;
+      }
       G.set(Pfin, fu);
+      po.finTex.uHud = hud ? hud.t : this.bl[0].t;
       po.finTex.uExpo = this.expo[eo];
       G.tex(Pfin, po.finTex);
       G.fullscreen();
@@ -3454,7 +3490,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         G.tex(Pl, Object.assign({ uSrc: this.ldr, uHud: S.led.hud }, S.led.textures || {}));
         G.fullscreen();
       }
-      if (S.after) S.after(this);
+      if (S.after && !(S.hud && !S.debug)) S.after(this);
       this.prevVP = this.VPnj;
       this.frameN++;
       if (this.timer) this.timer.end();
@@ -3975,7 +4011,9 @@ function glInit(){
 let HTEX_WH='';
 function hudUpload(){txtFlush();gl.bindTexture(gl.TEXTURE_2D,HTEX);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);const wh=BW+'x'+BH;
   if(wh!==HTEX_WH){gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,BW,BH,0,gl.RGBA,gl.UNSIGNED_BYTE,HB8);HTEX_WH=wh;}
-  else gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,BW,BH,gl.RGBA,gl.UNSIGNED_BYTE,HB8);}
+  /* (only the rows drawn or cleared since the last upload: 10_core's hMark) */
+  else{const a=Math.max(0,HU0),b=Math.min(BH,HU1);if(b>a)gl.texSubImage2D(gl.TEXTURE_2D,0,0,a,BW,b-a,gl.RGBA,gl.UNSIGNED_BYTE,HB8.subarray(a*BW*4,b*BW*4));}
+  HU0=1<<30;HU1=0;}
 /* =====================================================================================
    5. MESHES — a flat-shaded mesh builder (vertex colour + emissive + material id) and
       VAO helpers. Instanced meshes take per-instance [x,y,z,yaw][sx,sy,sz,seed][r,g,b,emissive].
@@ -12465,6 +12503,9 @@ function hudOverlay(R){
   gl.uniform4fv(u.uRect,hudRect());gl.uniform2f(u.uRes,BW,BH);gl.uniform3fv(u.uEdge,POST.edge);
   gl.bindVertexArray(VAO0);gl.drawArrays(gl.TRIANGLES,0,3);gl.disable(gl.BLEND);gl.bindVertexArray(null);
 }
+/* the HUD dots for the renderer's final pass (the clear display): the same as hudOverlay, without a pass of its own */
+const HUDF={t:null,rect:[0,0,1,1],res:[1,1],edge:null};
+function hudFinal(){if(APP.photo)return null;const r=hudRect();HUDF.t=HTEX;HUDF.rect[0]=r[0];HUDF.rect[1]=r[1];HUDF.rect[2]=r[2];HUDF.rect[3]=r[3];HUDF.res[0]=BW;HUDF.res[1]=BH;HUDF.edge=POST.edge;return HUDF;}
 /* what the renderer needs for the LED display this frame, or null for the clear picture */
 function ledState(){
   if(DISP.mode!=='dots')return null;
@@ -13492,7 +13533,7 @@ const CAR_STOCK={suv:'stock',trail:'trail',coupe:'coupe',wagon:'wagon',pickup:'p
 for(const id of MACH_IDS)CAR_STOCK[id]=id;
 try{const s=JSON.parse(store.get('rt-game','{}'))||{};
   if(CAR_PARTS[s.car])APP.car=s.car;if(['real','middle','kids','sim'].includes(s.level))APP.level=s.level;if(s.cam>=0&&s.cam<3)APP.cam=s.cam|0;
-  if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;if(s.traffic===false)APP.traffic=false;if(s.police===true)APP.police=true;
+  if(TOD[s.tod])APP.tod=s.tod;if(['slide','tilt','buttons'].includes(s.steer))APP.steer=s.steer;if(s.haptics===false)APP.haptics=false;if(['auto','sharp','smooth','fast'].includes(s.detail))APP.detail=s.detail;if(['auto','1','2','3'].includes(String(s.fps)))APP.fpsMode=String(s.fps);if(s.traffic===false)APP.traffic=false;if(s.police===true)APP.police=true;
   if(s.rigs)for(const car in s.rigs)if(CAR_PARTS[car])RIGS[car]=cleanRig(car,s.rigs[car]);}catch(e){}
 /* a saved rig against today's parts: anything that no longer exists goes back to stock */
 function cleanRig(car,r){const base=presetRig(CAR_STOCK[car]),out=Object.assign({},base);
@@ -13501,7 +13542,7 @@ function cleanRig(car,r){const base=presetRig(CAR_STOCK[car]),out=Object.assign(
   return fixRig(car,out);}
 const rigOf=car=>RIGS[car]||(RIGS[car]=presetRig(CAR_STOCK[car]));
 const saveGame=()=>{if(CAREER.on)careerSync();const F=CAREER.on&&CAREER.free;
-  store.set('rt-game',JSON.stringify({car:F?F.car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,traffic:APP.traffic!==false,police:!!APP.police,rigs:F?F.rigs:RIGS}));};
+  store.set('rt-game',JSON.stringify({car:F?F.car:APP.car,level:APP.level,cam:APP.cam,tod:APP.tod,steer:APP.steer,haptics:APP.haptics,detail:APP.detail,fps:APP.fpsMode||'auto',traffic:APP.traffic!==false,police:!!APP.police,rigs:F?F.rigs:RIGS}));};
 const LEVELS=[['real','Realistic','The car as it is: ABS, the automatic gearbox and, on the cars that have it, the factory traction control that brakes a spinning wheel so the others pull. It slides on loose dirt, spins its tyres, and rolls if you ask it to.'],
   ['middle','Middle','A steering helper, stability control and traction control step in when it starts to get away from you. Still rolls if you really try.'],
   ['kids','Kids','Extra grip, every helper on, and a hand that keeps it on its wheels, at full speed. If it does go over, it flips itself back.'],
@@ -14003,13 +14044,13 @@ function render(dt){
   const env=envNow();rainUpdate(c.eye,t.v,env.rain);
   R.render({time:APP.t,dt,cam:{pos:c.eyeR,fwd:c.fwd,up:c.up,fov:c.fov,near:c.near,far:c.far,shift:c.shift||0},cut,env,flicker:FLICK,
     probePos:[t.p[0]-RO[0],t.p[1]+1.1-RO[1],t.p[2]-RO[2]],dyn:L.dyn,headlights:L.headlights,occ:LOOK.occ?occ:[],shutter:.5,lensRain:CAMS[APP.cam]==='Hood'&&!APP.orbit?env.rain*LOOK.rain*.8:0,
-    led:ledState(),after:DISP.mode==='clear'?hudOverlay:null,debug:DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?null:DEBUG_VIEW});
+    led:ledState(),hud:DISP.mode==='clear'?hudFinal():null,after:DISP.mode==='clear'?hudOverlay:null,debug:DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?null:DEBUG_VIEW});
   gl.bindVertexArray(null);APP.tris=LAND.tris+(APP.carTris||0);rperfAcc();
   psT(PS_SCENE,tq);
 }
 
 /* ---------- the matrix fills the window, 16:9 ---------- */
-function setRes(i,keep){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);APP.res=i;if(!keep)store.set('rt-res',i);$('res').textContent='Dots '+BW+'×'+BH;if(R&&DISP.mode==='dots'&&!keep)resize();}
+function setRes(i,keep){const [dw,dh,hs]=RES[i];HS=hs;BW=dw;BH=dh;W=dw/hs;H=dh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);HTEX_WH="";APP.res=i;if(!keep)store.set('rt-res',i);$('res').textContent='Dots '+BW+'×'+BH;if(R&&DISP.mode==='dots'&&!keep)resize();}
 function layout(){const vw=innerWidth,vh=innerHeight;
   /* the bay's window fills the whole screen, the car behind the lab's instruments: its dots take the window's shape */
   if(SHOW.full){bayFill(vw,vh);return;}if(BAYGRID.on){BAYGRID.on=false;setRes(APP.res,true);}
@@ -14019,7 +14060,7 @@ function layout(){const vw=innerWidth,vh=innerHeight;
 const BAYGRID={on:false,key:''};
 function bayFill(vw,vh){const [dw,dh,hs]=RES[APP.res];let w=vw,h=w*9/16;if(h>vh){h=vh;w=h*16/9;}const pitch=w/dw;
   const bw=Math.max(hs,Math.round(vw/pitch/hs)*hs),bh=Math.max(hs,Math.round(vh/pitch/hs)*hs),key=bw+'x'+bh+'/'+hs;
-  if(!BAYGRID.on||BAYGRID.key!==key){HS=hs;BW=bw;BH=bh;W=bw/hs;H=bh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);BAYGRID.key=key;}
+  if(!BAYGRID.on||BAYGRID.key!==key){HS=hs;BW=bw;BH=bh;W=bw/hs;H=bh/hs;HB=new Uint32Array(BW*BH);HB8=new Uint8Array(HB.buffer);HTEX_WH="";BAYGRID.key=key;}
   BAYGRID.on=true;RECT={x:0,y:0,w:vw,h:vh};}
 /* (the dots' old detail setting, kept in the save; the renderer's dynamic resolution does its job now) */
 function setDetail(id){APP.detail=id;saveGame();}
@@ -16124,6 +16165,7 @@ function buildNos(){const el=$('mNos');if(!el)return;el.addEventListener('click'
    been down them or not, the towns and the garage */
 const MAPOFF=pack(10,10,14,235),MINI_SPAN=480,BIG_SPAN=WG.L*4;
 function mapFill(X0,Y0,n,cx0,cz0,mpp,dark){
+  {const a=Math.max(0,Y0),b=Math.min(BH,Y0+n);if(b>a)hMark(a,b);}
   for(let j=0;j<n;j++){const Y=Y0+j;if(Y<0||Y>=BH)continue;const o=Y*BW+X0,z=cz0+(j+.5-n/2)*mpp,cz=Math.floor(z/CHK),fz=(z-cz*CHK)/CHK;let lk=-1,lt=null;
     for(let i=0;i<n;i++){const X=X0+i;if(X<0||X>=BW)continue;const x=cx0+(i+.5-n/2)*mpp,cx=Math.floor(x/CHK),k=ckey(cx,cz);if(k!==lk){lk=k;lt=WORLD.tiles.get(k)||null;}
       if(!lt){HB[o+i]=dark;continue;}const tn=lt.tn;HB[o+i]=lt.px[Math.min(tn-1,(fz*tn)|0)*tn+Math.min(tn-1,(((x-cx*CHK)/CHK)*tn)|0)];}}
@@ -16341,6 +16383,8 @@ function syncMenu(){
     tilt:'Tilt the phone like a steering wheel. It takes the way you hold it when you pick this as straight ahead.',buttons:'Two buttons, left and right, like before.'}[APP.steer];
   for(const el of $('sHaptics').children)el.setAttribute('aria-pressed',String((el.dataset.v==='on')===APP.haptics));
   for(const el of $('sDetail').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.detail));
+  for(const el of $('sFps').children)el.setAttribute('aria-pressed',String(el.dataset.v===String(APP.fpsMode||'auto')));
+  {const hz=RESO?RESO.hz:60,k=fpsDivisor();$('sFpsHint').textContent=`Drawn at ${Math.round(hz/k)} frames a second on this ${Math.round(hz)} Hz screen. A frame every 2nd or 3rd refresh halves or thirds the work the graphics chip does (cooler and longer on a battery); the picture is the same, the motion less smooth.`;}
   for(const el of $('sDots').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.res));
   for(const el of $('mGfx').children)el.setAttribute('aria-pressed',String(el.dataset.v===GFX.level));
   $('mGfxHint').textContent=GFX_LEVELS.find(l=>l[0]===GFX.level)[2];
@@ -16395,6 +16439,7 @@ function buildMenu(){buildNos();
   segButtons($('sSteer'),[['slide','Slide'],['tilt','Tilt'],['buttons','Buttons']],v=>{APP.steer=v;if(v==='tilt')enableTilt();saveGame();syncTouch();});
   segButtons($('sHaptics'),[['on','On'],['off','Off']],v=>{APP.haptics=v==='on';saveGame();if(APP.haptics&&navigator.vibrate)navigator.vibrate(20);});
   segButtons($('sDetail'),[['auto','Auto'],['sharp','Sharp'],['smooth','Smooth'],['fast','Fast']],v=>setDetail(v));
+  segButtons($('sFps'),[['auto','Auto'],['1','Every refresh'],['2','Every 2nd'],['3','Every 3rd']],v=>{APP.fpsMode=v;saveGame();syncMenu();});
   segButtons($('sDots'),RES.map((r,i)=>[i,r[0]+'×'+r[1]]),i=>{setRes(+i);layout();});
   segButtons($('mGfx'),GFX_LEVELS.map(l=>[l[0],l[1]]),id=>{setGfx(id);GFXW.said=false;GFXW.t=0;});
   segButtons($('sDisp'),[['dots','LED dots'],['clear','Clear']],v=>setDisplay(v));
@@ -17873,7 +17918,7 @@ else{
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
   /* the traffic (60_traffic) for the tools */
-  Object.assign(window.__game,{VOX,VOICES,voxSay,voxWarm,WANTED,wantedLvl,polTune,polTarget,polMake,HELI,heliFrame,POL,policeFrame,polRespawn,polCount,TRF,HW,TRF_ON,TRF_N,TRF_PHYS,trfEngage,trfThreat,trafficFrame,trfModelsStep,trafficWanted,trfCount,truckLite,TRUCKL,trfKeeps,SKY,frustum,saveDev,syncMenu,syncDevWorld});
+  Object.assign(window.__game,{VOX,VOICES,voxSay,voxWarm,WANTED,wantedLvl,polTune,polTarget,polMake,HELI,hudTex:()=>HTEX,hudBuf:()=>HB8,hudDims:()=>[BW,BH],heliFrame,POL,policeFrame,polRespawn,polCount,TRF,HW,TRF_ON,TRF_N,TRF_PHYS,trfEngage,trfThreat,trafficFrame,trfModelsStep,trafficWanted,trfCount,truckLite,TRUCKL,trfKeeps,SKY,frustum,saveDev,syncMenu,syncDevWorld});
 }
 
 })();

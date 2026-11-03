@@ -77,7 +77,12 @@ function dtw3(s,sc=1){let w=0;for(const ch of s){const gg=G3[ch]||G3[ch.toUpperC
    buffer) is HS times finer: blocks, text and boxes cover HS x HS dots, while lines, discs, rings
    and dithers are drawn at the native dot pitch so needles and curves come out smooth. */
 let W=320,H=180,HS=1,BW=320,BH=180,HB=null,HB8=null;
-function hClear(){HB.fill(0);txtBegin();}
+/* the rows touched: HP0..HP1 since the last clear (the next clear wipes only those), HU0..HU1 since the last upload
+   (only those go up to the GPU: 12_gl_mesh's hudUpload). Every writer below marks its rows; the HUD lives in the top
+   and the bottom of the grid, so most frames clear and send a fraction of it */
+let HP0=0,HP1=1<<30,HU0=0,HU1=1<<30;
+function hMark(y0,y1){if(y0<HP0)HP0=y0;if(y1>HP1)HP1=y1;if(y0<HU0)HU0=y0;if(y1>HU1)HU1=y1;}
+function hClear(){const a=Math.max(0,HP0),b=Math.min(BH,HP1);if(b>a){HB.fill(0,a*BW,b*BW);if(a<HU0)HU0=a;if(b>HU1)HU1=b;}HP0=1<<30;HP1=0;txtBegin();}
 /* blend a packed colour (with alpha) onto buffer pixel i */
 function hBlend(i,c){
   const sa=c>>>24;if(sa===255){HB[i]=c;return;}if(sa===0)return;
@@ -88,10 +93,10 @@ function hBlend(i,c){
   HB[i]=((Math.round(oa*255)<<24)|(bl<<16)|(g<<8)|r)>>>0;
 }
 /* native-dot primitives */
-function nPx(X,Y,c){if(X>=0&&Y>=0&&X<BW&&Y<BH)hBlend(Y*BW+X,c);}
-function nSpan(X0,X1,Y,c){if(Y<0||Y>=BH)return;X0=Math.max(0,X0);X1=Math.min(BW,X1);if(X1<=X0)return;const o=Y*BW;
+function nPx(X,Y,c){if(X>=0&&Y>=0&&X<BW&&Y<BH){hMark(Y,Y+1);hBlend(Y*BW+X,c);}}
+function nSpan(X0,X1,Y,c){if(Y<0||Y>=BH)return;X0=Math.max(0,X0);X1=Math.min(BW,X1);if(X1<=X0)return;const o=Y*BW;hMark(Y,Y+1);
   if((c>>>24)===255)HB.fill(c,o+X0,o+X1);else for(let i=o+X0;i<o+X1;i++)hBlend(i,c);}
-function hPx(x,y,c){x|=0;y|=0;if(x<0||y<0||x>=W||y>=H)return;if(HS===1){hBlend(y*W+x,c);return;}
+function hPx(x,y,c){x|=0;y|=0;if(x<0||y<0||x>=W||y>=H)return;if(HS===1){hMark(y,y+1);hBlend(y*W+x,c);return;}
   const X=x*HS,Y=y*HS;for(let j=0;j<HS;j++)nSpan(X,X+HS,Y+j,c);}
 function hRect(x,y,w,h,c){x=Math.round(x);y=Math.round(y);w=Math.round(w);h=Math.round(h);
   const x0=Math.max(0,x),x1=Math.min(W,x+w),y0=Math.max(0,y),y1=Math.min(H,y+h);if(x1<=x0)return;
@@ -102,7 +107,7 @@ function hBox(x,y,w,h,fill,edge){if(fill)hRect(x+1,y+1,w-2,h-2,fill);if(edge){hR
 const BAY4=new Float32Array([0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5].map(v=>(v+.5)/16));
 /* ordered-dither fill: the signature way to show tone on a dot grid (at the native dot pitch) */
 function hDither(x,y,w,h,c,lev){x=Math.round(x);y=Math.round(y);
-  const X0=Math.max(0,x*HS),X1=Math.min(BW,(x+w)*HS),Y0=Math.max(0,y*HS),Y1=Math.min(BH,(y+h)*HS);
+  const X0=Math.max(0,x*HS),X1=Math.min(BW,(x+w)*HS),Y0=Math.max(0,y*HS),Y1=Math.min(BH,(y+h)*HS);if(Y1>Y0)hMark(Y0,Y1);
   for(let j=Y0;j<Y1;j++)for(let i=X0;i<X1;i++)if(BAY4[((j&3)<<2)|(i&3)]<lev)hBlend(j*BW+i,c);}
 /* a line HS dots thick, stepped one native dot at a time along its major axis */
 function hLine(x0,y0,x1,y1,c){

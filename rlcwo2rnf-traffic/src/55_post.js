@@ -80,6 +80,9 @@ function hudOverlay(R){
   gl.uniform4fv(u.uRect,hudRect());gl.uniform2f(u.uRes,BW,BH);gl.uniform3fv(u.uEdge,POST.edge);
   gl.bindVertexArray(VAO0);gl.drawArrays(gl.TRIANGLES,0,3);gl.disable(gl.BLEND);gl.bindVertexArray(null);
 }
+/* the HUD dots for the renderer's final pass (the clear display): the same as hudOverlay, without a pass of its own */
+const HUDF={t:null,rect:[0,0,1,1],res:[1,1],edge:null};
+function hudFinal(){if(APP.photo)return null;const r=hudRect();HUDF.t=HTEX;HUDF.rect[0]=r[0];HUDF.rect[1]=r[1];HUDF.rect[2]=r[2];HUDF.rect[3]=r[3];HUDF.res[0]=BW;HUDF.res[1]=BH;HUDF.edge=POST.edge;return HUDF;}
 /* what the renderer needs for the LED display this frame, or null for the clear picture */
 function ledState(){
   if(DISP.mode!=='dots')return null;

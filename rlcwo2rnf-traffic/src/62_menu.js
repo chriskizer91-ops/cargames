@@ -82,6 +82,8 @@ function syncMenu(){
     tilt:'Tilt the phone like a steering wheel. It takes the way you hold it when you pick this as straight ahead.',buttons:'Two buttons, left and right, like before.'}[APP.steer];
   for(const el of $('sHaptics').children)el.setAttribute('aria-pressed',String((el.dataset.v==='on')===APP.haptics));
   for(const el of $('sDetail').children)el.setAttribute('aria-pressed',String(el.dataset.v===APP.detail));
+  for(const el of $('sFps').children)el.setAttribute('aria-pressed',String(el.dataset.v===String(APP.fpsMode||'auto')));
+  {const hz=RESO?RESO.hz:60,k=fpsDivisor();$('sFpsHint').textContent=`Drawn at ${Math.round(hz/k)} frames a second on this ${Math.round(hz)} Hz screen. A frame every 2nd or 3rd refresh halves or thirds the work the graphics chip does (cooler and longer on a battery); the picture is the same, the motion less smooth.`;}
   for(const el of $('sDots').children)el.setAttribute('aria-pressed',String(+el.dataset.v===APP.res));
   for(const el of $('mGfx').children)el.setAttribute('aria-pressed',String(el.dataset.v===GFX.level));
   $('mGfxHint').textContent=GFX_LEVELS.find(l=>l[0]===GFX.level)[2];
@@ -136,6 +138,7 @@ function buildMenu(){buildNos();
   segButtons($('sSteer'),[['slide','Slide'],['tilt','Tilt'],['buttons','Buttons']],v=>{APP.steer=v;if(v==='tilt')enableTilt();saveGame();syncTouch();});
   segButtons($('sHaptics'),[['on','On'],['off','Off']],v=>{APP.haptics=v==='on';saveGame();if(APP.haptics&&navigator.vibrate)navigator.vibrate(20);});
   segButtons($('sDetail'),[['auto','Auto'],['sharp','Sharp'],['smooth','Smooth'],['fast','Fast']],v=>setDetail(v));
+  segButtons($('sFps'),[['auto','Auto'],['1','Every refresh'],['2','Every 2nd'],['3','Every 3rd']],v=>{APP.fpsMode=v;saveGame();syncMenu();});
   segButtons($('sDots'),RES.map((r,i)=>[i,r[0]+'×'+r[1]]),i=>{setRes(+i);layout();});
   segButtons($('mGfx'),GFX_LEVELS.map(l=>[l[0],l[1]]),id=>{setGfx(id);GFXW.said=false;GFXW.t=0;});
   segButtons($('sDisp'),[['dots','LED dots'],['clear','Clear']],v=>setDisplay(v));
