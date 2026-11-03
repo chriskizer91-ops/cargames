@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Redline County: Salt Mini</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;font:13px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#cfd9e3;color:#fff}
+[hidden]{display:none!important}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.panel{background:rgba(12,14,18,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:10px;padding:7px 11px}
+#top{position:fixed;left:10px;top:calc(10px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:flex-start;gap:6px;pointer-events:none}
+#title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.9}
+#perf{font-size:11px;opacity:.7;font-variant-numeric:tabular-nums}
+#bar{display:flex;gap:6px;pointer-events:auto}
+button{font:inherit;color:#fff;background:rgba(12,14,18,.58);border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:6px 13px;cursor:pointer}
+button.on{background:#fff;color:#111}
+#tune{border-color:rgba(255,180,60,.7)}
+#speedo{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));width:210px;height:210px;pointer-events:none}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.22);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+#keys{position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));font-size:11px;opacity:.75;pointer-events:none}
+kbd{font:inherit;border:1px solid rgba(255,255,255,.4);border-radius:4px;padding:0 4px}
+/* the touch pedals and steering, only on a touch screen: the steering bottom left, the pedals bottom right, NOS
+   over the gas and the e-brake over the brake; the dial goes up to the top right */
+.tc{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));width:74px;height:74px;border-radius:18px;display:none;place-items:center;font-size:12px;letter-spacing:.06em;
+  background:rgba(12,14,18,.38);border:1px solid rgba(255,255,255,.25);user-select:none;-webkit-user-select:none}
+body.touch .tc{display:grid}body.touch #keys{display:none}
+.tc.on{background:rgba(255,255,255,.4)}
+#tl{left:12px}#tr{left:96px}#tb{right:96px}#tg{right:12px;height:110px}
+#th{right:96px;bottom:calc(98px + env(safe-area-inset-bottom));height:46px}
+#tn{right:12px;bottom:calc(134px + env(safe-area-inset-bottom));height:56px;color:#7ee8ff;border-color:rgba(60,220,255,.6);font-weight:700}
+#tn.on{background:rgba(60,220,255,.5);color:#fff}
+body.touch #top{max-width:calc(100vw - 160px)}body.touch #title{font-size:10px;letter-spacing:.1em}body.touch #perf{font-size:10px}
+body.touch #speedo{bottom:auto;top:calc(10px + env(safe-area-inset-top));right:10px;width:136px;height:136px}
+/* the tuner bay: a sheet at the right on a wide screen, from the bottom on a narrow one; while it is open the
+   driving controls and the dial step aside */
+#tuner{position:fixed;right:10px;top:10px;bottom:10px;width:380px;max-width:calc(100vw - 20px);overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;z-index:4;padding:12px 14px}
+body.bay .tc,body.bay #speedo,body.bay #bar,body.bay #keys{display:none!important}
+#tuner h2{margin:0 0 2px;font-size:15px;letter-spacing:.06em;text-transform:uppercase}
+#tuner .sub{opacity:.7;font-size:12px;margin:0 0 8px}
+#dyno{width:100%;height:150px;display:block;background:rgba(0,0,0,.25);border-radius:8px}
+#dynoStats{margin:8px 0 4px;font-size:13px;font-variant-numeric:tabular-nums}
+.dim{opacity:.6;font-size:11px}
+.sec h3{margin:14px 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+.row{margin:0 0 10px}.row .head{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+.row output{font-variant-numeric:tabular-nums;opacity:.9}
+.row select{width:100%;font:inherit;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px}
+.row select option{color:#000}
+.row input[type=range]{width:100%;accent-color:#ffb43c}
+.seg{display:flex;flex-wrap:wrap;gap:4px}.seg button{padding:5px 10px}
+.seg button.on,.switch.on{background:#ffb43c;color:#111;border-color:#ffb43c}
+.why{margin:4px 0 0;font-size:11px;opacity:.6}
+.acts{display:flex;gap:8px;position:sticky;bottom:-12px;padding:10px 0 4px;background:linear-gradient(transparent,rgba(12,14,18,.9) 30%)}
+#bayDone{background:#ffb43c;color:#111;border-color:#ffb43c;font-weight:600;flex:1}
+@media (max-width:700px){#tuner{left:0;right:0;top:auto;bottom:0;width:auto;max-width:none;height:62vh;border-radius:14px 14px 0 0;padding-bottom:calc(12px + env(safe-area-inset-bottom))}}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div id="top"><div class="panel"><div id="title">Redline County · Salt Mini</div><div id="perf"></div></div>
+ <div id="bar"><button id="tune">Tuner bay</button><button id="cam">Chase</button><button id="reset">Reset</button></div></div>
+<canvas id="speedo"></canvas>
+<div id="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows · <kbd>Space</kbd> e-brake · <kbd>N</kbd> or <kbd>Shift</kbd> NOS · <kbd>T</kbd> tuner bay · <kbd>C</kbd> camera · <kbd>R</kbd> back to the start</div>
+<div class="tc" id="tl">◀</div><div class="tc" id="tr">▶</div><div class="tc" id="tb">BRAKE</div><div class="tc" id="tg">GAS</div><div class="tc" id="th">E-BRAKE</div><div class="tc" id="tn">NOS</div>
+<div id="tuner" class="panel" hidden>
+ <h2>Tuner bay</h2><p class="sub">The game's Tune sheet. The truck takes the new engine when you drive off.</p>
+ <canvas id="dyno"></canvas><div id="dynoStats"></div>
+ <div id="tunerRows"></div>
+ <div class="acts"><button id="bayReset">Back to stock + NOS</button><button id="bayDone">Drive</button></div>
+</div>
+<div id="loading">Building the truck…</div>
