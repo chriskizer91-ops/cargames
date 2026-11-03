@@ -28,7 +28,7 @@ const which=(process.argv[2]||'town,neon,country,cross').split(','),SECS=+(proce
       const cruise=sc==='country';
       const t0=performance.now();let built=0;
       /* the loops are made a few a frame: until they all are */
-      for(let f=0;f<1200&&!ST.ready;f++){g.setTestInput({steer:0,thr:0,brk:1,hb:1,nos:false});g.APP.t+=dt;g.step(dt);if(f%8===7){g.render(dt);await wait(1);}built=f;}
+      let firstMs=0;for(let f=0;f<1200&&!ST.ready;f++){g.setTestInput({steer:0,thr:0,brk:1,hb:1,nos:false});g.APP.t+=dt;const ts=performance.now();g.step(dt);firstMs=Math.max(firstMs,performance.now()-ts);if(f%8===7){g.render(dt);await wait(1);}built=f;}
       const buildMs=performance.now()-t0;
       const M={frames:0,on:0,want:0,overlapFrames:0,overlapPairs:0,stuckMax:0,heldMax:0,redRuns:0,dist:0,passes:0,still:new Map(),last:new Map(),lk:0,worstStep:0};
       const cars=()=>g.TRF_ON.filter(c=>c.L&&c.L.street);
@@ -36,7 +36,7 @@ const which=(process.argv[2]||'town,neon,country,cross').split(','),SECS=+(proce
       for(let f=0;f<N;f++){
         if(cruise){g.setTestInput({steer:0,thr:0,brk:0,hb:0,nos:false});if(!g.CRUISE.on){g.DEVW.cruise='road';g.DEVW.lastCruise='road';g.CRUISE.on=true;g.CRUISE.line=null;}}
         else g.setTestInput({steer:0,thr:0,brk:1,hb:1,nos:false});
-        const ts=performance.now();g.APP.t+=dt;g.step(dt);M.worstStep=Math.max(M.worstStep,performance.now()-ts);if(f%4===3){g.render(dt);if(f%40===39)await wait(1);}
+        const ts=performance.now();g.APP.t+=dt;g.step(dt);M.worstStep=Math.max(M.worstStep,performance.now()-ts);if(f%(cruise?4:8)===(cruise?3:7)){g.render(dt);if(f%40===39)await wait(1);}
         const C=cars();M.frames++;M.on+=C.length;M.want+=ST.want;M.lk+=ST.lk;
         /* overlaps: two street cars riding (not on the physics) whose boxes touch */
         let ov=false;for(let i=0;i<C.length;i++)for(let j=i+1;j<C.length;j++){const a=C[i],b2=C[j];if(a.mode!=='kin'||b2.mode!=='kin')continue;
@@ -53,7 +53,7 @@ const which=(process.argv[2]||'town,neon,country,cross').split(','),SECS=+(proce
       }
       let shot=null;if(sc==='town'||sc==='neon'||sc==='cross'){g.render(dt);shot=g.snap();}
       const tw=ST.loops.filter(L=>L.town).length,bt=ST.loops.map(L=>L.ms||0),slow=ST.loops.filter(L=>L.ms>4).map(L=>L.name+' '+L.ms.toFixed(0)+'ms');
-      return {sliceMsMax:+(ST.slice||0).toFixed(1),loopMsMax:+Math.max(...bt).toFixed(1),loopMsSum:Math.round(bt.reduce((a,b)=>a+b,0)),slowLoops:slow.slice(0,8),loops:ST.loops.length,townLoops:tw,countryLoops:ST.loops.length-tw,junctions:ST.J.length,buildFrames:built,buildMs:Math.round(buildMs),
+      return {buildStepMsMax:+firstMs.toFixed(1),sliceMsMax:+(ST.slice||0).toFixed(1),loopMsMax:+Math.max(...bt).toFixed(1),loopMsSum:Math.round(bt.reduce((a,b)=>a+b,0)),slowLoops:slow.slice(0,8),loops:ST.loops.length,townLoops:tw,countryLoops:ST.loops.length-tw,junctions:ST.J.length,buildFrames:built,buildMs:Math.round(buildMs),
         laneKm:+(M.lk/M.frames).toFixed(1),wanted:+(M.want/M.frames).toFixed(1),out:+(M.on/M.frames).toFixed(1),highwayCars:g.TRF_ON.filter(c=>c.L&&!c.L.street).length,
         overlapFrames:M.overlapFrames,overlapPairs:M.overlapPairs,stuckMax:+M.stuckMax.toFixed(1),heldMax:+M.heldMax.toFixed(1),redRuns:M.redRuns,redAt:M.redAt,linesPassed:M.passes,
         kmDriven:+(M.dist/1000).toFixed(2),onPhysics:TRF.engaged||0,worstStepMs:+M.worstStep.toFixed(1),you:[Math.round(G.car.p[0]),Math.round(G.car.p[2])],shot};

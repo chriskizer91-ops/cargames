@@ -145,14 +145,18 @@ function stEnd(P,E,T,o,R,v){const rx=-T[1],rz=T[0],at=(d,w)=>stPt(P,E[0]+T[0]*d+
 function stTurn(P,E,T,o,v){const rx=-T[1],rz=T[0],k=Math.ceil(PI*o);for(let s=1;s<k;s++){const th=PI*s/k;stPt(P,E[0]+T[0]*o*Math.sin(th)+rx*o*Math.cos(th),E[1]+T[1]*o*Math.sin(th)+rz*o*Math.cos(th),v);}}
 /* where a section line's road runs: from u outwards (sg) while it has a class, in 10 m steps */
 function stRun(ns,i,u,sg){const cls=w=>ns?WG.clsNSz(i,w):WG.clsEWx(i,w);while(Math.abs(u)<WG.LAND+2000&&cls(u+sg*10))u+=sg*10;return u;}
-function stCountrySpecs(){
-  const out=[],E=WG.EDGE,R=WG.RING;
+/* the country, a slice at a time (finding where each road runs is a few thousand calls into the generator): each
+   line's run, its points for the lane count (stWant), then its loop queued */
+function* stCountry(){
+  const E=WG.EDGE,R=WG.RING,L1=WG.L,pts=Array.from(ST.pts||[]);
+  const line=(ns,i,u0,u1)=>{const n=Math.max(1,Math.round(Math.abs(u1-u0)/25));for(let q=0;q<n;q++){const u=u0+(u1-u0)*(q+.5)/n;if(ns)pts.push(i*L1+WG.offNS(i,u),u);else pts.push(u,i*L1+WG.offEW(i,u));}};
   /* Ridge Road north and Wash Road south: from the boulevard's junction on Central out to the salt */
-  for(const sg of [-1,1]){const u1=stRun(true,0,sg*(E+30),sg);if(Math.abs(u1)>E+200)out.push(()=>stLine(true,0,sg*(R+4),u1,true));}
+  for(const sg of [-1,1]){const u1=stRun(true,0,sg*(E+30),sg);yield;if(Math.abs(u1)>E+200){line(true,0,sg*(E+30),u1);ST.todo.push(()=>stLine(true,0,sg*(R+4),u1,true));}yield;}
   /* the other section lines, salt to salt */
-  for(const i of [-1,1]){const a=stRun(true,i,0,-1),b=stRun(true,i,0,1);if(b-a>400)out.push(()=>stLine(true,i,a,b,false));
-    const c=stRun(false,i,0,-1),d=stRun(false,i,0,1);if(d-c>400)out.push(()=>stLine(false,i,c,d,false));}
-  return out;
+  for(const i of [-1,1])for(const ns of [true,false]){const a=stRun(ns,i,0,-1);yield;const b=stRun(ns,i,0,1);yield;
+    if(b-a>400){line(ns,i,a,b);ST.todo.push(()=>stLine(ns,i,a,b,false));}yield;}
+  ST.pts=Float32Array.from(pts);
+  return null;
 }
 
 /* ---------- the junctions: the town's (its nodes) and the country's crossings ---------- */
@@ -164,15 +168,13 @@ function stJunctions(){
     let x=i*L1,z=j*L1;for(let r=0;r<8;r++){x=i*L1+WG.offNS(i,z);z=j*L1+WG.offEW(j,x);}
     const cn=WG.clsNSz(i,z),ce=WG.clsEWx(j,x);if(!cn||!ce)continue;
     ST.J.push({x,z,hx:WG.CL[cn].hw+.6,hz:WG.CL[ce].hw+.6,sig:false,ph:0,kind:j===0?'hwy':'country',claim:null,claimT:0});}
-  ST.todo=stTownSpecs().concat(stCountrySpecs());
+  ST.todo=stTownSpecs();ST.todo.push(stCountry);
   /* the kilometres of lane round you, counted from a point every 25 m down the middle of each road (two lanes each):
-     the town's streets (not the highway's stretch), the boulevard's corners, the country's section lines */
-  const pts=[],R=WG.RING;
+     the town's streets (not the highway's stretch) and the boulevard's corners here, the country's section lines as
+     their runs are found (stCountry) */
+  const pts=[];
   for(const r of WG.TW.roads){if(r.kind==='hwy')continue;const n=Math.max(1,Math.round((r.b-r.a)/25));for(let q=0;q<n;q++){const u=r.a+(r.b-r.a)*(q+.5)/n;if(r.ax==='z')pts.push(r.line,u);else pts.push(u,r.line);}}
   for(const a of WG.TW.arcs){for(let q=0;q<8;q++){const t=a.a0+(a.a1-a.a0)*(q+.5)/8;pts.push(a.cx+a.r*Math.cos(t),a.cz+a.r*Math.sin(t));}}
-  const line=(ns,i,u0,u1)=>{const n=Math.max(1,Math.round(Math.abs(u1-u0)/25));for(let q=0;q<n;q++){const u=u0+(u1-u0)*(q+.5)/n;if(ns)pts.push(i*L1+WG.offNS(i,u),u);else pts.push(u,i*L1+WG.offEW(i,u));}};
-  for(const sg of [-1,1])line(true,0,sg*(WG.EDGE+30),stRun(true,0,sg*(WG.EDGE+30),sg));
-  for(const i of [-1,1]){line(true,i,stRun(true,i,0,-1),stRun(true,i,0,1));line(false,i,stRun(false,i,0,-1),stRun(false,i,0,1));}
   ST.pts=Float32Array.from(pts);
 }
 /* a few loops a frame (3 ms at most) until they are all made; a long one (a country line, a generator) a slice at a
@@ -181,10 +183,10 @@ function stBuildStep(){if(ST.ready||!ST.J.length)return;const t0=performance.now
   while(performance.now()-t0<3){
     if(!ST.cur){if(!ST.todo.length){ST.ready=true;return;}ST.cur=ST.todo.shift();ST.curT=0;}
     const t1=performance.now();let L=null;
-    if(typeof ST.cur==='function'){const r=ST.cur();if(r&&typeof r.next==='function')ST.cur=r;else L=r;}
-    else{const it=ST.cur.next();if(it.done)L=it.value;}
+    if(typeof ST.cur==='function'){const r=ST.cur();if(r&&typeof r.next==='function')ST.cur=r;else{L=r;ST.cur=null;}}
+    else{const it=ST.cur.next();if(it.done){L=it.value;ST.cur=null;}}
     const d=performance.now()-t1;ST.curT+=d;ST.slice=Math.max(ST.slice||0,d);
-    if(L){L.ms=ST.curT;ST.loops.push(L);ST.cur=null;}}}
+    if(L){L.ms=ST.curT;ST.loops.push(L);}}}
 /* twice a second: how many street cars round you (the lanes' kilometres within reach, times the highway's cars a
    kilometre of lane, times the share), and the loops near enough to start one on */
 function stWant(px,pz,keep,N){

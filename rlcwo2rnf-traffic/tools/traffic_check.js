@@ -6,8 +6,10 @@
    (their outlines, as boxes on the ground); none overlapping you; none crossing a stop line on a red that had been red
    for a second already; every car within its lane's width of a lane (but while moving over). Any failure, or a page
    error, makes the exit code 1.
+   The highway's budget counts its own cars; the streets' (60_streets) are watched for overlaps with everyone, and only
+   a signal's line counts for the red (a stop sign's has no colour).
    usage: node tools/traffic_check.js [park,drive]      env: QUALITY (mobile), N (cars: the Dev tab's count; level's
-          when unset), FILE, W, H */
+          when unset), STREETS (off: the streets' traffic out, the highway as it was), FILE, W, H */
 const {chromium}=require('playwright');const path=require('path');
 const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirname,'..','rlcwo2rnf-traffic.html');
 const which=(process.argv[2]||'park,drive').split(',');
@@ -22,13 +24,13 @@ const which=(process.argv[2]||'park,drive').split(',');
   try{await pg.waitForFunction(()=>window.__game&&(document.getElementById('loading').hidden||/wrong|compile/.test(document.getElementById('loading').textContent)),null,{timeout:600000,polling:1000});}
   catch(e){errs.push('boot timed out');}
   console.log('boot',((Date.now()-t0)/1000).toFixed(1)+'s');
-  await pg.evaluate(n=>{window.requestAnimationFrame=()=>0;const g=window.__game;g.GAME.hold=true;if(n)g.DEVW.trafN=n;},process.env.N||'');
+  await pg.evaluate(([n,st])=>{window.requestAnimationFrame=()=>0;const g=window.__game;g.GAME.hold=true;if(n)g.DEVW.trafN=n;if(st)g.DEVW.stS=st;},[process.env.N||'',process.env.STREETS||'']);
   /* the shared watcher: put into the page once */
   await pg.evaluate(()=>{
     const obb=(ax,az,afx,afz,aL,aW,bx,bz,bfx,bfz,bL,bW)=>{for(const [ux,uz] of [[afx,afz],[-afz,afx],[bfx,bfz],[-bfz,bfx]]){
       const ra=Math.abs(afx*ux+afz*uz)*aL/2+Math.abs(-afz*ux+afx*uz)*aW/2,rb=Math.abs(bfx*ux+bfz*uz)*bL/2+Math.abs(-bfz*ux+bfx*uz)*bW/2;if(Math.abs((bx-ax)*ux+(bz-az)*uz)>ra+rb)return false;}return true;};
     window.__tw={obb,new(){return {frames:0,nan:0,maxOn:0,carCar:0,carYou:0,youCar:0,touch:new Map(),hist:new Map(),runs:[],cc:[],cy:[],redRuns:0,offLane:0,minGapYou:1e9,stopsSeen:0,last:new Map(),lc0:window.__game.TRF.laneChanges,sp0:window.__game.TRF.spawned,en0:window.__game.TRF.engaged||0,re0:window.__game.TRF.released||0,physFrames:0,ms:0};},
-      look(W,dt){const g=window.__game,T=g.TRF,ON=g.TRF_ON,t=g.GAME.car,M=t.M,hf=Math.hypot(M[0],M[6])||1,yf=[M[0]/hf,M[6]/hf];W.frames++;W.maxOn=Math.max(W.maxOn,ON.length);if(W.frames>120){W.ms=Math.max(W.ms,T.ms);W.msSum=(W.msSum||0)+T.ms;}
+      look(W,dt){const g=window.__game,T=g.TRF,ON=g.TRF_ON,t=g.GAME.car,M=t.M,hf=Math.hypot(M[0],M[6])||1,yf=[M[0]/hf,M[6]/hf];W.frames++;W.maxOn=Math.max(W.maxOn,ON.filter(c=>!c.L.street).length);if(W.frames>120){W.ms=Math.max(W.ms,T.ms);W.msSum=(W.msSum||0)+T.ms;}
         for(let i=0;i<ON.length;i++){const c=ON[i];if(!Number.isFinite(c.x+c.y+c.z+c.v+c.s)||c.veh&&!c.veh.p.every(Number.isFinite))W.nan++;if(c.mode!=='kin'){W.physFrames++;continue;}
           /* within a lane (moving over excepted) */
           if(c.lcT>=c.lcDur){let off=1e9;for(const z of g.HW.lanes)off=Math.min(off,Math.abs(Math.abs(c.lp)-z));if(off>.05&&c.dir!==0)W.offLane++;}
@@ -48,7 +50,7 @@ const which=(process.argv[2]||'park,drive').split(',');
             const gap=k<S.length?S[k]-fr:1e9,tt=k<S.length?((g.APP.t/30+c.L.stopPh[k]+.5)%1+1)%1:-1;
             const ydx=t.p[0]-c.x,ydz=t.p[2]-c.z;h.rows.push([W.frames,c.L.k,+c.lp.toFixed(2),+c.v.toFixed(1),+c.acc.toFixed(2),c.lcT<c.lcDur?+c.lcT.toFixed(1):-1,+(ydx*c.fx+ydz*c.fz).toFixed(1),+(-ydx*c.fz+ydz*c.fx).toFixed(1)]);if(h.rows.length>180)h.rows.shift();}
           const L=c.L,prev=W.last.get(c);if(prev&&prev.L===L&&prev.born===c.born&&c.s-prev.s>=0&&c.s-prev.s<5){const f0=prev.s+c.m.L/2,f1=c.s+c.m.L/2;
-            for(let k=0;k<L.stopS.length;k++){const sl=L.stopS[k];if(f0<sl&&f1>=sl){W.stopsSeen++;const tt=((g.APP.t/30+L.stopPh[k]+.5)%1+1)%1;if(tt>=.5+1/30){W.redRuns++;
+            for(let k=0;k<L.stopS.length;k++){const sl=L.stopS[k];if(L.stopKind&&L.stopKind[k]!==0)continue;if(f0<sl&&f1>=sl){W.stopsSeen++;const tt=((g.APP.t/30+L.stopPh[k]+.5)%1+1)%1;if(tt>=.5+1/30){W.redRuns++;
               if(W.runs.length<6)W.runs.push({m:c.m.id,lane:L.k,x:Math.round(c.x),v:+c.v.toFixed(1),tt:+tt.toFixed(3),k,sl:Math.round(sl),acc:+c.acc.toFixed(2),lcT:+c.lcT.toFixed(1),age:+(g.TRF.t-(c.born||0)).toFixed(1),hist:W.hist.get(c).rows.filter((r,i,a)=>i%10===0||i>a.length-6)});}}}}
           W.last.set(c,{L,s:c.s,born:c.born});}},
       sum(W){const g=window.__game,T=g.TRF;return {frames:W.frames,nan:W.nan,maxOn:W.maxOn,budget:g.trfCount(),carCar:W.carCar,carYou:W.carYou,youCar:W.youCar,redRuns:W.redRuns,runs:W.runs,cc:W.cc,cy:W.cy,stopLinesCrossed:W.stopsSeen,
