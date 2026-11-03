@@ -101,4 +101,16 @@ need it live).
 The software renderer runs shaders on the CPU, so its times show which parts of a shader cost, not what a phone will
 do (a phone's GPU also gains from a smaller shader needing fewer registers, which this can't see).
 
-(filled in as each step is measured)
+### Lean ground (Mobile tier, 480×270, whole frame, median of 8 frames each)
+
+| Place | Normal | Detail left out (`d`) | Noise halved (`n`) | Both (`dn`) |
+|---|---|---|---|---|
+| Downtown, day | 2979 ms | −14% | +6% | −20% |
+| Neon Row, night | 2483 ms | −9% | +12% | −13% |
+| Ridge Road (country), day | 1186 ms | −24% | −3% | −23% |
+| Highway 40, day | 1190 ms | −13% | +4% | −17% |
+
+Leaving the fine detail out is the half that pays: 9–24% of the *whole frame* (shadows, fog, reflections and the
+rest included). Halving the colour noise doesn't show on its own (the spread is the measurement's noise); paired with
+the first it adds a few percent. The pictures barely differ: the lean gravel and verges are a little smoother right
+in front of the car.
