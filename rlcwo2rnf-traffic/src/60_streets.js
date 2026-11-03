@@ -22,7 +22,7 @@
 const ST_TK={ring:{hw:14,o:5.95,v:15.6},hwy:{hw:12.6,o:9.3,v:15.6},main:{hw:8,o:5.7,v:13.4},ave:{hw:7,o:5.1,v:13.4},street:{hw:5.5,o:1.8,v:11.2}};
 /* the country's by class (1 dirt, 2 gravel, 3 blacktop): the lane's middle out from the road's, its speed */
 const ST_CK={1:{o:1.15,v:11.2},2:{o:1.7,v:15.6},3:{o:1.85,v:22.4}};
-const ST={loops:[],J:[],jAt:new Map(),todo:[],ready:false,pts:null,cand:[],want:0,t:-9,lk:0};
+const ST={loops:[],J:[],jAt:new Map(),todo:[],cur:null,curT:0,slice:0,ready:false,pts:null,cand:[],want:0,t:-9,lk:0};
 /* Dev: Streets and country roads, as thick as this share of the highway's traffic */
 const ST_SHARE={off:0,'8':.125,'4':.25,'2':.5,'1':1};
 const stShare=()=>{const v=ST_SHARE[DEVW.stS];return v===undefined?.25:v;};
@@ -113,21 +113,26 @@ function stTownSpecs(){
    ns: a north-south line (u is z) or east-west (u is x); line i; from u0 (the near end) to u1 (the far end, on the
    salt). Out on the right of the road, round on the salt (out wide, a circle of 7 m, back in), back on the other
    side; at the near end round on the salt the same, or (town) round in the boulevard's junction on Central's lanes */
-function stLine(ns,i,u0,u1,town){
-  const L1=WG.L,cen=u=>ns?[i*L1+WG.offNS(i,u),u]:[u,i*L1+WG.offEW(i,u)],cls=u=>ns?WG.clsNSz(i,u):WG.clsEWx(i,u);
-  const sg=u1>u0?1:-1,N=Math.ceil(Math.abs(u1-u0)/2),C=[],T=[],O=[],V=[];
-  for(let q=0;q<=N;q++){const u=u0+sg*Math.min(Math.abs(u1-u0),q*2),c=cen(u),a=cen(u-sg),b=cen(u+sg),dx=b[0]-a[0],dz=b[1]-a[1],l=hyp2(dx,dz)||1;
-    let k=ST_CK[cls(u)]||ST_CK[1],o=k.o,v=k.v;
-    if(town){const w=sstep(WG.EDGE+40,WG.EDGE,Math.abs(u));o+=(ST_TK.main.o-o)*w;v+=(ST_TK.main.v-v)*w;}
-    C.push(c);T.push([dx/l,dz/l]);O.push(o);V.push(v);}
-  const P=stP(),rn=t=>[-t[1],t[0]];
+function* stLine(ns,i,u0,u1,town){
+  const L1=WG.L,cen=ns?u=>i*L1+WG.offNS(i,u):u=>i*L1+WG.offEW(i,u),cls=u=>ns?WG.clsNSz(i,u):WG.clsEWx(i,u);
+  const sg=u1>u0?1:-1,span=Math.abs(u1-u0),N=Math.ceil(span/2),U=new Float64Array(N+3),W=new Float64Array(N+3),O=new Float32Array(N+1),V=new Float32Array(N+1);
+  /* the road's middle every 2 m, and a step past each end for the way it runs there: one call into the generator a
+     point, a few hundred a frame (made over several frames, so a 12 km line never holds one up) */
+  for(let q=-1;q<=N+1;q++){const u=q<0?u0-sg*2:q>N?u1+sg*2:u0+sg*Math.min(span,q*2);U[q+1]=u;W[q+1]=cen(u);if(q%300===299)yield;}
+  /* the lane's offset and the speed by the road's class (looked up every 20 m: a class runs a mile) */
+  let k=ST_CK[1];
+  for(let q=0;q<=N;q++){if(q%10===0)k=ST_CK[cls(U[q+1])]||ST_CK[1];let o=k.o,v=k.v;
+    if(town){const w=sstep(WG.EDGE+40,WG.EDGE,Math.abs(U[q+1]));o+=(ST_TK.main.o-o)*w;v+=(ST_TK.main.v-v)*w;}O[q]=o;V[q]=v;}
+  yield;
+  const cx=q=>ns?W[q+1]:U[q+1],cz=q=>ns?U[q+1]:W[q+1],tan=q=>{const dx=cx(q+1)-cx(q-1),dz=cz(q+1)-cz(q-1),l=hyp2(dx,dz)||1;return [dx/l,dz/l];},P=stP();
   /* out: the right of the road */
-  for(let q=0;q<=N;q++){const c=C[q],r=rn(T[q]);stPt(P,c[0]+r[0]*O[q],c[1]+r[1]*O[q],V[q]);}
-  stEnd(P,C[N],T[N],O[N],7,V[N]);
+  for(let q=0;q<=N;q++){const t=tan(q),o=O[q];stPt(P,cx(q)-t[1]*o,cz(q)+t[0]*o,V[q]);}
+  stEnd(P,[cx(N),cz(N)],tan(N),O[N],7,V[N]);
   /* back: the other side */
-  for(let q=N;q>=0;q--){const c=C[q],r=rn(T[q]);stPt(P,c[0]-r[0]*O[q],c[1]-r[1]*O[q],V[q]);}
-  const t0=[-T[0][0],-T[0][1]];
-  if(town)stTurn(P,C[0],t0,O[0],V[0]);else stEnd(P,C[0],t0,O[0],7,V[0]);
+  for(let q=N;q>=0;q--){const t=tan(q),o=O[q];stPt(P,cx(q)+t[1]*o,cz(q)-t[0]*o,V[q]);}
+  const t0=tan(0),tb=[-t0[0],-t0[1]];
+  if(town)stTurn(P,[cx(0),cz(0)],tb,O[0],V[0]);else stEnd(P,[cx(0),cz(0)],tb,O[0],7,V[0]);
+  yield;
   return stLoop(P,ns?(i===0?(u1<0?'Ridge Road':'Wash Road'):i<0?'West Line Road':'East Line Road'):(i<0?'North Line Road':'South Line Road'));
 }
 /* round at a road's end on the salt: on past the end, out wide to the right, a circle of radius R, back in on the
@@ -170,10 +175,16 @@ function stJunctions(){
   for(const i of [-1,1]){line(true,i,stRun(true,i,0,-1),stRun(true,i,0,1));line(false,i,stRun(false,i,0,-1),stRun(false,i,0,1));}
   ST.pts=Float32Array.from(pts);
 }
-/* a few loops a frame (3 ms at most) until they are all made */
+/* a few loops a frame (3 ms at most) until they are all made; a long one (a country line, a generator) a slice at a
+   time */
 function stBuildStep(){if(ST.ready||!ST.J.length)return;const t0=performance.now();
-  while(ST.todo.length&&performance.now()-t0<3)ST.loops.push(ST.todo.shift()());
-  if(!ST.todo.length)ST.ready=true;}
+  while(performance.now()-t0<3){
+    if(!ST.cur){if(!ST.todo.length){ST.ready=true;return;}ST.cur=ST.todo.shift();ST.curT=0;}
+    const t1=performance.now();let L=null;
+    if(typeof ST.cur==='function'){const r=ST.cur();if(r&&typeof r.next==='function')ST.cur=r;else L=r;}
+    else{const it=ST.cur.next();if(it.done)L=it.value;}
+    const d=performance.now()-t1;ST.curT+=d;ST.slice=Math.max(ST.slice||0,d);
+    if(L){L.ms=ST.curT;ST.loops.push(L);ST.cur=null;}}}
 /* twice a second: how many street cars round you (the lanes' kilometres within reach, times the highway's cars a
    kilometre of lane, times the share), and the loops near enough to start one on */
 function stWant(px,pz,keep,N){

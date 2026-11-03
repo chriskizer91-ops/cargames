@@ -46,14 +46,16 @@ const which=(process.argv[2]||'town,neon,country,cross').split(','),SECS=+(proce
           /* into a signal's junction: the stop line crossed while its light was red (amber is allowed) */
           const L=c.L,front=c.s+c.m.L/2,lf=M.last.get(c);M.last.set(c,{L,front});
           if(lf&&lf.L===L&&front>lf.front)for(let k=0;k<L.stopS.length;k++){const S=L.stopS[k];if(lf.front<S&&front>=S){M.passes++;
-            if(L.stopKind[k]===0){const tt=((g.APP.t/30+L.stopPh[k]+.5)%1+1)%1;if(tt>=.5)M.redRuns++;}}}}
+            /* (the amber rule lets a car that will reach the line before the red go on: up to 0.4 s late; past 0.6 s into
+               the red is a red run) */
+            if(L.stopKind[k]===0){const tt=((g.APP.t/30+L.stopPh[k]+.5)%1+1)%1;if(tt>=.5+.6/30){M.redRuns++;M.redAt=M.redAt||[];if(M.redAt.length<4)M.redAt.push({tt:+tt.toFixed(3),v:+c.v.toFixed(1),loop:L.name,claimed:c.claimJ===L.stopJ[k]});}}}}}
         for(const J of ST.J)if(J.claim)M.heldMax=Math.max(M.heldMax,TRF.t-J.claimT);
       }
       let shot=null;if(sc==='town'||sc==='neon'||sc==='cross'){g.render(dt);shot=g.snap();}
-      const tw=ST.loops.filter(L=>L.town).length;
-      return {loops:ST.loops.length,townLoops:tw,countryLoops:ST.loops.length-tw,junctions:ST.J.length,buildFrames:built,buildMs:Math.round(buildMs),
+      const tw=ST.loops.filter(L=>L.town).length,bt=ST.loops.map(L=>L.ms||0),slow=ST.loops.filter(L=>L.ms>4).map(L=>L.name+' '+L.ms.toFixed(0)+'ms');
+      return {sliceMsMax:+(ST.slice||0).toFixed(1),loopMsMax:+Math.max(...bt).toFixed(1),loopMsSum:Math.round(bt.reduce((a,b)=>a+b,0)),slowLoops:slow.slice(0,8),loops:ST.loops.length,townLoops:tw,countryLoops:ST.loops.length-tw,junctions:ST.J.length,buildFrames:built,buildMs:Math.round(buildMs),
         laneKm:+(M.lk/M.frames).toFixed(1),wanted:+(M.want/M.frames).toFixed(1),out:+(M.on/M.frames).toFixed(1),highwayCars:g.TRF_ON.filter(c=>c.L&&!c.L.street).length,
-        overlapFrames:M.overlapFrames,overlapPairs:M.overlapPairs,stuckMax:+M.stuckMax.toFixed(1),heldMax:+M.heldMax.toFixed(1),redRuns:M.redRuns,linesPassed:M.passes,
+        overlapFrames:M.overlapFrames,overlapPairs:M.overlapPairs,stuckMax:+M.stuckMax.toFixed(1),heldMax:+M.heldMax.toFixed(1),redRuns:M.redRuns,redAt:M.redAt,linesPassed:M.passes,
         kmDriven:+(M.dist/1000).toFixed(2),onPhysics:TRF.engaged||0,worstStepMs:+M.worstStep.toFixed(1),you:[Math.round(G.car.p[0]),Math.round(G.car.p[2])],shot};
     },[sc,SECS]);
     const shot=r.shot;delete r.shot;if(OUT&&shot)fs.writeFileSync(path.join(OUT,'streets-'+sc+'.png'),Buffer.from(shot.split(',')[1],'base64'));
