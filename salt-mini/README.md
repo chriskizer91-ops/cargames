@@ -55,7 +55,8 @@ plays at 200%).
 
 The Digital Engine, as the game has it (`17_audio`): the synth in an audio worklet, off the page's own thread,
 heard from the bay's spot 3 m behind. It starts with the first tap or key (a browser won't play sound before
-that). It has the horn, the pops (the BANG chip), the turbo and the nitrous. Volume and the speaker's tone are in
+that). On a phone that means the first time a finger comes off the glass: holding the gas from the start counts for
+nothing until it's let go, so the page asks again on every touch, released or pressed, until the phone allows it. It has the horn, the pops (the BANG chip), the turbo and the nitrous. Volume and the speaker's tone are in
 the Drive tab.
 
 ## The menu: the bay

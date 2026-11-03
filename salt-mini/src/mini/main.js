@@ -199,9 +199,15 @@ function nosStep(dt,inp){const pt=car.pt;if(!pt.e.nosKw)return;if(!inp.nos)pt.no
 const VOICE={spec:null,port:null,popT:0,flame:0,flameL:0};
 let audioBusy=false;
 /* a browser plays sound only after a tap or a key: the first one starts it (and any later one, if it was stopped) */
-async function wakeAudio(){const a=UI.ENG.audio;if(audioBusy||a&&a.ctx.state==='running'&&VOICE.port)return;audioBusy=true;
-  try{await UI.initAudio();const A=UI.ENG.audio;if(A.ctx.state!=='running')await A.ctx.resume();if(!VOICE.port&&car){VOICE.spec=E||car.pt.e;UI.voiceNode(VOICE);}}
+/* A phone lets sound start only once a finger has come off the glass: pressing the gas counts for nothing until
+   it's let go. So this runs on releases as well as presses, and never waits on the start: a start the phone
+   holds back is simply asked for again on the next touch (waiting on it once left a phone silent for good). */
+async function wakeAudio(){const a=UI.ENG.audio;if(a&&a.ctx.state==='running'&&VOICE.port)return;
+  if(a&&a.ctx.state!=='running')a.ctx.resume().catch(()=>{});
+  if(audioBusy)return;audioBusy=true;
+  try{await UI.initAudio();const A=UI.ENG.audio;if(A.ctx.state!=='running')A.ctx.resume().catch(()=>{});if(!VOICE.port&&car){VOICE.spec=E||car.pt.e;UI.voiceNode(VOICE);}}
   catch(e){console.warn('sound: '+(e&&e.message||e));}audioBusy=false;}
+for(const t of ['pointerup','touchend','click'])addEventListener(t,wakeAudio,{capture:true,passive:true});
 let cfgT=0;
 function voiceCfg(e,live){VOICE.spec=e;if(!VOICE.port)return;const now=performance.now();if(live&&now-cfgT<100)return;cfgT=now;VOICE.port.post({t:'cfg',cfg:DR.SIM.dspCfg(e)});}
 function soundUpdate(dt){
