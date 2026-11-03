@@ -195,8 +195,17 @@ uniform samplerCube uProbe;uniform float uProbeLod;
 uniform vec3 uPaint;uniform vec3 uPaint2;uniform vec3 uRim;uniform vec3 uCal;uniform vec3 uClad;uniform vec3 uGlow;
 uniform float uLiv;uniform float uLamps;uniform float uBrake;uniform float uDirt;uniform float uGround;uniform vec4 uLivP;
 uniform float uMudOff;uniform float uMudLocal;
-/* how much fine detail to draw (0 a weak phone .. 1 a laptop), and how far the land is drawn */
+/* how much fine detail to draw (0 a weak phone .. 1 a laptop), and how far the land is drawn. The lean ground
+   (52_world_gl's landDefs: Mobile and Low by default, Dev: Lean ground) builds the shader without it: LEAN_D leaves
+   the ground's fine detail out altogether (as Ground detail at 0 does, but gone from the compiled shader rather than skipped
+   at run time, so the GPU keeps fewer registers for it), LEAN_N sums the colour noise in two layers, not four */
 uniform float uDetail;uniform float uDrawFar;
+/* (the ground's detail, DET: none at all in the lean build; the cars keep theirs, uDetail, either way) */
+#ifdef LEAN_D
+#define DET 0.
+#else
+#define DET uDetail
+#endif
 /* the world-anchored detail's origin (51_world's floating origin), and the salt course against it: where it starts
    (x), a mile, the black line's half width, where its middle is (z) */
 uniform vec3 uOrg;uniform vec4 uCourse;
@@ -208,7 +217,11 @@ float sat(float x){return clamp(x,0.,1.);}
 float vn3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(mix(h13(i),h13(i+vec3(1,0,0)),f.x),mix(h13(i+vec3(0,1,0)),h13(i+vec3(1,1,0)),f.x),f.y),
              mix(mix(h13(i+vec3(0,0,1)),h13(i+vec3(1,0,1)),f.x),mix(h13(i+vec3(0,1,1)),h13(i+vec3(1,1,1)),f.x),f.y),f.z);}
+#ifdef LEAN_N
+float fbmS(vec2 p){return .5*vn(p)+.25*vn(p*2.03+vec2(17.3,-9.1))+.09375;}
+#else
 float fbmS(vec2 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*vn(p);p=p*2.03+vec2(17.3,-9.1);a*=.5;}return s;}
+#endif
 float fbm3(vec3 p){float s=0.,a=.5;for(int i=0;i<4;i++){s+=a*vn3(p);p=p*2.07+vec3(1.7,9.2,4.1);a*=.5;}return s;}
 /* cellular noise: the nearest feature point (x: its distance, yz: the vector to it, w: its cell's id) */
 vec4 cell(vec2 p){vec2 n=floor(p),f=fract(p),mr=vec2(0.);float md=8.,id=0.;
@@ -236,7 +249,11 @@ vec3 mudCol(vec3 L,float h){float w=1.-smoothstep(.0,.6,h),g=vn3(L*14.);return m
 /* metres per pixel here, and the height gradient the detail adds (world x, z) */
 float gFP=0.;vec2 gG=vec2(0.);
 /* fades detail of a given size (m) out as pixels grow past it */
+#ifdef LEAN_D
+float near(float size){return 0.;}
+#else
 float near(float size){return sat(1.-gFP/size)*uDetail;}
+#endif
 `+PHOTOFN+`
 /* the road's paint: the road paint's picture where there is one, else the tarmac's own grain showing through it */
 vec3 roadPaint(vec3 c,vec2 wp){
@@ -269,7 +286,7 @@ void toGrass(vec2 wp,inout vec3 alb,inout float spec,inout float shin,float t){
   if(t<=.004)return;vec3 gc=grassCol(wp);vec2 g0=gG;gG=vec2(0.);grassDetail(wp,gc);gG=mix(g0,gG,t);gc=photoG2(gc,T_GRASS,T_GRASS2,wp);alb=mix(alb,gc,t);spec=mix(spec,.03,t);shin=mix(shin,8.,t);}
 /* rock: relief and cracks, in 3D for the boulders' sides (returns a height for the derivative bump) */
 float rockH(vec3 P){float h=fbm3(P*1.3)*.12+vn3(P*5.1)*.03*near(.08);
-  if(uDetail>.6){float e=cellEdge(P.xz*.9+P.y*.4);h-=(1.-smoothstep(0.,.06,e))*.025*near(.06);}
+  if(DET>.6){float e=cellEdge(P.xz*.9+P.y*.4);h-=(1.-smoothstep(0.,.06,e))*.025*near(.06);}
   return h;}
 /* gravel: stones of every size and colour */
 void gravelDetail(vec2 p,inout vec3 alb){
@@ -281,10 +298,10 @@ void gravelDetail(vec2 p,inout vec3 alb){
 void asphaltDetail(vec2 p,inout vec3 alb,float ad,float hw){
   float f=near(.03),f1=near(.15);if(f1<=0.)return;
   vec3 a=vnd(p*38.);alb*=1.+(a.x-.5)*.25*f;gG+=a.yz*38.*.0008*f;
-  if(uDetail>.6&&ad<hw){float e=cellEdge(p*.45),cr=(1.-smoothstep(0.,.03,e))*smoothstep(.55,.75,vn(p*.31));alb*=1.-.45*cr*f1;}}
+  if(DET>.6&&ad<hw){float e=cellEdge(p*.45),cr=(1.-smoothstep(0.,.03,e))*smoothstep(.55,.75,vn(p*.31));alb*=1.-.45*cr*f1;}}
 /* mud that is drying out: plates and the cracks between them, away from the wet middle */
 void mudCracks(vec2 p,inout vec3 alb,float dry,inout float spec){
-  float f=near(.06);if(f<=0.||dry<=0.||uDetail<.6)return;
+  float f=near(.06);if(f<=0.||dry<=0.||DET<.6)return;
   float e=cellEdge(p*2.6),cr=(1.-smoothstep(.0,.05,e))*dry*f;alb=mix(alb,alb*.45,cr);alb*=1.+.12*dry*f;spec*=1.-.6*dry;}
 /* falling rain on standing water: expanding rings (returns a normal gradient) */
 vec2 ripplesS(vec2 p){
@@ -335,8 +352,8 @@ void main(){
     }
     /* metallic flake under a smooth clear coat: each flake turns the normal a little (faded out once a flake is
        smaller than a pixel); the coat reflects the world and catches the sun as a sharp glint */
-    alb=pc;vec3 fc=floor(vL*420.);float fl=h13(fc),fk=near(.004);alb*=.975+.05*fl;
-    N=normalize(N+(vec3(fl,h13(fc+17.1),h13(fc+31.7))-.5)*.35*fk);
+    alb=pc;vec3 fc=floor(vL*420.);float fl=h13(fc);alb*=.975+.05*fl;
+    N=normalize(N+(vec3(fl,h13(fc+17.1),h13(fc+31.7))-.5)*.35*sat(1.-gFP/.004)*uDetail);
     spec=.5;shin=60.;metal=.4;clear=1.;clearR=.035;dirty=true;
   }
   /* the cars' glass: a little more of the world in it than plain glass gives (Wide Open's glass showed the sky) */
@@ -395,7 +412,7 @@ void main(){
       if(sw>.004){float big=fbmS(wp*.0035),mid=vn(wp*.045),fine=vn(wp*1.7);
         vec3 sc=mix(vec3(.42,.38,.32),vec3(.60,.585,.55),smoothstep(.32,.78,big*.85+mid*.3))*(.93+.1*fine*near(.6));
         float crack=smoothstep(.3,.62,fbmS(wp*.012+4.1))*near(.25);
-        if(crack>0.&&uDetail>.3){float e=cellEdge(wp*.52);sc*=1.-(1.-smoothstep(.0,.05,e))*.26*crack;}
+        if(crack>0.&&DET>.3){float e=cellEdge(wp*.52);sc*=1.-(1.-smoothstep(.0,.05,e))*.26*crack;}
         sc=photoG(sc,T_SALT,wp);
         alb=mix(alb,sc,sw);gG*=1.-sw*.85;gw*=1.-sw;rw*=1.-sw;
         /* the salt course: Bonneville's black line down the middle, and a bar across the lanes at the start and
@@ -406,7 +423,11 @@ void main(){
           float mq=mod(max(cx,0.),uCourse.y),md=min(mq,uCourse.y-mq),bar=(1.-smoothstep(.3-wx,.3+wx,md))*min(1.,.6/wx);
           alb=mix(alb,vec3(.035,.032,.03),max(ln,bar)*.92*sw);}}
       if(gw>.004){vec3 gc=grassCol(wp);vec2 g0=gG;gG=vec2(0.);grassDetail(wp,gc);gG=mix(g0,gG,gw);gc=photoG2(gc,T_GRASS,T_GRASS2,wp);alb=mix(alb,gc,gw);}
-      if(rw>.004){alb=mix(alb,photoTri(rockCol(Pw),T_ROCK,Pw,N),rw);vec3 a=vnd(wp*1.1);gG+=a.yz*1.1*.08*rw*near(.4);}
+      if(rw>.004){alb=mix(alb,photoTri(rockCol(Pw),T_ROCK,Pw,N),rw);
+#ifndef LEAN_D
+        vec3 a=vnd(wp*1.1);gG+=a.yz*1.1*.08*rw*near(.4);
+#endif
+      }
       spec=.03;shin=8.;
       if(mw>0.){vec3 md=mix(vec3(.15,.1,.06),vec3(.09,.06,.035),smoothstep(.3,.8,n3))*(.8+.35*n4);pud=smoothstep(.7,.76,fbmS(wp*.28)+mw*.05)*mw;
         md=photoG(md,T_MUD,wp);alb=mix(alb,md,mw);spec=mix(spec,.25,mw);shin=30.;gG*=1.-mw*.7;mudCracks(wp,alb,mw*(1.-smoothstep(.55,.85,mw))*.9,spec);}
@@ -416,7 +437,7 @@ void main(){
       /* boulders and slabs: relief in 3D, bumped by the derivative of its height */
       alb=photoTri(rockCol(Pw),T_ROCK,Pw,N);spec=.08;shin=16.;ao=mix(1.,em,.8);em=0.;ground=false;
 #ifndef PROBE
-      if(uDetail>.3&&gFP<.15){float hh=rockH(Pw);vec3 r1=cross(dPy,N),r2=cross(N,dPx);float det=dot(dPx,r1);
+      if(DET>.3&&gFP<.15){float hh=rockH(Pw);vec3 r1=cross(dPy,N),r2=cross(N,dPx);float det=dot(dPx,r1);
         vec3 gr=sign(det)*(dFdx(hh)*r1+dFdy(hh)*r2);N=normalize(abs(det)*N-gr*1.2);alb*=.88+hh*1.4;}
 #endif
     }
@@ -428,7 +449,9 @@ void main(){
       alb=mix(alb,photoG2(dirtCol(wp*1.3),T_DIRT,T_DIRT2,wp)*1.08,smoothstep(7.,8.8,ad));
       float ch=max(max(1.-step(.16,abs(sx)),1.-step(.16,abs(sx-201.168)))*step(ad,8.2),(1.-step(.07,abs(d)))*step(.45,fract(sx/5.))*step(-6.,sx)*step(sx,250.));
       ch=max(ch,(1.-step(.05,abs(ad-7.9)))*step(-12.,sx)*step(sx,250.));
+#ifndef LEAN_D
       vec3 b=vnd(wp*14.);gG+=b.yz*14.*.002*near(.05)*(1.-groove);
+#endif
       alb=mix(alb,vec3(.7,.68,.63),ch*(1.-.6*smoothstep(.4,.8,fbmS(vec2(sx,d)*vec2(.6,2.)))));spec=.04+.1*groove;shin=8.+30.*groove;
       /* past the shoulders and the ends: grass */
       toGrass(wp,alb,spec,shin,max(smoothstep(10.,10.7,ad+(n2-.5)*.4),max(smoothstep(-45.4,-46.,sx),smoothstep(299.4,300.,sx))));em=0.;
@@ -448,7 +471,9 @@ void main(){
       float rut=0.;for(int i=0;i<4;i++){float c=(float(i)-1.5)*1.55+(vn(vec2(sx*.08,float(i)*3.))-.5)*.7;rut=max(rut,exp(-pow((d-c)/.34,2.)));}
       float edge=smoothstep(3.8,4.9,ad+(n3-.5)*1.2),clod=smoothstep(.55,.8,vn(vec2(sx*3.,d*5.)))*(1.-rut);
       alb=mix(md*(1.+clod*.45),photoG2(dirtCol(wp),T_DIRT,T_DIRT2,wp)*.85,edge*.6);spec=.3;shin=40.;
+#ifndef LEAN_D
       vec3 b=vnd(wp*3.3);gG+=b.yz*3.3*.03*near(.15)*(1.-rut)*(.5+clod);
+#endif
       pud=rut*smoothstep(.45,.6,fbmS(vec2(sx*.15,d*.6)))*(1.-edge);
       mudCracks(wp,alb,edge*.8,spec);
       {float gt=smoothstep(5.5,6.3,ad+(n3-.5)*.6);toGrass(wp,alb,spec,shin,gt);pud*=1.-gt;}em=0.;
@@ -460,7 +485,10 @@ void main(){
       float j=max(step(fract(wp.x/4.),.012),step(fract(wp.y/4.),.012));bool pad=vC.b>.9;
       alb=vec3(.26,.25,.235)*(.82+.25*vn(wp*2.3)+.1*vn(wp*13.));
       alb=abs(N.y)>.7?photoG(alb,pad?T_FORECOURT:T_CONCRETE,wp):photoTri(alb,T_CONCRETE,Pw,N);alb*=1.-.35*j;spec=.06;shin=20.;
-      vec3 b=vnd(wp*24.);gG+=b.yz*24.*.0007*near(.03);alb*=1.-.18*smoothstep(.6,.85,fbmS(wp*.35))*uDetail*(pad?1.3:1.);}
+#ifndef LEAN_D
+      vec3 b=vnd(wp*24.);gG+=b.yz*24.*.0007*near(.03);alb*=1.-.18*smoothstep(.6,.85,fbmS(wp*.35))*DET*(pad?1.3:1.);
+#endif
+    }
     else if(m==46){float g=vn(vec2((Pw.x+Pw.z)*1.5,Pw.y*38.))*.6+vn(vec2((Pw.x+Pw.z)*.4,Pw.y*7.))*.4;alb*=.62+.5*g;alb=photoUV(alb,T_PLANKS,vec2(Pw.x+Pw.z,Pw.y));spec=.03;ground=false;}
     else if(m==47){float rib=abs(fract((Pw.x+Pw.z)*3.6+(em>.5?Pw.y*3.6:0.))-.5),st=smoothstep(.55,.85,vn(vec2((Pw.x+Pw.z)*2.,Pw.y*.25)))*.35;
       alb*=(.86+.22*rib*(1.-uTexOn))*(1.-st*.5);alb=mix(alb,vec3(.18,.08,.04),st*.35);alb=photoUV(alb,T_SHEET,vec2((Pw.x+Pw.z)+(em>.5?Pw.y:0.),em>.5?Pw.x-Pw.z:Pw.y));spec=em>.5?.15:.5;shin=em>.5?20.:60.;metal=em>.5?.2:.6*(1.-st);em=0.;ground=false;}
@@ -468,17 +496,19 @@ void main(){
       /* leaves: light comes through them; the crown is darker underneath and deep inside */
       alb*=.6+.55*vn3(Pw*2.2);spec=.05;shin=10.;trans=.45;ground=false;
       ao=.45+.55*sat(N.y*.5+.5)*sat(vL.y/7.+.2);
-#ifndef PROBE
+#if !defined(PROBE)&&!defined(LEAN_D)
       /* clumps of leaves catch the light or sit in shade: a bump at the clumps' size, and at the leaves' */
       if(gFP<.2){float hh=vn3(Pw*2.4)*.3+vn3(Pw*7.)*.05*sat(1.-gFP/.06);vec3 r1=cross(dPy,N),r2=cross(N,dPx);float det=dot(dPx,r1);
-        N=normalize(abs(det)*N-sign(det)*(dFdx(hh)*r1+dFdy(hh)*r2)*sat(1.-gFP/.2)*uDetail);}
+        N=normalize(abs(det)*N-sign(det)*(dFdx(hh)*r1+dFdy(hh)*r2)*sat(1.-gFP/.2)*DET);}
 #endif
     }
     else if(m==49){float st=vn(vec2((Pw.x+Pw.z)*30.,Pw.y*20.))*.6+vn(vec2(atan(vL.z,vL.y)*20.,Pw.y*6.))*.4;alb=photoUV(vec3(.42,.31,.1)*(.6+.6*st),T_HAY,vec2(vL.x,atan(vL.z,vL.y)*.75));spec=.02;ground=false;}
     else if(m==50){
       /* the creeks, the ponds and the fords: dark water lying level, the world in it, ripples running downstream (and rain rings) */
       vec2 rp=wp*1.3+vec2(uTime*.3,uTime*.5);vec2 gw=vec2((vn(rp)-.5)*.25+(vn(wp*3.1-uTime*.4)-.5)*.12,(vn(rp+7.)-.5)*.25);
+#ifndef LEAN_D
       if(uRain>.35)gw+=ripplesS(wp*1.7)*uRain*near(.05);
+#endif
       N=normalize(vec3(gw.x,1.,gw.y));alb=vec3(.025,.03,.018);spec=.6;shin=2000.;ssr=1.;ground=false;
     }
     else if(m==52){alb=vec3(.7,.68,.63);}
@@ -538,7 +568,10 @@ void main(){
       float n1=vn(wp*.04),n2=vn(wp*.6),n3=vn(wp*4.1);
       vec3 c=mix(vec3(.29,.25,.2),vec3(.36,.32,.26),n1)*(.9+.1*n2+.06*n3);
       float tr=smoothstep(.55,.8,fbmS(wp*.02+3.))*.25;c*=1.-tr;c=photoG(c,T_PLAYA,wp);
-      mudCracks(wp*.55,c,.9*(1.-.7*uTexOn),spec);vec3 b=vnd(wp*1.3);gG+=b.yz*1.3*.01*near(.15);
+      mudCracks(wp*.55,c,.9*(1.-.7*uTexOn),spec);
+#ifndef LEAN_D
+      vec3 b=vnd(wp*1.3);gG+=b.yz*1.3*.01*near(.15);
+#endif
       alb=c;spec=.03;shin=8.;
     }
     else if(m==58){
@@ -642,7 +675,9 @@ void main(){
     if(uWet>0.){alb*=1.-uWet*(.36*por+.22*hard);spec=mix(spec,.6,uWet*(.75*hard+.2*por));shin=mix(shin,160.,uWet*(hard+.4*por));ssr=max(ssr,uWet*(.7*hard+.25*por));
       if(por>0.)pud=max(pud,smoothstep(.66,.72,fbmS(wp*.09+11.3)*.8+vn(wp*.55)*.2+uWet*.12-.1)*uWet*.9);}
     if(pud>0.){alb=mix(alb,alb*.35+vec3(.02,.015,.01),pud*.85);gG*=1.-pud;
+#ifndef LEAN_D
       vec2 rg=uRain>.35?ripplesS(wp*1.8)*uRain*near(.05):vec2(0.);N=normalize(N+vec3(rg.x,0.,rg.y)*pud);
+#endif
       spec=mix(spec,1.,pud);shin=mix(shin,1200.,pud);ssr=max(ssr,pud);}
     /* the bump: the detail's height gradient tips the normal (on ground, which faces mostly up) */
 #ifndef PROBE

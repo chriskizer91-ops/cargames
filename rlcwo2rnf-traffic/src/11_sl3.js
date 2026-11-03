@@ -1122,8 +1122,11 @@ float hlShadow(vec3 P,vec3 N){
 vec3 headlights(Surf s){
   if(uHL[0].w<=0.0)return vec3(0);
   vec3 c=vec3(0);vec3 F=uHL[2].xyz,Rt=uHL[3].xyz,Up=cross(Rt,F);float range=uHL[4].w;
-  /* (beyond both lamps' reach falloff() is exactly 0: no shadow taps, no beam) */
+  /* (beyond both lamps' reach falloff() is exactly 0: no shadow taps, no beam. NO_SKIP: the game's Dev A/B for this
+     and the cascade's skip below, Lighting shortcuts: Off) */
+#ifndef NO_SKIP
   {vec3 a=uHL[0].xyz-s.P,b=uHL[1].xyz-s.P;float r2=range*range;if(dot(a,a)>=r2&&dot(b,b)>=r2)return c;}
+#endif
   float sh=hlShadow(s.P,s.N);if(sh<=0.0)return c;
   for(int i=0;i<2;i++){vec3 Lp=uHL[i].xyz,Lv=Lp-s.P;float d2=dot(Lv,Lv);vec3 L=Lv*inversesqrt(d2);
     float b=beam(-L,F,Rt,Up,uHL[1].w);if(b<=0.0)continue;
@@ -1148,7 +1151,9 @@ float csmLayer(vec3 P,vec3 N,int k,float rot){
 float sunShadow(vec3 P,vec3 N,float vd,vec2 px){
   if(uCSMOn<=0.0)return 1.0;
   /* (past the last cascade's far edge the fade below makes it 1 whatever the taps say) */
+#ifndef NO_SKIP
   if(vd>=uCSMS.z)return 1.0;
+#endif
   float rot=ign(px,uFrame)*6.283;
   int k=vd<uCSMS.x?0:vd<uCSMS.y?1:2;
   float s=csmLayer(P,N,k,rot);

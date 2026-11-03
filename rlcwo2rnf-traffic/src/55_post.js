@@ -98,7 +98,7 @@ function ledState(){
 const RPERF={gpu:0,gpuN:0,t0:0,ms:-1};
 function rperfAcc(){if(!R)return;if(R.gpuMs>0){RPERF.gpu+=R.gpuMs;RPERF.gpuN++;}const now=performance.now();if(now-RPERF.t0>500){RPERF.ms=RPERF.gpuN?RPERF.gpu/RPERF.gpuN:-1;RPERF.gpu=0;RPERF.gpuN=0;RPERF.t0=now;}}
 function rperfRows(){if(!R)return [];const f=x=>x.toFixed(1);
-  return [`RENDER ${R.iw}X${R.ih} OF ${R.W}X${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1].toUpperCase()}  ${DISP.mode==='dots'?'DOTS '+PIC.dots[0]+'X'+PIC.dots[1]:'CLEAR'}`,
+  return [`RENDER ${R.iw}X${R.ih} OF ${R.W}X${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1].toUpperCase()}${landTag()}  ${DISP.mode==='dots'?'DOTS '+PIC.dots[0]+'X'+PIC.dots[1]:'CLEAR'}`,
     `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS'+(R.gpuSrc==='fence'?' (FENCE)':''):'NOT REPORTED'}  AIM ${Math.round(gpuShare()*100)||'OFF'}${gpuShare()?'%':''}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
     `CHIP ${String(R.gpuName).toUpperCase().slice(0,52)}${R.software?' (SOFTWARE)':''}`];}
 /* ---------- the performance readout (F, or the Dev tab's Numbers on screen: Readout): small, under the HUD's name
@@ -114,6 +114,7 @@ function perfReadout(){
   const f=x=>x.toFixed(1),g=RPERF.ms;
   el.textContent=[`${Math.round(1000*n/s)} FPS   beat ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} (${RESO?RESO.hz:'-'} Hz)   frame ${f(s/n)} ms   worst ${f(w)}`,
     `CPU ${f(js/n)} ms   GPU ${g>0?f(g)+' ms':'not reported'}`,
-    `render ${R.iw}×${R.ih} of ${R.W}×${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1]}${DISP.mode==='dots'?'  dots':''}`,
-    `${Math.round(APP.tris/1000)}k tris   ${WORLD.chunks.size} chunks   lights ${R.lights?R.lights.stats.lights:0} + ${APP.dynN||0}`].join('\n');
+    `render ${R.iw}×${R.ih} of ${R.W}×${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1]}${landTag().toLowerCase()}${DISP.mode==='dots'?'  dots':''}`,
+    `${Math.round(APP.tris/1000)}k tris   ${WORLD.chunks.size} chunks   lights ${R.lights?R.lights.stats.lights:0} + ${APP.dynN||0}`,
+    (()=>{const C=carCounts();return `cars ${C.all}   on physics ${C.phys} (traffic ${C.trafP}, police ${C.pol}, rivals ${C.rivP}, you)`;})()].join('\n');
 }

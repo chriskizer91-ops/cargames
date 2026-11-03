@@ -283,6 +283,16 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
   optimised: no difference. Used in the physics, the ground lookup (`groundInto`), the robots' contacts and the
   police, traffic and helicopter. physcheck 0, proving.js's table byte for byte, and the physics fingerprint (every
   build at every level) identical to the original's.
+- **The lean ground** (Mobile and Low): the world's surface shader (`13_lit.js`) built without the ground's fine
+  detail (`LEAN_D`: the clods, stones, cracks, tufts, tarmac grain and their bumps, the leaves' bump, the rain's
+  rings; as Ground detail at 0, but gone from the compiled shader, where a phone's GPU keeps registers for code it
+  skips) and with its colour noise summed in two layers instead of four (`LEAN_N`, the two finest layers' mean added
+  back, so every threshold on it still cuts where it did). The ground photographs, the lighting and the cars are as
+  they were; High and Ultra never get it unless Dev says On. Dev: Lean ground, Auto (Mobile, Low), On, Off. It,
+  Half-precision lighting and the new Lighting shortcuts (the lighting's two early-outs, Off to see whether they pay on
+  a device; the picture is the same either way) switch on the spot: the two lit programs are made again
+  (`landRebuild`, a short pause). The readouts say which build is drawing (`lean`, `half`, `noskip` after the tier)
+  and how many cars the physics is stepping. What it saved here, and how to measure it on the phone: `PERF_PLAN.md`.
 - **The performance readout** (F, or Dev: Numbers on screen, Readout): frames a second against the beat, the frame
   time and its worst, the CPU's and the GPU's time, the render size, triangles, chunks and lights, under the HUD's
   name block. Everything shows the world's own numbers as well.
@@ -308,6 +318,9 @@ Back Forty (`b40-`), City Limits (`cl-`) or Rut Access (`rut-`): free play `rt-g
 - `node tools/shot_rt.js <out> name:tier:display:tod:place[:cam]` (pictures of this build, or of Wide Open's with
   `FILE=`; tod is day, golden or night; `JS=` runs code first, `PAGE=1` shoots the whole page with its menus),
   `node tools/eval_rt.js "<code>"`, `python3 tools/sheet.py` (pictures side by side).
+- `node tools/shader_cost.js [place:tod ...]` (the land shader's variants timed against each other in one page, the
+  lean switches flipped on the spot, with each one's picture: `OUT=<folder>`), `node tools/load_rt.js [free race
+  chase1 chase3 chase5]` (the cars on the physics and the JavaScript per section in a race, the traffic and a chase).
 - `python3 tools/pack_textures.py` (the ground photographs into `src/49_textures.js`).
 - The Python tools (`chal_drive.py`, `race_run.py`, `park_drive.py` and the rest) want the Python Playwright package
   and, here, a shim that points it at the installed browser (`QA.md`, "How it was run").
