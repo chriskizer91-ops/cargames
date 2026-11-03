@@ -34,7 +34,8 @@ const TRF_MID={mobile:28,low:45,medium:55,high:70,ultra:90};
 /* the factory cars on the road, and how often each comes up */
 const TRF_MODELS=[['stock',3],['wagon',2],['pickup',3],['hatch',3],['ev',2],['trail',1],['coupe',1],['muscle',1]];
 const TRF_PAINT=['#e9e9e6','#1c1d20','#a2a6aa','#5d6268','#1f3658','#7b1c21','#b42020','#cbb68c','#2e4a3a','#d8d4c6','#3c6fa9','#c46a1c','#f2f2ef','#2b2d31','#8a8f94','#16213a'];
-const TRF_MAX=40,TRF_NEAR=28,TRF_SETTLE={steer:0,thr:0,brk:0,hb:1,nos:false};
+/* (the highway's cars in the first TRF_MAX slots, the streets' and country roads' (60_streets) in TRF_SMAX after them) */
+const TRF_MAX=40,TRF_SMAX=24,TRF_ALL=TRF_MAX+TRF_SMAX,TRF_NEAR=28,TRF_SETTLE={steer:0,thr:0,brk:0,hb:1,nos:false};
 const TRF={live:false,models:[],cars:[],t:0,spawned:0,recycled:0,laneChanges:0,ms:0,tris:0,why:0};
 let TRF_SEED=1906;const trfRnd=()=>(TRF_SEED^=TRF_SEED<<13,TRF_SEED^=TRF_SEED>>>17,TRF_SEED^=TRF_SEED<<5,(TRF_SEED>>>0)/4294967296);
 const trfCount=()=>{const v=DEVW.trafN;return v===undefined||v==='auto'?TRF_N[GFX.level]||12:Math.max(0,Math.min(TRF_MAX,+v||0));};
@@ -76,8 +77,10 @@ function hwBuild(){
        well away from the turns (inside turnX) */
     const L={k,zk,n,ds,len,x,z,tx,tz,kap,vA,xE0:-X+80,lenE:cum[iE],xW0:X-80,sW0:cum[iW],turnX:X-200,stopS:null,stopPh:null};
     /* the signals in town: a stop line short of each junction, on the side you come in from */
-    const st=[];for(const j of jn){const hx=j.hx+2;st.push([hwS(L,j.x-hx,1),j.ph],[hwS(L,j.x+hx,-1),j.ph]);}
-    st.sort((a,b)=>a[0]-b[0]);L.stopS=Float64Array.from(st.map(a=>a[0]));L.stopPh=Float32Array.from(st.map(a=>a[1]));
+    const st=[];for(const j of jn){const hx=j.hx+2;st.push([hwS(L,j.x-hx,1),j.ph,j,0],[hwS(L,j.x+hx,-1),j.ph,j,0]);}
+    /* (and where a country road crosses it: held only while a car crossing has the crossing, 60_streets) */
+    for(const j of ST.J)if(j.kind==='hwy'){const hx=j.hx+2;st.push([hwS(L,j.x-hx,1),0,j,2],[hwS(L,j.x+hx,-1),0,j,2]);}
+    st.sort((a,b)=>a[0]-b[0]);L.stopS=Float64Array.from(st.map(a=>a[0]));L.stopPh=Float32Array.from(st.map(a=>a[1]));L.stopJ=st.map(a=>a[2]);L.stopKind=Uint8Array.from(st.map(a=>a[3]));
     loops.push(L);}
   HW.loops=loops;
   /* the road's height along it (at its centre line: across the six lanes it is level to a few centimetres), filled in
@@ -87,7 +90,7 @@ function hwBuild(){
 /* the distance along a loop of a point on one of its straights (dir 1 east, -1 west) */
 const hwS=(L,x,dir)=>dir>0?x-L.xE0:L.sW0+(L.xW0-x);
 /* which straight a distance along a loop is on, well clear of the turns: 1 east, -1 west, 0 neither */
-function hwDir(L,s){if(s<=L.lenE)return Math.abs(L.xE0+s)<L.turnX?1:0;if(s>=L.sW0&&s<=L.sW0+L.lenE)return Math.abs(L.xW0-(s-L.sW0))<L.turnX?-1:0;return 0;}
+function hwDir(L,s){if(L.street)return 0;if(s<=L.lenE)return Math.abs(L.xE0+s)<L.turnX?1:0;if(s>=L.sW0&&s<=L.sW0+L.lenE)return Math.abs(L.xW0-(s-L.sW0))<L.turnX?-1:0;return 0;}
 const HWS={o:{}};
 function hwFill(px,most){const B=HW.blk,nb=HW.pOK.length;let done=0;
   const c=Math.max(0,Math.min(nb-1,Math.floor((px-HW.px0)/HW.pdx/B)));
@@ -125,10 +128,12 @@ function trfNew(){return {on:false,look:160,m:null,L:null,goL:null,goK:-1,mode:'
   x:0,y:0,z:0,fx:1,fz:0,ox:0,oy:0,oz:0,M:new Float32Array(16),Mp:new Float32Array(16),prev:false,ro0:0,ro2:0,wa:0,wap:0,st:0,brake:false,lcNext:0,
   paint:new Float32Array(3),dirt:0,d2:1e9,vis:false,
   lamp:{pos:[0,0,0],r:32,col:[150,145,130],type:1,dir:[0,0,0],cosO:Math.cos(.6)},occ:[0,0,0,0,1,0,2,1]};}
-for(let i=0;i<TRF_MAX;i++)TRF.cars.push(trfNew());
+for(let i=0;i<TRF_ALL;i++)TRF.cars.push(trfNew());
 /* the cars that are out, nearest first (for the lamps and the shade under them) */
 const TRF_ON=[];
-function trfClear(){for(let _i1=0;_i1<TRF.cars.length;_i1++){const c=TRF.cars[_i1];if(c.mode!=='kin')trfFree(c);c.on=false;}TRF.live=false;TRF_ON.length=0;TRF_PHYS.length=0;}
+function trfClear(){for(let _i1=0;_i1<TRF.cars.length;_i1++){const c=TRF.cars[_i1];if(c.mode!=='kin')trfFree(c);c.on=false;c.claimJ=null;}for(let q=0;q<ST.J.length;q++)ST.J[q].claim=null;TRF.live=false;TRF_ON.length=0;TRF_PHYS.length=0;}
+/* one out of the traffic: off the physics, its junction given up */
+function trfOff(c){if(c.mode!=='kin')trfFree(c);c.on=false;jRelease(c);}
 /* a car's place on the road from where it is along its loop: position, heading, pitch; the model matrix's turn (its
    place relative to the floating origin is put in each frame by trafficPrep) */
 function trfPose(c){
@@ -139,13 +144,15 @@ function trfPose(c){
   c.lat=lat;
   const x=L.x[i]+(L.x[j]-L.x[i])*t-tz*lat,z=L.z[i]+(L.z[j]-L.z[i])*t+tx*lat;
   if(yaw){const cy=Math.cos(yaw),sy=Math.sin(yaw),ax=tx*cy-tz*sy,az=tz*cy+tx*sy;tx=ax;tz=az;}
-  const g=hwY(x),gy=g.g*tx,fl=Math.sqrt(1+gy*gy),Fx=tx/fl,Fy=gy/fl,Fz=tz/fl;
+  /* the road's height: the highway's profile along x, a street loop's own heights along it */
+  let gy0,gy;if(L.street){const yi=stY(L,i),yj=stY(L,j);gy0=yi+(yj-yi)*t;gy=(yj-yi)/L.ds;}else{const g=hwY(x);gy0=g.y;gy=g.g*tx;}
+  const fl=Math.sqrt(1+gy*gy),Fx=tx/fl,Fy=gy/fl,Fz=tz/fl;
   /* up: square to forward in its upright plane; right: forward x up */
   const uy=Math.sqrt(Math.max(1e-6,1-Fy*Fy)),Ux=-Fy*Fx/uy,Uy=uy,Uz=-Fy*Fz/uy,Rx=Fy*Uz-Fz*Uy,Ry=Fz*Ux-Fx*Uz,Rz=Fx*Uy-Fy*Ux;
   const m=c.m,h=m.rideH-m.cg1,M=c.M;
-  c.ox=x+Ux*h-Fx*m.cg0;c.oy=g.y+Uy*h-Fy*m.cg0;c.oz=z+Uz*h-Fz*m.cg0;
+  c.ox=x+Ux*h-Fx*m.cg0;c.oy=gy0+Uy*h-Fy*m.cg0;c.oz=z+Uz*h-Fz*m.cg0;
   M[0]=Fx;M[1]=Fy;M[2]=Fz;M[3]=0;M[4]=Ux;M[5]=Uy;M[6]=Uz;M[7]=0;M[8]=Rx;M[9]=Ry;M[10]=Rz;M[11]=0;M[15]=1;
-  c.x=x;c.y=g.y;c.z=z;c.fx=tx;c.fz=tz;c.st=Math.atan(m.wb*L.kap[i]);
+  c.x=x;c.y=gy0;c.z=z;c.fx=tx;c.fz=tz;c.st=Math.atan(m.wb*L.kap[i]);
   c.dir=hwDir(L,c.s);c.lp=L.zk+lat;
 }
 
@@ -162,6 +169,8 @@ function trfAhead(c,lp,v0,k){
   for(let _i2=0;_i2<TRF_ON.length;_i2++){const o=TRF_ON[_i2];if(o===c||o.mode!=='kin')continue;let gap;
     if(c.dir!==0&&o.dir===c.dir){const al=(o.x-c.x)*c.dir;if(al<=0||al>200||Math.abs(o.lp-lp)>(m.W+o.m.W)/2+.3&&o.L.k!==k)continue;gap=al-(m.L+o.m.L)/2;}
     else if(o.L===L&&lp===c.lp){let d=o.s-c.s;if(d<0)d+=L.len;if(d<=0||d>200)continue;gap=d-(m.L+o.m.L)/2;}
+    /* (a street car: anything ahead in its lane going its way, whatever loop it rides: the town's loops share streets) */
+    else if(L.street){const dx=o.x-c.x,dz=o.z-c.z,al=dx*c.fx+dz*c.fz;if(al<=0||al>150||o.fx*c.fx+o.fz*c.fz<.5||Math.abs(-dx*c.fz+dz*c.fx)>(m.W+o.m.W)/2+.3)continue;gap=al-(m.L+o.m.L)/2;}
     else continue;
     const a=trfIdm(c,v0,gap,o.v);if(a<acc){acc=a;why=1;}}
   for(let _i3=0;_i3<ACT.length;_i3++){const t=ACT[_i3];const dx=t.p[0]-c.x,dz=t.p[2]-c.z,al=dx*c.fx+dz*c.fz;if(al<=-2||al>c.look)continue;
@@ -176,31 +185,56 @@ function trfAhead(c,lp,v0,k){
    red only when it can't stop at all */
 function trfLight(c,v0){const L=c.L,S=L.stopS,n=S.length;if(!n)return 1e9;const front=c.s+c.m.L/2;let k=0;while(k<n&&S[k]<front-1)k++;
   if(c.goK>=0&&(c.goL!==L||c.goK!==k))c.goK=-1;
-  const gap=(k<n?S[k]:S[0]+L.len)-front;TRF.lgap=1e9;if(gap>140)return 1e9;
-  const tt=((APP.t/30+L.stopPh[k%n]+.5)%1+1)%1;if(tt<.42){c.goK=-1;return 1e9;}TRF.lgap=gap;
+  const ki=k<n?k:0,gap=(k<n?S[k]:S[0]+L.len)-front;TRF.lgap=1e9;if(gap>140)return 1e9;
+  const kind=L.stopKind?L.stopKind[ki]:0,J=L.stopJ?L.stopJ[ki]:null;
+  /* a highway car: a street car has the junction (crossing in the country, or caught in town by the change of the
+     lights): it waits for it, where it can still stop */
+  if(!L.street&&J&&J.claim&&J.claim.on&&J.claim.claimJ===J&&c.goK!==k&&gap>c.v*c.v/(2*6)-1){TRF.lgap=gap;return trfIdm(c,v0,Math.max(gap,0),0);}
+  if(kind===2)return 1e9;
+  if(kind===0){const tt=((APP.t/30+L.stopPh[ki]+.5)%1+1)%1;
+    if(!L.street){if(tt<.42){c.goK=-1;return 1e9;}TRF.lgap=gap;
+      if(c.goK===k)return 1e9;
+      if(tt<.5&&gap/Math.max(c.v,.1)<=(.5-tt)*30+.4||gap<c.v*c.v/(2*7)){c.goL=L;c.goK=k;return 1e9;}
+      return trfIdm(c,v0,Math.max(gap,0),0);}
+    /* a street car at a signal: on the green (or an amber it will clear) it takes the junction once it's near, if the
+       box is clear; caught too close to stop, through */
+    if(c.goK===k)return 1e9;
+    if(tt<.42||tt<.5&&gap/Math.max(c.v,.1)<=(.5-tt)*30+.4||gap<c.v*c.v/(2*7)){
+      if(gap>Math.max(12,c.v*c.v/(2*2.5)+4))return 1e9;
+      if(jFree(J,c)){jClaim(J,c,L,ki,front);c.goL=L;c.goK=k;return 1e9;}
+      if(gap<c.v*c.v/(2*7)){c.goL=L;c.goK=k;return 1e9;}}
+    TRF.lgap=gap;return trfIdm(c,v0,Math.max(gap,0),0);}
+  /* a stop sign: to a stand at the line, a moment, then into the junction when it's clear (where a country road
+     crosses the highway, when no highway car is coming either) */
   if(c.goK===k)return 1e9;
-  if(tt<.5&&gap/Math.max(c.v,.1)<=(.5-tt)*30+.4||gap<c.v*c.v/(2*7)){c.goL=L;c.goK=k;return 1e9;}
+  TRF.lgap=gap;
+  if(gap<c.s0+2&&c.v<.6){if(c.stopK!==k||c.stopL!==L){c.stopK=k;c.stopL=L;c.stopAt=TRF.t;}
+    if(TRF.t-c.stopAt>.8&&jFree(J,c)&&(J.kind!=='hwy'||jHwy(J))){jClaim(J,c,L,ki,front);c.goL=L;c.goK=k;return 1e9;}}
   return trfIdm(c,v0,Math.max(gap,0),0);}
 
 /* ---------- each frame (60_game's step, before the physics) ---------- */
 function trafficFrame(dt){
   if(!trafficWanted()){if(TRF.live)trfClear();ACT.length=0;return;}
   const t0=performance.now();
-  if(!HW.loops)hwBuild();
+  if(!HW.loops){stJunctions();hwBuild();}
+  stBuildStep();
   trfModelsStep();
   const P=GAME.car.p,px=P[0],pz=P[2],far=SKY.night&&SKY.draw?Math.min(SKY.draw,GFX.far):GFX.far,keep=far+80,N=Math.min(trfCount(),TRF_MAX),
     near=Math.abs(pz)<keep&&Math.abs(px)<WG.HWY_X+keep;
   if(near)hwFill(px,1);
-  TRF.live=true;TRF.t+=dt;
-  TRF_ON.length=0;for(let i=0;i<TRF_MAX;i++){const c=TRF.cars[i];if(!c.on)continue;if(i>=N||!near){if(c.mode!=='kin')trfFree(c);c.on=false;continue;}TRF_ON.push(c);}
+  TRF.live=true;TRF.t+=dt;stWant(px,pz,keep,N);
+  /* (a street car goes only when the streets' share is set to none: otherwise each goes when it falls out of range) */
+  TRF_ON.length=0;for(let i=0;i<TRF_ALL;i++){const c=TRF.cars[i];if(!c.on)continue;if(i<TRF_MAX?i>=N||!near:!stShare()){trfOff(c);continue;}TRF_ON.push(c);}
   /* what the cars keep clear of on the physics: you, and the cars of theirs on it */
   ACT.length=0;ACT.push(GAME.car);if(POL.live)for(let _i4=0;_i4<POL.cars.length;_i4++){const P=POL.cars[_i4];if(P.V)ACT.push(P.V);}
   TRF_PHYS.length=0;for(let _i5=0;_i5<TRF_ON.length;_i5++){const c=TRF_ON[_i5];if(c.mode!=='kin'){TRF_PHYS.push(c);ACT.push(c.veh);}}
   for(let i=0;i<TRF_ON.length;i++){const c=TRF_ON[i];if(c.mode==='kin'){trfDrive(c,dt);if(TRF_PHYS.length<TRF_PHYS_MAX&&trfThreat(c))trfEngage(c);}else trfPhysDrive(c,dt);}
   /* one that has fallen out of range goes, and starts again out of sight (two a frame at most) */
-  for(let _i6=0;_i6<TRF_ON.length;_i6++){const c=TRF_ON[_i6];const dx=c.x-px,dz=c.z-pz;c.d2=dx*dx+dz*dz;if(c.d2>keep*keep||c.mode!=='kin'&&c.wreck&&c.d2>far*far){if(c.mode!=='kin')trfFree(c);c.on=false;TRF.recycled++;}}
+  for(let _i6=0;_i6<TRF_ON.length;_i6++){const c=TRF_ON[_i6];const dx=c.x-px,dz=c.z-pz;c.d2=dx*dx+dz*dz;if(c.d2>keep*keep||c.mode!=='kin'&&c.wreck&&c.d2>far*far){trfOff(c);TRF.recycled++;}}
   if(near){let tries=0;for(let i=0;i<N&&tries<2;i++){const c=TRF.cars[i];if(c.on)continue;tries++;trfSpawn(c,px,pz,far,keep);}}
-  TRF_ON.length=0;for(let i=0;i<TRF_MAX;i++){const c=TRF.cars[i];if(!c.on)continue;
+  /* the streets' and country roads' cars: one started a frame while there are fewer round you than wanted */
+  if(ST.want>0){let on=0,free=null;for(let i=TRF_MAX;i<TRF_ALL;i++){const c=TRF.cars[i];if(c.on)on++;else if(!free)free=c;}if(on<ST.want&&free)trfSpawnStreet(free,px,pz,far,keep);}
+  TRF_ON.length=0;for(let i=0;i<TRF_ALL;i++){const c=TRF.cars[i];if(!c.on)continue;
     /* (nearest first: an insertion, no sort's scratch) */
     let j=TRF_ON.length;TRF_ON.push(c);while(j>0&&TRF_ON[j-1].d2>c.d2){TRF_ON[j]=TRF_ON[j-1];j--;}TRF_ON[j]=c;}
   TRF.ms=performance.now()-t0;
@@ -220,6 +254,7 @@ function trfDrive(c,dt){
   c.accYou=why===2?accA:0;
   const acc=Math.max(-9,Math.min(c.a,Math.min(accA,accL)));c.acc=acc;c.brake=acc<-1.2||c.v<.3;
   c.v=Math.max(0,c.v+acc*dt);c.s+=c.v*dt;if(c.s>=L.len)c.s-=L.len;
+  if(c.claimJ){c.claimLeft-=c.v*dt;if(c.claimLeft<=0)jRelease(c);}
   c.wap=c.wa;c.wa=(c.wa+c.v*dt/c.m.wR[0])%TAU;
   trfPose(c);
 }
@@ -348,7 +383,7 @@ function trfEngage(c){
   if(e.cvt){ratio=e.cvt.lo*e.fd;pt.cvtR=0;}else{for(;g<e.nG;g++){const rpm=v/Rw*e.gears[g-1]*e.fd*60/TAU;if(rpm<pt.upRpm[g-1]*.95)break;}ratio=e.gears[g-1]*e.fd;}
   pt.st='run';pt.gear=g;pt.shiftT=0;pt.engage=1;pt.locked=v>3;pt.we=Math.max(e.idle*TAU/60,Math.min(e.limiterRpm*TAU/60,v/Rw*ratio));
   V.ev.car=0;V.ev.wall=0;
-  c.veh=V;c.mode='phys';c.physT=0;c.safeT=0;c.stopT=0;c.wreck=false;c.dir=0;TRF.engaged=(TRF.engaged||0)+1;
+  c.veh=V;c.mode='phys';c.physT=0;c.safeT=0;c.stopT=0;c.wreck=false;c.dir=0;TRF.engaged=(TRF.engaged||0)+1;jRelease(c);
 }
 /* off the physics: its car back to its kind's pool */
 function trfFree(c){if(c.veh){c.m.pool.push(c.veh);c.veh=null;}c.mode='kin';}
