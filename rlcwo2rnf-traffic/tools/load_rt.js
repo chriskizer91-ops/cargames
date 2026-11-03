@@ -1,7 +1,8 @@
 /* What a race, the traffic and a police chase each cost the CPU, side by side: the cars the physics steps, and the
-   JavaScript time of each part of the frame (the readout's MS A FRAME sections, 52_world_dev's PS), averaged over a
-   stretch of driving. Headless Chromium's CPU is not a phone's (a phone is a few times slower), so the numbers are
-   for comparing the scenes with each other, and a build with the one before it.
+   JavaScript time of the game's step (the physics, and the drivers' thinking: the readout's PHYS and AI), averaged
+   over a stretch of driving. The drawing isn't timed: here its time is mostly the software GPU's, which says nothing.
+   Headless Chromium's CPU is not a phone's (a phone is a few times slower), so the numbers are for comparing the
+   scenes with each other, and a build with the one before it.
      free     Highway 40 east at 70 mph on the game's cruise, the traffic out, no police
      race     Boulevard Run, from the green: the whole field of six round you (you hold straight on at half throttle)
      chaseN   as free, with the police after you, the wanted level held at N (1, 3, 5: the helicopter at 5)
@@ -34,19 +35,21 @@ const scenes=process.argv.slice(2).length?process.argv.slice(2):['free','race','
       /* a stretch to settle: the world built round the car, the police out and on you, the race's lights gone green */
       for(let f=0;f<900;f++){drive();g.APP.t+=dt;g.step(dt);if(f%4===3){g.render(dt);await wait(1);}
         if(sc==='race'&&g.RACE.green&&f>200)break;}
-      const C={all:0,phys:0,trafP:0,pol:0,rivP:0,max:0},ps=new Float64Array(10);let js=0;g.PS.cur.fill(0);
-      for(let f=0;f<FRAMES;f++){drive();const t0=performance.now();g.APP.t+=dt;g.step(dt);g.render(dt);js+=performance.now()-t0;
-        for(let i=0;i<10;i++)ps[i]+=g.PS.cur[i];g.PS.cur.fill(0);
+      const C={all:0,phys:0,trafP:0,pol:0,rivP:0,max:0},ps=new Float64Array(11);let js=0,st=0;g.PS.cur.fill(0);
+      for(let f=0;f<FRAMES;f++){drive();const t0=performance.now();g.APP.t+=dt;g.step(dt);st+=performance.now()-t0;
+        /* (drawn every fourth frame: the world's streaming needs it; its time is the software GPU's as much as the page's) */
+        if(f%4===3)g.render(dt);js+=performance.now()-t0;
+        for(let i=0;i<11;i++)ps[i]+=g.PS.cur[i];g.PS.cur.fill(0);
         const c=g.carCounts();C.all+=c.all;C.phys+=c.phys;C.trafP+=c.trafP;C.pol+=c.pol;C.rivP+=c.rivP;C.max=Math.max(C.max,c.phys);
         if(f%10===9)await wait(1);}
       g.setTestInput(null);g.CRUISE.on=false;g.DEVW.cruise='off';
-      const psn=['phys','world','shadow','probe','scene','post','hud','sound','trees','send'],sec={};for(let i=0;i<10;i++)sec[psn[i]]=+(ps[i]/FRAMES).toFixed(2);
+      const psn=['phys','world','shadow','probe','scene','post','hud','sound','trees','send','ai'],sec={};for(let i=0;i<11;i++)sec[psn[i]]=+(ps[i]/FRAMES).toFixed(2);
       const a=k=>+(C[k]/FRAMES).toFixed(1);
-      const out={cars:a('all'),onPhysics:a('phys'),onPhysicsMost:C.max,traffic:a('trafP'),police:a('pol'),rivals:a('rivP'),heli:!!g.HELI.on,mph:Math.round(G.car.speed*2.237),jsFrame:+(js/FRAMES).toFixed(2),sec};
+      const out={cars:a('all'),onPhysics:a('phys'),onPhysicsMost:C.max,traffic:a('trafP'),police:a('pol'),rivals:a('rivP'),heli:!!g.HELI.on,mph:Math.round(G.car.speed*2.237),jsFrame:+(js/FRAMES).toFixed(2),step:+(st/FRAMES).toFixed(2),sec};
       if(g.RACE.on)g.raceEnd(null);g.APP.police=false;g.DEVW.wanted='auto';
       return out;},[sc,FRAMES]);
     const s=r.sec;
-    console.log(`${sc.padEnd(7)} cars ${String(r.cars).padStart(4)}  on physics ${String(r.onPhysics).padStart(4)} (most ${r.onPhysicsMost}: traffic ${r.traffic}, police ${r.police}${r.heli?' + heli':''}, rivals ${r.rivals})  ${r.mph} mph   JS ${r.jsFrame} ms:  phys ${s.phys}  world ${s.world}  trees ${s.trees}  scene ${s.scene}  shadow ${s.shadow}  hud ${s.hud}  sound ${s.sound}`);
+    console.log(`${sc.padEnd(7)} cars ${String(r.cars).padStart(4)}  on physics ${String(r.onPhysics).padStart(4)} (most ${r.onPhysicsMost}: traffic ${r.traffic}, police ${r.police}${r.heli?' + heli':''}, rivals ${r.rivals})  ${r.mph} mph   the step ${r.step} ms a frame: physics ${s.phys}, AI ${s.ai}`);
   }
   if(errs.length)console.log('ERRORS',JSON.stringify(errs.slice(0,5)));
   await b.close();

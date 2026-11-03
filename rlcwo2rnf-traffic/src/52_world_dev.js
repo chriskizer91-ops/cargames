@@ -49,14 +49,16 @@ const PERF={ft:new Float32Array(240),js:new Float32Array(240),i:0,n:0,t0:0,draws
 /* where a frame's time goes, by section. A frame that comes late (over 30 ms since the last) was made late by
    the frame before it, so that one's breakdown is kept as the LAST SPIKE; if its sections add up to much less
    than the gap, the time went where JavaScript can't see it (the GPU, garbage collection, the browser) */
-const PSN=['PHYS','WORLD','SHADOW','PROBE','SCENE','POST','HUD','SOUND','TREES','SEND'],PS_PHYS=0,PS_WORLD=1,PS_SHADOW=2,PS_PROBE=3,PS_SCENE=4,PS_POST=5,PS_HUD=6,PS_SOUND=7,PS_TREES=8,PS_SEND=9;
-const PS={cur:new Float32Array(10),prev:new Float32Array(10),avg:new Float32Array(10),sub:0,mk:0,tl:0,prevX:null,avgX:[0,0,0],spike:null,jsPrev:0};
+/* (AI: the drivers' thinking, outside the physics' steps: the police and their helicopter, the traffic, the race's
+   robots on their lines) */
+const PSN=['PHYS','WORLD','SHADOW','PROBE','SCENE','POST','HUD','SOUND','TREES','SEND','AI'],PS_PHYS=0,PS_WORLD=1,PS_SHADOW=2,PS_PROBE=3,PS_SCENE=4,PS_POST=5,PS_HUD=6,PS_SOUND=7,PS_TREES=8,PS_SEND=9,PS_AI=10,PS_N=11;
+const PS={cur:new Float32Array(PS_N),prev:new Float32Array(PS_N),avg:new Float32Array(PS_N),sub:0,mk:0,tl:0,prevX:null,avgX:[0,0,0],spike:null,jsPrev:0};
 function psT(i,t0){const t=performance.now();PS.cur[i]+=t-t0;return t;}
 function perfBegin(){PERF.t0=performance.now();GLC.n=0;PERF.up0=WORLD.st.upms;}
 function perfEnd(dt){const k=PERF.i,ms=dt*1000,js=performance.now()-PERF.t0;PERF.ft[k]=ms;PERF.js[k]=js;PERF.draws=GLC.n;PERF.up=(PERF.up||0)*.95+(WORLD.st.upms-PERF.up0)*.05;PERF.i=(k+1)%240;PERF.n=Math.min(240,PERF.n+1);
   if(ms>30&&PERF.n>30&&PS.prevX&&GAME.state==='drive')PS.spike={ms,js:PS.jsPrev,s:Array.from(PS.prev),x:PS.prevX,at:APP.t};
   const X=[PS.sub,PS.mk,PS.tl];
-  for(let i=0;i<10;i++){PS.avg[i]+=(PS.cur[i]-PS.avg[i])*.05;PS.prev[i]=PS.cur[i];PS.cur[i]=0;}
+  for(let i=0;i<PS_N;i++){PS.avg[i]+=(PS.cur[i]-PS.avg[i])*.05;PS.prev[i]=PS.cur[i];PS.cur[i]=0;}
   for(let i=0;i<3;i++)PS.avgX[i]+=(X[i]-PS.avgX[i])*.05;
   PS.prevX=X;PS.jsPrev=js;PS.sub=0;PS.mk=0;PS.tl=0;}
 /* the cars this frame: every one in the world besides yours, and how many of them (and yours) the physics steps:
@@ -68,8 +70,8 @@ function carCounts(){const C=CARN;C.traf=TRF_ON.length;C.trafP=TRF_PHYS.length;C
   C.all=C.traf+C.pol+C.riv;C.phys=1+C.trafP+C.pol+C.rivP;return C;}
 /* (short rows: a phone held sideways shows about sixty characters of the overlay) */
 function psRows(){
-  const f=(a,i)=>PSN[i]+' '+a[i].toFixed(1),A=PS.avg,rows=[],SEC=[0,1,2,3,4,5,6,9,7];
-  rows.push('MS A FRAME  '+[0,1,2,3].map(i=>f(A,i)).join('  '));
+  const f=(a,i)=>PSN[i]+' '+a[i].toFixed(1),A=PS.avg,rows=[],SEC=[0,10,1,2,3,4,5,6,9,7];
+  rows.push('MS A FRAME '+[0,10,1,2,3].map(i=>f(A,i)).join(' '));
   rows.push('  '+[4,5,6,9,7].map(i=>f(A,i)).join('  ')+'  TREES '+A[8].toFixed(1));
   rows.push(`  ${PS.avgX[0].toFixed(1)} STEPS  ${PS.avgX[1].toFixed(2)} CHUNKS  ${PS.avgX[2].toFixed(2)} TREE LISTS A FRAME`);
   const S=PS.spike;

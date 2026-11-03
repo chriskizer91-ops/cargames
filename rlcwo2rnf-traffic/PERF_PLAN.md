@@ -18,7 +18,8 @@ render 720×338 of 960×450 (75%)  Mobile  lean  half
 cars 9   on physics 5 (traffic 1, police 3, rivals 0, you)
 ```
 
-Everything (dot-matrix rows) adds where the time goes, section by section (`MS A FRAME PHYS … WORLD … TREES`),
+Everything (dot-matrix rows) adds where the time goes, section by section (`MS A FRAME PHYS AI WORLD …`, then a
+`CARS` row),
 the last slow frame (`SPIKE`), the GPU's aim (`AIM`), and the streaming rows (`CHUNK WAIT`, `HOLES`, `GROUND NOT READY`).
 
 ## 2. The numbers that matter, and what is bad
@@ -32,7 +33,8 @@ the last slow frame (`SPIKE`), the GPU's aim (`AIM`), and the streaming rows (`C
 | **render %** | line 3 | The render scale the dynamic resolution chose | at the tier's top (Mobile 75%, Low 100%) | dropping toward 50%: the GPU is struggling, the picture softens |
 | **lean / half / noskip** | line 3 | Which shader build is running | what you set in Dev | (check it, so you know which build the numbers belong to) |
 | **on physics** | line 5 | Cars the physics steps 240 times a second | — | the count that drives CPU ms in chases and crashes |
-| **PHYS** | Everything, MS A FRAME | Physics time a frame | under 3 ms | over 6 ms |
+| **PHYS** | Everything, MS A FRAME | Physics time a frame: every car on the physics, stepped 240 times a second | under 3 ms | over 6 ms |
+| **AI** | Everything, MS A FRAME | The drivers' thinking: police tactics and the helicopter, the traffic, the race's robots | under 1 ms | over 3 ms |
 | **WORLD / TREES** | Everything | Streaming the land, the tree lists | under 2 ms | spikes at top speed |
 | **SPIKE … UNSEEN** | Everything | The last frame over 30 ms: which section, and how much nobody in JavaScript saw (the GPU, garbage collection, the browser) | NONE | the same section again and again; or big UNSEEN (GPU or garbage) |
 | **HOLES / GROUND NOT READY** | Everything | The world not keeping up with you | 0 | climbing while you drive fast |
@@ -52,11 +54,11 @@ just as well as writing them down.
 | # | Test | How | Write down |
 |---|---|---|---|
 | 1 | **Standing** (the baseline) | Downtown, at night, car stopped, 10 s | everything on the Readout |
-| 2 | **Race** | Speedway 25 or Boulevard Run, the first lap (the whole field around you) | FPS, worst, CPU, GPU, render %, on physics, PHYS |
+| 2 | **Race** | Speedway 25 or Boulevard Run, the first lap (the whole field around you) | FPS, worst, CPU, GPU, render %, on physics, PHYS, AI |
 | 3 | **Chase, 1 star** | Police On, Dev Wanted 1, through downtown traffic | same as 2 |
 | 4 | **Chase, 3 stars** | Dev Wanted 3 | same, plus SPIKE |
 | 5 | **Chase, 5 stars** | Dev Wanted 5 (the helicopter), night | same, plus lights |
-| 6 | **Crash in traffic** | Highway 40, Traffic cars at the most, hit a few cars | SPIKE row right after (which section, UNSEEN), on physics, PHYS |
+| 6 | **Crash in traffic** | Highway 40, Traffic cars at the most, hit a few cars | SPIKE row right after (which section, UNSEEN), on physics, PHYS, AI |
 | 7 | **Top speed past trees** | Ridge Road into the hills, or the highway out to the salt, flat out | worst, WORLD, TREES, CHUNK WAIT, HOLES, GROUND NOT READY, SPIKE |
 | 8 | **Heat** | 10 minutes of ordinary driving | render % and FPS at minute 1 and minute 10; is the phone hot? |
 | 9 | **A/B: Lean ground** | test 1's spot, Dev Lean ground On vs Off | render % and GPU ms each way; and how the ground looks to you up close |
