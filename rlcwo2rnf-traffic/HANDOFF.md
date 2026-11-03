@@ -52,6 +52,11 @@ Paste this to start the fresh session:
    `node tools/proving.js` must print the same table as QA.md's. If something needs a physics number, the game sets
    it from outside (nitrous's bottle is the worked example: `60_nitrous.js`). The one exception the owner may grant:
    removing the physics step's garbage under the zero-difference proof (see potential upgrades); ask first.
+   **Granted and done (3 November 2026):** the owner said yes; `40_physics.js` and `41_ground.js` changed only in how
+   numbers reach a call (arrays and scratch objects in place of loose numbers, indexed loops, a method in place of two
+   closures), every sum and its order as before. physcheck 0, proving.js's table byte for byte, and a full-precision
+   fingerprint of every build at every level (Sim on, riders, drift, collisions) bit-identical. The other modules are
+   still byte for byte; the rule stands for everything else: no physics number changes.
 2. `src/15_digital_engine.js` is identical to `rut-access/src/15_digital_engine.js` (`diff` prints nothing).
 3. The car models keep their shapes. Save keys are prefixed per version (`wo2-` here; use `rt-` for this version: on a
    `file://` page every local HTML file shares one localStorage, so two versions with the same keys would share saves).

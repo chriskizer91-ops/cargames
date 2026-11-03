@@ -8534,9 +8534,11 @@ const F3=()=>new Float64Array(3);
 const v3dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const v3cross=(o,a,b)=>{const x=a[1]*b[2]-a[2]*b[1],y=a[2]*b[0]-a[0]*b[2],z=a[0]*b[1]-a[1]*b[0];o[0]=x;o[1]=y;o[2]=z;return o;};
 const v3norm=(o,a)=>{const l=Math.hypot(a[0],a[1],a[2])||1;o[0]=a[0]/l;o[1]=a[1]/l;o[2]=a[2]/l;return o;};
-/* m v and m^T v */
-const m3v=(o,m,x,y,z)=>{o[0]=m[0]*x+m[1]*y+m[2]*z;o[1]=m[3]*x+m[4]*y+m[5]*z;o[2]=m[6]*x+m[7]*y+m[8]*z;return o;};
-const m3tv=(o,m,x,y,z)=>{o[0]=m[0]*x+m[3]*y+m[6]*z;o[1]=m[1]*x+m[4]*y+m[7]*z;o[2]=m[2]*x+m[5]*y+m[8]*z;return o;};
+/* m a and m^T a, the vector a an array (read whole before o is written, so o may be a). Not three numbers: a
+   number handed to a call the compiler doesn't inline is boxed (a few bytes of garbage each), and a step made
+   hundreds of such calls, so the step's numbers go to calls in arrays (or, for the tyre, in an object) */
+const m3va=(o,m,a)=>{const x=a[0],y=a[1],z=a[2];o[0]=m[0]*x+m[1]*y+m[2]*z;o[1]=m[3]*x+m[4]*y+m[5]*z;o[2]=m[6]*x+m[7]*y+m[8]*z;return o;};
+const m3tva=(o,m,a)=>{const x=a[0],y=a[1],z=a[2];o[0]=m[0]*x+m[3]*y+m[6]*z;o[1]=m[1]*x+m[4]*y+m[7]*z;o[2]=m[2]*x+m[5]*y+m[8]*z;return o;};
 function qToM(m,q){
   const x=q[0],y=q[1],z=q[2],w=q[3];
   m[0]=1-2*(y*y+z*z);m[1]=2*(x*y-z*w);m[2]=2*(x*z+y*w);
@@ -8554,9 +8556,12 @@ function qStep(q,w,dt){
 function qFromAxis(q,ax,ang){const s=Math.sin(ang/2),l=Math.hypot(ax[0],ax[1],ax[2])||1;q[0]=ax[0]/l*s;q[1]=ax[1]/l*s;q[2]=ax[2]/l*s;q[3]=Math.cos(ang/2);return q;}
 
 /* ---------- the tyre: one combined-slip curve rising to a peak and falling away to a sliding plateau,
-   with load sensitivity. Returns the forces and the stiffness the wheel solver needs ---------- */
+   with load sensitivity. Returns the forces and the stiffness the wheel solver needs. The load, the slip
+   ratio, the slip angle's tangent and the grip multiplier come in on a ({Fz, kap, tanA, mu}), not as
+   numbers handed to the call (see m3va) ---------- */
 const TYRE_DEFAULT={mu:1.1,kPk:.11,aPk:.15,slide:.78,slideW:.55,loadSens:.12,fz0:3600};
-function tyreForce(t,Fz,kap,tanA,muMul,out){
+function tyreForce(t,a,out){
+  const Fz=a.Fz,kap=a.kap,tanA=a.tanA,muMul=a.mu;
   if(Fz<=0){out.fx=0;out.fy=0;out.dk=0;out.sg=0;return out;}
   const lf=Math.max(.6,1-t.loadSens*(Fz/t.fz0-1)),m=t.mu*muMul*lf*Fz,sx=kap/t.kPk,sy=tanA/Math.tan(t.aPk),sg=Math.hypot(sx,sy);
   out.sg=sg;
@@ -8870,6 +8875,9 @@ class Vehicle{
     this._U=F3();this._dn=F3();this._fw=F3();this._t1=F3();this._t2=F3();this._t3=F3();this._F=F3();this._T=F3();this._vb=F3();this._wb=F3();
     this._ptIn={thr:0,brk:0,nos:false};this._aid={tc:false,escThr:1,fmax:0,mass:m};this._g={y:0,n:F3(),surf:''};this._wl={pen:0,n:F3()};
     this._push=F3();this._r=F3();this._vr=F3();this._J=F3();this._x=F3();this._y=F3();
+    /* (and the numbers that would otherwise be handed to calls: a tyre's inputs, a (cos, 0, sin) heading, a force
+       and the point it acts at) */
+    this._ti={Fz:0,kap:0,tanA:0,mu:0};this._cs=F3();this._af=F3();this._ap=F3();
     this.setAssists('real');
   }
   place(p,yaw){
@@ -8890,17 +8898,17 @@ class Vehicle{
     for(const wh of this.wheels){wh.styre=simTyre(wh.tyre,S.pr,D.ls);wh.psi=wh.front?C.psiF:C.psiR;wh.tread=wh.front?C.treadF:C.treadR;}
   }
   /* the world-space inverse inertia times x, into o */
-  invI(o,M,x){m3tv(o,M,x[0],x[1],x[2]);const I=this.I;return m3v(o,M,o[0]/I[0],o[1]/I[1],o[2]/I[2]);}
-  /* apply F at the point at (world) to the force and torque sums */
-  _apply(F0,F1,F2,ax,ay,az){
-    const Fs=this._F,T=this._T,p=this.p,rx=ax-p[0],ry=ay-p[1],rz=az-p[2];
+  invI(o,M,x){m3tva(o,M,x);const I=this.I;o[0]=o[0]/I[0];o[1]=o[1]/I[1];o[2]=o[2]/I[2];return m3va(o,M,o);}
+  /* apply the force F at the point A (world; both arrays, see m3va) to the force and torque sums */
+  _apply(F,A){
+    const Fs=this._F,T=this._T,p=this.p,F0=F[0],F1=F[1],F2=F[2],rx=A[0]-p[0],ry=A[1]-p[1],rz=A[2]-p[2];
     Fs[0]+=F0;Fs[1]+=F1;Fs[2]+=F2;T[0]+=ry*F2-rz*F1;T[1]+=rz*F0-rx*F2;T[2]+=rx*F1-ry*F0;
   }
   /* inp: {steer -1..1 (+right), thr 0..1, brk 0..1, hb 0..1, nos, lock} */
   step(dt,inp){
     const c=this.c,s=c.susp,m=this.m,pt=this.pt,aid=this.aid,W=this.wheels,M=qToM(this.M,this.q),p=this.p,v=this.v,w=this.w;
     const U=this._U;U[0]=M[1];U[1]=M[4];U[2]=M[7];
-    const vb=m3tv(this._vb,M,v[0],v[1],v[2]),wb=m3tv(this._wb,M,w[0],w[1],w[2]);
+    const vb=m3tva(this._vb,M,v),wb=m3tva(this._wb,M,w);
     this.speed=Math.hypot(v[0],v[1],v[2]);this.vf=vb[0];this.beta=Math.atan2(vb[2],Math.max(Math.abs(vb[0]),.5));
     let thr=clamp(inp.thr||0,0,1),brk=clamp(inp.brk||0,0,1);const hb=clamp(inp.hb||0,0,1);
     /* reverse: hold the brake at a standstill, then the pedals swap */
@@ -8915,11 +8923,11 @@ class Vehicle{
     this.thrIn=thr;this.brkIn=brk;this.steer=this._steer(dt,inp.steer||0,vb,wb);
     /* the springs: each wheel finds the ground under it */
     const dn=this._dn;dn[0]=-U[0];dn[1]=-U[1];dn[2]=-U[2];let nContact=0;
-    const fw=this._fw,cs=Math.cos(this.steer),sn=Math.sin(this.steer),S=this.sim;
-    for(const wh of W){
+    const fw=this._fw,cs=Math.cos(this.steer),sn=Math.sin(this.steer),S=this.sim,csn=this._cs;csn[0]=cs;csn[1]=0;csn[2]=sn;
+    for(let wi=0;wi<W.length;wi++){const wh=W[wi];
       /* (Sim: a tyre off its bead rides on its rim, lower) */
-      const R=S?wh.R-wh.flat*.06:wh.R,maxT=s.rest+R+.3,hpW=m3v(wh.hpW,M,wh.hp[0],wh.hp[1],wh.hp[2]);hpW[0]+=p[0];hpW[1]+=p[1];hpW[2]+=p[2];
-      if(wh.front&&this.steer)m3v(fw,M,cs,0,sn);else{fw[0]=M[0];fw[1]=M[3];fw[2]=M[6];}
+      const R=S?wh.R-wh.flat*.06:wh.R,maxT=s.rest+R+.3,hpW=m3va(wh.hpW,M,wh.hp);hpW[0]+=p[0];hpW[1]+=p[1];hpW[2]+=p[2];
+      if(wh.front&&this.steer)m3va(fw,M,csn);else{fw[0]=M[0];fw[1]=M[3];fw[2]=M[6];}
       const hit=wh.hit;let got,comp=-1;
       /* Sim's edge catch: a tyre sliding sideways also feels the ground at its leading shoulder */
       if(S&&S.f.edge&&Math.abs(wh.vt)>.6){const sd=this._sd,k=wh.vt>0?1:-1;sd[0]=M[2]*k;sd[1]=M[5]*k;sd[2]=M[8]*k;
@@ -8956,10 +8964,10 @@ class Vehicle{
     const wasAir=this.air;this.air=nContact===0;
     if(this.air)this.airT+=dt;else{if(wasAir&&this.airT>.15)this.ev.land=Math.max(this.ev.land,-vb[1]);this.airT=0;}
     /* the tyres */
-    const P=this.plus,TY=this.TY,wetMu=lerp(1,P?.93:.84,this.wet)*(P?P.grip:1),t1=this._t1,t2=this._t2;
-    for(const wh of W){
+    const P=this.plus,TY=this.TY,wetMu=lerp(1,P?.93:.84,this.wet)*(P?P.grip:1),t1=this._t1,t2=this._t2,ti=this._ti;
+    for(let wi=0;wi<W.length;wi++){const wh=W[wi];
       if(!wh.contact){wh.Fx=wh.Fy=wh.Kd=wh.kap=wh.sg=wh.slipV=wh.rr=wh.vd=0;wh.tanA=0;if(S){wh.FyB=0;wh.vt=0;}continue;}
-      const R=wh.R,st=wh.front?this.steer:0;m3v(t1,M,Math.cos(st),0,Math.sin(st));
+      const R=wh.R,st=wh.front?this.steer:0;csn[0]=Math.cos(st);csn[1]=0;csn[2]=Math.sin(st);m3va(t1,M,csn);
       const n=wh.n,fn=v3dot(t1,n);t1[0]-=n[0]*fn;t1[1]-=n[1]*fn;t1[2]-=n[2]*fn;
       const f=v3norm(wh.f,t1),r=v3norm(wh.r,v3cross(t2,f,n));
       const cp=wh.cp,rx=cp[0]-p[0],ry=cp[1]-p[1],rz=cp[2]-p[2],vx=v[0]+(w[1]*rz-w[2]*ry),vy=v[1]+(w[2]*rx-w[0]*rz),vz=v[2]+(w[0]*ry-w[1]*rx);
@@ -8973,7 +8981,7 @@ class Vehicle{
         let mm=wh.muG*tg*(wh.front||!this.tune?1:this.tune.rear)*(wh.flat?.45:1);
         if(pr<.75&&SIM_HARD[sf]){const ru=sstep(.55,.9,Math.abs(wh.Fy)/Math.max(wh.Fz,1))*sstep(.75,.4,pr);mm*=1-.2*ru;
           if(!wh.flat&&pr<.56&&ru>.5&&this.speed>11){wh.bead+=dt*ru*(.6-pr)*5;if(wh.bead>1){wh.flat=1;this.ev.debead=1;}}}
-        wh.muE=mm;tyreForce(wh.styre,wh.Fz,kap,tanA,mm,TY);
+        wh.muE=mm;ti.Fz=wh.Fz;ti.kap=kap;ti.tanA=tanA;ti.mu=mm;tyreForce(wh.styre,ti,TY);
         wh.Fx=TY.fx;wh.rr=(wh.surfRR?wh.surfRR[sf]??.015:.012)*wh.Fz*simRR(sf,pr)*(wh.flat?4:1);
         wh.vd=(wh.surfDrag?wh.surfDrag[sf]||0:0)*wh.Fz*vl*Math.pow(pr,.6)*(sf==='mud'||sf==='ruts'?1+.5*S.wet:1);wh.Fy=TY.fy;wh.Kd=TY.dk*R/vn;
         /* the soil trip: sliding sideways over loose ground, the tyre ploughs a berm (built over about half a metre
@@ -8984,7 +8992,7 @@ class Vehicle{
             wh.Fy-=(vt<0?-1:1)*P*SIMDEV.plow*wh.dig*wh.Fz*sstep(.3,1.5,avt)*(1+.025*avt)*(wh.flat?1.5:1);}}
         wh.FyB=wh.Fy*(r[0]*M[2]+r[1]*M[5]+r[2]*M[8]);wh.vt=vt;
       }else{
-      tyreForce(wh.tyre,wh.Fz,kap,tanA,this._smu(wh,wh.surf)*wetMu*tg*(wh.front||!this.tune?1:this.tune.rear),TY);
+      ti.Fz=wh.Fz;ti.kap=kap;ti.tanA=tanA;ti.mu=this._smu(wh,wh.surf)*wetMu*tg*(wh.front||!this.tune?1:this.tune.rear);tyreForce(wh.tyre,ti,TY);
       wh.Fx=TY.fx;wh.rr=(wh.surfRR?wh.surfRR[wh.surf]??.015:.012)*wh.Fz;wh.vd=(wh.surfDrag?wh.surfDrag[wh.surf]||0:0)*wh.Fz*vl;wh.Fy=TY.fy;wh.Kd=TY.dk*R/vn;
       }
       wh.kap=kap;wh.tanA=tanA;wh.sg=TY.sg;wh.vl=vl;wh.slipV=Math.hypot(wh.w*R-vl,vt);
@@ -9001,7 +9009,7 @@ class Vehicle{
     pt.step(dt,pin,W,pa);if(pt.auto)pt.autoShift(brk,this.air,this.drift.on);this.absOn=false;
     /* the brakes */
     const hold=this.speed<.4&&thr<.05&&!this.rev&&pt.running;
-    for(const wh of W){
+    for(let wi=0;wi<W.length;wi++){const wh=W[wi];
       let Tb=brk*c.brake*(wh.front?c.bias:1-c.bias)/2;
       if(inp.lock&&wh.front)Tb=Math.max(Tb,c.brake*.75);
       /* ABS; on the rears it lets them slip far less, so they keep their side grip under braking */
@@ -9025,19 +9033,20 @@ class Vehicle{
     pt.hbFree=this.hbCentre&&hb>.5;
     pt._sync(W);
     /* forces and torques on the body */
-    const Fs=this._F,T=this._T;Fs[0]=0;Fs[1]=-m*G;Fs[2]=0;T[0]=T[1]=T[2]=0;
-    for(const wh of W)if(wh.contact){
+    const Fs=this._F,T=this._T,af=this._af,ap=this._ap;Fs[0]=0;Fs[1]=-m*G;Fs[2]=0;T[0]=T[1]=T[2]=0;
+    for(let wi=0;wi<W.length;wi++){const wh=W[wi];if(!wh.contact)continue;
       const hp=wh.hpW,cp=wh.cp,n=wh.n,f=wh.f,r=wh.r,fz=wh.Fz,fx=wh.Fx-(wh.vd||0),fy=wh.Fy,rc=c.rcH;
       if(S&&S.f.jack){
         /* Sim: the spring at the hub, the links' pull at the axle's middle (it lifts or lowers, it doesn't roll),
            drive and brake at the ground (the full weight transfer front to back), the side force at the roll centre */
-        const fs=fz-wh.jk;this._apply(U[0]*fs,U[1]*fs,U[2]*fs,hp[0],hp[1],hp[2]);
-        if(wh.jk){const a=m3v(this._t2,M,wh.hp[0],wh.hp[1],0),j=wh.jk;this._apply(U[0]*j,U[1]*j,U[2]*j,a[0]+p[0],a[1]+p[1],a[2]+p[2]);}
-        this._apply(f[0]*fx,f[1]*fx,f[2]*fx,cp[0],cp[1],cp[2]);
-        this._apply(r[0]*fy,r[1]*fy,r[2]*fy,cp[0]+n[0]*rc,cp[1]+n[1]*rc,cp[2]+n[2]*rc);
+        const fs=fz-wh.jk;af[0]=U[0]*fs;af[1]=U[1]*fs;af[2]=U[2]*fs;this._apply(af,hp);
+        if(wh.jk){const a=this._t2,j=wh.jk;a[0]=wh.hp[0];a[1]=wh.hp[1];a[2]=0;m3va(a,M,a);
+          af[0]=U[0]*j;af[1]=U[1]*j;af[2]=U[2]*j;ap[0]=a[0]+p[0];ap[1]=a[1]+p[1];ap[2]=a[2]+p[2];this._apply(af,ap);}
+        af[0]=f[0]*fx;af[1]=f[1]*fx;af[2]=f[2]*fx;this._apply(af,cp);
+        af[0]=r[0]*fy;af[1]=r[1]*fy;af[2]=r[2]*fy;ap[0]=cp[0]+n[0]*rc;ap[1]=cp[1]+n[1]*rc;ap[2]=cp[2]+n[2]*rc;this._apply(af,ap);
       }else{
-      this._apply(U[0]*fz,U[1]*fz,U[2]*fz,hp[0],hp[1],hp[2]);
-      this._apply(f[0]*fx+r[0]*fy,f[1]*fx+r[1]*fy,f[2]*fx+r[2]*fy,cp[0]+n[0]*rc,cp[1]+n[1]*rc,cp[2]+n[2]*rc);
+      af[0]=U[0]*fz;af[1]=U[1]*fz;af[2]=U[2]*fz;this._apply(af,hp);
+      af[0]=f[0]*fx+r[0]*fy;af[1]=f[1]*fx+r[1]*fy;af[2]=f[2]*fx+r[2]*fy;ap[0]=cp[0]+n[0]*rc;ap[1]=cp[1]+n[1]*rc;ap[2]=cp[2]+n[2]*rc;this._apply(af,ap);
       }
       /* Sim: a tyre run sideways into a kerb, a rut wall or a ledge: the face stops it (a stiff sidewall and a
          damper), pushing at half the face's height. Enough of a shove trips the car over it. A face of rock or
@@ -9048,15 +9057,15 @@ class Vehicle{
         const rx=q[0]-p[0],ry=q[1]-p[1],rz=q[2]-p[2],vin=(v[0]+w[1]*rz-w[2]*ry)*ls[0]+(v[1]+w[2]*rx-w[0]*rz)*ls[1]+(v[2]+w[0]*ry-w[1]*rx)*ls[2],
           km=m/2150,pn=wh.lp/((wh.front?c.tyreW:c.tyreWR)*.5),hard=SIM_RIGID[wh.hit.lsurf],
           F=hard?5e5*km*wh.lp*(1+6*pn*pn)+2e4*km*Math.max(0,vin):Math.min(1.4*wh.Fz+3e3*km,1.2e5*km*wh.lp*(1+3*pn*pn)+6e3*km*Math.max(0,vin));
-        this._apply(-ls[0]*F,-ls[1]*F,-ls[2]*F,q[0],q[1],q[2]);}
+        af[0]=-ls[0]*F;af[1]=-ls[1]*F;af[2]=-ls[2]*F;this._apply(af,q);}
       /* a tyre against a ledge face: the face pushes back as well as up */
-      if(wh.off){const nu=v3dot(n,U),k=fz/Math.max(.5,nu)*.6;this._apply((n[0]-U[0]*nu)*k,(n[1]-U[1]*nu)*k,(n[2]-U[2]*nu)*k,cp[0],cp[1],cp[2]);}
+      if(wh.off){const nu=v3dot(n,U),k=fz/Math.max(.5,nu)*.6;af[0]=(n[0]-U[0]*nu)*k;af[1]=(n[1]-U[1]*nu)*k;af[2]=(n[2]-U[2]*nu)*k;this._apply(af,cp);}
     }
     /* drag through the middle (no torque), downforce on each axle */
     const sp=this.speed,dr=.5*RHO*c.cdA*sp;Fs[0]+=-v[0]*dr;Fs[1]+=-v[1]*dr;Fs[2]+=-v[2]*dr;
     const q2=.5*RHO*vb[0]*vb[0],aF=-q2*c.clF,aR=-q2*c.clR;
-    this._apply(U[0]*aF,U[1]*aF,U[2]*aF,p[0]+M[0]*this.a,p[1]+M[3]*this.a,p[2]+M[6]*this.a);
-    this._apply(U[0]*aR,U[1]*aR,U[2]*aR,p[0]+M[0]*-this.b,p[1]+M[3]*-this.b,p[2]+M[6]*-this.b);
+    af[0]=U[0]*aF;af[1]=U[1]*aF;af[2]=U[2]*aF;ap[0]=p[0]+M[0]*this.a;ap[1]=p[1]+M[3]*this.a;ap[2]=p[2]+M[6]*this.a;this._apply(af,ap);
+    af[0]=U[0]*aR;af[1]=U[1]*aR;af[2]=U[2]*aR;ap[0]=p[0]+M[0]*-this.b;ap[1]=p[1]+M[3]*-this.b;ap[2]=p[2]+M[6]*-this.b;this._apply(af,ap);
     if(this.assistTorque){T[0]+=U[0]*this.assistTorque;T[1]+=U[1]*this.assistTorque;T[2]+=U[2]*this.assistTorque;}
     /* a rider moving their weight (34_machines): on the ground it is the rider's weight hung off to one side or
        over the bars, a couple about the centre of gravity; in the air, pulling the bars or pushing them pitches the machine */
@@ -9074,7 +9083,7 @@ class Vehicle{
     }
     /* integrate */
     const acc=this.acc;for(let k=0;k<3;k++){acc[k]=Fs[k]/m;v[k]+=acc[k]*dt;}
-    const tb=m3tv(this._t1,M,T[0],T[1],T[2]),I=this.I,i0=I[0]*wb[0],i1=I[1]*wb[1],i2=I[2]*wb[2],
+    const tb=m3tva(this._t1,M,T),I=this.I,i0=I[0]*wb[0],i1=I[1]*wb[1],i2=I[2]*wb[2],
       g0=wb[1]*i2-wb[2]*i1,g1=wb[2]*i0-wb[0]*i2,g2=wb[0]*i1-wb[1]*i0;
     /* the body's spin. Stepped plainly (as Mini 4 did), the spin's own gyroscopic term adds a little energy every
        step, which is nothing at driving rates but feeds on itself in a fast tumble: a 260 mph hit on a tree sent
@@ -9088,10 +9097,10 @@ class Vehicle{
       const E1=I[0]*wb[0]*wb[0]+I[1]*wb[1]*wb[1]+I[2]*wb[2]*wb[2];if(E1>E0&&E1>0){const s=Math.sqrt(E0/E1);wb[0]*=s;wb[1]*=s;wb[2]*=s;}
       wb[0]+=dt*tb[0]/I[0];wb[1]+=dt*tb[1]/I[1];wb[2]+=dt*tb[2]/I[2];
       const wl=Math.hypot(wb[0],wb[1],wb[2]);if(wl>SPIN_MAX){const s=SPIN_MAX/wl;wb[0]*=s;wb[1]*=s;wb[2]*=s;}}
-    m3v(w,M,wb[0],wb[1],wb[2]);
+    m3va(w,M,wb);
     for(let k=0;k<3;k++)p[k]+=v[k]*dt;
-    qStep(this.q,w,dt);m3tv(this.accB,M,acc[0],acc[1],acc[2]);
-    for(const wh of W)wh.ang+=wh.w*dt;
+    qStep(this.q,w,dt);m3tva(this.accB,M,acc);
+    for(let wi=0;wi<W.length;wi++){const wh=W[wi];wh.ang+=wh.w*dt;}
     this._collide(dt);
     if(hold&&this.speed<.2)for(let k=0;k<3;k++){v[k]*=1-Math.min(1,dt*6);w[k]*=1-Math.min(1,dt*6);}
   }
@@ -9110,7 +9119,7 @@ class Vehicle{
   /* stability control, the drift helper and the spin catcher. Returns a throttle multiplier */
   _stability(dt,inp,vb,wb,thr){
     const aid=this.aid,W=this.wheels,v=vb[0],beta=this.beta,r=wb[1],sIn=inp.steer||0,mu=this.tyre.mu;
-    for(const wh of W)wh.escBrake=0;
+    for(let wi=0;wi<W.length;wi++)W[wi].escBrake=0;
     this.escOn=false;this.assistTorque=0;
     let mult=1;const Iyaw=this.I[1],D=this.drift;
     if(aid.drift){
@@ -9138,8 +9147,9 @@ class Vehicle{
   /* the hull against walls and the ground: impulses with restitution and friction */
   _collide(dt){
     const M=qToM(this.M,this.q),p=this.p,world=this.world,push=this._push,P=this._x,g=this._g,wl=this._wl;push.fill(0);let pushN=0;
-    for(const hp of this.hull){
-      m3v(P,M,hp[0],hp[1],hp[2]);P[0]+=p[0];P[1]+=p[1];P[2]+=p[2];
+    const hull=this.hull;
+    for(let hi=0;hi<hull.length;hi++){const hp=hull[hi];
+      m3va(P,M,hp);P[0]+=p[0];P[1]+=p[1];P[2]+=p[2];
       if(world.wall(P,wl)&&wl.pen>0){this._impulse(M,P,wl.n,this.plus?.04:.18,this.plus?.05:.28,'wall');
         push[0]+=wl.n[0]*wl.pen;push[1]+=wl.n[1]*wl.pen;push[2]+=wl.n[2]*wl.pen;pushN++;}
       world.ground(P[0],P[2],g);const pen=(g.y-P[1])*g.n[1];
@@ -9180,7 +9190,7 @@ class GroundWorld{
     this.groundAt=groundAt;this.colliders=colliders||null;this.bound=bound||1e9;
     /* how much grip the ground is giving, surface by surface ({dirt: 1.2, ...}); null is as tuned */
     this.grip=null;
-    this._g={y:0,n:F3(),surf:''};this._h=mkHit();this._o=F3();this._f=F3();
+    this._g={y:0,n:F3(),surf:''};this._h=mkHit();this._o=F3();this._f=F3();this._sl=F3();
   }
   /* the ground where a ray first meets it: a few steps along the ray, each onto the plane under it */
   raycast(o,d,maxT,hit){
@@ -9204,8 +9214,8 @@ class GroundWorld{
     f[0]=fwd[0]-down[0]*fd;f[1]=fwd[1]-down[1]*fd;f[2]=fwd[2]-down[2]*fd;
     const fl=Math.hypot(f[0],f[1],f[2])||1;f[0]=f[0]/fl;f[1]=f[1]/fl;f[2]=f[2]/fl;
     const h=this._h,po=this._o;
-    for(const k of FOOT){
-      const dx=k*R;po[0]=o[0]+f[0]*dx;po[1]=o[1]+f[1]*dx;po[2]=o[2]+f[2]*dx;
+    for(let fi=0;fi<FOOT.length;fi++){
+      const dx=FOOT[fi]*R;po[0]=o[0]+f[0]*dx;po[1]=o[1]+f[1]*dx;po[2]=o[2]+f[2]*dx;
       if(!this.raycast(po,down,maxT,h))continue;
       const eff=h.t+R-Math.sqrt(R*R-dx*dx);
       if(!got||eff<best.t-2e-3){
@@ -9224,11 +9234,11 @@ class GroundWorld{
   _lip(o,down,maxT,best,side,hw,got){
     if(!got)return false;
     const sd=side[0]*down[0]+side[1]*down[1]+side[2]*down[2],sl0=Math.hypot(side[0]-down[0]*sd,side[1]-down[1]*sd,side[2]-down[2]*sd)||1,
-      sx=(side[0]-down[0]*sd)/sl0,sy=(side[1]-down[1]*sd)/sl0,sz=(side[2]-down[2]*sd)/sl0,po=this._o,h=this._h,
-      at=d=>{po[0]=o[0]+sx*d;po[1]=o[1]+sy*d;po[2]=o[2]+sz*d;return this.raycast(po,down,maxT,h)?h.t:best.t;};
-    const face=(lp,lh,sf)=>{best.lp=lp;best.lh=lh;best.ls[0]=sx;best.ls[1]=sy;best.ls[2]=sz;best.lsurf=sf;};
+      sx=(side[0]-down[0]*sd)/sl0,sy=(side[1]-down[1]*sd)/sl0,sz=(side[2]-down[2]*sd)/sl0,h=this._h,sl=this._sl;
+    /* (the way it slides goes to _at in the world's scratch, so no closure is made per call) */
+    sl[0]=sx;sl[1]=sy;sl[2]=sz;
     /* how tall the step ahead is: the ground a hand past the shoulder as well as under it */
-    const dF=best.t-at(hw+.12),dS=best.t-at(hw),dh=Math.max(dS,dF),sS=h.surf;
+    const dF=best.t-this._at(o,down,maxT,best,hw+.12),dS=best.t-this._at(o,down,maxT,best,hw),dh=Math.max(dS,dF),sS=h.surf;
     if(dh>.05&&dh>hw*.45){
       if(dh<.09){
         if(dS<=.05)return got;
@@ -9238,20 +9248,23 @@ class GroundWorld{
       }
       /* a face ahead: not touching until it is past halfway up at the shoulder; then find it by halving */
       if(dS<dh*.5)return got;
-      let a=0,b=hw;for(let k=0;k<3;k++){const m=(a+b)/2;if(best.t-at(m)>dh*.5)b=m;else a=m;}
-      face(hw-(a+b)/2,dh,sS);return got;
+      let a=0,b=hw;for(let k=0;k<3;k++){const m=(a+b)/2;if(best.t-this._at(o,down,maxT,best,m)>dh*.5)b=m;else a=m;}
+      best.lp=hw-(a+b)/2;best.lh=dh;best.ls[0]=sx;best.ls[1]=sy;best.ls[2]=sz;best.lsurf=sS;return got;
     }
     /* the hub already over the face, the trailing shoulder still down below it: the tyre is in the face up to
        past its middle. Keep it on the low ground, under the hub */
-    const top=best.surf,tb=at(-hw),dB=tb-best.t;
+    const top=best.surf,tb=this._at(o,down,maxT,best,-hw),dB=tb-best.t;
     if(dB>=.09){
       const n0=h.n[0],n1=h.n[1],n2=h.n[2],surf=h.surf;
-      let a=-hw,b=0;for(let k=0;k<3;k++){const m=(a+b)/2;if(tb-at(m)>dB*.5)b=m;else a=m;}
+      let a=-hw,b=0;for(let k=0;k<3;k++){const m=(a+b)/2;if(tb-this._at(o,down,maxT,best,m)>dB*.5)b=m;else a=m;}
       best.t=tb;best.p[0]=o[0]+down[0]*tb;best.p[1]=o[1]+down[1]*tb;best.p[2]=o[2]+down[2]*tb;best.n[0]=n0;best.n[1]=n1;best.n[2]=n2;best.surf=surf;best.off=0;
-      face(hw-(a+b)/2,dB,top);
+      best.lp=hw-(a+b)/2;best.lh=dB;best.ls[0]=sx;best.ls[1]=sy;best.ls[2]=sz;best.lsurf=top;
     }
     return got;
   }
+  /* the edge catch's probe: the ground d along the slide (_sl) from o, where a ray down there meets it, or the
+     tyre's own contact where it misses */
+  _at(o,down,maxT,best,d){const po=this._o,sl=this._sl,h=this._h;po[0]=o[0]+sl[0]*d;po[1]=o[1]+sl[1]*d;po[2]=o[2]+sl[2]*d;return this.raycast(po,down,maxT,h)?h.t:best.t;}
   ground(x,z,out){this.groundAt(x,z,out);return out;}
   /* the edge of the world, trees, posts, walls and bales: how far P is inside one and which way is out */
   wall(P,out){
@@ -9259,8 +9272,8 @@ class GroundWorld{
     if(Math.abs(P[0])>b||Math.abs(P[2])>b){const ax=Math.abs(P[0])-b,az=Math.abs(P[2])-b;
       out.pen=ax>az?ax:az;out.n[0]=ax>az?-Math.sign(P[0]):0;out.n[1]=0;out.n[2]=ax>az?0:-Math.sign(P[2]);return true;}
     if(!this.colliders)return false;
-    let found=false;
-    for(const c of this.colliders.near(P[0],P[2])){
+    let found=false;const near=this.colliders.near(P[0],P[2]);
+    for(let ci=0;ci<near.length;ci++){const c=near[ci];
       if(P[1]>c.top+.2)continue;
       if(c.t==='c'){const dx=P[0]-c.x,dz=P[2]-c.z,d=Math.hypot(dx,dz);
         if(d<c.r){const pen=c.r-d;if(!found||pen>out.pen){found=true;out.pen=pen;if(d>1e-4){out.n[0]=dx/d;out.n[1]=0;out.n[2]=dz/d;}else{out.n[0]=1;out.n[1]=0;out.n[2]=0;}}}}

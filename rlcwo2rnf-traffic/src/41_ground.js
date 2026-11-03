@@ -11,7 +11,7 @@ class GroundWorld{
     this.groundAt=groundAt;this.colliders=colliders||null;this.bound=bound||1e9;
     /* how much grip the ground is giving, surface by surface ({dirt: 1.2, ...}); null is as tuned */
     this.grip=null;
-    this._g={y:0,n:F3(),surf:''};this._h=mkHit();this._o=F3();this._f=F3();
+    this._g={y:0,n:F3(),surf:''};this._h=mkHit();this._o=F3();this._f=F3();this._sl=F3();
   }
   /* the ground where a ray first meets it: a few steps along the ray, each onto the plane under it */
   raycast(o,d,maxT,hit){
@@ -35,8 +35,8 @@ class GroundWorld{
     f[0]=fwd[0]-down[0]*fd;f[1]=fwd[1]-down[1]*fd;f[2]=fwd[2]-down[2]*fd;
     const fl=Math.hypot(f[0],f[1],f[2])||1;f[0]=f[0]/fl;f[1]=f[1]/fl;f[2]=f[2]/fl;
     const h=this._h,po=this._o;
-    for(const k of FOOT){
-      const dx=k*R;po[0]=o[0]+f[0]*dx;po[1]=o[1]+f[1]*dx;po[2]=o[2]+f[2]*dx;
+    for(let fi=0;fi<FOOT.length;fi++){
+      const dx=FOOT[fi]*R;po[0]=o[0]+f[0]*dx;po[1]=o[1]+f[1]*dx;po[2]=o[2]+f[2]*dx;
       if(!this.raycast(po,down,maxT,h))continue;
       const eff=h.t+R-Math.sqrt(R*R-dx*dx);
       if(!got||eff<best.t-2e-3){
@@ -55,11 +55,11 @@ class GroundWorld{
   _lip(o,down,maxT,best,side,hw,got){
     if(!got)return false;
     const sd=side[0]*down[0]+side[1]*down[1]+side[2]*down[2],sl0=Math.hypot(side[0]-down[0]*sd,side[1]-down[1]*sd,side[2]-down[2]*sd)||1,
-      sx=(side[0]-down[0]*sd)/sl0,sy=(side[1]-down[1]*sd)/sl0,sz=(side[2]-down[2]*sd)/sl0,po=this._o,h=this._h,
-      at=d=>{po[0]=o[0]+sx*d;po[1]=o[1]+sy*d;po[2]=o[2]+sz*d;return this.raycast(po,down,maxT,h)?h.t:best.t;};
-    const face=(lp,lh,sf)=>{best.lp=lp;best.lh=lh;best.ls[0]=sx;best.ls[1]=sy;best.ls[2]=sz;best.lsurf=sf;};
+      sx=(side[0]-down[0]*sd)/sl0,sy=(side[1]-down[1]*sd)/sl0,sz=(side[2]-down[2]*sd)/sl0,h=this._h,sl=this._sl;
+    /* (the way it slides goes to _at in the world's scratch, so no closure is made per call) */
+    sl[0]=sx;sl[1]=sy;sl[2]=sz;
     /* how tall the step ahead is: the ground a hand past the shoulder as well as under it */
-    const dF=best.t-at(hw+.12),dS=best.t-at(hw),dh=Math.max(dS,dF),sS=h.surf;
+    const dF=best.t-this._at(o,down,maxT,best,hw+.12),dS=best.t-this._at(o,down,maxT,best,hw),dh=Math.max(dS,dF),sS=h.surf;
     if(dh>.05&&dh>hw*.45){
       if(dh<.09){
         if(dS<=.05)return got;
@@ -69,20 +69,23 @@ class GroundWorld{
       }
       /* a face ahead: not touching until it is past halfway up at the shoulder; then find it by halving */
       if(dS<dh*.5)return got;
-      let a=0,b=hw;for(let k=0;k<3;k++){const m=(a+b)/2;if(best.t-at(m)>dh*.5)b=m;else a=m;}
-      face(hw-(a+b)/2,dh,sS);return got;
+      let a=0,b=hw;for(let k=0;k<3;k++){const m=(a+b)/2;if(best.t-this._at(o,down,maxT,best,m)>dh*.5)b=m;else a=m;}
+      best.lp=hw-(a+b)/2;best.lh=dh;best.ls[0]=sx;best.ls[1]=sy;best.ls[2]=sz;best.lsurf=sS;return got;
     }
     /* the hub already over the face, the trailing shoulder still down below it: the tyre is in the face up to
        past its middle. Keep it on the low ground, under the hub */
-    const top=best.surf,tb=at(-hw),dB=tb-best.t;
+    const top=best.surf,tb=this._at(o,down,maxT,best,-hw),dB=tb-best.t;
     if(dB>=.09){
       const n0=h.n[0],n1=h.n[1],n2=h.n[2],surf=h.surf;
-      let a=-hw,b=0;for(let k=0;k<3;k++){const m=(a+b)/2;if(tb-at(m)>dB*.5)b=m;else a=m;}
+      let a=-hw,b=0;for(let k=0;k<3;k++){const m=(a+b)/2;if(tb-this._at(o,down,maxT,best,m)>dB*.5)b=m;else a=m;}
       best.t=tb;best.p[0]=o[0]+down[0]*tb;best.p[1]=o[1]+down[1]*tb;best.p[2]=o[2]+down[2]*tb;best.n[0]=n0;best.n[1]=n1;best.n[2]=n2;best.surf=surf;best.off=0;
-      face(hw-(a+b)/2,dB,top);
+      best.lp=hw-(a+b)/2;best.lh=dB;best.ls[0]=sx;best.ls[1]=sy;best.ls[2]=sz;best.lsurf=top;
     }
     return got;
   }
+  /* the edge catch's probe: the ground d along the slide (_sl) from o, where a ray down there meets it, or the
+     tyre's own contact where it misses */
+  _at(o,down,maxT,best,d){const po=this._o,sl=this._sl,h=this._h;po[0]=o[0]+sl[0]*d;po[1]=o[1]+sl[1]*d;po[2]=o[2]+sl[2]*d;return this.raycast(po,down,maxT,h)?h.t:best.t;}
   ground(x,z,out){this.groundAt(x,z,out);return out;}
   /* the edge of the world, trees, posts, walls and bales: how far P is inside one and which way is out */
   wall(P,out){
@@ -90,8 +93,8 @@ class GroundWorld{
     if(Math.abs(P[0])>b||Math.abs(P[2])>b){const ax=Math.abs(P[0])-b,az=Math.abs(P[2])-b;
       out.pen=ax>az?ax:az;out.n[0]=ax>az?-Math.sign(P[0]):0;out.n[1]=0;out.n[2]=ax>az?0:-Math.sign(P[2]);return true;}
     if(!this.colliders)return false;
-    let found=false;
-    for(const c of this.colliders.near(P[0],P[2])){
+    let found=false;const near=this.colliders.near(P[0],P[2]);
+    for(let ci=0;ci<near.length;ci++){const c=near[ci];
       if(P[1]>c.top+.2)continue;
       if(c.t==='c'){const dx=P[0]-c.x,dz=P[2]-c.z,d=Math.hypot(dx,dz);
         if(d<c.r){const pen=c.r-d;if(!found||pen>out.pen){found=true;out.pen=pen;if(d>1e-4){out.n[0]=dx/d;out.n[1]=0;out.n[2]=dz/d;}else{out.n[0]=1;out.n[1]=0;out.n[2]=0;}}}}

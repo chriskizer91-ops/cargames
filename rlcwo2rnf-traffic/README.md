@@ -18,10 +18,18 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   apart), the Node tools (`rt_check.js`, `shot_rt.js`, `eval_rt.js`, `frame_rt.js`, `perf_rt.js`, `alloc_rt.js`) and
   the Python tools pointed at this page and its keys. The texture packer also reads `../wide-open-2/textures/`, so a
   picture delivered for either version is found. Otherwise the game is Wide Open 2 as found.
-- **The physics is Wide Open 2's**: `40_physics.js`, `41_ground.js`, `42_chassis.js`, `44_ai.js`, `45_ev.js`,
-  `15_digital_engine.js`, `32_builds.js`, `37_newbuilds.js` and `34_machines.js` are byte for byte Wide Open 2's;
-  `16_engines.js` and `43_sim.js` differ only in their save keys' prefix (`rt-tune`, `rt-sim`), the way Wide Open 2's
-  fork changed Wide Open's `cc-`. `node tools/physcheck.js` says 0; `node tools/proving.js` prints `QA.md`'s table.
+- **The physics is Wide Open 2's**: `42_chassis.js`, `44_ai.js`, `45_ev.js`, `15_digital_engine.js`, `32_builds.js`,
+  `37_newbuilds.js` and `34_machines.js` are byte for byte Wide Open 2's; `16_engines.js` and `43_sim.js` differ only
+  in their save keys' prefix (`rt-tune`, `rt-sim`), the way Wide Open 2's fork changed Wide Open's `cc-`.
+  `40_physics.js` and `41_ground.js` differ only in their allocations (with the owner's leave): the step's vectors go
+  to the helpers as arrays and the tyre's inputs in an object instead of as loose numbers (each loose number handed
+  to a call the compiler doesn't inline is a small piece of garbage), the loops are indexed instead of iterated, and
+  Sim's edge catch makes no closures. The sums and their order are untouched: `node tools/physcheck.js` still says
+  0 and `node tools/proving.js` prints the same table, `QA.md`'s. Once V8 has optimized the step (a few seconds into
+  a drive), the physics' own garbage is about a third less (a car on the Chromium page alone: about 28 KB a frame
+  down to 20; in the game at night after 800 frames, `Vehicle.step` 10 KB down to 3). What is left is `Math.hypot`
+  (it allocates on every call here, and is kept: a square root rounds differently) and the numbers handed to the
+  world's `groundAt(x, z, out)`; before the step is optimized every number in it is boxed, whatever the code.
 - **Traffic on Highway 40** (`src/60_traffic.js`): done. Below.
 - **Police mode** (`src/60_police.js`): done. Below.
 - **Next**: the town's streets and the country roads, parked cars, people at the markers; the map with waypoints.
