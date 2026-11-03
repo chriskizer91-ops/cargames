@@ -578,6 +578,7 @@ body.bayfull>.bar{display:none}
           <div><h2 class="sub">Cruise (Y)</h2><div class="seg" id="dCruise" role="group" aria-label="Cruise"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Text on screen</h2><div class="seg" id="dText" role="group" aria-label="Text on screen"></div></div>
           <div><h2 class="sub">Traffic cars (Level: 8 on Mobile to 32 on Ultra)</h2><div class="seg" id="dTraf" role="group" aria-label="Traffic cars"></div></div></div>
+        <div class="row2" style="margin-top:12px"><div><h2 class="sub">GPU load target (the render scale aims the GPU's time at this share of each frame; Auto: 70% on a touch screen, cooler, 88% elsewhere; Off: by dropped frames alone)</h2><div class="seg" id="dGpuT" role="group" aria-label="GPU load target"></div></div><div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Wanted level (Auto: it rises with the chase)</h2><div class="seg" id="dWanted" role="group" aria-label="Wanted level"></div></div>
           <div><h2 class="sub">Police cars (Wanted: one a level, up to 3 on Mobile and Low, 4 on Medium, 5 on High and Ultra)</h2><div class="seg" id="dPol" role="group" aria-label="Police cars"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Police cars' speed (by level: your build tuned to top out at 125, 145, 165, 190, 215 mph)</h2><div class="seg" id="dPolPow" role="group" aria-label="Police engines"></div></div>
@@ -1368,6 +1369,46 @@ var SL3 = (() => {
       gl.bindVertexArray(G.empty);
       if (inst > 1) gl.drawArraysInstanced(mode, 0, verts, inst);
       else gl.drawArrays(mode, 0, verts);
+    };
+    /* where there's no GPU timer (Android's Chrome has none): a fence put in at the end of the frame, watched from a
+       timer task about every millisecond (a sync object only signals once control has gone back to the browser),
+       and the time from the frame's start to the GPU getting past it. That is the frame's cost to the GPU and to
+       the CPU feeding it, whichever is longer, a millisecond or so long at worst: enough for the dynamic
+       resolution to see the GPU filling up before frames start to drop. One fence in flight at a time */
+    G.fenceTimer = () => {
+      if (typeof gl.fenceSync !== "function") return null;
+      let pend = null, t0 = 0, last = -1;
+      const tick = () => {
+        if (!pend) return;
+        const st = gl.getSyncParameter(pend.s, gl.SYNC_STATUS), now = performance.now();
+        if (st === gl.SIGNALED) {
+          last = now - pend.t0;
+          gl.deleteSync(pend.s);
+          pend = null;
+        } else if (now - pend.t0 > 1e3) {
+          /* (a second and still not through: as good as a reading of that, the GPU far behind) */
+          last = now - pend.t0;
+          gl.deleteSync(pend.s);
+          pend = null;
+        } else setTimeout(tick, 1);
+      };
+      return {
+        fence: true,
+        begin() {
+          t0 = performance.now();
+        },
+        end() {
+          if (pend) return;
+          const s = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+          if (!s) return;
+          gl.flush();
+          pend = { s, t0 };
+          setTimeout(tick, 1);
+        },
+        poll() {
+          return last;
+        }
+      };
     };
     G.timer = () => {
       if (!ext.timer) return null;
@@ -2853,7 +2894,11 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         uCSMOn: 0,
         uHLShOn: 0
       };
-      this.timer = G.timer();
+      /* the GPU's time per frame: its timer where it has one, a fence otherwise (G.fenceTimer); ?gputime=fence uses
+         the fence anyway (to try it where there is a timer), ?gputime=off neither */
+      {const gt = typeof location !== "undefined" ? (location.search.match(/[?&]gputime=(\w+)/) || [])[1] : "";
+        this.timer = gt === "off" ? null : gt === "fence" ? G.fenceTimer() : G.timer() || G.fenceTimer();}
+      this.gpuSrc = this.timer ? (this.timer.fence ? "fence" : "timer") : "none";
       this.gpuMs = -1;
       /* the frame's matrices, made in place every frame (last frame's view-projection stays whole for TAA: two
          of those, turn and turn about), and the probe's and the headlights' */
@@ -3543,13 +3588,21 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         this.coolMs -= frameMs;
         return this.scale;
       }
-      const budget = this.period * 0.88;
+      /* (aim the GPU's time at this share of the frame: 0.88 leaves just enough slack not to miss a beat; less keeps
+         it idle part of every frame, cooler on a phone) */
+      const budget = this.period * (this.share || 0.88);
       let s = this.scale;
       const old = s;
+      const tight = this.share && this.share < 0.875;
       if (gpuMs > 0) {
         this.gpuSm = this.gpuSm < 0 ? gpuMs : this.gpuSm * 0.9 + gpuMs * 0.1;
         const want = s * Math.sqrt(budget / Math.max(this.gpuSm, 0.5));
-        if (want < s * 0.95 || want > s * 1.07) s = s + (want - s) * 0.35;
+        /* (a target under 88%, for a cooler phone: held under it, not near it. Straight down to the notch whose time
+           should fit, up a notch only when there is plainly room; no dead band to sit over the target in) */
+        if (tight) {
+          if (want < s - 0.02) s = Math.floor(want * 20 + 1e-6) / 20;
+          else if (want >= s + 0.05) s += 0.05;
+        } else if (want < s * 0.95 || want > s * 1.07) s = s + (want - s) * 0.35;
       } else {
         if (frameMs > this.period * 1.3) {
           this.slowMs = (this.slowMs || 0) + frameMs;
@@ -3573,6 +3626,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       }
       s = Math.round(Math.max(this.min, Math.min(this.max, s)) * 20) / 20;
       if (s !== this.scale) {
+        /* (held tight: what the GPU should take at the new scale, till it says, so a stale number doesn't step twice) */
+        if (tight && this.gpuSm > 0) this.gpuSm *= s * s / (old * old);
         this.scale = s;
         this.coolMs = s < old ? 500 : 1500;
       }
@@ -11899,7 +11954,7 @@ function worldGL(){
 /* ---------- the open world's side of the developer's panel (Mini Dirt Run Open World's): the world's own numbers,
    how far it's drawn, worker or not, and a cruise control that holds the road (for the long straight runs).
    The handling and Sim switches are HD's own (54_dev). ---------- */
-const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto',wanted:'auto',polPow:'level',sirP:'deep',sirV:'40',heliV:'290',escD:'800'};
+const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto',wanted:'auto',polPow:'level',sirP:'deep',sirV:'40',heliV:'290',escD:'800',gpuT:'auto'};
 try{const d=JSON.parse(store.get('rt-devworld','{}'))||{};for(const k of Object.keys(DEVW))if(d[k]!==undefined)DEVW[k]=d[k];}catch(e){}
 DEVW.cruise='off';if(DEVW.gen==='main')WORLD.forceLocal=true;
 /* (the numbers on screen: off, the small readout, or everything; a save from before had on or off) */
@@ -12008,6 +12063,7 @@ function buildDevWorld(){
   segButtons($('dWanted'),[['auto','Auto'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5']],v=>{DEVW.wanted=v;saveDev();syncDevWorld();});
   segButtons($('dPolPow'),[['level','By wanted level'],['same','Your build as it is']],v=>{DEVW.polPow=v;saveDev();syncDevWorld();});
   segButtons($('dSirP'),[['deep','Deeper'],['lower','A little deeper'],['orig','As before']],v=>{DEVW.sirP=v;saveDev();syncDevWorld();});
+  segButtons($('dGpuT'),[['auto','Auto'],['off','Off'],['60','60%'],['70','70%'],['80','80%'],['88','88%']],v=>{DEVW.gpuT=v;saveDev();syncDevWorld();});
   segButtons($('dEscD'),[['400','400 m'],['800','800 m'],['1200','1200 m']],v=>{DEVW.escD=v;saveDev();syncDevWorld();});
   segButtons($('dHeliV'),[['200','200 mph'],['250','250 mph'],['290','290 mph']],v=>{DEVW.heliV=v;saveDev();syncDevWorld();});
   segButtons($('dSirV'),[['25','25%'],['40','40%'],['60','60%'],['100','As before']],v=>{DEVW.sirV=v;saveDev();syncDevWorld();});
@@ -12021,7 +12077,7 @@ function buildDevWorld(){
   $('dReset').addEventListener('click',()=>{const S=WORLD.st;S.n=[0,0,0];S.ms=[0,0,0];S.mx=[0,0,0];S.sn=0;S.sms=0;S.smx=0;S.fn=0;S.fms=0;S.missT=0;S.odo=0;S.top=0;syncDevWorld();});
 }
 function syncDevWorld(){
-  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dPol',String(DEVW.polN||'auto')],['dWanted',String(DEVW.wanted||'auto')],['dPolPow',DEVW.polPow||'level'],['dSirP',DEVW.sirP||'deep'],['dSirV',String(DEVW.sirV||'40')],['dHeliV',String(DEVW.heliV||'290')],['dEscD',String(DEVW.escD||'800')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
+  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dPol',String(DEVW.polN||'auto')],['dWanted',String(DEVW.wanted||'auto')],['dPolPow',DEVW.polPow||'level'],['dSirP',DEVW.sirP||'deep'],['dSirV',String(DEVW.sirV||'40')],['dHeliV',String(DEVW.heliV||'290')],['dEscD',String(DEVW.escD||'800')],['dGpuT',String(DEVW.gpuT||'auto')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
   const S=WORLD.st;$('dNote').textContent=`Made on: ${WORLD.mode}. ${WORLD.chunks.size} chunks and ${WORLD.far.size} far tiles loaded, ${(S.bytes/1048576).toFixed(1)} MB of them on the graphics card. `+
     `City Limits' town in the middle, Highway 40 straight through it east and west, country out to about two miles, then the salt flats to the edge, ${WG.HALF*2/1609.34|0} miles across.`;
 }
@@ -12449,7 +12505,12 @@ function resize(){
   R.resize(PIC.w,PIC.h,R.iw?R.scale:RESO.scale);
 }
 /* ---------- dynamic resolution ---------- */
-function drsStep(dt){if(!RESO||!R||GAME.state!=='drive'&&!showActive())return;const sc=RESO.update(dt*1000,R.gpuMs);if(Math.abs(sc-R.scale)>.001)R.resize(PIC.w,PIC.h,sc);}
+/* the GPU load the dynamic resolution aims at (Dev: GPU load target): Auto is 70% on a touch screen (the phone stays
+   cooler: its GPU idle a third of every frame), 88% elsewhere (as it always was); Off goes by dropped frames alone, as
+   a phone did before it could measure its GPU (55_post's fence: 11_sl3 G.fenceTimer) */
+const gpuShare=()=>{const v=DEVW.gpuT;return v==='off'?0:v&&v!=='auto'?+v/100:touchy?.7:.88;};
+function drsStep(dt){if(!RESO||!R||GAME.state!=='drive'&&!showActive())return;const sh=gpuShare();RESO.share=sh||.88;
+  const sc=RESO.update(dt*1000,sh?R.gpuMs:-1);if(Math.abs(sc-R.scale)>.001)R.resize(PIC.w,PIC.h,sc);}
 /* ---------- the HUD over the picture, in dots ---------- */
 const POST={quant:20,edge:[0,0,0],flash:[0,0,0]};
 /* where the HUD's grid sits on the canvas, in device pixels from the bottom left */
@@ -12516,7 +12577,7 @@ const RPERF={gpu:0,gpuN:0,t0:0,ms:-1};
 function rperfAcc(){if(!R)return;if(R.gpuMs>0){RPERF.gpu+=R.gpuMs;RPERF.gpuN++;}const now=performance.now();if(now-RPERF.t0>500){RPERF.ms=RPERF.gpuN?RPERF.gpu/RPERF.gpuN:-1;RPERF.gpu=0;RPERF.gpuN=0;RPERF.t0=now;}}
 function rperfRows(){if(!R)return [];const f=x=>x.toFixed(1);
   return [`RENDER ${R.iw}X${R.ih} OF ${R.W}X${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1].toUpperCase()}  ${DISP.mode==='dots'?'DOTS '+PIC.dots[0]+'X'+PIC.dots[1]:'CLEAR'}`,
-    `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS':'NOT REPORTED'}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
+    `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS'+(R.gpuSrc==='fence'?' (FENCE)':''):'NOT REPORTED'}  AIM ${Math.round(gpuShare()*100)||'OFF'}${gpuShare()?'%':''}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
     `CHIP ${String(R.gpuName).toUpperCase().slice(0,52)}${R.software?' (SOFTWARE)':''}`];}
 /* ---------- the performance readout (F, or the Dev tab's Numbers on screen: Readout): small, under the HUD's name
    block, in Rut Access's style: frames a second against the beat, the frame's time and its worst, the CPU's share, the

@@ -404,6 +404,46 @@ var SL3 = (() => {
       if (inst > 1) gl.drawArraysInstanced(mode, 0, verts, inst);
       else gl.drawArrays(mode, 0, verts);
     };
+    /* where there's no GPU timer (Android's Chrome has none): a fence put in at the end of the frame, watched from a
+       timer task about every millisecond (a sync object only signals once control has gone back to the browser),
+       and the time from the frame's start to the GPU getting past it. That is the frame's cost to the GPU and to
+       the CPU feeding it, whichever is longer, a millisecond or so long at worst: enough for the dynamic
+       resolution to see the GPU filling up before frames start to drop. One fence in flight at a time */
+    G.fenceTimer = () => {
+      if (typeof gl.fenceSync !== "function") return null;
+      let pend = null, t0 = 0, last = -1;
+      const tick = () => {
+        if (!pend) return;
+        const st = gl.getSyncParameter(pend.s, gl.SYNC_STATUS), now = performance.now();
+        if (st === gl.SIGNALED) {
+          last = now - pend.t0;
+          gl.deleteSync(pend.s);
+          pend = null;
+        } else if (now - pend.t0 > 1e3) {
+          /* (a second and still not through: as good as a reading of that, the GPU far behind) */
+          last = now - pend.t0;
+          gl.deleteSync(pend.s);
+          pend = null;
+        } else setTimeout(tick, 1);
+      };
+      return {
+        fence: true,
+        begin() {
+          t0 = performance.now();
+        },
+        end() {
+          if (pend) return;
+          const s = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+          if (!s) return;
+          gl.flush();
+          pend = { s, t0 };
+          setTimeout(tick, 1);
+        },
+        poll() {
+          return last;
+        }
+      };
+    };
     G.timer = () => {
       if (!ext.timer) return null;
       /* (the query objects are reused, not made and deleted every frame) */
@@ -1888,7 +1928,11 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         uCSMOn: 0,
         uHLShOn: 0
       };
-      this.timer = G.timer();
+      /* the GPU's time per frame: its timer where it has one, a fence otherwise (G.fenceTimer); ?gputime=fence uses
+         the fence anyway (to try it where there is a timer), ?gputime=off neither */
+      {const gt = typeof location !== "undefined" ? (location.search.match(/[?&]gputime=(\w+)/) || [])[1] : "";
+        this.timer = gt === "off" ? null : gt === "fence" ? G.fenceTimer() : G.timer() || G.fenceTimer();}
+      this.gpuSrc = this.timer ? (this.timer.fence ? "fence" : "timer") : "none";
       this.gpuMs = -1;
       /* the frame's matrices, made in place every frame (last frame's view-projection stays whole for TAA: two
          of those, turn and turn about), and the probe's and the headlights' */
@@ -2578,13 +2622,21 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
         this.coolMs -= frameMs;
         return this.scale;
       }
-      const budget = this.period * 0.88;
+      /* (aim the GPU's time at this share of the frame: 0.88 leaves just enough slack not to miss a beat; less keeps
+         it idle part of every frame, cooler on a phone) */
+      const budget = this.period * (this.share || 0.88);
       let s = this.scale;
       const old = s;
+      const tight = this.share && this.share < 0.875;
       if (gpuMs > 0) {
         this.gpuSm = this.gpuSm < 0 ? gpuMs : this.gpuSm * 0.9 + gpuMs * 0.1;
         const want = s * Math.sqrt(budget / Math.max(this.gpuSm, 0.5));
-        if (want < s * 0.95 || want > s * 1.07) s = s + (want - s) * 0.35;
+        /* (a target under 88%, for a cooler phone: held under it, not near it. Straight down to the notch whose time
+           should fit, up a notch only when there is plainly room; no dead band to sit over the target in) */
+        if (tight) {
+          if (want < s - 0.02) s = Math.floor(want * 20 + 1e-6) / 20;
+          else if (want >= s + 0.05) s += 0.05;
+        } else if (want < s * 0.95 || want > s * 1.07) s = s + (want - s) * 0.35;
       } else {
         if (frameMs > this.period * 1.3) {
           this.slowMs = (this.slowMs || 0) + frameMs;
@@ -2608,6 +2660,8 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       }
       s = Math.round(Math.max(this.min, Math.min(this.max, s)) * 20) / 20;
       if (s !== this.scale) {
+        /* (held tight: what the GPU should take at the new scale, till it says, so a stale number doesn't step twice) */
+        if (tight && this.gpuSm > 0) this.gpuSm *= s * s / (old * old);
         this.scale = s;
         this.coolMs = s < old ? 500 : 1500;
       }

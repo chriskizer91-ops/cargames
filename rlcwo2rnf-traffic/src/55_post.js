@@ -27,7 +27,12 @@ function resize(){
   R.resize(PIC.w,PIC.h,R.iw?R.scale:RESO.scale);
 }
 /* ---------- dynamic resolution ---------- */
-function drsStep(dt){if(!RESO||!R||GAME.state!=='drive'&&!showActive())return;const sc=RESO.update(dt*1000,R.gpuMs);if(Math.abs(sc-R.scale)>.001)R.resize(PIC.w,PIC.h,sc);}
+/* the GPU load the dynamic resolution aims at (Dev: GPU load target): Auto is 70% on a touch screen (the phone stays
+   cooler: its GPU idle a third of every frame), 88% elsewhere (as it always was); Off goes by dropped frames alone, as
+   a phone did before it could measure its GPU (55_post's fence: 11_sl3 G.fenceTimer) */
+const gpuShare=()=>{const v=DEVW.gpuT;return v==='off'?0:v&&v!=='auto'?+v/100:touchy?.7:.88;};
+function drsStep(dt){if(!RESO||!R||GAME.state!=='drive'&&!showActive())return;const sh=gpuShare();RESO.share=sh||.88;
+  const sc=RESO.update(dt*1000,sh?R.gpuMs:-1);if(Math.abs(sc-R.scale)>.001)R.resize(PIC.w,PIC.h,sc);}
 /* ---------- the HUD over the picture, in dots ---------- */
 const POST={quant:20,edge:[0,0,0],flash:[0,0,0]};
 /* where the HUD's grid sits on the canvas, in device pixels from the bottom left */
@@ -94,7 +99,7 @@ const RPERF={gpu:0,gpuN:0,t0:0,ms:-1};
 function rperfAcc(){if(!R)return;if(R.gpuMs>0){RPERF.gpu+=R.gpuMs;RPERF.gpuN++;}const now=performance.now();if(now-RPERF.t0>500){RPERF.ms=RPERF.gpuN?RPERF.gpu/RPERF.gpuN:-1;RPERF.gpu=0;RPERF.gpuN=0;RPERF.t0=now;}}
 function rperfRows(){if(!R)return [];const f=x=>x.toFixed(1);
   return [`RENDER ${R.iw}X${R.ih} OF ${R.W}X${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1].toUpperCase()}  ${DISP.mode==='dots'?'DOTS '+PIC.dots[0]+'X'+PIC.dots[1]:'CLEAR'}`,
-    `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS':'NOT REPORTED'}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
+    `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS'+(R.gpuSrc==='fence'?' (FENCE)':''):'NOT REPORTED'}  AIM ${Math.round(gpuShare()*100)||'OFF'}${gpuShare()?'%':''}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
     `CHIP ${String(R.gpuName).toUpperCase().slice(0,52)}${R.software?' (SOFTWARE)':''}`];}
 /* ---------- the performance readout (F, or the Dev tab's Numbers on screen: Readout): small, under the HUD's name
    block, in Rut Access's style: frames a second against the beat, the frame's time and its worst, the CPU's share, the

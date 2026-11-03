@@ -230,6 +230,18 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
 - **Frame rate** (Settings): Auto (every second refresh on a touch screen at 85 Hz or more, every refresh elsewhere),
   Every refresh, Every 2nd, Every 3rd; saved in `rt-game`. A frame every 2nd refresh halves the GPU's work (cooler,
   longer on a battery); the hint says what that is on this screen.
+- **The GPU load target** (Dev; the heat fix from the render review): the dynamic resolution aims the GPU's time at a
+  share of each frame. Where the browser has a GPU timer (a desktop) it reads that; where it hasn't (Android's Chrome,
+  so the phone) it now reads a fence put in at the end of the frame and watched from a timer task about every
+  millisecond (`G.fenceTimer`, `11_sl3.js`): the time from the frame's start to the GPU getting past it. Before, the
+  phone went by dropped frames alone, so the render scale climbed to its ceiling and the GPU ran flat out. Auto is 70%
+  on a touch screen (the GPU idle about a third of every frame: cooler, longer on a battery) and 88% elsewhere (as it
+  always was: High and Ultra unchanged); 60, 70, 80, 88% or Off (dropped frames alone). Under 88% it is held under
+  the target, not near it: straight down to the notch whose time fits, up a notch only with plain room. With the GPU's
+  time going as the pixels (20 or 30 ms a frame at full scale on a 60 Hz screen) it settles at 59 and 54% busy for
+  60%, 67 and 65% for 70%, 77 and 76% for 80%, and steady; at 88% (the old way) 97 to 101%. The fence reads within 5%
+  of the GPU timer where both can be had (`?gputime=fence` uses it anyway, `?gputime=off` neither). The F readout
+  shows the GPU's time ((FENCE) when it's the fence's) and AIM, the target.
 - **Made cheaper without changing the picture** (from the render review, 3 November; frames compared with
   `tools/frame_rt.js` before and after): the headlights' shadow taps and beam skipped where both lamps are out of
   range, the sun's shadow taps beyond the last cascade (both exactly zero there); on Mobile the TAA pass writes the
