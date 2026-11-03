@@ -44,6 +44,11 @@ const M4={
     m[12]=-V3.dot(x,e);m[13]=-V3.dot(y,e);m[14]=-V3.dot(z,e);m[15]=1;return m;
   },
   mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+r]*b[c*4+k];o[c*4+r]=s;}return o;},
+  /* (the same product into o, which must be neither a nor b: the same sums in the same order, so the same bits, and no
+     new matrix each time) */
+  mulTo(o,a,b){for(let c=0;c<4;c++)for(let r=0;r<4;r++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+r]*b[c*4+k];o[c*4+r]=s;}return o;},
+  /* (a translation into o, as M4T makes one) */
+  tTo(o,x,y,z){o.fill(0);o[0]=o[5]=o[10]=o[15]=1;o[12]=x;o[13]=y;o[14]=z;return o;},
   inv(m){const a=m,o=new Float32Array(16);
     const b0=a[0]*a[5]-a[1]*a[4],b1=a[0]*a[6]-a[2]*a[4],b2=a[0]*a[7]-a[3]*a[4],b3=a[1]*a[6]-a[2]*a[5],b4=a[1]*a[7]-a[3]*a[5],b5=a[2]*a[7]-a[3]*a[6],
       b6=a[8]*a[13]-a[9]*a[12],b7=a[8]*a[14]-a[10]*a[12],b8=a[8]*a[15]-a[11]*a[12],b9=a[9]*a[14]-a[10]*a[13],b10=a[9]*a[15]-a[11]*a[13],b11=a[10]*a[15]-a[11]*a[14];

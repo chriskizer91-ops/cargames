@@ -182,6 +182,7 @@ function worldDrain(){
     if(near(m)||performance.now()-t0<bud){worldResult(m);PS.mk++;}else Q[w++]=m;}
   Q.length=w;
 }
+const GKEY=['g0','g1','g2'];
 function worldUpdate(eye,car){
   const W=WORLD,S=W.st;W.frame++;worldRings();worldDrain();
   if(!W.worker&&!W.forceLocal&&W.mode==='starting')startWorker();
@@ -189,7 +190,7 @@ function worldUpdate(eye,car){
   const fx=sp>1?vx/sp:0,fz=sp>1?vz/sp:0,lead=Math.min(1,sp/30)*.75,ccx=Math.floor(px/CHK),ccz=Math.floor(pz/CHK),todo=[];
   for(let cx=Math.floor((ex-R)/CHK);cx<=Math.floor((ex+R)/CHK);cx++)for(let cz=Math.floor((ez-R)/CHK);cz<=Math.floor((ez+R)/CHK);cz++){
     const k=ckey(cx,cz);let c=W.chunks.get(k);
-    const dx=Math.max(cx*CHK-ex,0,ex-cx*CHK-CHK),dz=Math.max(cz*CHK-ez,0,ez-cz*CHK-CHK),d=Math.hypot(dx,dz);
+    const dx=bx0(cx*CHK,ex),dz=bx0(cz*CHK,ez),d=Math.sqrt(dx*dx+dz*dz);
     const under=Math.abs(cx-ccx)<=1&&Math.abs(cz-ccz)<=1;
     if(d>R&&!under)continue;
     if(!c){c=newChunk(cx,cz);W.chunks.set(k,c);W.cver++;WLC.cx=NaN;}
@@ -199,7 +200,7 @@ function worldUpdate(eye,car){
     if(under)lod=0;
     c.want=lod;c.d=d;
     const ox=(cx+.5)*CHK-px,oz=(cz+.5)*CHK-pz,pr=d-(ox*fx+oz*fz)*lead,have=c.g[0]||c.g[1]||c.g[2];
-    if(!c.g[lod]&&!c.req['g'+lod])todo.push({k:'g',key:k,cx,cz,lod,pr:pr+(under&&lod===0?-1e5:0)+(have?40+lod*10:0)});
+    if(!c.g[lod]&&!c.req[GKEY[lod]])todo.push({k:'g',key:k,cx,cz,lod,pr:pr+(under&&lod===0?-1e5:0)+(have?40+lod*10:0)});
     if(!c.st&&!c.req.s&&(d<W.propD+60||under))todo.push({k:'s',key:k,cx,cz,pr:pr+20+(under?-9e4:0)});
     /* once it has the detail it wants, the others go */
     if(c.g[lod])for(let l=0;l<3;l++)if(l!==lod&&c.g[l]){freeM(c.g[l].m);freeM(c.g[l].w);c.g[l]=null;}
@@ -207,7 +208,7 @@ function worldUpdate(eye,car){
   /* the far tiles, beyond the chunks */
   if(W.farR>0){const F=W.farR;
     for(let tx=Math.floor((ex-F)/FTS);tx<=Math.floor((ex+F)/FTS);tx++)for(let tz=Math.floor((ez-F)/FTS);tz<=Math.floor((ez+F)/FTS);tz++){
-      const dx=Math.max(tx*FTS-ex,0,ex-tx*FTS-FTS),dz=Math.max(tz*FTS-ez,0,ez-tz*FTS-FTS),d=Math.hypot(dx,dz);if(d>F)continue;
+      const ux=tx*FTS-ex,vx=ex-tx*FTS-FTS,uz=tz*FTS-ez,vz=ez-tz*FTS-FTS,dx=ux>0?ux:vx>0?vx:0,dz=uz>0?uz:vz>0?vz:0,d=Math.sqrt(dx*dx+dz*dz);if(d>F)continue;
       const k=ckey(tx,tz)+1e8;let t=W.far.get(k);if(!t){t={key:k,tx,tz,x0:tx*FTS,z0:tz*FTS,m:null,marks:null,req:false,mn:[tx*FTS,-50,tz*FTS],mx:[tx*FTS+FTS,150,tz*FTS+FTS]};W.far.set(k,t);W.fver++;}
       t.seen=W.frame;if(!t.m&&!t.req)todo.push({k:'f',key:k,cx:tx,cz:tz,pr:3000+d});}}
   S.queue=todo.length;
@@ -262,7 +263,7 @@ const RANCH={W:WW,world:new GroundWorld(groundInto,WW.colliders,WG.HALF-30),ms:0
 /* (the planes come from a ring of eight sets filled in place, none made per call: a set is good until eight more
    frustums have been asked for, longer than any pass keeps one; a caller that needs one for longer copies it) */
 const FR_RING=[];for(let i=0;i<8;i++){const F=[];for(let j=0;j<6;j++)F.push([0,0,0,0]);FR_RING.push(F);}let FR_I=0;
-function frPlane(p,a,b,c,d){const l=Math.hypot(a,b,c);p[0]=a/l;p[1]=b/l;p[2]=c/l;p[3]=d/l;}
+function frPlane(p,a,b,c,d){const l=Math.sqrt(a*a+b*b+c*c);p[0]=a/l;p[1]=b/l;p[2]=c/l;p[3]=d/l;}
 function frustum(m){const F=FR_RING[FR_I++&7];
   frPlane(F[0],m[3]+m[0],m[7]+m[4],m[11]+m[8],m[15]+m[12]);frPlane(F[1],m[3]-m[0],m[7]-m[4],m[11]-m[8],m[15]-m[12]);frPlane(F[2],m[3]+m[1],m[7]+m[5],m[11]+m[9],m[15]+m[13]);
   frPlane(F[3],m[3]-m[1],m[7]-m[5],m[11]-m[9],m[15]-m[13]);frPlane(F[4],m[3]+m[2],m[7]+m[6],m[11]+m[10],m[15]+m[14]);frPlane(F[5],m[3]-m[2],m[7]-m[6],m[11]-m[10],m[15]-m[14]);
@@ -282,29 +283,41 @@ function worldInit(){
 /* draw the far tiles, the ground, the roads, the buildings and the trees (the sky is the renderer's own pass). cam:
    eye (world) and VPw (the view in world space, for culling). maxD: how far (the night's fog, or the probe's reach).
    probe: the reflection probe's cheap version, without the far tiles */
+/* (the identity, made once: the world's draws set it every pass) */
+const W_ID=M4.id();
+/* (the chunks in sight, kept from frame to frame; nearest first: byVd) */
+const WVIS=[],byVd=(a,b)=>a.vd-b.vd;
 function drawWorld(cam,maxD,probe){
   const W=WORLD,u=CUR.u,F=frustum(cam.VPw),e=cam.eye,near=Math.min(W.near,maxD||W.near),propD=Math.min(W.propD,maxD||W.propD);let tris=0,holes=0;
   /* what is in sight this frame (each chunk's level of detail and its distance), before anything is drawn */
-  const vis=[],CL=chunkList();
+  const vis=WVIS,CL=chunkList();vis.length=0;
   for(let i=0;i<CL.length;i++){const c=CL[i],g=probe?(c.g[2]||c.g[1]||c.g[0]):bestG(c),d=boxDist(e,c.mn,c.mx);
     if(!g){if(d<W.near*.6)holes++;continue;}
     if(d>near||!boxVisible(F,c.mn,c.mx))continue;c.vd=d;c.vg=g;vis.push(c);}
+  /* nearest first, within each kind below: the near ground fills the depth buffer before the far, so ground hidden
+     behind a rise is turned away by the depth test before it's shaded (the same picture: the test picks the same
+     winner whatever the order) */
+  vis.sort(byVd);
   /* what stands up is drawn before what lies flat (the trees, the buildings and poles, the roads, then the ground
      and the far tiles): the depth test picks the same winner whatever the order, but this way the GPU shades the
      ground only where a tree, a building or a road is not in front of it, instead of shading it and then painting
      over it. The roads lie on the ground like paint (the polygon offset), so they never tie with it */
-  gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
+  gl.uniformMatrix4fv(u.uM,false,W_ID);orgFor(u,RO[0],RO[2]);
   const tt=DEVW.off.trees?0:drawTreesW(cam,F,probe?Math.min(propD,160):propD,probe);
   let tp=0;for(const c of vis)if(c.st&&c.st.props&&c.vd<propD+40){atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tp+=c.st.props.tris;}
   gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(-1.5,-3);
   let tr=0;for(const c of vis)if(c.st&&c.st.roads&&c.vd<near-20){atM(u,c.x0,0,c.z0);drawMesh(c.st.roads);tr+=c.st.roads.tris;}
   gl.disable(gl.POLYGON_OFFSET_FILL);
-  for(const c of vis){const g=c.vg;atM(u,c.x0,0,c.z0);drawMesh(g.m);tris+=g.m.tris;if(g.w){drawMesh(g.w);tris+=g.w.tris;}}
+  /* (the ground is only ever seen from above: in the main pass its back faces are not drawn at all; the shadow and
+     probe passes keep drawing both sides, as they always have) */
+  if(!probe){gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);}
+  for(let i=0;i<vis.length;i++){const c=vis[i],g=c.vg;atM(u,c.x0,0,c.z0);drawMesh(g.m);tris+=g.m.tris;if(g.w){if(!probe)gl.disable(gl.CULL_FACE);drawMesh(g.w);tris+=g.w.tris;if(!probe)gl.enable(gl.CULL_FACE);}}
+  if(!probe)gl.disable(gl.CULL_FACE);
   /* far tiles: pushed down a little where the chunks are, so the chunks always win */
   if(W.farR>0&&!probe&&!DEVW.off.far&&(!maxD||maxD>W.near)){if(u.uFarDrop)gl.uniform4f(u.uFarDrop,1,W.near-90,W.near+30,14);
     const FL=farList();for(let i=0;i<FL.length;i++){const t=FL[i];if(!t.m)continue;if(boxDist(e,t.mn,t.mx)>W.farR||!boxVisible(F,t.mn,t.mx))continue;atM(u,t.x0,0,t.z0);drawMesh(t.m);tris+=t.m.tris;if(t.marks){drawMesh(t.marks);tris+=t.marks.tris;}}
     if(u.uFarDrop)gl.uniform4f(u.uFarDrop,0,0,0,0);}
-  gl.uniformMatrix4fv(u.uM,false,M4.id());orgFor(u,RO[0],RO[2]);
+  gl.uniformMatrix4fv(u.uM,false,W_ID);orgFor(u,RO[0],RO[2]);
   if(!probe){W.st.holes=holes;RANCH.stat={ground:tris,roads:tr,props:tp,trees:tt};}
   return tris+tr+tp+tt;
 }
@@ -340,20 +353,23 @@ function treeShapes(){
    the view, the chunks in sight change. Most frames every pass draws what it drew the frame before with nothing
    uploaded; before, every pass walked every tree in range and re-sent the lot, three or four times a frame */
 const TLIST=new Map();
+/* how far p is outside the span [a, a+CHK] along one axis: Math.max(a-p,0,p-a-CHK) (at most one of the two is positive),
+   without the three-argument Math.max, which makes a little garbage every call here */
+const bx0=(a,p)=>{const u=a-p,v=p-a-CHK;return u>0?u:v>0?v:0;};
 function treeList(id,ctr,maxD,F,nearOnly){
   let L=TLIST.get(id);
   if(!L){L={cnt:[],buf:[],gb:[],k:new Float64Array(9).fill(NaN)};for(let v=0;v<TREES.shapes.length;v++){L.cnt.push([0,0]);L.buf.push([new Float32Array(12*256),new Float32Array(12*256)]);L.gb.push([gl.createBuffer(),gl.createBuffer()]);}TLIST.set(id,L);}
   const t0=performance.now(),cx=Math.floor(ctr[0]/8),cz=Math.floor(ctr[2]/8),mg=maxD+12,md=mg*mg;let sig=0;
   const CL=chunkList();
   if(F)for(let i=0;i<CL.length;i++){const c=CL[i],T=c.st&&c.st.trees;if(!T||!T.length)continue;
-    const dx=Math.max(c.x0-ctr[0],0,ctr[0]-c.x0-CHK),dz=Math.max(c.z0-ctr[2],0,ctr[2]-c.z0-CHK);if(dx*dx+dz*dz>md)continue;
+    const dx=bx0(c.x0,ctr[0]),dz=bx0(c.z0,ctr[2]);if(dx*dx+dz*dz>md)continue;
     c.mx[1]=Math.max(c.mx[1],c.ymax+18);if(boxVisible(F,c.mn,c.mx))sig=(Math.imul(sig,31)+c.cx*7919+c.cz*104729+1)|0;}
   const k=L.k,n1=nearOnly?1:0;
   if(k[0]===cx&&k[1]===cz&&k[2]===WORLD.treeGen&&k[3]===sig&&k[4]===RO[0]&&k[5]===RO[2]&&k[6]===maxD&&k[7]===TREE_NEAR&&k[8]===n1){PS.cur[PS_TREES]+=performance.now()-t0;return L;}
-  k[0]=cx;k[1]=cz;k[2]=WORLD.treeGen;k[3]=sig;k[4]=RO[0];k[5]=RO[2];k[6]=maxD;k[7]=TREE_NEAR;k[8]=n1;for(const c of L.cnt){c[0]=0;c[1]=0;}
+  k[0]=cx;k[1]=cz;k[2]=WORLD.treeGen;k[3]=sig;k[4]=RO[0];k[5]=RO[2];k[6]=maxD;k[7]=TREE_NEAR;k[8]=n1;for(let i=0;i<L.cnt.length;i++){const c=L.cnt[i];c[0]=0;c[1]=0;}
   const nn=TREE_NEAR*TREE_NEAR;
   for(let i=0;i<CL.length;i++){const c=CL[i],T=c.st&&c.st.trees;if(!T||!T.length)continue;
-    const dx=Math.max(c.x0-ctr[0],0,ctr[0]-c.x0-CHK),dz=Math.max(c.z0-ctr[2],0,ctr[2]-c.z0-CHK);if(dx*dx+dz*dz>md)continue;
+    const dx=bx0(c.x0,ctr[0]),dz=bx0(c.z0,ctr[2]);if(dx*dx+dz*dz>md)continue;
     if(F&&!boxVisible(F,c.mn,c.mx))continue;
     for(let o=0;o<T.length;o+=12){const ex=T[o]-ctr[0],ez=T[o+2]-ctr[2],d2=ex*ex+ez*ez;if(d2>md)continue;
       const v=T[o+7]|0,l=nearOnly||d2<nn?0:1,cn=L.cnt[v];let b=L.buf[v][l];
@@ -376,7 +392,7 @@ function drawTreesW(cam,F,maxD,probe){
 function worldShadow(u,F,e,maxD,id,far){
   let tris=0;
   const CL=chunkList();for(let i=0;i<CL.length;i++){const c=CL[i];if(!c.st||!c.st.props)continue;if(boxDist(e,c.mn,c.mx)>maxD||!boxVisible(F,c.mn,c.mx))continue;atM(u,c.x0,0,c.z0);drawMesh(c.st.props);tris+=c.st.props.tris;}
-  gl.uniformMatrix4fv(u.uM,false,M4.id());
+  gl.uniformMatrix4fv(u.uM,false,W_ID);
   return tris+(DEVW.off.trees?0:drawTreeList(treeList(id,e,maxD,F,!far),u,far));
 }
 /* the lights of the farms, the towns and the garage near a point (for the night) */

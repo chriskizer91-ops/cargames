@@ -12,12 +12,15 @@
 const DEBUG_VIEW=new URLSearchParams(location.search).get('debug')||null;
 /* the land's programs: the lit pass, the cheaper one the probe sees, and the depth pass for the shadow maps */
 let P_LAND=null,P_LANDP=null,P_DEPTH=null;
-function landPrograms(){if(P_LAND)return;const S=rutShaders(),G=R.G;
-  P_LAND=G.program('land',S.VS,S.FS,DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?{DEBUG_SHADOW:+(DEBUG_VIEW.slice(6)||0)}:{});
-  P_LANDP=G.program('landProbe',S.VS,S.FS,{PROBE:1});P_DEPTH=G.program('landDepth',S.DEPTH_VS,S.DEPTH_FS);}
+/* (half-precision lighting, 11_sl3's HALF: Mobile by default; Dev: Half-precision lighting, from the next start) */
+const halfOn=()=>DEVW.half==='on'||DEVW.half!=='off'&&GFX.level==='mobile';
+function landPrograms(){if(P_LAND)return;const S=rutShaders(),G=R.G,h=halfOn()?{HALF:1}:{};
+  P_LAND=G.program('land',S.VS,S.FS,Object.assign(DEBUG_VIEW&&DEBUG_VIEW.startsWith('shadow')?{DEBUG_SHADOW:+(DEBUG_VIEW.slice(6)||0)}:{},h));
+  P_LANDP=G.program('landProbe',S.VS,S.FS,Object.assign({PROBE:1},h));P_DEPTH=G.program('landDepth',S.DEPTH_VS,S.DEPTH_FS);}
 const M4_ID=M4.id(),FAR0=new Float32Array(4);
 /* a matrix of the renderer's frame (relative to the origin) taken back to the world, for the world's culling */
-const toWorld=VP=>M4.mul(VP,M4T(-RO[0],-RO[1],-RO[2]));
+const TW_T=new Float32Array(16),TW_O=[0,1,2,3].map(()=>new Float32Array(16));let TW_I=0;
+const toWorld=VP=>M4.mulTo(TW_O[TW_I++&3],VP,M4.tTo(TW_T,-RO[0],-RO[1],-RO[2]));
 /* how far the land is drawn this frame: by night the fog's reach; by day the far tiles' (or the chunks') */
 const worldFar=()=>SKY.night&&SKY.draw?Math.min(SKY.draw,Math.max(WORLD.near,WORLD.farR)):Math.max(WORLD.near,WORLD.farR);
 /* ---------- the ground's photographs (49_textures' TEXPACK, packed by tools/pack_textures.py): one texture array, a layer

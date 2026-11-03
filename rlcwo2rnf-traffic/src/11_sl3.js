@@ -532,14 +532,15 @@ var SL3 = (() => {
       b[0] = eye[0] - at[0];
       b[1] = eye[1] - at[1];
       b[2] = eye[2] - at[2];
-      const bl = Math.hypot(b[0], b[1], b[2]) || 1;
+      /* (sqrt of the sum here and below, not Math.hypot: it makes a little garbage every call in this engine) */
+      const bl = Math.sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]) || 1;
       b[0] /= bl;
       b[1] /= bl;
       b[2] /= bl;
       r[0] = up[1] * b[2] - up[2] * b[1];
       r[1] = up[2] * b[0] - up[0] * b[2];
       r[2] = up[0] * b[1] - up[1] * b[0];
-      const rl = Math.hypot(r[0], r[1], r[2]) || 1;
+      const rl = Math.sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]) || 1;
       r[0] /= rl;
       r[1] /= rl;
       r[2] /= rl;
@@ -611,7 +612,8 @@ var SL3 = (() => {
         p[1] = m[7] + s * m[4 + i];
         p[2] = m[11] + s * m[8 + i];
         p[3] = m[15] + s * m[12 + i];
-        const l = Math.hypot(p[0], p[1], p[2]);
+        /* (a plane for culling: sqrt of the sum, not Math.hypot, which makes a little garbage every call here) */
+        const l = Math.sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
         p[0] /= l;
         p[1] /= l;
         p[2] /= l;
@@ -996,6 +998,35 @@ struct Surf{vec3 P;vec3 N;vec3 V;vec3 diff;vec3 F0;float rough;float ao;float cl
 float D_GGX(float NoH,float a){float a2=a*a;float f=(NoH*a2-NoH)*NoH+1.0;return a2/(PI*f*f+1e-7);}
 float V_GGX(float NoV,float NoL,float a){float a2=a*a;float gv=NoL*sqrt(NoV*NoV*(1.0-a2)+a2),gl=NoV*sqrt(NoL*NoL*(1.0-a2)+a2);return .5/max(gv+gl,1e-5);}
 vec3 F_Sch(vec3 f0,float c){float p=1.0-c;float p2=p*p;return f0+(1.0-f0)*(p2*p2*p);}
+#ifdef HALF
+/* half precision, for a phone's GPU (twice the rate, half the registers; a desktop's ignores it): the same BRDF written
+   so 16 bits hold it. 1-NoH^2 as |N x H|^2 (no cancellation at the highlight's peak), the roughness floored at .008
+   where a^2 would fall out of half's range, the D term held under half's ceiling, and the result times the light's
+   radiance taken back to full precision (a bright lamp close by would overflow 16 bits). Mobile only by default
+   (Dev: Half-precision lighting) */
+mediump float D_GGXh(mediump float NoH,mediump vec3 NxH,mediump float a){mediump float k=a/(dot(NxH,NxH)+NoH*NoH*a*a);return min(k*k*(1.0/PI),6e4);}
+mediump float V_GGXh(mediump float NoV,mediump float NoL,mediump float a){mediump float a2=a*a;mediump float gv=NoL*sqrt(NoV*NoV*(1.0-a2)+a2),gl=NoV*sqrt(NoL*NoL*(1.0-a2)+a2);return .5/max(gv+gl,1e-4);}
+mediump vec3 F_Schh(mediump vec3 f0,mediump float c){mediump float p=1.0-c;mediump float p2=p*p;return f0+(1.0-f0)*(p2*p2*p);}
+vec3 brdfL(Surf s,vec3 L,vec3 E,float aN){
+  mediump vec3 N=s.N,V=s.V,Lm=L,dif=s.diff;mediump float NoL=dot(N,Lm),spc=s.spec,ah=aN;
+  mediump vec3 c=vec3(0);
+  if(NoL>0.0){
+    mediump vec3 H=normalize(Lm+V);mediump float NoH=saturate(dot(N,H)),VoH=saturate(dot(V,H)),NoV=max(dot(N,V),1e-3);
+    mediump float a=max(s.rough*s.rough,.008);mediump float an=max(a,ah);
+    mediump vec3 F=F_Schh(s.F0,VoH);
+    mediump vec3 sp=D_GGXh(NoH,cross(N,H),an)*(a*a)/(an*an)*V_GGXh(NoV,NoL,a)*F*spc;
+    c=(dif*(1.0-F)*(1.0/PI)+sp)*NoL;
+  }
+  if(s.trans>0.0)c+=dif*s.trans*saturate(-NoL)*(1.0/PI);
+  if(s.clear>0.0){
+    mediump vec3 Nc=s.Nc;mediump float NoLc=dot(Nc,Lm);
+    if(NoLc>0.0){mediump vec3 H=normalize(Lm+V);mediump float NoH=saturate(dot(Nc,H)),VoH=saturate(dot(V,H)),NoV=max(dot(Nc,V),1e-3);
+      mediump float a=max(s.clearR*s.clearR,.008),an=max(a,ah);mediump float Fc=F_Schh(vec3(.04),VoH).x*s.clear;
+      c=c*(1.0-Fc)+D_GGXh(NoH,cross(Nc,H),an)*(a*a)/(an*an)*V_GGXh(NoV,NoLc,a)*Fc*NoLc;}
+  }
+  return vec3(c)*E;
+}
+#else
 /* one light arriving from direction L (unit, toward the light) with radiance E; aN widens the lobe for area lights */
 vec3 brdfL(Surf s,vec3 L,vec3 E,float aN){
   float NoL=dot(s.N,L);
@@ -1017,6 +1048,7 @@ vec3 brdfL(Surf s,vec3 L,vec3 E,float aN){
   }
   return c*E;
 }
+#endif
 /* smooth windowed inverse-square falloff */
 float falloff(float d2,float r){float x=d2/(r*r);float w=saturate(1.0-x*x);return w*w/(d2+.25);}
 
@@ -1719,7 +1751,8 @@ void main(){
      second output, where a full-screen copy pass used to: the same values, one pass and its bandwidth less) */
   var TAA_MRT_FS = TAA_FS.replace("out vec4 o;", "layout(location=0) out vec4 o;layout(location=1) out vec4 o2;").replace("void main(){", "void taaMain(){") + "\nvoid main(){taaMain();o2=o;}";
   var COPY_FS = `in vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform float uLod;void main(){o=textureLod(uSrc,vT,uLod);}`;
-  var DOWN4_FS = `in vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform vec2 uPx;
+  var DOWN4_FS = `precision mediump float;
+in highp vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform highp vec2 uPx;
 void main(){vec3 c=texture(uSrc,vT+uPx*vec2(-.5,-.5)).rgb+texture(uSrc,vT+uPx*vec2(.5,-.5)).rgb+texture(uSrc,vT+uPx*vec2(-.5,.5)).rgb+texture(uSrc,vT+uPx*vec2(.5,.5)).rgb;o=vec4(min(c*.25,vec3(200.)),1.0);}`;
   var MB_FS = `#define saturate(x) clamp(x,0.0,1.0)
 in vec2 vT;out vec4 o;
@@ -1741,9 +1774,11 @@ void main(){
     s+=texture(uSrc,uv).rgb*w;ws+=w;}
   o=vec4(s/ws,1.0);
 }`;
-  var BLOOM_DOWN_FS = `
-in vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform vec2 uPx;uniform float uFirst;
-vec3 S(vec2 o2){return texture(uSrc,vT+uPx*o2).rgb;}
+  /* (the bloom chain and the SSR pyramid's downsample in half precision where a phone's GPU has it, twice the rate:
+     colours only; where they read from, vT, uPx and the offsets, stays full) */
+  var BLOOM_DOWN_FS = `precision mediump float;
+in highp vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform highp vec2 uPx;uniform float uFirst;
+vec3 S(highp vec2 o2){return texture(uSrc,vT+uPx*o2).rgb;}
 float kw(vec3 c){return 1.0/(1.0+max(max(c.r,c.g),c.b)*.5);}
 void main(){
   vec3 a=S(vec2(-2,-2)),b=S(vec2(0,-2)),c=S(vec2(2,-2)),d=S(vec2(-1,-1)),e=S(vec2(1,-1)),f=S(vec2(-2,0)),g=S(vec2(0)),h=S(vec2(2,0)),i=S(vec2(-1,1)),j=S(vec2(1,1)),k=S(vec2(-2,2)),l=S(vec2(0,2)),m=S(vec2(2,2));
@@ -1752,8 +1787,8 @@ void main(){
     o=vec4(min((g0*w0+g1*w1+g2*w2+g3*w3+g4*w4)/(w0+w1+w2+w3+w4),vec3(500.)),1.0);}
   else o=vec4(g0*.5+(g1+g2+g3+g4)*.125,1.0);
 }`;
-  var BLOOM_UP_FS = `
-in vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform vec2 uPx;uniform float uW;
+  var BLOOM_UP_FS = `precision mediump float;
+in highp vec2 vT;out vec4 o;uniform sampler2D uSrc;uniform highp vec2 uPx;uniform float uW;
 void main(){vec3 c=texture(uSrc,vT).rgb*4.;
   c+=(texture(uSrc,vT+uPx*vec2(-1,0)).rgb+texture(uSrc,vT+uPx*vec2(1,0)).rgb+texture(uSrc,vT+uPx*vec2(0,-1)).rgb+texture(uSrc,vT+uPx*vec2(0,1)).rgb)*2.;
   c+=texture(uSrc,vT+uPx*vec2(-1,-1)).rgb+texture(uSrc,vT+uPx*vec2(1,-1)).rgb+texture(uSrc,vT+uPx*vec2(-1,1)).rgb+texture(uSrc,vT+uPx*vec2(1,1)).rgb;
@@ -2164,7 +2199,7 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       this.csmM = C.M;
       for (let k = 0; k < 3; k++) {
         const n = splits[k], fa = splits[k + 1], cz = (n + fa) / 2, hy = fa * th, hx = hy * this.asp;
-        const rad = Math.ceil(Math.hypot(hx, hy, (fa - n) / 2) * 1.04);
+        const hz = (fa - n) / 2, rad = Math.ceil(Math.sqrt(hx * hx + hy * hy + hz * hz) * 1.04);
         const c = C.c, lc = C.lc, tex = 2 * rad / Q.csm;
         c[0] = cam[0] + f[0] * cz;
         c[1] = cam[1] + f[1] * cz;
@@ -2407,7 +2442,9 @@ void main(){vec4 c=texture(uSrc,vT);vec3 r=c.rgb;
       const Ps = G.use(this.P.sky);
       G.set(Ps, U);
       G.fullscreen();
-      G.bind(this.glassFB);
+      /* the glass hooks draw inside the main pass (its three targets and depth still bound): a second framebuffer
+         over the same colour and depth used to end the pass and, on a phone's tiled GPU, reload and store them. A
+         glass shader writes all three outputs, the 2nd and 3rd as vec4(0) (alpha 0: the blend leaves them be) */
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);

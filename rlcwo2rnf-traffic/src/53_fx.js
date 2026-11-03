@@ -57,18 +57,21 @@ function fxDraw(){
    particles hook (after TAA, so with the camera's unjittered matrices), lit at their position by the sun, the sky and
    the lamps, fogged like the rest, and faded softly into whatever they touch */
 let P_PUFF=null,PUFF_MESH=null;const PUFF_BUF=new Float32Array(FX_MAX*12);
-const FXP={
+const FXP={tx:null,txSrc:null,ores:[0,0],
   init(){if(P_PUFF)return;const S=rutShaders();P_PUFF=R.G.program('puff',S.PUFF_VS,S.PUFF_FS);
     PUFF_MESH=makeMesh({pos:new Float32Array([-1,-1,0,1,-1,0,1,1,0,-1,-1,0,1,1,0,-1,1,0]),nrm:new Float32Array(18),col:new Float32Array(24)});},
   particles(R,U,texs){
     if(DEVW.off.fx||showActive())return;
-    let n=0;for(const p of FX){if(p.kind==='mud')continue;const o=n*12,f=p.life/p.max;
+    let n=0;for(let i=0;i<FX.length;i++){const p=FX[i];if(p.kind==='mud')continue;const o=n*12,f=p.life/p.max;
       PUFF_BUF[o]=p.x-RO[0];PUFF_BUF[o+1]=p.y-RO[1];PUFF_BUF[o+2]=p.z-RO[2];PUFF_BUF[o+3]=p.yaw;PUFF_BUF[o+4]=p.s*(p.kind==='water'?1.2:1.7);PUFF_BUF[o+5]=p.yaw;PUFF_BUF[o+6]=0;PUFF_BUF[o+7]=0;
       PUFF_BUF[o+8]=p.r;PUFF_BUF[o+9]=p.g;PUFF_BUF[o+10]=p.b;PUFF_BUF[o+11]=p.kind==='dust'?.5*Math.min(1,f*1.6)*Math.min(1,(1-f)*8):p.kind==='spray'?.28*f*Math.min(1,(1-f)*6):.45*f;n++;}
     if(!n)return;
     const G=R.G;this.init();
-    const P=G.use(P_PUFF);G.set(P,Object.assign({},U,{uVP:U.uVPnj}));G.tex(P,Object.assign({uDepth:R.dT},texs));
-    G.set(P,{uOutRes:[R.W,R.H]});const B=R.camBasis;G.uni(P,'uRt',B.r);G.uni(P,'uUp',B.up);
+    /* (the frame's uniforms with the unjittered matrix, the frame's textures with the depth: set in place, not copied into
+       new objects every frame) */
+    const P=G.use(P_PUFF);G.set(P,U);G.uni(P,'uVP',U.uVPnj);
+    if(this.txSrc!==texs){this.tx=Object.assign({},texs);this.txSrc=texs;}this.tx.uDepth=R.dT;G.tex(P,this.tx);
+    this.ores[0]=R.W;this.ores[1]=R.H;G.uni(P,'uOutRes',this.ores);const B=R.camBasis;G.uni(P,'uRt',B.r);G.uni(P,'uUp',B.up);
     setInst(PUFF_MESH,PUFF_BUF.subarray(0,n*12));
     gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.disable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
     drawMeshI(PUFF_MESH);gl.bindVertexArray(null);

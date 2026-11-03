@@ -408,10 +408,12 @@ const MK={v:-1,r:undefined,gi:-1,lap:-1,ph:''};let MARKS_T=-9;
 const VS_BEAM=`layout(location=0) in vec3 aPos;layout(location=5) in vec4 iA;layout(location=6) in vec4 iB;layout(location=7) in vec4 iC;
 uniform mat4 uVP;out vec3 vN;out vec3 vP;out float vH;out vec4 vC;out float vE;
 void main(){vec3 w=iA.xyz+vec3(aPos.x*iA.w,aPos.y*iB.x,aPos.z*iA.w);vN=vec3(aPos.x,0.,aPos.z);vP=w;vH=aPos.y;vC=iC;vE=iB.z;gl_Position=uVP*vec4(w,1.);}`;
-const FS_BEAM=`in vec3 vN;in vec3 vP;in float vH;in vec4 vC;in float vE;uniform vec3 uCam;uniform float uT;uniform float uK;layout(location=0) out vec4 o;
+/* (drawn inside the renderer's main pass, which writes three targets: the 2nd and 3rd outputs as zero with zero alpha,
+   so the blend (ONE, ONE_MINUS_SRC_ALPHA) leaves the normals and the motion exactly as they were) */
+const FS_BEAM=`in vec3 vN;in vec3 vP;in float vH;in vec4 vC;in float vE;uniform vec3 uCam;uniform float uT;uniform float uK;layout(location=0) out vec4 o;layout(location=1) out vec4 o1;layout(location=2) out vec4 o2;
 void main(){vec3 V=normalize(uCam-vP);float d=length(uCam-vP),f=1.-abs(dot(normalize(vN),normalize(vec3(V.x,0.,V.z))));
   float rim=.18+.82*f*f*f,up=pow(1.-vH,1.6),foot=exp(-vH*vC.a*9.),band=.85+.15*sin(vH*vC.a*3.-uT*3.);
-  float a=vE*uK*(rim*up*band+foot*.9)/(1.+d/2200.);o=vec4(vC.rgb*a,0.);}`;
+  float a=vE*uK*(rim*up*band+foot*.9)/(1.+d/2200.);o=vec4(vC.rgb*a,0.);o1=vec4(0.);o2=vec4(0.);}`;
 let P_BEAM=null,BEAM_MESH=null;const BEAM_BUF=new Float32Array(64*12),CH_MARKS=[];
 let BEAM_H=0,BEAM_N=0,BEAM_RO0=NaN,BEAM_RO2=NaN;
 function chalDraw(cam){

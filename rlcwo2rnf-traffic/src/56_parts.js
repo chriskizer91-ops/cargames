@@ -343,4 +343,5 @@ function rigBuild(car,rig){
 }
 /* a preset's parts, as a fresh rig */
 const presetRig=id=>Object.assign({},PRESET_PARTS[id]);
-const presetsOf=car=>Object.keys(PRESET_PARTS).filter(k=>BUILDS.find(b=>b.id===k).car===car);
+/* (the HUD asks every frame, through carLabel: the presets are fixed, so worked out once a car) */
+const PRESETS_OF=new Map(),presetsOf=car=>{let r=PRESETS_OF.get(car);if(!r){r=Object.keys(PRESET_PARTS).filter(k=>BUILDS.find(b=>b.id===k).car===car);PRESETS_OF.set(car,r);}return r;};

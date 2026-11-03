@@ -426,9 +426,12 @@ const mode0Near=()=>CAMS[APP.cam]==='Hood'&&!APP.orbit?.12:.3;
 const SKY={};
 /* the car's model matrix: physics frame (centre of gravity) to the model's frame (ground under the middle), relative to
    the floating origin */
-function carMatrix(t){const R=t.M,m=new Float32Array(16);
+/* (into kept matrices: the result is used by one car's drawing, then the next car's overwrites it) */
+const CM_M=new Float32Array(16),CM_T=new Float32Array(16),CM_O=new Float32Array(16);
+function carMatrix(t){const R=t.M,m=CM_M;
   m[0]=R[0];m[1]=R[3];m[2]=R[6];m[4]=R[1];m[5]=R[4];m[6]=R[7];m[8]=R[2];m[9]=R[5];m[10]=R[8];m[12]=t.p[0]-RO[0];m[13]=t.p[1]-RO[1];m[14]=t.p[2]-RO[2];m[15]=1;
-  return M4.mul(m,M4T(-t.cg[0],-t.cg[1],0));}
+  return M4.mulTo(CM_O,m,M4.tTo(CM_T,-t.cg[0],-t.cg[1],0));}
+const ZERO1=[0],WB_KEY=['wb0','wb1','wb2','wb3','wb4','wb5','wb6','wb7'],WPREV=new Float32Array(16);
 function carUniformsW(t,v,dirt){
   const u=CUR.u,b=t.build,D=carD(t);
   gl.uniform3fv(u.uPaint,lin(b.paint));gl.uniform3fv(u.uPaint2,lin(b.paint2));gl.uniform3fv(u.uRim,lin(b.rim));gl.uniform3fv(u.uCal,lin(b.cal));gl.uniform3fv(u.uClad,lin(b.clad));
@@ -447,7 +450,8 @@ function drawWorldCar(t,v,dirt,far,depth){
   const D=T.D,pm=depth?null:(t.drawPrev||(t.drawPrev={}));
   if(pm&&(pm.ro0!==RO[0]||pm.ro2!==RO[2])){const dx=RO[0]-(pm.ro0??RO[0]),dz=RO[2]-(pm.ro2??RO[2]);
     for(const k in pm){const q=pm[k];const M=q&&(q.length===16?q:q.M0);if(M){M[12]-=dx;M[14]-=dz;}}pm.ro0=RO[0];pm.ro2=RO[2];}
-  const setM=(key,M,prev)=>{gl.uniformMatrix4fv(u.uM,false,M);if(pm){gl.uniformMatrix4fv(u.uPrevM,false,prev||pm[key]||M);pm[key]=M.slice();}};
+  /* (last frame's matrix for TAA, kept in place: copied into, not made anew) */
+  const setM=(key,M,prev)=>{gl.uniformMatrix4fv(u.uM,false,M);if(pm){gl.uniformMatrix4fv(u.uPrevM,false,prev||pm[key]||M);const q=pm[key];if(q&&q.length===16)q.set(M);else pm[key]=M.slice();}};
   if(!depth){carUniformsW(t,v,dirt);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uPrevOn,1);}
   const fx=D.X(D.uFa),R=b.look.tyre.R;if(D.pitch)Mb=M4.mul(Mb,M4.mul(M4T(fx,R,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R,0))));
   setM('body',Mb);
@@ -460,14 +464,15 @@ function drawWorldCar(t,v,dirt,far,depth){
     /* (a broken number here would put a stray triangle across the screen on some phones) */
     const Mf=M4.mul(Mb,M4.mul(M4.basis(tp.p,tp.d,uu,rr),M4S(fl,fr,fr)));if(!Mf.every(Number.isFinite))continue;
     gl.uniformMatrix4fv(u.uM,false,Mf);gl.uniformMatrix4fv(u.uPrevM,false,Mf);drawMesh(flameMesh());}
-  t.wheels.forEach((w,k)=>{const s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;if(!depth)gl.uniform1f(u.uMudOff,w.R);
+  const WS=t.wheels;
+  for(let k=0;k<WS.length;k++){const w=WS[k],s=w.hp[2]<0?-1:1,st=w.front?t.steer:0;if(!depth)gl.uniform1f(u.uMudOff,w.R);
     /* the semi's tandem: two axles of duals where the physics has one */
-    const xs=!w.front&&D.tandem?D.tandem:[0],zs=!w.front&&D.dual?[D.dual,-D.dual]:[0],p=pm&&pm['wb'+k],dA=p?clamp(w.ang-p.ang,-.35,.35):0;
-    for(const dx of xs)for(const dz of zs){const x=w.hp[0]+t.cg[0]+dx,y=w.hp[1]-w.len+t.cg[1],z=w.hp[2]+dz*s;
-      if(pm){const prev=p?wheelMat(p.M0,x,y,z,p.st,s,w.ang-dA).slice():null;gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,x,y,z,st,s,w.ang));gl.uniformMatrix4fv(u.uPrevM,false,prev||WHM);}
+    const xs=!w.front&&D.tandem?D.tandem:ZERO1,zs=!w.front&&D.dual?(D._dualZ||(D._dualZ=[D.dual,-D.dual])):ZERO1,key=WB_KEY[k]||'wb'+k,p=pm&&pm[key],dA=p?clamp(w.ang-p.ang,-.35,.35):0;
+    for(let a=0;a<xs.length;a++)for(let b2=0;b2<zs.length;b2++){const dx=xs[a],dz=zs[b2],x=w.hp[0]+t.cg[0]+dx,y=w.hp[1]-w.len+t.cg[1],z=w.hp[2]+dz*s;
+      if(pm){let prev=null;if(p){WPREV.set(wheelMat(p.M0,x,y,z,p.st,s,w.ang-dA));prev=WPREV;}gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,x,y,z,st,s,w.ang));gl.uniformMatrix4fv(u.uPrevM,false,prev||WHM);}
       else gl.uniformMatrix4fv(u.uM,false,wheelMat(M0,x,y,z,st,s,w.ang));
       drawMesh(w.front?T.wheel:T.wheelR);}
-    if(pm)pm['wb'+k]={M0:M0.slice(),st,ang:w.ang};});
+    if(pm){if(p){p.M0.set(M0);p.st=st;p.ang=w.ang;}else pm[key]={M0:M0.slice(),st,ang:w.ang};}}
   if(!depth){gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);gl.uniform3f(u.uGlow,0,0,0);}
   return T.tris;
 }

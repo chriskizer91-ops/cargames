@@ -1,7 +1,7 @@
 /* ---------- the open world's side of the developer's panel (Mini Dirt Run Open World's): the world's own numbers,
    how far it's drawn, worker or not, and a cruise control that holds the road (for the long straight runs).
    The handling and Sim switches are HD's own (54_dev). ---------- */
-const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto',wanted:'auto',polPow:'level',sirP:'deep',sirV:'40',heliV:'290',escD:'800',gpuT:'auto'};
+const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto',wanted:'auto',polPow:'level',sirP:'deep',sirV:'40',heliV:'290',escD:'800',gpuT:'auto',half:'auto'};
 try{const d=JSON.parse(store.get('rt-devworld','{}'))||{};for(const k of Object.keys(DEVW))if(d[k]!==undefined)DEVW[k]=d[k];}catch(e){}
 DEVW.cruise='off';if(DEVW.gen==='main')WORLD.forceLocal=true;
 /* (the numbers on screen: off, the small readout, or everything; a save from before had on or off) */
@@ -110,6 +110,7 @@ function buildDevWorld(){
   segButtons($('dWanted'),[['auto','Auto'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5']],v=>{DEVW.wanted=v;saveDev();syncDevWorld();});
   segButtons($('dPolPow'),[['level','By wanted level'],['same','Your build as it is']],v=>{DEVW.polPow=v;saveDev();syncDevWorld();});
   segButtons($('dSirP'),[['deep','Deeper'],['lower','A little deeper'],['orig','As before']],v=>{DEVW.sirP=v;saveDev();syncDevWorld();});
+  segButtons($('dHalf'),[['auto','Auto (Mobile)'],['on','On'],['off','Off']],v=>{DEVW.half=v;saveDev();syncDevWorld();});
   segButtons($('dGpuT'),[['auto','Auto'],['off','Off'],['60','60%'],['70','70%'],['80','80%'],['88','88%']],v=>{DEVW.gpuT=v;saveDev();syncDevWorld();});
   segButtons($('dEscD'),[['400','400 m'],['800','800 m'],['1200','1200 m']],v=>{DEVW.escD=v;saveDev();syncDevWorld();});
   segButtons($('dHeliV'),[['200','200 mph'],['250','250 mph'],['290','290 mph']],v=>{DEVW.heliV=v;saveDev();syncDevWorld();});
@@ -124,7 +125,7 @@ function buildDevWorld(){
   $('dReset').addEventListener('click',()=>{const S=WORLD.st;S.n=[0,0,0];S.ms=[0,0,0];S.mx=[0,0,0];S.sn=0;S.sms=0;S.smx=0;S.fn=0;S.fms=0;S.missT=0;S.odo=0;S.top=0;syncDevWorld();});
 }
 function syncDevWorld(){
-  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dPol',String(DEVW.polN||'auto')],['dWanted',String(DEVW.wanted||'auto')],['dPolPow',DEVW.polPow||'level'],['dSirP',DEVW.sirP||'deep'],['dSirV',String(DEVW.sirV||'40')],['dHeliV',String(DEVW.heliV||'290')],['dEscD',String(DEVW.escD||'800')],['dGpuT',String(DEVW.gpuT||'auto')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
+  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dPol',String(DEVW.polN||'auto')],['dWanted',String(DEVW.wanted||'auto')],['dPolPow',DEVW.polPow||'level'],['dSirP',DEVW.sirP||'deep'],['dSirV',String(DEVW.sirV||'40')],['dHeliV',String(DEVW.heliV||'290')],['dEscD',String(DEVW.escD||'800')],['dGpuT',String(DEVW.gpuT||'auto')],['dHalf',String(DEVW.half||'auto')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
   const S=WORLD.st;$('dNote').textContent=`Made on: ${WORLD.mode}. ${WORLD.chunks.size} chunks and ${WORLD.far.size} far tiles loaded, ${(S.bytes/1048576).toFixed(1)} MB of them on the graphics card. `+
     `City Limits' town in the middle, Highway 40 straight through it east and west, country out to about two miles, then the salt flats to the edge, ${WG.HALF*2/1609.34|0} miles across.`;
 }
