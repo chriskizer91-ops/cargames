@@ -33,14 +33,14 @@ class GroundWorld{
     if(side)got=this._lip(o,down,maxT,best,side,hw,got);
     const fd=fwd[0]*down[0]+fwd[1]*down[1]+fwd[2]*down[2],f=this._f;
     f[0]=fwd[0]-down[0]*fd;f[1]=fwd[1]-down[1]*fd;f[2]=fwd[2]-down[2]*fd;
-    const fl=Math.hypot(f[0],f[1],f[2])||1;f[0]=f[0]/fl;f[1]=f[1]/fl;f[2]=f[2]/fl;
+    const fl=hyp3(f[0],f[1],f[2])||1;f[0]=f[0]/fl;f[1]=f[1]/fl;f[2]=f[2]/fl;
     const h=this._h,po=this._o;
     for(let fi=0;fi<FOOT.length;fi++){
       const dx=FOOT[fi]*R;po[0]=o[0]+f[0]*dx;po[1]=o[1]+f[1]*dx;po[2]=o[2]+f[2]*dx;
       if(!this.raycast(po,down,maxT,h))continue;
       const eff=h.t+R-Math.sqrt(R*R-dx*dx);
       if(!got||eff<best.t-2e-3){
-        const c0=o[0]+down[0]*(eff-R),c1=o[1]+down[1]*(eff-R),c2=o[2]+down[2]*(eff-R),n0=c0-h.p[0],n1=c1-h.p[1],n2=c2-h.p[2],nl=Math.hypot(n0,n1,n2)||1;
+        const c0=o[0]+down[0]*(eff-R),c1=o[1]+down[1]*(eff-R),c2=o[2]+down[2]*(eff-R),n0=c0-h.p[0],n1=c1-h.p[1],n2=c2-h.p[2],nl=hyp3(n0,n1,n2)||1;
         best.t=eff;best.p.set(h.p);best.n[0]=n0/nl;best.n[1]=n1/nl;best.n[2]=n2/nl;best.surf=h.surf;best.i=0;best.off=dx;got=true;
       }
     }
@@ -54,7 +54,7 @@ class GroundWorld{
      ground it came from rather than jumping onto the top */
   _lip(o,down,maxT,best,side,hw,got){
     if(!got)return false;
-    const sd=side[0]*down[0]+side[1]*down[1]+side[2]*down[2],sl0=Math.hypot(side[0]-down[0]*sd,side[1]-down[1]*sd,side[2]-down[2]*sd)||1,
+    const sd=side[0]*down[0]+side[1]*down[1]+side[2]*down[2],sl0=hyp3(side[0]-down[0]*sd,side[1]-down[1]*sd,side[2]-down[2]*sd)||1,
       sx=(side[0]-down[0]*sd)/sl0,sy=(side[1]-down[1]*sd)/sl0,sz=(side[2]-down[2]*sd)/sl0,h=this._h,sl=this._sl;
     /* (the way it slides goes to _at in the world's scratch, so no closure is made per call) */
     sl[0]=sx;sl[1]=sy;sl[2]=sz;
@@ -63,7 +63,7 @@ class GroundWorld{
     if(dh>.05&&dh>hw*.45){
       if(dh<.09){
         if(dS<=.05)return got;
-        const k=Math.min(1.6,dS/hw),n0=-down[0]-sx*k,n1=-down[1]-sy*k,n2=-down[2]-sz*k,nl=Math.hypot(n0,n1,n2)||1;
+        const k=Math.min(1.6,dS/hw),n0=-down[0]-sx*k,n1=-down[1]-sy*k,n2=-down[2]-sz*k,nl=hyp3(n0,n1,n2)||1;
         best.t=h.t;best.p.set(h.p);best.n[0]=n0/nl;best.n[1]=n1/nl;best.n[2]=n2/nl;best.surf=h.surf;best.off=hw;
         return got;
       }
@@ -96,7 +96,7 @@ class GroundWorld{
     let found=false;const near=this.colliders.near(P[0],P[2]);
     for(let ci=0;ci<near.length;ci++){const c=near[ci];
       if(P[1]>c.top+.2)continue;
-      if(c.t==='c'){const dx=P[0]-c.x,dz=P[2]-c.z,d=Math.hypot(dx,dz);
+      if(c.t==='c'){const dx=P[0]-c.x,dz=P[2]-c.z,d=hyp2(dx,dz);
         if(d<c.r){const pen=c.r-d;if(!found||pen>out.pen){found=true;out.pen=pen;if(d>1e-4){out.n[0]=dx/d;out.n[1]=0;out.n[2]=dz/d;}else{out.n[0]=1;out.n[1]=0;out.n[2]=0;}}}}
       else if(P[0]>c.x0&&P[0]<c.x1&&P[2]>c.z0&&P[2]<c.z1){
         /* out through the nearest face */

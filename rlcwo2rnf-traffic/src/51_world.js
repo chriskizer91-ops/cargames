@@ -20,7 +20,7 @@ const RMAT={TERRAIN:40,ROCK:41,STRIP:42,TRAIL:43,MUDTRACK:44,CONCRETE:45,WOOD:46
 /* the tree shapes' builder, from the ranch code */
 const Ranch=(()=>{
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],neg=a=>[-a[0],-a[1],-a[2]],cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
-  norm=a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
+  norm=a=>{const l=hyp3(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
 function rng(seed=1){let s=seed>>>0||1;return ()=>(s^=s<<13,s>>>=0,s^=s>>>17,s^=s<<5,s>>>=0,s/4294967296);}
 const s2l=v=>Math.pow(v/255,2.2);
 function mapVertex(m,c,u,w,ao,out){const id=m[0];
@@ -28,7 +28,7 @@ function mapVertex(m,c,u,w,ao,out){const id=m[0];
   out[4]=mid;out[0]=s2l(c[0]);out[1]=s2l(c[1]);out[2]=s2l(c[2]);out[3]=id===19?m[1]:0;}
 class MeshBuilderI{
   constructor(){this.P=[];this.N=[];this.C=[];this.M=[];this.idx=[];this.nv=0;this.m=[0,0,0,0];this.c=[255,255,255,255];this.o=[0,0,0,0,0];}
-  v(p,n,u=0,w=0,ao){const o=this.o;mapVertex(this.m,this.c,u,w,ao,o);const l=Math.hypot(n[0],n[1],n[2])||1;
+  v(p,n,u=0,w=0,ao){const o=this.o;mapVertex(this.m,this.c,u,w,ao,o);const l=hyp3(n[0],n[1],n[2])||1;
     this.P.push(p[0],p[1],p[2]);this.N.push(n[0]/l,n[1]/l,n[2]/l);this.C.push(o[0],o[1],o[2],o[3]);this.M.push(o[4]);return this.nv++;}
   quad(a,b,c,d){this.idx.push(a,b,c,a,c,d);}
   tube(a,b,r,n=6,caps=true,r2=r){
@@ -164,7 +164,7 @@ function wPump(){const W=WORLD,T=W.todo;if(!T)return;
 function newChunk(cx,cz){const x0=cx*CHK,z0=cz*CHK;return {cx,cz,x0,z0,key:ckey(cx,cz),g:[null,null,null],H:null,SC:null,st:null,req:{},want:2,seen:0,
   mn:[x0,1e9,z0],mx:[x0+CHK,-1e9,z0+CHK],ymax:-1e9};}
 function freeChunk(c){for(const g of c.g)if(g){freeM(g.m);freeM(g.w);}if(c.st){freeM(c.st.roads);freeM(c.st.props);if(c.st.trees&&c.st.trees.length)WORLD.treeGen++;if(c.st.lights&&c.st.lights.length)WORLD.lgen=(WORLD.lgen||0)+1;}c.g=[null,null,null];c.st=null;c.H=null;}
-const wBox2=(x,z,c)=>{const dx=Math.max(c.x0-x,0,x-c.x0-CHK),dz=Math.max(c.z0-z,0,z-c.z0-CHK);return Math.hypot(dx,dz);};
+const wBox2=(x,z,c)=>{const dx=Math.max(c.x0-x,0,x-c.x0-CHK),dz=Math.max(c.z0-z,0,z-c.z0-CHK);return hyp2(dx,dz);};
 /* once a frame: ask for what's missing round the camera (the car's own ground first, then what's ahead of
    it, then the rest by distance), and let go of what's far behind */
 /* what the worker sends back waits here and becomes meshes a few milliseconds' worth a frame (nearest first,
@@ -186,7 +186,7 @@ const GKEY=['g0','g1','g2'];
 function worldUpdate(eye,car){
   const W=WORLD,S=W.st;W.frame++;worldRings();worldDrain();
   if(!W.worker&&!W.forceLocal&&W.mode==='starting')startWorker();
-  const ex=eye[0],ez=eye[2],R=W.near,px=car?car.p[0]:ex,pz=car?car.p[2]:ez,vx=car?car.v[0]:0,vz=car?car.v[2]:0,sp=Math.hypot(vx,vz);
+  const ex=eye[0],ez=eye[2],R=W.near,px=car?car.p[0]:ex,pz=car?car.p[2]:ez,vx=car?car.v[0]:0,vz=car?car.v[2]:0,sp=hyp2(vx,vz);
   const fx=sp>1?vx/sp:0,fz=sp>1?vz/sp:0,lead=Math.min(1,sp/30)*.75,ccx=Math.floor(px/CHK),ccz=Math.floor(pz/CHK),todo=[];
   for(let cx=Math.floor((ex-R)/CHK);cx<=Math.floor((ex+R)/CHK);cx++)for(let cz=Math.floor((ez-R)/CHK);cz<=Math.floor((ez+R)/CHK);cz++){
     const k=ckey(cx,cz);let c=W.chunks.get(k);
@@ -221,9 +221,9 @@ function worldUpdate(eye,car){
     else{const t0=performance.now();for(const q of todo){wMark(q);runLocal(q);if(performance.now()-t0>(GAME.state==='drive'?5:14))break;}}}
   /* let go of what's far behind */
   {const L=chunkList();for(let i=0;i<L.length;i++){const c=L[i];if(c.seen===W.frame)continue;if(wBox2(ex,ez,c)>R+160){freeChunk(c);W.chunks.delete(c.key);W.cver++;WLC.cx=NaN;}}}
-  {const L=farList();for(let i=0;i<L.length;i++){const t=L[i];if(t.seen===W.frame)continue;const d=Math.hypot(t.x0+FTS/2-ex,t.z0+FTS/2-ez);if(d>W.farR+FTS*1.5||W.farR===0){freeM(t.m);freeM(t.marks);W.far.delete(t.key);W.fver++;}}}
+  {const L=farList();for(let i=0;i<L.length;i++){const t=L[i];if(t.seen===W.frame)continue;const d=hyp2(t.x0+FTS/2-ex,t.z0+FTS/2-ez);if(d>W.farR+FTS*1.5||W.farR===0){freeM(t.m);freeM(t.marks);W.far.delete(t.key);W.fver++;}}}
   /* the stress test's numbers: how far, how fast, any frame where the car's own ground wasn't ready */
-  if(car){if(S.lastP){const dd=Math.hypot(px-S.lastP[0],pz-S.lastP[1]);if(dd<60)S.odo+=dd;}if(S.lastP){S.lastP[0]=px;S.lastP[1]=pz;}else S.lastP=[px,pz];S.top=Math.max(S.top,sp);
+  if(car){if(S.lastP){const dd=hyp2(px-S.lastP[0],pz-S.lastP[1]);if(dd<60)S.odo+=dd;}if(S.lastP){S.lastP[0]=px;S.lastP[1]=pz;}else S.lastP=[px,pz];S.top=Math.max(S.top,sp);
     const cc=W.chunks.get(ckey(ccx,ccz));if(!cc||!cc.H)S.missT++;}
   S.genT+=1/60;if(S.genT>=1){S.genRate=S.genAcc/S.genT;S.genAcc=0;S.genT=0;}
   W.ready=true;
@@ -246,7 +246,7 @@ function groundInto(x,z,o){
   let y,gx,gz;
   if(fx>fz){gx=(h10-h00)/2;gz=(h11-h10)/2;y=h00+(h10-h00)*fx+(h11-h10)*fz;}
   else{gx=(h11-h01)/2;gz=(h01-h00)/2;y=h00+(h11-h01)*fx+(h01-h00)*fz;}
-  const l=Math.hypot(gx,1,gz);o.y=y;o.n[0]=-gx/l;o.n[1]=1/l;o.n[2]=-gz/l;o.surf=WG.SURF[code];return o;
+  const l=hyp3(gx,1,gz);o.y=y;o.n[0]=-gx/l;o.n[1]=1/l;o.n[2]=-gz/l;o.surf=WG.SURF[code];return o;
 }
 const WHQ={y:0,n:[0,1,0],surf:''};
 const WNONE=[];

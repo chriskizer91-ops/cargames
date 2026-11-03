@@ -26,7 +26,7 @@ class RaceLine{
     const hwA=new Float64Array(n);for(let i=0;i<n;i++)hwA[i]=typeof hw==='function'?hw(Math.min(i*ds,L)):hw;
     Object.assign(this,{path,closed,n,ds,len:L,hw:typeof hw==='function'?Math.max(...hwA):hw,hwA,caps:o.caps||[]});
     const cx=new Float64Array(n),cz=new Float64Array(n),nx=new Float64Array(n),nz=new Float64Array(n),off=new Float64Array(n);
-    const dir=s=>{const w=v=>closed?((v%L)+L)%L:Math.max(0,Math.min(L,v)),a=path.at(w(s-2)),b=path.at(w(s+2)),l=Math.hypot(b[0]-a[0],b[1]-a[1])||1;return [(b[0]-a[0])/l,(b[1]-a[1])/l];};
+    const dir=s=>{const w=v=>closed?((v%L)+L)%L:Math.max(0,Math.min(L,v)),a=path.at(w(s-2)),b=path.at(w(s+2)),l=hyp2(b[0]-a[0],b[1]-a[1])||1;return [(b[0]-a[0])/l,(b[1]-a[1])/l];};
     for(let i=0;i<n;i++){const s=i*ds,c=path.at(Math.min(s,L)),d=dir(s);cx[i]=c[0];cz[i]=c[1];nx[i]=-d[1];nz[i]=d[0];}
     /* the line: an elastic band pulled tight between the edges (each point to the middle of its neighbours, along its own crosswise line) */
     const wA=hwA.map(h=>Math.max(0,h-(o.margin??1.6))),w=Math.max(...wA),m=o.span||Math.max(2,Math.round(8/ds)),idx=i=>closed?((i%n)+n)%n:Math.max(0,Math.min(n-1,i));
@@ -39,7 +39,7 @@ class RaceLine{
     /* curvature of the line (positive turns right), smoothed; the banking that helps (or hurts) in that turn; the ground */
     const k=new Float64Array(n),kk=new Float64Array(n),tb=new Float64Array(n),surf=new Array(n),q=Math.max(1,Math.round(6/ds));
     for(let i=0;i<n;i++){const a=idx(i-q),b=idx(i+q);if(!closed&&(i-q<0||i+q>n-1)){k[i]=0;continue;}
-      const ax=x[i]-x[a],az=z[i]-z[a],bx=x[b]-x[i],bz=z[b]-z[i],la=Math.hypot(ax,az)||1,lb=Math.hypot(bx,bz)||1,cr=(ax*bz-az*bx)/(la*lb),dt=(ax*bx+az*bz)/(la*lb);
+      const ax=x[i]-x[a],az=z[i]-z[a],bx=x[b]-x[i],bz=z[b]-z[i],la=hyp2(ax,az)||1,lb=hyp2(bx,bz)||1,cr=(ax*bz-az*bx)/(la*lb),dt=(ax*bx+az*bz)/(la*lb);
       k[i]=Math.atan2(cr,dt)/((la+lb)/2);}
     for(let i=0;i<n;i++){let s=0,c=0;for(let j=-2;j<=2;j++){const t=idx(i+j);s+=k[t];c++;}kk[i]=s/c;}
     const G=o.ground,y=new Float64Array(n),vmax=new Float64Array(n).fill(1e9);
@@ -106,7 +106,7 @@ class Driver{
     if(L.closed&&pi>=0){if(pi>L.n*.75&&f.i<L.n*.25)this.lap++;else if(pi<L.n*.25&&f.i>L.n*.75)this.lap--;}
     this.i=f.i;this.dist=f.d;
     /* the arc length, with the car's own place along the segment */
-    const i=f.i,j=L.idx(i+1),sx=L.x[j]-L.x[i],sz=L.z[j]-L.z[i],sl=Math.hypot(sx,sz)||1,u=((t.p[0]-L.x[i])*sx+(t.p[2]-L.z[i])*sz)/sl;
+    const i=f.i,j=L.idx(i+1),sx=L.x[j]-L.x[i],sz=L.z[j]-L.z[i],sl=hyp2(sx,sz)||1,u=((t.p[0]-L.x[i])*sx+(t.p[2]-L.z[i])*sz)/sl;
     this.s=i*L.ds+u;this.prog=this.lap*L.len+this.s;
     this.lat=(t.p[0]-L.x[i])*L.nx[i]+(t.p[2]-L.z[i])*L.nz[i];
     return this;
@@ -148,7 +148,7 @@ class Driver{
     if(t.M[4]<.35)this.flipT+=dt;else this.flipT=0;
     if(this.dist>L.hwAt(this.i)+14)this.offT+=dt;else this.offT=0;
     /* facing back the way it came */
-    {const i=L.idx(Math.round(this.s/L.ds)),j=L.idx(i+1),dx=L.x[j]-L.x[i],dz=L.z[j]-L.z[i],fw=(t.M[0]*dx+t.M[6]*dz)/(Math.hypot(dx,dz)||1);if(fw<-.2)this.wrongT+=dt;else this.wrongT=0;}
+    {const i=L.idx(Math.round(this.s/L.ds)),j=L.idx(i+1),dx=L.x[j]-L.x[i],dz=L.z[j]-L.z[i],fw=(t.M[0]*dx+t.M[6]*dz)/(hyp2(dx,dz)||1);if(fw<-.2)this.wrongT+=dt;else this.wrongT=0;}
     if(this.stuckT>3||this.flipT>2.2||this.offT>5||this.wrongT>2.5)this.resetReq=true;
     this._ghost(dt);
     return inp;
@@ -208,9 +208,9 @@ class Driver{
   /* the car where riding puts it: on the ground, square to it, pointing down the line, the wheels turning */
   kinPose(dt=0){
     const t=this.car,L=this.line,[x,z]=L.at(this.s,this.want),[x2,z2]=L.at(this.s+2.5,this.want),n=KG.n;t.world.groundAt(x,z,KG);
-    let fx=x2-x,fz=z2-z;const fl=Math.hypot(fx,fz)||1;fx/=fl;fz/=fl;
+    let fx=x2-x,fz=z2-z;const fl=hyp2(fx,fz)||1;fx/=fl;fz/=fl;
     /* forward laid on the ground's slope; across it, forward x up */
-    const fy=-(fx*n[0]+fz*n[2])/n[1],l=Math.hypot(fx,fy,fz),ax=fx/l,ay=fy/l,az=fz/l,rx=ay*n[2]-az*n[1],ry=az*n[0]-ax*n[2],rz=ax*n[1]-ay*n[0],M=t.M;
+    const fy=-(fx*n[0]+fz*n[2])/n[1],l=hyp3(fx,fy,fz),ax=fx/l,ay=fy/l,az=fz/l,rx=ay*n[2]-az*n[1],ry=az*n[0]-ax*n[2],rz=ax*n[1]-ay*n[0],M=t.M;
     M[0]=ax;M[3]=ay;M[6]=az;M[1]=n[0];M[4]=n[1];M[7]=n[2];M[2]=rx;M[5]=ry;M[8]=rz;
     const h=this.rideH||t.c.hcg;t.p[0]=x+n[0]*h;t.p[1]=KG.y+n[1]*h;t.p[2]=z+n[2]*h;
     t.v[0]=ax*this.kv;t.v[1]=ay*this.kv;t.v[2]=az*this.kv;t.w.fill(0);t.beta=0;
@@ -267,7 +267,7 @@ function _hullInto(A,B){
     if(l[1]<y0||l[1]>y1)continue;const px=L-Math.abs(l[0]),pz=Wd-Math.abs(l[2]);if(px<=0||pz<=0)continue;
     /* out through the nearer side or end, in B's frame, into the world */
     let lx=0,lz=0,pen;if(pz<px){lz=Math.sign(l[2])||1;pen=pz;}else{lx=Math.sign(l[0])||1;pen=px;}
-    n[0]=M[0]*lx+M[2]*lz;n[1]=0;n[2]=M[6]*lx+M[8]*lz;const nl=Math.hypot(n[0],n[2])||1;n[0]/=nl;n[2]/=nl;
+    n[0]=M[0]*lx+M[2]*lz;n[1]=0;n[2]=M[6]*lx+M[8]*lz;const nl=hyp2(n[0],n[2])||1;n[0]/=nl;n[2]/=nl;
     _pairImpulse(A,B,P,n);
     /* and apart, by their weights */
     const k=Math.min(pen,.12),wa=B.m/(A.m+B.m),wb=1-wa;A.p[0]+=n[0]*k*wa;A.p[2]+=n[2]*k*wa;B.p[0]-=n[0]*k*wb;B.p[2]-=n[2]*k*wb;
@@ -281,7 +281,7 @@ function _pairImpulse(A,B,P,n){
   const ang=(C,rr,d)=>v3dot(d,v3cross(x,C.invI(x,C.M,v3cross(y,rr,d)),rr)),K=1/A.m+1/B.m+ang(A,ra,n)+ang(B,rb,n),j=-(1+.15)*vn/K;
   J[0]=n[0]*j;J[1]=n[1]*j;J[2]=n[2]*j;
   /* rubbing: some friction along the touch */
-  const vt0=vr[0]-n[0]*vn,vt1=vr[1]-n[1]*vn,vt2=vr[2]-n[2]*vn,vtl=Math.hypot(vt0,vt1,vt2);
+  const vt0=vr[0]-n[0]*vn,vt1=vr[1]-n[1]*vn,vt2=vr[2]-n[2]*vn,vtl=hyp3(vt0,vt1,vt2);
   if(vtl>1e-3){const td=[vt0/vtl,vt1/vtl,vt2/vtl],Kt=1/A.m+1/B.m+ang(A,ra,td)+ang(B,rb,td),jt=Math.min(.35*j,vtl/Kt);J[0]-=td[0]*jt;J[1]-=td[1]*jt;J[2]-=td[2]*jt;}
   const push=(C,rr,s)=>{for(let q=0;q<3;q++)C.v[q]+=s*J[q]/C.m;const Jt=[J[0]*s,J[1]*s,J[2]*s],dw=C.invI(r,C.M,v3cross(y,rr,Jt));for(let q=0;q<3;q++)C.w[q]+=dw[q];};
   push(A,ra,1);push(B,rb,-1);

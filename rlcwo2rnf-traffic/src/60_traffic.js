@@ -45,7 +45,7 @@ const trafficWanted=()=>APP.traffic!==false&&!RACE.on&&!(CHAL.run&&CHAL.run.phas
 const HW={lanes:[2.1,5.7,9.3],loops:null,prof:null,pOK:null,px0:0,pdx:4,pn:0,blk:16,town:395,vTown:15.6,vCountry:26.8};
 /* a centripetal Catmull-Rom spline through points P[1]..P[n-2] (P[0] and P[n-1] only steer it), k pieces a span, onto out */
 function crInto(P,k,out){
-  const d=(a,b)=>Math.pow(Math.hypot(b[0]-a[0],b[1]-a[1]),.5)||1e-3;
+  const d=(a,b)=>Math.pow(hyp2(b[0]-a[0],b[1]-a[1]),.5)||1e-3;
   for(let i=1;i<P.length-2;i++){const p0=P[i-1],p1=P[i],p2=P[i+1],p3=P[i+2],t1=d(p0,p1),t2=t1+d(p1,p2),t3=t2+d(p2,p3);
     for(let j=i===1?0:1;j<=k;j++){const t=t1+(t2-t1)*j/k,L=(a,b,ta,tb)=>[(a[0]*(tb-t)+b[0]*(t-ta))/(tb-ta),(a[1]*(tb-t)+b[1]*(t-ta))/(tb-ta)];
       const A1=L(p0,p1,0,t1),A2=L(p1,p2,t1,t2),A3=L(p2,p3,t2,t3),B1=L(A1,A2,0,t2),B2=L(A2,A3,t1,t3),C=L(B1,B2,t1,t2);out.push(C[0],C[1]);}}
@@ -63,11 +63,11 @@ function hwBuild(){
     for(let x=X-84;x>-X+80;x-=4)dense.push(x,-zk);
     crInto(T.map(([x,z])=>[-x,-z]),10,dense);dense.length-=2;
     /* resampled every 2 m along it, closed */
-    const nd=dense.length/2,cum=new Float64Array(nd+1);for(let i=1;i<=nd;i++){const a=(i-1)*2,b=(i%nd)*2;cum[i]=cum[i-1]+Math.hypot(dense[b]-dense[a],dense[b+1]-dense[a+1]);}
+    const nd=dense.length/2,cum=new Float64Array(nd+1);for(let i=1;i<=nd;i++){const a=(i-1)*2,b=(i%nd)*2;cum[i]=cum[i-1]+hyp2(dense[b]-dense[a],dense[b+1]-dense[a+1]);}
     const len=cum[nd],n=Math.round(len/2),ds=len/n,x=new Float64Array(n),z=new Float64Array(n);
     for(let i=0,j=0;i<n;i++){const s=i*ds;while(j<nd-1&&cum[j+1]<s)j++;const f=(s-cum[j])/((cum[j+1]-cum[j])||1),a=j*2,b=((j+1)%nd)*2;x[i]=dense[a]+(dense[b]-dense[a])*f;z[i]=dense[a+1]+(dense[b+1]-dense[a+1])*f;}
     const tx=new Float32Array(n),tz=new Float32Array(n),kap=new Float32Array(n),vA=new Float32Array(n);
-    for(let i=0;i<n;i++){const a=(i-1+n)%n,b=(i+1)%n,dx=x[b]-x[a],dz=z[b]-z[a],l=Math.hypot(dx,dz)||1;tx[i]=dx/l;tz[i]=dz/l;}
+    for(let i=0;i<n;i++){const a=(i-1+n)%n,b=(i+1)%n,dx=x[b]-x[a],dz=z[b]-z[a],l=hyp2(dx,dz)||1;tx[i]=dx/l;tz[i]=dz/l;}
     for(let i=0;i<n;i++){const a=(i-2+n)%n,b=(i+2)%n,c=tx[a]*tz[b]-tz[a]*tx[b],e=tx[a]*tx[b]+tz[a]*tz[b];kap[i]=Math.atan2(c,e)/(4*ds);}
     /* the road's speed: town or country, slow enough round a bend, then braked back from every slower bit */
     for(let i=0;i<n;i++){const v0=Math.abs(x[i])<HW.town?HW.vTown:HW.vCountry,ak=Math.abs(kap[i]);vA[i]=ak>1e-4?Math.min(v0,Math.sqrt(2.4/ak)):v0;}
@@ -133,7 +133,7 @@ function trfClear(){for(let _i1=0;_i1<TRF.cars.length;_i1++){const c=TRF.cars[_i
    place relative to the floating origin is put in each frame by trafficPrep) */
 function trfPose(c){
   const L=c.L,f=c.s/L.ds,i=Math.floor(f)%L.n,j=(i+1)%L.n,t=f-Math.floor(f);
-  let tx=L.tx[i]+(L.tx[j]-L.tx[i])*t,tz=L.tz[i]+(L.tz[j]-L.tz[i])*t;const tl=Math.hypot(tx,tz)||1;tx/=tl;tz/=tl;
+  let tx=L.tx[i]+(L.tx[j]-L.tx[i])*t,tz=L.tz[i]+(L.tz[j]-L.tz[i])*t;const tl=hyp2(tx,tz)||1;tx/=tl;tz/=tl;
   /* moving over to the next lane: across on a smooth step, the nose turned a little the way it's going */
   let lat=0,yaw=0;if(c.lcT<c.lcDur){const u=c.lcT/c.lcDur;lat=c.lat0*(1-u*u*(3-2*u));yaw=-c.lat0*6*u*(1-u)/c.lcDur/Math.max(2,c.v);}
   c.lat=lat;
@@ -165,7 +165,7 @@ function trfAhead(c,lp,v0,k){
     else continue;
     const a=trfIdm(c,v0,gap,o.v);if(a<acc){acc=a;why=1;}}
   for(let _i3=0;_i3<ACT.length;_i3++){const t=ACT[_i3];const dx=t.p[0]-c.x,dz=t.p[2]-c.z,al=dx*c.fx+dz*c.fz;if(al<=-2||al>c.look)continue;
-    const lr=-dx*c.fz+dz*c.fx,M=t.M,hf=Math.hypot(M[0],M[6])||1,ct=(M[0]*c.fx+M[6]*c.fz)/hf,sn=(-M[0]*c.fz+M[6]*c.fx)/hf,tL=t.c.body.L/2,tW=t.c.body.W/2,
+    const lr=-dx*c.fz+dz*c.fx,M=t.M,hf=hyp2(M[0],M[6])||1,ct=(M[0]*c.fx+M[6]*c.fz)/hf,sn=(-M[0]*c.fz+M[6]*c.fx)/hf,tL=t.c.body.L/2,tW=t.c.body.W/2,
       pa=Math.abs(ct)*tL+Math.abs(sn)*tW,pw=Math.abs(sn)*tL+Math.abs(ct)*tW;
     if(Math.abs(c.lp+lr-lp)>m.W/2+pw+.4)continue;
     const gap=al-m.L/2-pa;if(gap<-m.L)continue;const a=trfIdm(c,v0,gap,t.v[0]*c.fx+t.v[2]*c.fz);if(a<acc){acc=a;why=2;}}
@@ -243,7 +243,7 @@ function trfSpawn(c,px,pz,far,keep){
     const k=Math.floor(trfRnd()*3),L=HW.loops[k],side=trfRnd()<.5?-1:1,x=px+side*(60+trfRnd()*(keep-70)),vp=GAME.car.v[0],ve=HW.vCountry*.95,
       okE=side*(ve-vp)<0,okW=side*(-ve-vp)<0,dir=okE&&okW?(trfRnd()<.5?1:-1):okE?1:okW?-1:(trfRnd()<.5?1:-1);
     if(Math.abs(x)>L.turnX||!hwReady(x))continue;
-    const z=dir>0?L.zk:-L.zk,dd=Math.hypot(x-px,z-pz);if(dd<60||dd>keep)continue;
+    const z=dir>0?L.zk:-L.zk,dd=hyp2(x-px,z-pz);if(dd<60||dd>keep)continue;
     let clash=false;for(let _i9=0;_i9<TRF.cars.length;_i9++){const o=TRF.cars[_i9];if(o.on&&o!==c&&o.dir===dir&&Math.abs(o.x-x)<45&&Math.abs(o.lp-L.zk)<3){clash=true;break;}}
     /* (nor on top of a police car, or just in front of one) */
     for(let _i9b=0;_i9b<ACT.length&&!clash;_i9b++){const t=ACT[_i9b];if(Math.abs(t.p[0]-x)<40&&Math.abs(t.p[2]-z)<4)clash=true;}if(clash)continue;
@@ -307,7 +307,7 @@ function trafficShadow(F,used,G,VP,eye){
 function trafficLights(L){if(!TRF.live||!SKY.lightsOn)return;let n=TRF_LAMPS[GFX.level]||3;
   for(let _i14=0;_i14<TRF_ON.length;_i14++){const c=TRF_ON[_i14];if(n<=0||L.dyn.length>=16)break;if(!c.vis)continue;const m=c.m,M=c.M,q=c.lamp;
     q.pos[0]=M[12]+M[0]*m.lampX+M[4]*m.lampY;q.pos[1]=M[13]+M[1]*m.lampX+M[5]*m.lampY;q.pos[2]=M[14]+M[2]*m.lampX+M[6]*m.lampY;
-    const dx=M[0]-M[4]*.08,dy=M[1]-M[5]*.08-.04,dz=M[2]-M[6]*.08,l=Math.hypot(dx,dy,dz)||1;q.dir[0]=dx/l;q.dir[1]=dy/l;q.dir[2]=dz/l;
+    const dx=M[0]-M[4]*.08,dy=M[1]-M[5]*.08-.04,dz=M[2]-M[6]*.08,l=hyp3(dx,dy,dz)||1;q.dir[0]=dx/l;q.dir[1]=dy/l;q.dir[2]=dz/l;
     L.dyn.push(q);n--;}}
 /* the soft shade under the nearest cars (the renderer takes eight in all) */
 function trafficOcc(occ){if(!TRF.live)return;for(let _i15=0;_i15<TRF_ON.length;_i15++){const c=TRF_ON[_i15];if(occ.length>=8||c.d2>2500)break;const o=c.occ,m=c.m;
@@ -326,7 +326,7 @@ function trfBoxes(ax,az,afx,afz,aL,aW,bx,bz,bfx,bfz,bL,bW){
 function trfThreat(c){
   if(c.accYou<-8.5)return true;
   for(let _i16=0;_i16<ACT.length;_i16++){const t=ACT[_i16];const dx=t.p[0]-c.x,dz=t.p[2]-c.z;if(dx*dx+dz*dz>1600)continue;
-    const M=t.M,hf=Math.hypot(M[0],M[6])||1,afx=M[0]/hf,afz=M[6]/hf,rvx=t.v[0]-c.fx*c.v,rvz=t.v[2]-c.fz*c.v;
+    const M=t.M,hf=hyp2(M[0],M[6])||1,afx=M[0]/hf,afz=M[6]/hf,rvx=t.v[0]-c.fx*c.v,rvz=t.v[2]-c.fz*c.v;
     for(let k=0;k<=4;k++){const tt=k*.15;if(trfBoxes(0,0,c.fx,c.fz,c.m.L+.6,c.m.W+.6,dx+rvx*tt,dz+rvz*tt,afx,afz,t.c.body.L,t.c.body.W))return true;}}
   return false;}
 /* onto the physics where it rides: square to the road as it was, at its speed, the wheels rolling, the engine in the gear
@@ -356,7 +356,7 @@ function trfFree(c){if(c.veh){c.m.pool.push(c.veh);c.veh=null;}c.mode='kin';}
 function trfPhysPose(c){const V=c.veh,R=V.M,M=c.M,m=c.m;
   M[0]=R[0];M[1]=R[3];M[2]=R[6];M[3]=0;M[4]=R[1];M[5]=R[4];M[6]=R[7];M[7]=0;M[8]=R[2];M[9]=R[5];M[10]=R[8];M[11]=0;M[15]=1;
   c.ox=V.p[0]-R[0]*m.cg0-R[1]*m.cg1;c.oy=V.p[1]-R[3]*m.cg0-R[4]*m.cg1;c.oz=V.p[2]-R[6]*m.cg0-R[7]*m.cg1;
-  const hf=Math.hypot(R[0],R[6])||1;c.x=V.p[0];c.z=V.p[2];c.y=V.p[1]-m.rideH;c.fx=R[0]/hf;c.fz=R[6]/hf;c.v=Math.max(0,V.vf);}
+  const hf=hyp2(R[0],R[6])||1;c.x=V.p[0];c.z=V.p[2];c.y=V.p[1]-m.rideH;c.fx=R[0]/hf;c.fz=R[6]/hf;c.v=Math.max(0,V.vf);}
 /* its driver on the physics: the same following (the lane ahead, you and the rest on the physics) through the pedals,
    steering for the middle of its lane; hit (or hitting), it stops and honks; clear of everything, upright and back by
    its lane for a second, it rides the lane again */
@@ -395,7 +395,7 @@ function trfPhysDrive(c,dt){
 /* (the threat check for a car already on the physics, by its own velocity) */
 function trfThreatPhys(c){const V=c.veh;
   for(let _i19=0;_i19<ACT.length;_i19++){const t=ACT[_i19];if(t===V)continue;const dx=t.p[0]-c.x,dz=t.p[2]-c.z;if(dx*dx+dz*dz>1600)continue;
-    const M=t.M,hf=Math.hypot(M[0],M[6])||1,afx=M[0]/hf,afz=M[6]/hf,rvx=t.v[0]-V.v[0],rvz=t.v[2]-V.v[2];
+    const M=t.M,hf=hyp2(M[0],M[6])||1,afx=M[0]/hf,afz=M[6]/hf,rvx=t.v[0]-V.v[0],rvz=t.v[2]-V.v[2];
     for(let k=0;k<=6;k++){const tt=k*.15;if(trfBoxes(0,0,c.fx,c.fz,c.m.L+.6,c.m.W+.6,dx+rvx*tt,dz+rvz*tt,afx,afz,t.c.body.L,t.c.body.W))return true;}}
   return false;}
 /* each physics step (60_game's step, with yours): the cars of the traffic on the physics and the police, then everyone
@@ -413,7 +413,7 @@ function trfHonk(c){const A=ENG.audio,cam=CAM.last;if(!A||!cam)return;const ctx=
   if(!TRF_HORN){const o1=ctx.createOscillator(),o2=ctx.createOscillator(),f=ctx.createBiquadFilter(),g=ctx.createGain(),p=ctx.createStereoPanner?ctx.createStereoPanner():null;
     o1.type='square';o2.type='square';o1.frequency.value=415;o2.frequency.value=523;f.type='lowpass';f.frequency.value=2400;f.Q.value=.8;g.gain.value=0;
     o1.connect(f);o2.connect(f);f.connect(g);if(p){g.connect(p);p.connect(A.master);}else g.connect(A.master);o1.start();o2.start();TRF_HORN={g,p};}
-  const H=TRF_HORN,dx=c.x-cam.eye[0],dz=c.z-cam.eye[2],d=Math.hypot(dx,dz),vol=.16/(1+Math.pow(d/14,1.4));
+  const H=TRF_HORN,dx=c.x-cam.eye[0],dz=c.z-cam.eye[2],d=hyp2(dx,dz),vol=.16/(1+Math.pow(d/14,1.4));
   if(H.p){const rx=-cam.fwd[2],rz=cam.fwd[0];H.p.pan.setTargetAtTime(Math.max(-1,Math.min(1,(dx*rx+dz*rz)/(d||1)*.8)),now,.02);}
   const G=H.g.gain;G.cancelScheduledValues(now);G.setTargetAtTime(vol,now,.008);G.setTargetAtTime(0,now+.32,.02);G.setTargetAtTime(vol,now+.45,.008);G.setTargetAtTime(0,now+1.05,.04);
 }

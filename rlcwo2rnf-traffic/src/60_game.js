@@ -424,6 +424,24 @@ const mode0Near=()=>CAMS[APP.cam]==='Hood'&&!APP.orbit?.12:.3;
 /* ---------- drawing ---------- */
 /* the time of day's light (59_daynight's TOD, put here by applyTod); 55_gfx's envNow adds the weather */
 const SKY={};
+/* the physics warmed up on the loading screen: two throwaway cars of your build at the garage, stepped n times each
+   (3000: twelve and a half seconds of driving: the gas, the brakes, the handbrake, turning, the one into the other,
+   at your level and the robot's), a slice at a time while the shaders compile. Until the browser has compiled the
+   step at full speed it boxes its numbers (garbage by the hundred kilobytes a frame, and the first minute of a drive
+   had the hitches); after this it starts the drive already compiled. Nothing of the game's is touched: the cars are
+   thrown away, and their sounds and events with them */
+async function physWarm(n=3000){
+  const i=APP.bi,b=BUILDS[i];if(!b)return 0;const t0=performance.now();
+  const mk=()=>{const V=makeCar(i,RANCH.world,simOpts(),plusK(b.car),plusG(b.car));V.setAssists(APP.level==='sim'?'real':APP.level);V.pt.st='run';V.pt.we=V.pt.e.idle*TAU/60;return V;};
+  const A=mk(),B=mk(),pair=[A,B],x=HOME[0],z=HOME[1];
+  A.place([x,RANCH.W.heightAt(x,z)+.2,z],HOME[2]);B.place([x,RANCH.W.heightAt(x,z+14)+.2,z+14],HOME[2]+PI);
+  const ia={steer:0,thr:1,brk:0,hb:0,nos:false},ib={steer:0,thr:.5,brk:0,hb:0,nos:false};
+  for(let s=0;s<n;s++){const f=s/n;ia.steer=Math.sin(s*.01)*.6;ia.thr=f<.6?1:0;ia.brk=f>=.6&&f<.8?1:0;ia.hb=f>=.8?1:0;ib.steer=-Math.sin(s*.013)*.5;
+    if(s===n>>1){A.setAssists('ai');B.setAssists('ai');}
+    A.step(DT,ia);B.step(DT,ib);carContacts(pair);
+    if(s%250===249)await new Promise(r=>setTimeout(r,0));}
+  for(const V of pair){V.takeEvents();if(V.pt.takeEvents)V.pt.takeEvents();}
+  return Math.round(performance.now()-t0);}
 /* the car's model matrix: physics frame (centre of gravity) to the model's frame (ground under the middle), relative to
    the floating origin */
 /* (into kept matrices: the result is used by one car's drawing, then the next car's overwrites it) */

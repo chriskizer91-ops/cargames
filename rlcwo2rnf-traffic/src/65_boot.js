@@ -32,8 +32,10 @@ else{
          is built one a frame on the opening screen, as before) */
       let warm=false,built=0;const park=CARS.map(([c])=>c).filter(c=>c!==APP.car);
       const pre=(async()=>{for(const car of park){if(warm)break;const i=rigBuild(car,rigOf(car));if(!TRUCK[BUILDS[i].id]){truck(i);built++;}await new Promise(r=>setTimeout(r,0));}})();
+      /* (and the physics, a slice at a time while the GPU compiles: 60_game's physWarm) */
+      const phys=physWarm().then(ms=>{BOOT.physWarm=ms;}).catch(e=>console.warn('physics warm-up',e));
       await R.G.warmup((d,n)=>{L.textContent='Warming up the shaders '+d+' / '+n+(built?' · the garage '+built+' / '+park.length:'');});
-      warm=true;await pre;mark('shaders');BOOT.built=built;
+      warm=true;await pre;await phys;mark('shaders');BOOT.built=built;
       L.hidden=true;openMenu(true);requestAnimationFrame(frame);mark('menu');
       /* the town's lights into their grid, then the ground's photographs, while the opening screen is up */
       setTimeout(()=>{lgBuild();mark('lights');texLoad().then(()=>mark('photos'));},50);

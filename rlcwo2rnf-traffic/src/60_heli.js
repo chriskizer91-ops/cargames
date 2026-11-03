@@ -16,22 +16,22 @@ function heliFrame(dt){
   const t=GAME.car,p=HELI.p,v=HELI.v;
   if(!HELI.on){
     /* in from behind you, 600 m back, already flying */
-    const M=t.M,hl=Math.hypot(M[0],M[6])||1,fx=M[0]/hl,fz=M[6]/hl;p[0]=t.p[0]-fx*600;p[2]=t.p[2]-fz*600;p[1]=RANCH.W.heightAt(p[0],p[2])+HELI_ALT;
+    const M=t.M,hl=hyp2(M[0],M[6])||1,fx=M[0]/hl,fz=M[6]/hl;p[0]=t.p[0]-fx*600;p[2]=t.p[2]-fz*600;p[1]=RANCH.W.heightAt(p[0],p[2])+HELI_ALT;
     v[0]=fx*70;v[1]=0;v[2]=fz*70;HELI.on=true;HELI.lostT=0;HELI.prev=false;say('HELICOPTER!',2.5,PAL.red);
     /* (the pilot's call, once it's over you: a line not recorded yet is simply not heard) */
     HELI.called=false;}
   if(!HELI.called&&HELI.d<200){HELI.called=true;voxSay('radio_air_on','radio',0,0,0);}
   /* where it wants to be: over you, 25 m back, a second ahead of where you are; the speed for that, as fast as it goes */
-  const tv=Math.hypot(t.v[0],t.v[2]),hx=tv>2?t.v[0]/tv:0,hz=tv>2?t.v[2]/tv:0,gx=t.p[0]+t.v[0]-hx*25,gz=t.p[2]+t.v[2]-hz*25,
+  const tv=hyp2(t.v[0],t.v[2]),hx=tv>2?t.v[0]/tv:0,hz=tv>2?t.v[2]/tv:0,gx=t.p[0]+t.v[0]-hx*25,gz=t.p[2]+t.v[2]-hz*25,
     ex=gx-p[0],ez=gz-p[2],vm=heliVmax();
-  let wx=t.v[0]+ex*.6,wz=t.v[2]+ez*.6;const wl=Math.hypot(wx,wz);if(wl>vm){wx*=vm/wl;wz*=vm/wl;}
-  let ax=(wx-v[0])/dt,az=(wz-v[2])/dt;const al=Math.hypot(ax,az);if(al>HELI_A){ax*=HELI_A/al;az*=HELI_A/al;}
+  let wx=t.v[0]+ex*.6,wz=t.v[2]+ez*.6;const wl=hyp2(wx,wz);if(wl>vm){wx*=vm/wl;wz*=vm/wl;}
+  let ax=(wx-v[0])/dt,az=(wz-v[2])/dt;const al=hyp2(ax,az);if(al>HELI_A){ax*=HELI_A/al;az*=HELI_A/al;}
   v[0]+=ax*dt;v[2]+=az*dt;p[0]+=v[0]*dt;p[2]+=v[2]*dt;
   /* up and down with the ground under it, gently */
   const gy=RANCH.W.heightAt(p[0],p[2])+HELI_ALT;v[1]=Math.max(-8,Math.min(8,(gy-p[1])*.8));p[1]+=v[1]*dt;
-  const sp=Math.hypot(v[0],v[2]);if(sp>3)HELI.yaw=Math.atan2(-v[2],v[0]);HELI.pitch=Math.min(.22,sp/vm*.22);
+  const sp=hyp2(v[0],v[2]);if(sp>3)HELI.yaw=Math.atan2(-v[2],v[0]);HELI.pitch=Math.min(.22,sp/vm*.22);
   /* has it got you */
-  const dh=Math.hypot(t.p[0]-p[0],t.p[2]-p[2]);HELI.d=dh;HELI.lostT=dh>HELI_SEE?HELI.lostT+dt:0;
+  const dh=hyp2(t.p[0]-p[0],t.p[2]-p[2]);HELI.d=dh;HELI.lostT=dh>HELI_SEE?HELI.lostT+dt:0;
   if(HELI.lostT>HELI_LOSE)heliEscape();}
 /* lost you: the chase is over (60_police's polEscape) */
 function heliEscape(){HELI.escapes++;HELI.escaping=true;polEscape();}
@@ -66,7 +66,7 @@ function heliDraw(U,u){if(!HELI.on)return 0;const F=frustum(U.uVP),x=HELI.M[12],
 /* the searchlight, at night: from under its nose, down at you */
 function heliLight(L){if(!HELI.on||!SKY.lightsOn||L.dyn.length>=16)return;const t=GAME.car,q=HELI.lamp,M=HELI.M;
   q.pos[0]=M[12]+M[0]*1.8-M[4]*.3;q.pos[1]=M[13]+M[1]*1.8-M[5]*.3;q.pos[2]=M[14]+M[2]*1.8-M[6]*.3;
-  const dx=t.p[0]-RO[0]-q.pos[0],dy=t.p[1]-RO[1]-q.pos[1],dz=t.p[2]-RO[2]-q.pos[2],d=Math.hypot(dx,dy,dz)||1;
+  const dx=t.p[0]-RO[0]-q.pos[0],dy=t.p[1]-RO[1]-q.pos[1],dz=t.p[2]-RO[2]-q.pos[2],d=hyp3(dx,dy,dz)||1;
   if(d>140)return;q.dir[0]=dx/d;q.dir[1]=dy/d;q.dir[2]=dz/d;q.r=Math.max(60,d*1.35);q.col[0]=5200;q.col[1]=5000;q.col[2]=4600;L.dyn.push(q);}
 
 /* ---------- its sound: the rotors' thud (noise, low, pulsed at the blades' rate), a low beat under it, the turbine's
@@ -81,7 +81,7 @@ function heliSound(c,A){const ctx=A.ctx,now=ctx.currentTime;
     const g=ctx.createGain();g.gain.value=0;const p=ctx.createStereoPanner?ctx.createStereoPanner():null;
     n.connect(lp);lp.connect(am);am.connect(g);th.connect(tg);tg.connect(g);wh.connect(wg);wg.connect(g);if(p){g.connect(p);p.connect(A.master);}else g.connect(A.master);
     n.start();lfo.start();th.start();wh.start();HELI.vox={g,p,lfo,wh};}
-  const v=HELI.vox,dx=HELI.p[0]-c.eye[0],dy=HELI.p[1]-c.eye[1],dz=HELI.p[2]-c.eye[2],d=Math.hypot(dx,dy,dz)||1,
+  const v=HELI.vox,dx=HELI.p[0]-c.eye[0],dy=HELI.p[1]-c.eye[1],dz=HELI.p[2]-c.eye[2],d=hyp3(dx,dy,dz)||1,
     vr=((HELI.v[0]-GAME.car.v[0])*dx+(HELI.v[2]-GAME.car.v[2])*dz)/d,dop=1/(1+Math.max(-.3,Math.min(.3,vr/343)));
   v.lfo.frequency.setTargetAtTime(17*dop,now,.1);v.wh.frequency.setTargetAtTime(2150*dop,now,.1);
   v.g.gain.setTargetAtTime(.55/(1+Math.pow(d/70,1.6)),now,.2);

@@ -270,6 +270,19 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
   place; the presets list per car worked out once; distances without three-argument `Math.max` or `Math.hypot`):
   `alloc_rt.js night` on Mobile 228 → 208 KB a frame, of which the physics is still about 90 (its own job). Most of
   what's left on the drawing side is numbers boxed in code not yet optimised in the profile's 30 frames.
+- **The physics warmed up while the game loads** (`physWarm`, `60_game.js`): two throwaway cars of your build stepped
+  3000 times each at the garage (the gas, the brakes, turning, one into the other, at your level and the robot's), a
+  slice at a time while the shaders compile, then thrown away. The browser starts the drive with the step already
+  compiled at full speed, so the first minute of a drive no longer makes the hundred-odd kilobytes of garbage a frame it
+  did before (numbers boxed in code not yet optimised). Here it fits inside the shader stage (1.9 s of software GPU
+  time beside it; the step is about 34 microseconds on a desktop).
+- **Math.hypot without its garbage** (`hyp2`, `hyp3`, `hyp4`, top of `40_physics.js`): V8 makes an array of the
+  arguments on every `Math.hypot` call; these work it out as V8 does (the largest magnitude, each scaled by it, Kahan's
+  compensated sum, the root times the largest), so the very same bits. Checked against `Math.hypot` over 10.5 million
+  random numbers of every size and the edges (+-0, subnormals, +-Infinity, NaN), in Node and in Chromium, cold and
+  optimised: no difference. Used in the physics, the ground lookup (`groundInto`), the robots' contacts and the
+  police, traffic and helicopter. physcheck 0, proving.js's table byte for byte, and the physics fingerprint (every
+  build at every level) identical to the original's.
 - **The performance readout** (F, or Dev: Numbers on screen, Readout): frames a second against the beat, the frame
   time and its worst, the CPU's and the GPU's time, the render size, triangles, chunks and lights, under the HUD's
   name block. Everything shows the world's own numbers as well.

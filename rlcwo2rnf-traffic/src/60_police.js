@@ -49,7 +49,7 @@ function polCrumb(){const p=GAME.car.p;if(POL.k>0){const j=(POL.k-1)%POL_CRUMBS,
     if(dx*dx+dz*dz>3600){POL.k=0;for(let _i22=0;_i22<POL.cars.length;_i22++){const P=POL.cars[_i22];P.ck=0;}}}
   const j=POL.k%POL_CRUMBS;POL.cx[j]=p[0];POL.cz[j]=p[2];POL.k++;}
 /* nothing the physics would stop on (a tree, a post, a wall, a building) along the line from a to b, every 5 m */
-function polClear(ax,az,bx,bz){const dx=bx-ax,dz=bz-az,d=Math.hypot(dx,dz),n=Math.ceil(d/5);
+function polClear(ax,az,bx,bz){const dx=bx-ax,dz=bz-az,d=hyp2(dx,dz),n=Math.ceil(d/5);
   for(let i=1;i<n;i++){const x=ax+dx*i/n,z=az+dz*i/n,L=WW.colliders.near(x,z);
     for(let q=0;q<L.length;q++){const o=L[q];if(o.t==='c'){const ex=x-o.x,ez=z-o.z,r=o.r+1.4;if(ex*ex+ez*ez<r*r)return false;}
       else if(o.x0!==undefined&&x>o.x0-1.4&&x<o.x1+1.4&&z>o.z0-1.4&&z<o.z1+1.4)return false;}}
@@ -69,15 +69,15 @@ function polPlace(P,x,z,yaw,v){const V=P.V;V.place([x,RANCH.W.heightAt(x,z)+.15,
    so it can be driven), facing along it, at your pace; with no trail yet, behind you the way you're facing */
 function polRespawn(P,minBack=0){
   const t=GAME.car,cam=CAM.last,F=cam&&cam.VPw?frustum(cam.VPw):null,want=Math.max(GFX.level==='mobile'?130:160,minBack),v=Math.min(Math.max(12,t.speed*.9),40);
-  const inView=(x,z)=>{if(!F)return false;const y=RANCH.W.heightAt(x,z)+1;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3)return false;}return Math.hypot(x-cam.eye[0],z-cam.eye[2])<(GFX.far+40);};
+  const inView=(x,z)=>{if(!F)return false;const y=RANCH.W.heightAt(x,z)+1;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3)return false;}return hyp2(x-cam.eye[0],z-cam.eye[2])<(GFX.far+40);};
   let k=POL.k-1,acc=0,px=t.p[0],pz=t.p[2];
-  while(k>0&&k>POL.k-POL_CRUMBS+1){const j=k%POL_CRUMBS,x=POL.cx[j],z=POL.cz[j],sd=Math.hypot(x-px,z-pz);if(sd>40)break;acc+=sd;px=x;pz=z;
+  while(k>0&&k>POL.k-POL_CRUMBS+1){const j=k%POL_CRUMBS,x=POL.cx[j],z=POL.cz[j],sd=hyp2(x-px,z-pz);if(sd>40)break;acc+=sd;px=x;pz=z;
     if(acc>=want&&!inView(x,z)&&!polCrowded(P,x,z)){const j2=(k+1)%POL_CRUMBS,yaw=Math.atan2(-(POL.cz[j2]-z),POL.cx[j2]-x);polPlace(P,x,z,yaw,v);P.ck=k+1;POL.respawns++;return true;}
     if(acc>want+200)break;k--;}
-  const M=t.M,hl=Math.hypot(M[0],M[6])||1,fx=M[0]/hl,fz=M[6]/hl;
+  const M=t.M,hl=hyp2(M[0],M[6])||1,fx=M[0]/hl,fz=M[6]/hl;
   for(const back of [want,want+60,want+120]){const x=t.p[0]-fx*back,z=t.p[2]-fz*back;if(!inView(x,z)&&!polCrowded(P,x,z)){polPlace(P,x,z,Math.atan2(-fz,fx),v*.8);POL.respawns++;return true;}}
   return false;}
-const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(Math.hypot(o.V.p[0]-x,o.V.p[2]-z)<14)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(Math.hypot(c.x-x,c.z-z)<30)return true;}return false;};
+const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(hyp2(o.V.p[0]-x,o.V.p[2]-z)<14)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(hyp2(c.x-x,c.z-z)<30)return true;}return false;};
 function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';heliOff();}
 
 /* ---------- each frame (60_game's step, before the traffic and the physics) ---------- */
@@ -90,12 +90,12 @@ function policeFrame(dt){
   polCrumb();
   /* busted: a moment, then back to the garage; and nobody after you again till you're out of its block */
   if(POL.outT>0){POL.outT-=dt;if(POL.outT<=0)polHome();}
-  if(POL.home){if(Math.hypot(t.p[0]-HOME[0],t.p[2]-HOME[1])>120){POL.home=false;POL.holdT=0;VOX.startT=-1;}else{POL.near=1e9;POL.lead=null;POL.bustT=0;return;}}
+  if(POL.home){if(hyp2(t.p[0]-HOME[0],t.p[2]-HOME[1])>120){POL.home=false;POL.holdT=0;VOX.startT=-1;}else{POL.near=1e9;POL.lead=null;POL.bustT=0;return;}}
   /* new ones in behind you, one a second */
   /* (new ones join at the back of the pursuit, not on your bumper: getting away from them stays getting away) */
-  let back=0;for(let i=0;i<POL.cars.length;i++){const P=POL.cars[i];if(P.V)back=Math.max(back,Math.hypot(P.V.p[0]-t.p[0],P.V.p[2]-t.p[2])+30);}
+  let back=0;for(let i=0;i<POL.cars.length;i++){const P=POL.cars[i];if(P.V)back=Math.max(back,hyp2(P.V.p[0]-t.p[0],P.V.p[2]-t.p[2])+30);}
   POL.spawnT-=dt;for(let i=0;i<POL_MAX;i++){const P=POL.cars[i];if(i>=N){P.V=null;continue;}if(!P.V&&POL.spawnT<=0&&POL.holdT<=0){P.V=polMake();if(!polRespawn(P,back))P.V=null;POL.spawnT=1;}}
-  let near=1e9;POL.lead=null;for(let _i27=0;_i27<POL.cars.length;_i27++){const P=POL.cars[_i27];if(!P.V)continue;const d=Math.hypot(P.V.p[0]-t.p[0],P.V.p[2]-t.p[2]);if(d<near){near=d;POL.lead=P;}}POL.near=near;
+  let near=1e9;POL.lead=null;for(let _i27=0;_i27<POL.cars.length;_i27++){const P=POL.cars[_i27];if(!P.V)continue;const d=hyp2(P.V.p[0]-t.p[0],P.V.p[2]-t.p[2]);if(d<near){near=d;POL.lead=P;}}POL.near=near;
   polHeat(dt,t,near);
   /* got away: every one of them further than the escape distance (Dev: 400, 800, 1200 m; at level 5 the helicopter has
      lost you too) for five seconds running */
@@ -115,7 +115,7 @@ function polHeat(dt,t,near){
   /* you hit one of them (each police car's knocks are read here, and cleared) */
   for(let i=0;i<POL.cars.length;i++){const P=POL.cars[i];if(!P.V)continue;const e=P.V.ev;if(e.car>0&&P.d<7&&APP.t-WANTED.hitT>2){WANTED.heat+=12;WANTED.hitT=APP.t;}e.car=0;e.wall=0;}
   /* you hit one of the traffic (its knocks counted, near you) */
-  for(let i=0;i<TRF_ON.length;i++){const c=TRF_ON[i],h=c.hits|0;if(h<(c.wh|0))c.wh=h;if(h>(c.wh|0)){c.wh=h;if(Math.hypot(c.x-t.p[0],c.z-t.p[2])<9)WANTED.heat+=6;}}
+  for(let i=0;i<TRF_ON.length;i++){const c=TRF_ON[i],h=c.hits|0;if(h<(c.wh|0))c.wh=h;if(h>(c.wh|0)){c.wh=h;if(hyp2(c.x-t.p[0],c.z-t.p[2])<9)WANTED.heat+=6;}}
   while(WANTED.lvl<5&&WANTED.heat>=WANT_AT[WANTED.lvl]){WANTED.lvl++;if(!DEVW.wanted||DEVW.wanted==='auto')polLevelUp();}
 }
 function polLevelUp(){const L=wantedLvl();say('WANTED LEVEL '+L,2.5,PAL.red);buzz(30);
@@ -159,7 +159,7 @@ const POL_AB=.6,POL_MU=.85;
 const PD={px:0,pz:0,fx:0,fz:0,lx:0,lz:0,Lm:0,Wm:0,spd:0,aB:0,probe:0,tl:0,tx:0,tz:0,vt:0,off:0,nf:0,slow:false};
 /* the point L along your trail from the car (past the end of it, you) */
 function polAlong(P,L){const t=GAME.car,N=POL_CRUMBS;let acc=0,qx=PD.px,qz=PD.pz;PD.tx=t.p[0];PD.tz=t.p[2];
-  for(let k=P.ck;k<POL.k;k++){const j=k%N,x=POL.cx[j],z=POL.cz[j],sd=Math.hypot(x-qx,z-qz);
+  for(let k=P.ck;k<POL.k;k++){const j=k%N,x=POL.cx[j],z=POL.cz[j],sd=hyp2(x-qx,z-qz);
     if(acc+sd>=L){const u=(L-acc)/Math.max(sd,1e-6);PD.tx=qx+(x-qx)*u;PD.tz=qz+(z-qz)*u;return;}acc+=sd;qx=x;qz=z;}}
 /* a car in the way (kind 0: one of the traffic, c; 1: another police car's vehicle; 2: you): slow for it, or (the
    traffic only) go round it. (It's handed the car, not its numbers: a number handed to a function is a little garbage) */
@@ -168,7 +168,7 @@ function polObst(c,kind){let ox,oz,ofx,ofz,ov,oL,oW;
   /* (most of the traffic is nowhere near: out before any more sums) */
   const r=PD.probe+8;if(ox<PD.px-r||ox>PD.px+r||oz<PD.pz-r||oz>PD.pz+r)return;
   if(kind===0){ofx=c.fx;ofz=c.fz;ov=c.v;oL=c.m.L;oW=c.m.W;}
-  else{const M=c.M,ml=Math.hypot(M[0],M[6])||1;ofx=M[0]/ml;ofz=M[6]/ml;ov=c.v[0]*ofx+c.v[2]*ofz;oL=c.c.body.L;oW=c.c.body.W;}
+  else{const M=c.M,ml=hyp2(M[0],M[6])||1;ofx=M[0]/ml;ofz=M[6]/ml;ov=c.v[0]*ofx+c.v[2]*ofz;oL=c.c.body.L;oW=c.c.body.W;}
   const you=kind===2,pass=kind===0,rx=ox-PD.px,rz=oz-PD.pz,f=rx*PD.fx+rz*PD.fz,ext=(PD.Lm+oL)*.5;if(f<-ext||f>PD.probe)return;
   const sd=rx*PD.lx+rz*PD.lz,half=(PD.Wm+oW)*.5,clear=half+.8;if(Math.abs(sd)>clear+1.5)return;
   const vo=ov*(ofx*PD.fx+ofz*PD.fz),room=f-ext-(you&&PD.slow?1.2:2.5),inPath=f>0&&Math.abs(sd)<half+.3,tl=PD.tl;
@@ -178,7 +178,7 @@ function polObst(c,kind){let ox,oz,ofx,ofz,ov,oL,oW;
     if(cap<PD.vt)PD.vt=cap;}
   else if(!you&&f<PD.nf&&Math.abs(tl-sd)<clear){const sg=tl-sd>=0?1:-1,want=sd+sg*clear-tl;if(Math.abs(tl+want)<4.5){PD.nf=f;PD.off=want;}}}
 function polDrive(P,dt){
-  const V=P.V,t=GAME.car,inp=P.inp,spd=V.speed,R=V.M,dx=t.p[0]-V.p[0],dz=t.p[2]-V.p[2],d=Math.hypot(dx,dz);P.d=d;
+  const V=P.V,t=GAME.car,inp=P.inp,spd=V.speed,R=V.M,dx=t.p[0]-V.p[0],dz=t.p[2]-V.p[2],d=hyp2(dx,dz);P.d=d;
   /* holding back after a bust */
   if(POL.holdT>0){inp.thr=0;inp.brk=spd>.6?1:0;inp.hb=spd<.6?1:0;inp.steer=0;return;}
   /* lost you, rolled, or stuck for good: back in behind you */
@@ -187,7 +187,7 @@ function polDrive(P,dt){
      you've got away (policeFrame) */
   P.flipT=R[4]<.4?P.flipT+dt:0;
   if(P.flipT>2||P.stuckT>6){if(!polRespawn(P,d+60))P.V=null;return;}
-  const N=POL_CRUMBS,hl=Math.hypot(R[0],R[6])||1,fx=R[0]/hl,fz=R[6]/hl,ll=Math.hypot(R[2],R[8])||1,lx=R[2]/ll,lz=R[8]/ll,
+  const N=POL_CRUMBS,hl=hyp2(R[0],R[6])||1,fx=R[0]/hl,fz=R[6]/hl,ll=hyp2(R[2],R[8])||1,lx=R[2]/ll,lz=R[8]/ll,
     LV=wantedLvl(),muK=POL_MU+.025*(LV-1),mu=V.tyre.mu||1,aB=(POL_AB+.03*(LV-1))*mu*9.81,px0=V.p[0],pz0=V.p[2],Lm=V.c.body.L,Wm=V.c.body.W;
   P.see=d<140&&polClear(px0,pz0,t.p[0],t.p[2]);
   /* where it is on your trail: past the crumbs it has reached, or left behind it */
@@ -202,20 +202,20 @@ function polDrive(P,dt){
      braking for it */
   let vt=99;
   {let acc=0,qx=px0,qz=pz0;const look=Math.min(190,spd*spd/(2*aB)+25);
-    for(let k=P.ck;k<POL.k-2&&acc<look;k++){const j=k%N,x=POL.cx[j],z=POL.cz[j];acc+=Math.hypot(x-qx,z-qz);qx=x;qz=z;if(k-2<k0)continue;
-      const ja=(k-2)%N,jb=(k+2)%N,ax=x-POL.cx[ja],az=z-POL.cz[ja],bx=POL.cx[jb]-x,bz=POL.cz[jb]-z,la=Math.hypot(ax,az),lb=Math.hypot(bx,bz);if(la<1||lb<1)continue;
+    for(let k=P.ck;k<POL.k-2&&acc<look;k++){const j=k%N,x=POL.cx[j],z=POL.cz[j];acc+=hyp2(x-qx,z-qz);qx=x;qz=z;if(k-2<k0)continue;
+      const ja=(k-2)%N,jb=(k+2)%N,ax=x-POL.cx[ja],az=z-POL.cz[ja],bx=POL.cx[jb]-x,bz=POL.cz[jb]-z,la=hyp2(ax,az),lb=hyp2(bx,bz);if(la<1||lb<1)continue;
       const th=Math.acos(Math.max(-1,Math.min(1,(ax*bx+az*bz)/(la*lb)))),kap=th/((la+lb)*.5);if(kap<1e-3)continue;
       const vc=Math.sqrt(muK*mu*9.81/kap),va=Math.sqrt(vc*vc+2*aB*Math.max(0,acc-4));if(va<vt)vt=va;}}
   /* close behind you and in sight (the nearest one only): a place a few car lengths back, at your speed; when you
      stop, just behind you and a little to one side */
-  const tv=Math.hypot(t.v[0],t.v[2]),tM=t.M,thl=Math.hypot(tM[0],tM[6])||1,hx=tv>2?t.v[0]/tv:tM[0]/thl,hz=tv>2?t.v[2]/tv:tM[6]/thl;
+  const tv=hyp2(t.v[0],t.v[2]),tM=t.M,thl=hyp2(tM[0],tM[6])||1,hx=tv>2?t.v[0]/tv:tM[0]/thl,hz=tv>2?t.v[2]/tv:tM[6]/thl;
   let close=false;
   if(P.see&&d<60&&POL.lead===P&&P.role==='follow'){close=true;let sx,sz;
     if(t.speed<3){const rx=-hz,rz=hx,sd=(px0-t.p[0])*rx+(pz0-t.p[2])*rz>=0?1:-1,gap=(Lm+t.c.body.L)*.5+1.5;sx=t.p[0]+rx*sd*1.2-hx*gap;sz=t.p[2]+rz*sd*1.2-hz*gap;}
     else{const gap=LV<2?8+tv*.3:LV<3?7+tv*.25:6+tv*.2;sx=t.p[0]-hx*gap;sz=t.p[2]-hz*gap;}
     /* (it still steers along your trail, round the corners you took; the place only sets its speed. Stopped, it
        steers for the place itself) */
-    const ex=sx-px0,ez=sz-pz0,ds=Math.hypot(ex,ez);
+    const ex=sx-px0,ez=sz-pz0,ds=hyp2(ex,ez);
     if(t.speed<3){if(ds>Ld){tx=sx;tz=sz;}else{tx=sx+hx*(Ld-ds);tz=sz+hz*(Ld-ds);}}
     const alg=ex*hx+ez*hz;
     vt=Math.min(vt,t.speed<3?Math.sqrt(2*3*Math.max(0,ds-.8)):Math.max(0,tv+Math.max(-tv-2,Math.min(14,alg*.6))));}
@@ -237,7 +237,7 @@ function polDrive(P,dt){
       else if(Math.abs(ex*hx+ez*hz)<1&&Math.abs(ex*rx+ez*rz)<.7&&Math.abs(spd-tv)<2.5)P.pitHit=.6;
       else if(P.pitT>7){P.role='follow';P.pitT=0;POL.pitCool=4;}}
     if(thru){tx=t.p[0]-hx*Lp*.3-rx*sn*1.5;tz=t.p[2]-hz*Lp*.3-rz*sn*1.5;tac=true;}
-    else if(sx!==undefined&&polClear(px0,pz0,sx,sz)){const ex=sx-px0,ez=sz-pz0,ds=Math.hypot(ex,ez),la=Math.max(4,Math.min(Ld,4+spd*.3));
+    else if(sx!==undefined&&polClear(px0,pz0,sx,sz)){const ex=sx-px0,ez=sz-pz0,ds=hyp2(ex,ez),la=Math.max(4,Math.min(Ld,4+spd*.3));
       if(ds>la){tx=sx;tz=sz;}else{tx=sx+hx*(la-ds);tz=sz+hz*(la-ds);}tac=true;
       const alg=ex*hx+ez*hz;let vq=tv+vr+Math.max(-6,Math.min(7,alg*.7));
       /* (at your back or side with you near enough stopped: up to the place, then hold, not shove) */
@@ -302,7 +302,7 @@ function policeDraw(U,eye){
   if(!POL.live)return 0;const u=CUR.u,F=frustum(U.uVP),[rOn,bOn]=polFlash(),B=polBar();let tris=0;
   for(let _i33=0;_i33<POL.cars.length;_i33++){const P=POL.cars[_i33];if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T){P.prev=false;continue;}
     const x=V.p[0]-RO[0],y=V.p[1]-RO[1],z=V.p[2]-RO[2],r=V.c.body.L*.6+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-r){inside=false;break;}}
-    if(!inside||Math.hypot(V.p[0]-eye[0],V.p[2]-eye[2])>GFX.far+20){P.prev=false;continue;}
+    if(!inside||hyp2(V.p[0]-eye[0],V.p[2]-eye[2])>GFX.far+20){P.prev=false;continue;}
     gl.uniform3fv(u.uPaint,POL_PAINT);gl.uniform3fv(u.uPaint2,POL_WHITE);gl.uniform3fv(u.uRim,POL_RIM);gl.uniform3fv(u.uCal,POL_RIM);gl.uniform3fv(u.uClad,POL_PAINT);
     const D=T.D;gl.uniform1f(u.uLiv,5);gl.uniform4f(u.uLivP,D.X(0),D.X(D.L),D.belt(2.5),D.Hr);gl.uniform1f(u.uLamps,SKY.lightsOn?1:0);gl.uniform1f(u.uBrake,V.brkIn>.05?1:0);
     gl.uniform3f(u.uGlow,0,0,0);gl.uniform1f(u.uDirt,.05);gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uPrevOn,1);
@@ -330,7 +330,7 @@ function policeLights(L){if(!POL.live||!SKY.lightsOn)return;const [rOn,bOn]=polF
   for(let _i35=0;_i35<POL.cars.length;_i35++){const P=POL.cars[_i35];if(!P.V||L.dyn.length>=16||P.d>220)continue;const M=P.M,[bx,by]=polBarAt(P.V),q=P.lamp;if(!rOn&&!bOn)continue;
     q.pos[0]=M[12]+M[0]*bx+M[4]*(by+.3);q.pos[1]=M[13]+M[1]*bx+M[5]*(by+.3);q.pos[2]=M[14]+M[2]*bx+M[6]*(by+.3);
     if(rOn){q.col[0]=70;q.col[1]=3;q.col[2]=2;}else{q.col[0]=3;q.col[1]=10;q.col[2]=80;}L.dyn.push(q);}heliLight(L);}
-function policeOcc(occ){if(!POL.live)return;for(let _i36=0;_i36<POL.cars.length;_i36++){const P=POL.cars[_i36];if(!P.V||occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=Math.hypot(M[0],M[6])||1,D=carD(V);
+function policeOcc(occ){if(!POL.live)return;for(let _i36=0;_i36<POL.cars.length;_i36++){const P=POL.cars[_i36];if(!P.V||occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=hyp2(M[0],M[6])||1,D=carD(V);
   o[0]=V.p[0]-RO[0];o[1]=V.p[1]-RO[1];o[2]=V.p[2]-RO[2];o[3]=V.cg[1];o[4]=M[0]/l;o[5]=M[6]/l;o[6]=D.L/2;o[7]=V.build.look.track/2+.12;occ.push(o);}}
 
 /* ---------- the siren: a wail, a yelp up close; each car its own, where it is, with the Doppler ---------- */
@@ -343,7 +343,7 @@ function policeSound(c){const A=ENG.audio;if(!A||!c)return;const ctx=A.ctx,now=c
     if(!P.vox){const o=ctx.createOscillator(),o2=ctx.createOscillator(),m2=ctx.createGain(),f=ctx.createBiquadFilter(),g=ctx.createGain(),p=ctx.createStereoPanner?ctx.createStereoPanner():null;
       o.type='sawtooth';o2.type='square';m2.gain.value=.35;f.type='bandpass';f.Q.value=1.1;g.gain.value=0;o.connect(f);o2.connect(m2);m2.connect(f);f.connect(g);
       if(p){g.connect(p);p.connect(A.master);}else g.connect(A.master);o.start();o2.start();P.vox={o,o2,f,g,p,ph:Math.random()};}
-    const v=P.vox,V=P.V,dx=V.p[0]-c.eye[0],dz=V.p[2]-c.eye[2],d=Math.hypot(dx,dz)||1,yelp=P.d<45,per=yelp?.32:4.4,ph=((APP.t/per+v.ph)%1),
+    const v=P.vox,V=P.V,dx=V.p[0]-c.eye[0],dz=V.p[2]-c.eye[2],d=hyp2(dx,dz)||1,yelp=P.d<45,per=yelp?.32:4.4,ph=((APP.t/per+v.ph)%1),
       sw=yelp?Math.abs(ph*2-1):.5-.5*Math.cos(ph*TAU),base=(yelp?720+780*sw:600+760*sw)*pk,
       vr=((V.v[0]-GAME.car.v[0])*dx+(V.v[2]-GAME.car.v[2])*dz)/d,f=base/(1+Math.max(-.3,Math.min(.3,vr/343)));
     if(v.f.type!==ft){v.f.type=ft;v.f.Q.value=ft==='lowpass'?.7:1.1;}
@@ -376,7 +376,7 @@ function voxSay(name,kind,x,z,wait=8){
   if(kind!=='yell'){const f=ctx.createBiquadFilter(),w=ctx.createWaveShaper(),k=kind==='radio'?2.2:4,c=new Float32Array(256);
     for(let i=0;i<256;i++){const x=i/127.5-1;c[i]=Math.tanh(x*k)/Math.tanh(k);}w.curve=c;f.type='bandpass';f.frequency.value=kind==='radio'?1700:1300;f.Q.value=kind==='radio'?.9:.7;src.connect(f);f.connect(w);head=w;}
   head.connect(g);let vol=kind==='radio'?.5:.9;
-  if(kind!=='radio'&&CAM.last){const c=CAM.last,dx=x-c.eye[0],dz=z-c.eye[2],d=Math.hypot(dx,dz)||1;vol/=1+Math.pow(d/(kind==='pa'?35:12),1.3);
+  if(kind!=='radio'&&CAM.last){const c=CAM.last,dx=x-c.eye[0],dz=z-c.eye[2],d=hyp2(dx,dz)||1;vol/=1+Math.pow(d/(kind==='pa'?35:12),1.3);
     if(ctx.createStereoPanner){const p=ctx.createStereoPanner(),rx=-c.fwd[2],rz=c.fwd[0];p.pan.value=Math.max(-1,Math.min(1,(dx*rx+dz*rz)/d*.8));g.connect(p);p.connect(A.master);}else g.connect(A.master);}
   else g.connect(A.master);
   g.gain.value=vol;src.start(t0+(kind==='radio'?.09:0));

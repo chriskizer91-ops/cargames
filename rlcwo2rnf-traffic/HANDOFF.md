@@ -55,8 +55,11 @@ Paste this to start the fresh session:
    **Granted and done (3 November 2026):** the owner said yes; `40_physics.js` and `41_ground.js` changed only in how
    numbers reach a call (arrays and scratch objects in place of loose numbers, indexed loops, a method in place of two
    closures), every sum and its order as before. physcheck 0, proving.js's table byte for byte, and a full-precision
-   fingerprint of every build at every level (Sim on, riders, drift, collisions) bit-identical. The other modules are
-   still byte for byte; the rule stands for everything else: no physics number changes.
+   fingerprint of every build at every level (Sim on, riders, drift, collisions) bit-identical. Then `Math.hypot` in
+   40, 41 and 44 (`44_ai.js`, the robots and the car contacts) became `hyp2/3/4` (top of `40_physics.js`), V8's own
+   algorithm without its per-call array, checked bit for bit against `Math.hypot` over 10.5 million numbers; the same
+   three proofs again. The other modules are still byte for byte; the rule stands for everything else: no physics
+   number changes.
 2. `src/15_digital_engine.js` is identical to `rut-access/src/15_digital_engine.js` (`diff` prints nothing).
 3. The car models keep their shapes. Save keys are prefixed per version (`wo2-` here; use `rt-` for this version: on a
    `file://` page every local HTML file shares one localStorage, so two versions with the same keys would share saves).

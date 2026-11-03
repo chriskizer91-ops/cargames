@@ -9,11 +9,49 @@
    Vectors are 3-arrays, quaternions [x,y,z,w], matrices row-major 3x3. Body axes: +x forward, +y up,
    +z right.
    ===================================================================================== */
+/* Math.hypot for 2, 3 and 4 numbers worked out as V8 works it out (its MathHypot builtin: the largest magnitude, each
+   number scaled by it, Kahan's compensated sum, the root times the largest; Infinity before NaN before 0), so the very
+   same bits, without the array V8 makes for the arguments on every call (the garbage it made here, hundreds of calls a
+   step). Checked against Math.hypot over 10.5 million random numbers of every size, the edges (+-0, subnormals,
+   +-Infinity, NaN) among them, in Node and in Chromium, cold and optimised: no difference at all. The physics' own
+   proof (tools/physcheck.js, tools/proving.js) runs through them */
+/* V8's Math.hypot (builtins/math.tq MathHypot) for 2, 3 and 4 numbers, without the array V8 allocates per call */
+function hyp2(a,b){let nan=false,mx=0,x=0,y=0;
+  if(a!==a)nan=true;else{x=Math.abs(a);if(x>mx)mx=x;}
+  if(b!==b)nan=true;else{y=Math.abs(b);if(y>mx)mx=y;}
+  if(mx===Infinity)return Infinity;if(nan)return NaN;if(mx===0)return 0;
+  let s=0,c=0,n,u,p;
+  n=x/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  n=y/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  return Math.sqrt(s)*mx;}
+function hyp3(a,b,d){let nan=false,mx=0,x=0,y=0,z=0;
+  if(a!==a)nan=true;else{x=Math.abs(a);if(x>mx)mx=x;}
+  if(b!==b)nan=true;else{y=Math.abs(b);if(y>mx)mx=y;}
+  if(d!==d)nan=true;else{z=Math.abs(d);if(z>mx)mx=z;}
+  if(mx===Infinity)return Infinity;if(nan)return NaN;if(mx===0)return 0;
+  let s=0,c=0,n,u,p;
+  n=x/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  n=y/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  n=z/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  return Math.sqrt(s)*mx;}
+function hyp4(a,b,d,e){let nan=false,mx=0,x=0,y=0,z=0,w=0;
+  if(a!==a)nan=true;else{x=Math.abs(a);if(x>mx)mx=x;}
+  if(b!==b)nan=true;else{y=Math.abs(b);if(y>mx)mx=y;}
+  if(d!==d)nan=true;else{z=Math.abs(d);if(z>mx)mx=z;}
+  if(e!==e)nan=true;else{w=Math.abs(e);if(w>mx)mx=w;}
+  if(mx===Infinity)return Infinity;if(nan)return NaN;if(mx===0)return 0;
+  let s=0,c=0,n,u,p;
+  n=x/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  n=y/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  n=z/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  n=w/mx;u=n*n-c;p=s+u;c=(p-s)-u;s=p;
+  return Math.sqrt(s)*mx;}
+
 const G=9.81,RHO=1.2;
 const F3=()=>new Float64Array(3);
 const v3dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const v3cross=(o,a,b)=>{const x=a[1]*b[2]-a[2]*b[1],y=a[2]*b[0]-a[0]*b[2],z=a[0]*b[1]-a[1]*b[0];o[0]=x;o[1]=y;o[2]=z;return o;};
-const v3norm=(o,a)=>{const l=Math.hypot(a[0],a[1],a[2])||1;o[0]=a[0]/l;o[1]=a[1]/l;o[2]=a[2]/l;return o;};
+const v3norm=(o,a)=>{const l=hyp3(a[0],a[1],a[2])||1;o[0]=a[0]/l;o[1]=a[1]/l;o[2]=a[2]/l;return o;};
 /* m a and m^T a, the vector a an array (read whole before o is written, so o may be a). Not three numbers: a
    number handed to a call the compiler doesn't inline is boxed (a few bytes of garbage each), and a step made
    hundreds of such calls, so the step's numbers go to calls in arrays (or, for the tyre, in an object) */
@@ -30,10 +68,10 @@ function qToM(m,q){
 const SPIN_SAFE=10,SPIN_MAX=38;
 function qStep(q,w,dt){
   const a0=w[0]*dt*.5,a1=w[1]*dt*.5,a2=w[2]*dt*.5,b0=q[0],b1=q[1],b2=q[2],b3=q[3];
-  const x=b0+(a0*b3+a1*b2-a2*b1),y=b1+(-a0*b2+a1*b3+a2*b0),z=b2+(a0*b1-a1*b0+a2*b3),w2=b3+(-a0*b0-a1*b1-a2*b2),l=Math.hypot(x,y,z,w2)||1;
+  const x=b0+(a0*b3+a1*b2-a2*b1),y=b1+(-a0*b2+a1*b3+a2*b0),z=b2+(a0*b1-a1*b0+a2*b3),w2=b3+(-a0*b0-a1*b1-a2*b2),l=hyp4(x,y,z,w2)||1;
   q[0]=x/l;q[1]=y/l;q[2]=z/l;q[3]=w2/l;return q;
 }
-function qFromAxis(q,ax,ang){const s=Math.sin(ang/2),l=Math.hypot(ax[0],ax[1],ax[2])||1;q[0]=ax[0]/l*s;q[1]=ax[1]/l*s;q[2]=ax[2]/l*s;q[3]=Math.cos(ang/2);return q;}
+function qFromAxis(q,ax,ang){const s=Math.sin(ang/2),l=hyp3(ax[0],ax[1],ax[2])||1;q[0]=ax[0]/l*s;q[1]=ax[1]/l*s;q[2]=ax[2]/l*s;q[3]=Math.cos(ang/2);return q;}
 
 /* ---------- the tyre: one combined-slip curve rising to a peak and falling away to a sliding plateau,
    with load sensitivity. Returns the forces and the stiffness the wheel solver needs. The load, the slip
@@ -43,7 +81,7 @@ const TYRE_DEFAULT={mu:1.1,kPk:.11,aPk:.15,slide:.78,slideW:.55,loadSens:.12,fz0
 function tyreForce(t,a,out){
   const Fz=a.Fz,kap=a.kap,tanA=a.tanA,muMul=a.mu;
   if(Fz<=0){out.fx=0;out.fy=0;out.dk=0;out.sg=0;return out;}
-  const lf=Math.max(.6,1-t.loadSens*(Fz/t.fz0-1)),m=t.mu*muMul*lf*Fz,sx=kap/t.kPk,sy=tanA/Math.tan(t.aPk),sg=Math.hypot(sx,sy);
+  const lf=Math.max(.6,1-t.loadSens*(Fz/t.fz0-1)),m=t.mu*muMul*lf*Fz,sx=kap/t.kPk,sy=tanA/Math.tan(t.aPk),sg=hyp2(sx,sy);
   out.sg=sg;
   if(sg<1e-6){out.fx=2*m*sx;out.fy=-2*m*sy;out.dk=2*m/t.kPk;return out;}
   let f2,fp;
@@ -389,7 +427,7 @@ class Vehicle{
     const c=this.c,s=c.susp,m=this.m,pt=this.pt,aid=this.aid,W=this.wheels,M=qToM(this.M,this.q),p=this.p,v=this.v,w=this.w;
     const U=this._U;U[0]=M[1];U[1]=M[4];U[2]=M[7];
     const vb=m3tva(this._vb,M,v),wb=m3tva(this._wb,M,w);
-    this.speed=Math.hypot(v[0],v[1],v[2]);this.vf=vb[0];this.beta=Math.atan2(vb[2],Math.max(Math.abs(vb[0]),.5));
+    this.speed=hyp3(v[0],v[1],v[2]);this.vf=vb[0];this.beta=Math.atan2(vb[2],Math.max(Math.abs(vb[0]),.5));
     let thr=clamp(inp.thr||0,0,1),brk=clamp(inp.brk||0,0,1);const hb=clamp(inp.hb||0,0,1);
     /* reverse: hold the brake at a standstill, then the pedals swap */
     /* parked (the menu is up): the brake is only the brake, never a shift into reverse, and reverse comes out */
@@ -475,7 +513,7 @@ class Vehicle{
       ti.Fz=wh.Fz;ti.kap=kap;ti.tanA=tanA;ti.mu=this._smu(wh,wh.surf)*wetMu*tg*(wh.front||!this.tune?1:this.tune.rear);tyreForce(wh.tyre,ti,TY);
       wh.Fx=TY.fx;wh.rr=(wh.surfRR?wh.surfRR[wh.surf]??.015:.012)*wh.Fz;wh.vd=(wh.surfDrag?wh.surfDrag[wh.surf]||0:0)*wh.Fz*vl;wh.Fy=TY.fy;wh.Kd=TY.dk*R/vn;
       }
-      wh.kap=kap;wh.tanA=tanA;wh.sg=TY.sg;wh.vl=vl;wh.slipV=Math.hypot(wh.w*R-vl,vt);
+      wh.kap=kap;wh.tanA=tanA;wh.sg=TY.sg;wh.vl=vl;wh.slipV=hyp2(wh.w*R-vl,vt);
       wh.temp+=dt*(wh.slipV*wh.Fz/(m*G)*.02-(wh.temp-.42)*(.015+this.speed*8e-4));wh.temp=clamp(wh.temp,.2,1.25);
     }
     const escThr=this._stability(dt,inp,vb,wb,thr);let fmax=0;
@@ -576,7 +614,7 @@ class Vehicle{
       wb[0]-=dt*g0/I[0];wb[1]-=dt*g1/I[1];wb[2]-=dt*g2/I[2];
       const E1=I[0]*wb[0]*wb[0]+I[1]*wb[1]*wb[1]+I[2]*wb[2]*wb[2];if(E1>E0&&E1>0){const s=Math.sqrt(E0/E1);wb[0]*=s;wb[1]*=s;wb[2]*=s;}
       wb[0]+=dt*tb[0]/I[0];wb[1]+=dt*tb[1]/I[1];wb[2]+=dt*tb[2]/I[2];
-      const wl=Math.hypot(wb[0],wb[1],wb[2]);if(wl>SPIN_MAX){const s=SPIN_MAX/wl;wb[0]*=s;wb[1]*=s;wb[2]*=s;}}
+      const wl=hyp3(wb[0],wb[1],wb[2]);if(wl>SPIN_MAX){const s=SPIN_MAX/wl;wb[0]*=s;wb[1]*=s;wb[2]*=s;}}
     m3va(w,M,wb);
     for(let k=0;k<3;k++)p[k]+=v[k]*dt;
     qStep(this.q,w,dt);m3tva(this.accB,M,acc);
@@ -645,7 +683,7 @@ class Vehicle{
     const vn=v3dot(vr,n);if(vn>=0)return;
     const k=1/this.m+v3dot(n,v3cross(x,this.invI(x,M,v3cross(y,r,n)),r)),j=-(1+e)*vn/k;
     J[0]=n[0]*j;J[1]=n[1]*j;J[2]=n[2]*j;
-    const vt0=vr[0]-n[0]*vn,vt1=vr[1]-n[1]*vn,vt2=vr[2]-n[2]*vn,vtl=Math.hypot(vt0,vt1,vt2);
+    const vt0=vr[0]-n[0]*vn,vt1=vr[1]-n[1]*vn,vt2=vr[2]-n[2]*vn,vtl=hyp3(vt0,vt1,vt2);
     if(vtl>1e-4){const iv=1/vtl,t=this._fw;t[0]=vt0*iv;t[1]=vt1*iv;t[2]=vt2*iv;
       const kt=1/this.m+v3dot(t,v3cross(x,this.invI(x,M,v3cross(y,r,t)),r)),jt=Math.min(mu*j,vtl/kt);
       J[0]+=t[0]*-jt;J[1]+=t[1]*-jt;J[2]+=t[2]*-jt;}
