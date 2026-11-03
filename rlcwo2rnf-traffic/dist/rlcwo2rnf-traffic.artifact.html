@@ -14939,13 +14939,17 @@ function trfLight(c,v0){const L=c.L,S=L.stopS,n=S.length;if(!n)return 1e9;const 
       if(c.goK===k)return 1e9;
       if(tt<.5&&gap/Math.max(c.v,.1)<=(.5-tt)*30+.4||gap<c.v*c.v/(2*7)){c.goL=L;c.goK=k;return 1e9;}
       return trfIdm(c,v0,Math.max(gap,0),0);}
-    /* a street car at a signal: on the green (or an amber it will clear) it takes the junction once it's near, if the
-       box is clear; caught too close to stop, through */
-    if(c.goK===k)return 1e9;
-    if(tt<.42||tt<.5&&gap/Math.max(c.v,.1)<=(.5-tt)*30+.4||gap<c.v*c.v/(2*7)){
+    /* a street car at a signal: it goes if it will reach the line before the red, at the speed it can make there (a
+       turn just past the line slows it), or from a stand by pulling away; it takes the junction once it's near, if
+       the box is clear. Caught by the amber while it can still stop easily, it gives the junction back and stops;
+       too close to stop, through */
+    const tl=(.5-tt)*30,vl=L.vA[Math.floor((k<n?S[k]:S[0])/L.ds)%L.n],
+      ta=c.v>1?gap/Math.max(1,Math.min(c.v,vl+1)):Math.sqrt(2*Math.max(gap,0)/Math.max(c.a,.8))+.5,late=gap<c.v*c.v/(2*7);
+    if(c.goK===k){if(ta<=tl+.4||late||gap<=c.v*c.v/(2*3.5))return 1e9;c.goK=-1;jRelease(c);}
+    else if(ta<=tl+.2||late){
       if(gap>Math.max(12,c.v*c.v/(2*2.5)+4))return 1e9;
       if(jFree(J,c)){jClaim(J,c,L,ki,front);c.goL=L;c.goK=k;return 1e9;}
-      if(gap<c.v*c.v/(2*7)){c.goL=L;c.goK=k;return 1e9;}}
+      if(late){c.goL=L;c.goK=k;return 1e9;}}
     TRF.lgap=gap;return trfIdm(c,v0,Math.max(gap,0),0);}
   /* a stop sign: to a stand at the line, a moment, then into the junction when it's clear (where a country road
      crosses the highway, when no highway car is coming either) */

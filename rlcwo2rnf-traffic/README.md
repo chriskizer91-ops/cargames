@@ -31,6 +31,7 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   (it allocates on every call here, and is kept: a square root rounds differently) and the numbers handed to the
   world's `groundAt(x, z, out)`; before the step is optimized every number in it is boxed, whatever the code.
 - **Traffic on Highway 40** (`src/60_traffic.js`): done. Below.
+- **Traffic on the town's streets and the country roads** (`src/60_streets.js`): first cut, being checked. Below.
 - **Police mode** (`src/60_police.js`): done. Below.
 - **Next**: the town's streets and the country roads, parked cars, people at the markers; the map with waypoints.
 
@@ -88,6 +89,36 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
 - **Checks**: `node tools/traffic_check.js [park,drive,ram]` (you parked across a lane; you through town at 70; you
   into the traffic at 90): no NaNs, never over the budget, no two lane cars overlapping, none into you, no red run, all
   in their lanes; `node tools/rt_check.js` has a traffic scene.
+
+## Traffic on the streets and the country roads (`src/60_streets.js`)
+
+The highway's machinery, on new loops: each street car rides a loop of points every 2 m (where, which way, how sharp,
+how fast) exactly as a highway car rides its lane, so its following, the lights, going onto the physics near you and
+the drawing are the highway's own code.
+
+- **The town**: 49 rectangles round the blocks (one block, two by two, strips right across east-west and north-south),
+  each driven clockwise in the right-hand lane, so every turn is a right turn and nobody turns across oncoming traffic;
+  each corner an arc whose radius is the exit road's room right of its lane plus the approach road's (the kerb's corner
+  stays inside the arc). And the boulevard both ways round. Highway 40 itself is never a side (it's the highway's
+  traffic): the rectangles that span it cross it at its signals.
+- **The country**: each section line out and back on the right of the road at its class's lane and speed (dirt 25,
+  gravel 35, blacktop 50 mph), round on the open salt at the far end (on past the end, out wide, a circle of 7 m, back
+  in); Ridge and Wash Roads come into town on Central Avenue and turn round in the boulevard's junction. Each line is
+  made a slice at a time over several frames (a 12 km line holds nothing up).
+- **Junctions**: at a signal, the town's 30 s cycle (the one the heads show; north-south half a cycle from east-west); a
+  car goes if it will reach the line before the red at the speed it can make there, else it stops; where there's no
+  signal, a stop sign: to a stand at the line, a moment, then on. Either way it takes the junction (one street car in a
+  box at a time) only when the box is clear of the other cars, you and the police, and nothing on the physics is about
+  to arrive. Where a country road crosses Highway 40, it also waits until no highway car will reach the crossing in 8 s,
+  and a highway car finds a car on its crossing (or one caught in a town junction by the change of the lights) and waits.
+- **How many**: as thick on the ground as a share of the highway's traffic: the lane-kilometres of street and road
+  within reach of you, times the highway's cars a lane-kilometre, times the share (Dev: Streets and country roads:
+  None, 1/8, 1/4 (the default), 1/2, The same). Mobile in downtown: about 5 cars round you besides the highway's 8.
+- **Heights**: each loop's road heights from the world's generator, a 32 m stretch at a time, the first time a car
+  needs them.
+- Checked by `tools/streets_check.js` (town, Neon Row at night, the country on the cruise, the highway crossing): no two
+  street cars through each other, none stuck over 40 s, no junction held over 25 s, no signal's line crossed more than
+  0.6 s into the red.
 
 ## Police mode (`src/60_police.js`)
 
