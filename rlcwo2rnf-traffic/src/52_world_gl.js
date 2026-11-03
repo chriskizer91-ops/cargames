@@ -30,10 +30,14 @@ function landPrograms(){if(P_LAND)return;const S=rutShaders(),G=R.G,h=landDefs()
 /* a Dev switch flipped while driving: the two lit programs made again with the new defines, on the spot (a pause while
    the GPU's driver compiles them: about a second on a phone), and the old ones let go. Nothing keeps the old ones: each
    pass looks P_LAND up as it draws, and a program's uniform cache (G.set, litOf) belongs to the program */
-function landRebuild(){if(!P_LAND||!R)return;const G=R.G,old=[P_LAND,P_LANDP];P_LAND=P_LANDP=null;landPrograms();
-  G.finish(P_LAND);G.finish(P_LANDP);
-  for(const P of old){const i=G.programs.indexOf(P);if(i>=0)G.programs.splice(i,1);gl.deleteProgram(P.p);gl.deleteShader(P.vs);gl.deleteShader(P.fs);}
-  if(R)R.resetTAA=true;}
+function landDrop(list){const G=R.G;for(const P of list){if(!P)continue;const i=G.programs.indexOf(P);if(i>=0)G.programs.splice(i,1);gl.deleteProgram(P.p);gl.deleteShader(P.vs);gl.deleteShader(P.fs);}}
+function landRebuild(){if(!P_LAND||!R)return;const G=R.G,old=[P_LAND,P_LANDP];P_LAND=P_LANDP=null;
+  /* (built and checked before anything lets go of the old ones: a build this device's driver refuses leaves the game
+     drawing with the one it had) */
+  try{landPrograms();G.finish(P_LAND);G.finish(P_LANDP);}
+  catch(e){console.warn('land shader rebuild: '+(e&&e.message||e));landDrop([P_LAND,P_LANDP]);P_LAND=old[0];P_LANDP=old[1];
+    if(typeof say==='function')say('That shader would not build here: kept the one before',3);return;}
+  landDrop(old);R.resetTAA=true;}
 const M4_ID=M4.id(),FAR0=new Float32Array(4);
 /* a matrix of the renderer's frame (relative to the origin) taken back to the world, for the world's culling */
 const TW_T=new Float32Array(16),TW_O=[0,1,2,3].map(()=>new Float32Array(16));let TW_I=0;

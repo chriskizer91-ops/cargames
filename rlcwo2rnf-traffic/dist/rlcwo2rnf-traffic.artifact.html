@@ -4639,12 +4639,25 @@ void main(){
       float n2=vn(wp*.7),n3=vn(wp*3.1),n4=vn(wp*11.);
       float gw=smoothstep(.3,.72,vC.r+(n2-.5)*.45),rw=smoothstep(.35,.65,vC.g+(n3-.5)*.3),mw=vC.b>0.?smoothstep(.25,.6,vC.b+(n2-.5)*.25):0.;
       float sw=smoothstep(.05,.75,-vC.b+(n2-.5)*.18);
-      alb=dirtCol(wp);dirtDetail(wp,alb,1.-gw);alb=photoG2(alb,T_DIRT,T_DIRT2,wp);
+      /* the dirt under it all, made only where some of it shows: under whole grass (and no salt) none does, its colour
+         mixed away at weight 1 and its detail weighted by 1-gw; in the lean build (no detail anywhere) under whole rock or
+         whole salt neither */
+#ifdef LEAN_D
+      bool dirt=!(sw>=1.||sw<=.004&&max(gw,rw)>=1.);
+#else
+      bool dirt=!(sw<=.004&&gw>=1.);
+#endif
+      if(dirt){alb=dirtCol(wp);dirtDetail(wp,alb,1.-gw);alb=photoG2(alb,T_DIRT,T_DIRT2,wp);}
       /* the salt flats (City Limits'): pale crust and tan clay in big soft patches, cracked into plates in places */
-      if(sw>.004){float big=fbmS(wp*.0035),mid=vn(wp*.045),fine=vn(wp*1.7);
+      if(sw>.004){float big=fbmS(wp*.0035),mid=vn(wp*.045);
+#ifdef LEAN_D
+        vec3 sc=mix(vec3(.42,.38,.32),vec3(.60,.585,.55),smoothstep(.32,.78,big*.85+mid*.3))*.93;
+#else
+        float fine=vn(wp*1.7);
         vec3 sc=mix(vec3(.42,.38,.32),vec3(.60,.585,.55),smoothstep(.32,.78,big*.85+mid*.3))*(.93+.1*fine*near(.6));
         float crack=smoothstep(.3,.62,fbmS(wp*.012+4.1))*near(.25);
         if(crack>0.&&DET>.3){float e=cellEdge(wp*.52);sc*=1.-(1.-smoothstep(.0,.05,e))*.26*crack;}
+#endif
         sc=photoG(sc,T_SALT,wp);
         alb=mix(alb,sc,sw);gG*=1.-sw*.85;gw*=1.-sw;rw*=1.-sw;
         /* the salt course: Bonneville's black line down the middle, and a bar across the lanes at the start and
@@ -4751,7 +4764,7 @@ void main(){
       vec3 gc=mix(vec3(.16,.145,.12),vec3(.27,.245,.205),n1)*(.7+.42*n2)*(.78+.36*n3);float tr=0.;
       if(vC.b<.5){tr=exp(-pow((ad-1.5)/.55,2.));gc=mix(gc,gc*vec3(.8,.78,.76),tr*.85);}
       gravelDetail(wp,gc);gG*=1.-tr*.6;gc=photoG(gc,T_GRAVEL,wp);
-      if(vC.b<.5){float edge=smoothstep(hw-.6,hw+.3,ad+(n1-.5)*.9);gc=mix(gc,mix(photoG2(dirtCol(wp),T_DIRT,T_DIRT2,wp),photoG2(grassCol(wp),T_GRASS,T_GRASS2,wp),smoothstep(.25,.7,vn(wp*.35))),edge);}
+      if(vC.b<.5){float edge=smoothstep(hw-.6,hw+.3,ad+(n1-.5)*.9);if(edge>0.)gc=mix(gc,mix(photoG2(dirtCol(wp),T_DIRT,T_DIRT2,wp),photoG2(grassCol(wp),T_GRASS,T_GRASS2,wp),smoothstep(.25,.7,vn(wp*.35))),edge);}
       alb=gc;spec=.05+.04*tr;shin=14.;em=0.;
     }
     else if(m==54){
@@ -4818,7 +4831,7 @@ void main(){
         float hx=floor(em)/10.,hz=fract(em)*100.,ex=hx-abs(sx),ez=hz-abs(d);asphaltDetail(wp,ac,0.,99.);ac=photoG(ac,T_ASPHALT,wp);
         float zx=step(.6,ez)*step(ez,3.4)*step(.5,fract(sx/1.1))*step(abs(sx),hx-1.);
         float zz=step(.6,ex)*step(ex,3.4)*step(.5,fract(d/1.1))*step(abs(d),hz-1.);
-        ac=mix(ac,roadPaint(vec3(.6,.6,.58),wp)*(.7+.3*n3),max(zx,zz));
+        float zb=max(zx,zz);if(zb>0.)ac=mix(ac,roadPaint(vec3(.6,.6,.58),wp)*(.7+.3*n3),zb);
       }else{
         float lane=cls>3.5?3.65:3.2,lanes=cls>4.5?2.:1.,med=0.;
         if(cls>5.5){lane=cls<6.5?3.6:cls<7.5?3.5:cls<9.5?3.4:3.6;lanes=cls<6.5?3.:cls<9.5?2.:1.;med=cls<6.5?.3:cls<7.5?.7:cls<8.5?.6:0.;}
@@ -4836,7 +4849,8 @@ void main(){
           if(cls>6.5)ac*=1.-.3*smoothstep(em-.6,em,ad);}
         else{yel=cls>4.5?step(.07,ad)*step(ad,.19):step(ad,.065)*step(fract(sx/12.),.25);
           if(cls>4.5)wht=max(wht,step(abs(ad-lane),.065)*step(fract(sx/12.),.25));}
-        ac=mix(ac,roadPaint(vec3(.6,.6,.58),wp),wht*(.75+.25*n3));ac=mix(ac,roadPaint(vec3(.58,.42,.07),wp),yel*(.75+.25*n3));
+        /* (the paint looked up only where a line is: a mix at weight 0 is the tarmac itself) */
+        if(wht>0.)ac=mix(ac,roadPaint(vec3(.6,.6,.58),wp),wht*(.75+.25*n3));if(yel>0.)ac=mix(ac,roadPaint(vec3(.58,.42,.07),wp),yel*(.75+.25*n3));
       }
       /* (worn tarmac is rough: a glint of the sky low down, not a mirror) */
       alb=ac;spec=.15;shin=6.;em=0.;
@@ -12022,10 +12036,14 @@ function landPrograms(){if(P_LAND)return;const S=rutShaders(),G=R.G,h=landDefs()
 /* a Dev switch flipped while driving: the two lit programs made again with the new defines, on the spot (a pause while
    the GPU's driver compiles them: about a second on a phone), and the old ones let go. Nothing keeps the old ones: each
    pass looks P_LAND up as it draws, and a program's uniform cache (G.set, litOf) belongs to the program */
-function landRebuild(){if(!P_LAND||!R)return;const G=R.G,old=[P_LAND,P_LANDP];P_LAND=P_LANDP=null;landPrograms();
-  G.finish(P_LAND);G.finish(P_LANDP);
-  for(const P of old){const i=G.programs.indexOf(P);if(i>=0)G.programs.splice(i,1);gl.deleteProgram(P.p);gl.deleteShader(P.vs);gl.deleteShader(P.fs);}
-  if(R)R.resetTAA=true;}
+function landDrop(list){const G=R.G;for(const P of list){if(!P)continue;const i=G.programs.indexOf(P);if(i>=0)G.programs.splice(i,1);gl.deleteProgram(P.p);gl.deleteShader(P.vs);gl.deleteShader(P.fs);}}
+function landRebuild(){if(!P_LAND||!R)return;const G=R.G,old=[P_LAND,P_LANDP];P_LAND=P_LANDP=null;
+  /* (built and checked before anything lets go of the old ones: a build this device's driver refuses leaves the game
+     drawing with the one it had) */
+  try{landPrograms();G.finish(P_LAND);G.finish(P_LANDP);}
+  catch(e){console.warn('land shader rebuild: '+(e&&e.message||e));landDrop([P_LAND,P_LANDP]);P_LAND=old[0];P_LANDP=old[1];
+    if(typeof say==='function')say('That shader would not build here: kept the one before',3);return;}
+  landDrop(old);R.resetTAA=true;}
 const M4_ID=M4.id(),FAR0=new Float32Array(4);
 /* a matrix of the renderer's frame (relative to the origin) taken back to the world, for the world's culling */
 const TW_T=new Float32Array(16),TW_O=[0,1,2,3].map(()=>new Float32Array(16));let TW_I=0;
