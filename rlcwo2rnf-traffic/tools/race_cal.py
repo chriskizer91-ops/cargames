@@ -25,7 +25,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
     pg=b.new_page(viewport={'width':480,'height':270});errs=[]
     pg.on('pageerror',lambda e: errs.append('PAGEERR '+str(e)))
-    pg.add_init_script("localStorage.setItem('rt-gfx','mini');")
+    pg.add_init_script("localStorage.setItem('rt-gfx-next','mini');")
     pg.goto(PAGE);pg.wait_for_function("window.__game&&document.getElementById('loading').hidden",timeout=90000)
     pg.evaluate("__game.GAME.hold=true")
     for c in courses:

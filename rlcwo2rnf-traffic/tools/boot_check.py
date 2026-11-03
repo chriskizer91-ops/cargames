@@ -11,7 +11,7 @@ with sync_playwright() as p:
     pg=b.new_page(viewport={'width':1280,'height':720})
     pg.on('console',lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
     pg.on('pageerror',lambda e: errs.append('PAGEERROR: '+str(e)))
-    pg.add_init_script(f"localStorage.setItem('rt-gfx','{lvl}');")
+    pg.add_init_script(f"localStorage.setItem('rt-gfx-next','{lvl}');")
     t0=time.time();pg.goto(PAGE)
     pg.wait_for_function("window.__game&&document.getElementById('loading').hidden",timeout=120000)
     print('booted in %.1fs'%(time.time()-t0))

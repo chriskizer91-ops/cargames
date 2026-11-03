@@ -14,7 +14,7 @@ with sync_playwright() as p:
     pg=b.new_page(viewport={'width':1280,'height':720})
     pg.on('pageerror',lambda e: errs.append('PAGEERROR: '+str(e)))
     pg.on('console',lambda m: errs.append(m.type+': '+m.text) if m.type=='error' else None)
-    pg.add_init_script(f"localStorage.setItem('rt-gfx','{lvl}');")
+    pg.add_init_script(f"localStorage.setItem('rt-gfx-next','{lvl}');")
     pg.goto(PAGE); pg.wait_for_function("window.__game&&document.getElementById('loading').hidden",timeout=180000)
     pg.evaluate("__game.GAME.hold=true")
     snap(pg,'title',9)

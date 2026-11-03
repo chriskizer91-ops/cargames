@@ -207,8 +207,9 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
 
 ## Graphics, the phone and the Dev tab
 
-- **Tiers** (`55_gfx.js`): Mobile to Ultra, Mobile by default on a touch screen. Changing the tier starts the page
-  again on it.
+- **Tiers** (`55_gfx.js`): Mobile to Ultra. Every start is on Low (the owner's call: a tier too heavy for the device
+  can't leave the game stuck loading start after start). Changing the tier in the menu starts the page again on it,
+  for that start only (`rt-gfx-next`, read once and cleared); the page's `?quality=` still picks one for the tools.
 - **The phone's budgets** (Dev tab, `52_world_gl.js` `BUDGET`, Mobile only; the other tiers always draw
   everything): the render scale's ceiling, the shadow distance, the trees' distance and how near they are full, the
   reflection probe's and the far cascade's cadence, the dust allowed at once, your car's coarse copy in the far
@@ -227,7 +228,7 @@ Every setting and save is under an `rt-` key, so nothing is shared with Wide Ope
 Back Forty (`b40-`), City Limits (`cl-`) or Rut Access (`rut-`): free play `rt-game` (car, level, camera, time of day, the cars' rigs),
 `rt-tune` (the Tune sheet and the Dev tab's traction), `rt-fchal` (free play's challenge bests), `rt-plus`,
 `rt-free`; the career `rt-career` and its feats `rt-cfeats`, `rt-mode` (which one you were in); `rt-races`,
-`rt-park`, `rt-laps`, `rt-runs`; the settings `rt-gfx`, `rt-display`, `rt-res`, `rt-dottext`, `rt-sim`,
+`rt-park`, `rt-laps`, `rt-runs`; the settings `rt-gfx-next` (one start only), `rt-display`, `rt-res`, `rt-dottext`, `rt-sim`,
 `rt-engine`, `rt-dyno`, `rt-show`; the Dev tab's `rt-look`, `rt-budget`, `rt-simdev`, `rt-devworld`.
 
 ## Tools

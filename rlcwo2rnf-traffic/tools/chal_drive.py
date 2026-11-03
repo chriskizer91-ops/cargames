@@ -60,7 +60,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(args=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
     pg=b.new_page(viewport={'width':480,'height':270}); errs=[]
     pg.on('pageerror',lambda e: errs.append(str(e)))
-    pg.add_init_script("localStorage.setItem('rt-gfx','mini');localStorage.setItem('rt-fchal','{}');")
+    pg.add_init_script("localStorage.setItem('rt-gfx-next','mini');localStorage.setItem('rt-fchal','{}');")
     pg.goto(PAGE); pg.wait_for_function("window.__game&&document.getElementById('loading').hidden",timeout=180000)
     if PARS:
         bo=pg.evaluate(BESTOF); want=list(bo) if ids=='all' else ids.split(',')

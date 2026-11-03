@@ -10,8 +10,8 @@ const file=process.env.FILE?path.resolve(process.env.FILE):path.resolve(__dirnam
   const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
   const p=await b.newPage({viewport:{width:+(process.env.W||960),height:+(process.env.H||540)},deviceScaleFactor:1});
   const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))errs.push(m.text().slice(0,300));});
-  /* (the game takes its graphics level from its saved setting, rt-gfx: there is no ?gfx= in the address) */
-  await p.addInitScript(gfx=>{try{localStorage.clear();if(gfx)localStorage.setItem('rt-gfx',gfx);}catch(e){}},gfx);
+  /* (the game takes its graphics level for one start from rt-gfx-next, as the menu leaves it: there is no ?gfx= in the address) */
+  await p.addInitScript(gfx=>{try{localStorage.clear();if(gfx)localStorage.setItem('rt-gfx-next',gfx);}catch(e){}},gfx);
   const t0=Date.now();
   await p.goto('file://'+file);
   try{await p.waitForFunction(()=>window.__game&&!(document.getElementById('loading')&&!document.getElementById('loading').hidden),null,{timeout:400000,polling:1000});}
