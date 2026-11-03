@@ -249,6 +249,19 @@ ground darkens with a sheen and puddles, the renderer's rain falls.
   the final pass, in place of a second full-screen pass over the canvas (at most 1/255 apart: no 8-bit picture
   between); the HUD's pixel buffer cleared and sent to the GPU by the rows drawn since (`hMark`), not whole every
   frame; the Dots display's target made only when the Dots display is used.
+- **Round 2 of the render review** (3 November): the challenge columns draw inside the main pass (no second
+  framebuffer over the same targets: on a phone's tiled GPU that meant reloading and storing them); the chunks in sight
+  are drawn nearest first within each kind, and in the main pass the ground's back faces are culled (the shadow and
+  probe passes still draw both sides); the bloom chain and the SSR pyramid's downsample work in half precision
+  (colours only, coordinates full); and on Mobile the lighting's BRDF too (`HALF` in `11_sl3.js`: the GGX term in
+  its 16-bit-safe form, roughness floored at .008, the product with the light's radiance in full precision; Dev:
+  Half-precision lighting, Auto (Mobile), On, Off, from the next start). A desktop's GPU ignores half precision, so
+  High and Ultra can't change; this machine's software GPU is full precision too, so on it Mobile's frames come out
+  within 5/255 of before (11 pixels past 1/255 by night): the phone shows what 16 bits do. Garbage from drawing cut
+  where it was plain (kept matrices through `M4.mulTo`, the same sums so the same bits; the dust's uniforms set in
+  place; the presets list per car worked out once; distances without three-argument `Math.max` or `Math.hypot`):
+  `alloc_rt.js night` on Mobile 228 → 208 KB a frame, of which the physics is still about 90 (its own job). Most of
+  what's left on the drawing side is numbers boxed in code not yet optimised in the profile's 30 frames.
 - **The performance readout** (F, or Dev: Numbers on screen, Readout): frames a second against the beat, the frame
   time and its worst, the CPU's and the GPU's time, the render size, triangles, chunks and lights, under the HUD's
   name block. Everything shows the world's own numbers as well.
