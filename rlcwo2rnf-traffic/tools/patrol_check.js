@@ -24,28 +24,31 @@ const which=(process.argv[2]||'legal,speed,red,hit,away,traffic').split(','),OUT
       g.closeMenu();G.state='drive';g.APP.cam=1;g.DEVW.polStart='patrol';g.applyTod('day');
       /* a clean start: no chase, no patrols out */
       g.APP.police=false;g.APP.t+=dt;g.step(dt);g.APP.police=true;
-      const run=async(n,inp,every=8)=>{for(let f=0;f<n;f++){g.setTestInput(typeof inp==='function'?inp(f):inp);g.APP.t+=dt;g.step(dt);if(f%every===every-1){g.render(dt);await wait(1);}if(POL.chase&&!r0.at){r0.at=f;r0.why=PAT.why;r0.firstWasParked=!!POL.cars[0].V&&POL.cars[0].V===r0.parkedV;}}};
-      const r0={at:0,why:'',firstWasParked:false,parkedV:null};
+      /* (every parked patrol seen out, by its spot; the first after you checked against them when the chase starts) */
+      const parked=new Map();
+      const run=async(n,inp,every=8)=>{for(let f=0;f<n;f++){g.setTestInput(typeof inp==='function'?inp(f):inp);g.APP.t+=dt;g.step(dt);if(f%every===every-1){g.render(dt);await wait(1);}
+        for(const P of PAT.cars)if(P.V&&P.spot)parked.set(P.V,P.spot);
+        if(POL.chase&&!r0.at){r0.at=f+1;r0.why=PAT.why;const sp=POL.cars[0].V&&parked.get(POL.cars[0].V);r0.firstWasParked=!!sp;r0.firstSpot=sp?sp[3]+' '+Math.round(sp[0])+','+Math.round(sp[1]):null;}}};
+      const r0={at:0,why:'',firstWasParked:false,firstSpot:null};
+      const seenAt=(x)=>[...parked.values()].some(s=>s[0]===x);
       /* hold a speed along the way you face: throttle and brake by the error */
       const hold=v=>()=>{const e=v-G.car.speed;return {steer:0,thr:e>0?Math.min(1,e*.4):0,brk:e<-1?Math.min(1,-e*.2):0,hb:0,nos:false};};
       if(sc==='legal'||sc==='speed'){
         /* west on the north side of Highway 40 (its outer lane), towards the patrol on the shoulder at x 800 */
         const v=sc==='speed'?44.7:24.6;g.placeCar(1400,-9.3,Math.PI);
-        await run(60,hold(v));for(const P of PAT.cars)if(P.V&&P.spot&&P.spot[0]===800)r0.parkedV=P.V;
-        const parkedOut=!!r0.parkedV;
         /* up to speed, then past it: 25 s at most */
-        for(let f=0;f<1500&&!POL.chase;f++){await run(1,hold(v),8);if(G.car.p[0]<600)break;}
-        return {parkedOut,chase:POL.chase,why:r0.why,firstWasParked:r0.firstWasParked,mph:Math.round(G.car.speed*2.237),x:Math.round(G.car.p[0])};}
+        await run(60,hold(v));for(let f=0;f<1500&&!POL.chase;f++){await run(1,hold(v),8);if(G.car.p[0]<600)break;}
+        return {parkedOut:seenAt(800),chase:POL.chase,why:r0.why,firstWasParked:r0.firstWasParked,firstSpot:r0.firstSpot,mph:Math.round(G.car.speed*2.237),x:Math.round(G.car.p[0])};}
       if(sc==='red'){
         /* west along Silver Street (z -120, the westbound lane 1.8 m north of its middle) into Central's junction at x 0,
            arriving on the red for east-west */
         const n=g.WG.TW.jn.find(n=>n.x===0&&n.z===-120),ph=n.ph,red=t=>((t/30+ph+.5)%1+1)%1;
         g.placeCar(70,-121.8,Math.PI);await run(30,{steer:0,thr:0,brk:1,hb:1,nos:false});
-        r0.parkedV=(PAT.cars.find(P=>P.V&&P.spot&&P.spot[3]==='Silver Street')||{}).V||null;
+
         /* wait for the red, then go: 12 m/s into the junction */
         let w=0;while(!(red(g.APP.t)>.6&&red(g.APP.t)<.8)&&w<2400){g.setTestInput({steer:0,thr:0,brk:1,hb:1,nos:false});g.APP.t+=dt;g.step(dt);w++;}
         for(let f=0;f<480&&!POL.chase;f++)await run(1,hold(12),8);
-        return {patrolOut:!!r0.parkedV,signal:n.sig,chase:POL.chase,why:r0.why,firstWasParked:r0.firstWasParked,x:Math.round(G.car.p[0]),z:Math.round(G.car.p[2]),light:+red(g.APP.t).toFixed(2)};}
+        return {patrolOut:[...parked.values()].some(s=>s[3]==='Silver Street'),firstSpot:r0.firstSpot,signal:n.sig,chase:POL.chase,why:r0.why,firstWasParked:r0.firstWasParked,x:Math.round(G.car.p[0]),z:Math.round(G.car.p[2]),light:+red(g.APP.t).toFixed(2)};}
       if(sc==='hit'){
         g.placeCar(1100,-9.3,Math.PI);await run(60,{steer:0,thr:0,brk:1,hb:1,nos:false});
         const P=PAT.cars.find(P=>P.V&&P.spot&&P.spot[0]===800),car=G.car;
