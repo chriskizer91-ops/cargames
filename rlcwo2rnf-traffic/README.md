@@ -32,8 +32,14 @@ Open `rlcwo2rnf-traffic.html` in a browser with WebGL2 (one self-contained page,
   world's `groundAt(x, z, out)`; before the step is optimized every number in it is boxed, whatever the code.
 - **Traffic on Highway 40** (`src/60_traffic.js`): done. Below.
 - **Traffic on the town's streets and the country roads** (`src/60_streets.js`): done (first cut). Below.
-- **Police mode** (`src/60_police.js`): done. Below.
-- **Next**: the town's streets and the country roads, parked cars, people at the markers; the map with waypoints.
+- **Police mode** (`src/60_police.js`): done. Below. **Patrols** (`src/60_patrol.js`): with the police on, patrol
+  cars parked at a dozen spots and about one traffic car in ten; a chase starts when one sees you speed (15 mph over the
+  limit), run a red or hit a car; busted or away, patrols again (Dev: When the police come, a patrol sees you or at once).
+- **The waypoint** (`src/61_nav.js`): tap or click the big map (M) to set one; the route by road on both maps, the
+  distance under the corner map; a new route when you leave it, cleared on arrival.
+- **Memory**: each car built no longer keeps all of its building (the heap in a drive on Mobile 414 → 104 MB).
+- **Next** (`HANDOFF.md`, section 4): the owner's numbers from the phone and the laptop; the owner's baked traffic and
+  police cars (`TRAFFIC_MODELS.md`) with instanced drawing; later the owner's environment assets placed by the world.
 
 ## Traffic on Highway 40 (`src/60_traffic.js`)
 
@@ -357,7 +363,9 @@ Back Forty (`b40-`), City Limits (`cl-`) or Rut Access (`rut-`): free play `rt-g
   `node tools/eval_rt.js "<code>"`, `python3 tools/sheet.py` (pictures side by side).
 - `node tools/shader_cost.js [place:tod ...]` (the land shader's variants timed against each other in one page, the
   lean switches flipped on the spot, with each one's picture: `OUT=<folder>`), `node tools/load_rt.js [free race
-  chase1 chase3 chase5]` (the cars on the physics and the JavaScript per section in a race, the traffic and a chase).
+  chase1 chase3 chase5]` (the cars on the physics and the JavaScript per section in a race, the traffic and a chase),
+  `node tools/mem_rt.js [quality]` (what holds the memory: the heap by kind and by holder), `node tools/streets_check.js`
+  and `node tools/patrol_check.js` (the streets' traffic; the patrols' offences and getting away).
 - `python3 tools/pack_textures.py` (the ground photographs into `src/49_textures.js`).
 - The Python tools (`chal_drive.py`, `race_run.py`, `park_drive.py` and the rest) want the Python Playwright package
   and, here, a shim that points it at the installed browser (`QA.md`, "How it was run").
