@@ -1,7 +1,9 @@
 # Traffic and police car models: what the game needs
 
-A spec for the light traffic and police cars (under 5,000 triangles), so they drop into Redline County: Road Not
-Found + Traffic without rework. A converter in this repo (`tools/pack_cars.py`, written when the first model
+A spec for the light traffic and police cars: studio models (about 750,000 triangles, engine bay and underside
+included, so a car on its roof looks right) baked onto models under 5,000 triangles, so they drop into Redline
+County: Road Not Found + Traffic without rework. Only a couple of kinds, repeated: each in many colours (the paint
+mask, below), all of one kind drawn together in one go. A converter in this repo (`tools/pack_cars.py`, written when the first model
 arrives) turns them into the game's own mesh format inside the page, the way `tools/pack_textures.py` does the
 ground photographs.
 
@@ -19,9 +21,26 @@ to build) and use less GPU memory, which leaves room for more cars on the road.
 - **Origin** on the ground, at the middle of the car's footprint (half way along, half way across).
 - **Facing**: say which way the front points (the converter turns it to the game's +X forward, +Y up, +Z right).
   The same way for every model.
-- **No textures, no UVs.** The colour comes from each material's base colour (or vertex colours). The game's lighting
-  and reflections do the rest; textures would cost memory on the phone for little.
+- **One UV set**, laid out for the bake (no overlaps). Export **tangents** with it (Blender's glTF exporter: Tangents on).
 - **Normals** as you want them shaded (smooth where it's round, split where it's a crease).
+
+## The baked maps
+
+The body (and the wheels, which can share the body's maps or have their own) carries maps baked from the studio model:
+
+| Map | What | Notes |
+|---|---|---|
+| **Base colour** | the colours, with the shading baked out (no light or shadow in it) | the painted panels in a mid grey, so the paint colour can be put on them per car |
+| **Paint mask** | white where the paint goes, black elsewhere | in the base colour's alpha, or its own file |
+| **Normal map** | the studio model's surface detail | tangent space, OpenGL convention (green up: Blender's default) |
+| **ORM** | red: ambient occlusion; green: roughness; blue: metalness | the glTF standard packing; occlusion alone is fine to start |
+
+Bake at 2048 x 2048 (4096 is fine too: the converter makes the smaller ones). In the game: 1024 on High and Ultra,
+1024 on Medium and Low, 512 on Mobile, with the normal map at half that. That keeps a kind of car to about 6 MB of
+GPU memory on a laptop and under 2 MB on the phone. The page carries them as WebP, a fraction of the glb's size.
+
+Glass, the lamps and the light bar stay their own materials (not baked), so the glass still reflects the world and the
+lamps still light up at night and when braking.
 
 ## Levels of detail
 
@@ -31,8 +50,8 @@ to build) and use less GPU memory, which leaves room for more cars on the road.
 | `LOD1` | about 1,500 (wheels merged in) | middle distance |
 | `LOD2` | about 400 to 600 (wheels merged in) | far off, and in the sun's shadow maps |
 
-As objects in the one file, named `LOD0`, `LOD1`, `LOD2` (or with those as suffixes). If only `LOD0` exists, the
-converter can merge its wheels in for the far levels, at the full count.
+As objects in the one file, named `LOD0`, `LOD1`, `LOD2` (or with those as suffixes), all on the same UV layout so they
+share the maps. If only `LOD0` exists, the converter can merge its wheels in for the far levels, at the full count.
 
 ## Wheels (on `LOD0`)
 
@@ -42,13 +61,14 @@ copies to the other three corners. Tyre and rim as their own materials (below).
 
 ## Materials (by name)
 
-The game's shader picks how each surface looks by its material: these names map to it. Anything else draws as plain
-colour.
+The baked body and wheels are one material each (`body`, `wheel`), drawn from the maps. The rest keep their own
+materials by name, which the game's shader draws its own way (anything else not baked draws as plain colour):
 
 | Material name | What it does in the game |
 |---|---|
-| `paint` | the body colour: replaced per car by a colour from the traffic's palette |
-| `paint2` | a second colour (two-tone; on the police car, the white doors and roof) |
+| `body` | the baked body: base colour, paint mask, normal map, ORM |
+| `wheel` | the baked wheels (or the body's maps) |
+| `paint2` | on the police car, the white doors and roof, if not in the bake (or a second paint mask channel) |
 | `glass` | windows: dark, with the world reflected in them |
 | `glass_light` | lighter glass (lamp covers) |
 | `chrome` | bright metal |
@@ -75,6 +95,14 @@ nothing new.
 Today's traffic mix is eight kinds: a stock sedan, a wagon, a pickup, a hatchback, an electric car, an off-road
 trail truck, a coupe and a muscle car, plus the police car. Any number from about three up works; each kind costs a
 little memory and nothing per frame.
+
+## What the game will do with them
+
+- A baked-car path in the renderer (its own shader, so nothing else gets heavier): the maps, the paint colour on the
+  mask, the game's own lighting, shadows and reflections over them.
+- All the cars of one kind drawn together in one instanced draw a pass (their places and colours in a small buffer),
+  instead of one draw a car: with a couple of kinds repeated, the whole traffic is a handful of draws.
+- No making on the device: the meshes and maps are ready in the page, uploaded once at load.
 
 ## How heavy, on the phone
 
