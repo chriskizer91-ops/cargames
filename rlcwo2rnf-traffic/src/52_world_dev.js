@@ -102,7 +102,7 @@ function drawWorldStats(){
     (()=>{const P=perfStats();return P?`FRAME ${P.avg.toFixed(1)} MS  1% LOW ${(1000/P.low1).toFixed(0)} FPS  JS ${P.js.toFixed(1)} MS  DRAWS ${PERF.draws}${GLC.oom?'  UPLOADS REFUSED '+GLC.oom:''}`:'';})(),
     ...rperfRows(),`HUD ${BW}X${BH}  ORIGIN ${RO[0]},${RO[2]} (${WORLD.steps||0} STEPS)  LIGHT GRID ${LG.n} LIGHTS, ${LG.ms.toFixed(0)} MS TO MAKE`,
     `PASSES OFF: ${Object.keys(DEVW.off).filter(k=>DEVW.off[k]).join(' ').toUpperCase()||'NONE'}`,
-    `BOOT MS: RENDERER ${BOOT.renderer||'-'}  WORLD ${BOOT.world||'-'}  CAR ${BOOT.car||'-'}  SHADERS ${BOOT.shaders||'-'} (+${BOOT.built||0} CARS)  LIGHTS ${BOOT.lights||'-'}  PHOTOS ${BOOT.photos||'-'}`,
+    `BOOT MS: RENDERER ${BOOT.renderer||'-'}  WORLD ${BOOT.world||'-'}  CAR ${BOOT.car||'-'}  SHADERS ${BOOT.shaders||'-'} (+${BOOT.built||0} CARS, ${BOOT.trafficN||0} TRAFFIC)  LIGHTS ${BOOT.lights||'-'}  PHOTOS ${BOOT.photos||'-'}`,
     `HOLES ${S.holes}  GROUND NOT READY ${S.missT} FRAMES  UPLOAD ${(PERF.up||0).toFixed(1)} MS/FRAME`,
     `CHUNK WAIT ${(S.lat||0).toFixed(0)} MS (WORST ${(S.latMx||0).toFixed(0)})`,
     `${(Math.hypot(t.p[0],t.p[2])/1609.34).toFixed(2)} MI FROM THE GARAGE  TRIP ${(S.odo/1609.34).toFixed(1)} MI  TOP ${Math.round(S.top*2.237)} MPH`,...psRows()];

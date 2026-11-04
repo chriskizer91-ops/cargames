@@ -34,8 +34,12 @@ else{
       const pre=(async()=>{for(const car of park){if(warm)break;const i=rigBuild(car,rigOf(car));if(!TRUCK[BUILDS[i].id]){truck(i);built++;}await new Promise(r=>setTimeout(r,0));}})();
       /* (and the physics, a slice at a time while the GPU compiles: 60_game's physWarm) */
       const phys=physWarm().then(ms=>{BOOT.physWarm=ms;}).catch(e=>console.warn('physics warm-up',e));
+      /* (and the traffic's cars, one kind a turn: each is made and settled on its springs, tens of milliseconds a kind,
+         a stutter if it waited for the first drive; whatever isn't done when the shaders are goes on on the opening
+         screen, as before) */
+      let trfN=0;const trf=(async()=>{const t0=performance.now();try{while(!warm&&trfModelsStep()){trfN++;await new Promise(r=>setTimeout(r,0));}}catch(e){console.warn('traffic models',e);}BOOT.traffic=Math.round(performance.now()-t0);})();
       await R.G.warmup((d,n)=>{L.textContent='Warming up the shaders '+d+' / '+n+(built?' · the garage '+built+' / '+park.length:'');});
-      warm=true;await pre;await phys;mark('shaders');BOOT.built=built;
+      warm=true;await pre;await phys;await trf;mark('shaders');BOOT.built=built;BOOT.trafficN=trfN;
       L.hidden=true;openMenu(true);requestAnimationFrame(frame);mark('menu');
       /* the town's lights into their grid, then the ground's photographs, while the opening screen is up */
       setTimeout(()=>{lgBuild();mark('lights');texLoad().then(()=>mark('photos'));},50);
