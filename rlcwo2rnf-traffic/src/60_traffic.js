@@ -231,6 +231,8 @@ function trafficFrame(dt){
   TRF_ON.length=0;for(let i=0;i<TRF_ALL;i++){const c=TRF.cars[i];if(!c.on)continue;if(i<TRF_MAX?i>=N||!near:!stShare()){trfOff(c);continue;}TRF_ON.push(c);}
   /* what the cars keep clear of on the physics: you, and the cars of theirs on it */
   ACT.length=0;ACT.push(GAME.car);if(POL.live)for(let _i4=0;_i4<POL.cars.length;_i4++){const P=POL.cars[_i4];if(P.V)ACT.push(P.V);}
+  /* (and the parked patrols, 60_patrol) */
+  for(let q=0;q<PAT.cars.length;q++){const P=PAT.cars[q];if(P.V)ACT.push(P.V);}
   TRF_PHYS.length=0;for(let _i5=0;_i5<TRF_ON.length;_i5++){const c=TRF_ON[_i5];if(c.mode!=='kin'){TRF_PHYS.push(c);ACT.push(c.veh);}}
   for(let i=0;i<TRF_ON.length;i++){const c=TRF_ON[i];if(c.mode==='kin'){trfDrive(c,dt);if(TRF_PHYS.length<TRF_PHYS_MAX&&trfThreat(c))trfEngage(c);}else trfPhysDrive(c,dt);}
   /* one that has fallen out of range goes, and starts again out of sight (two a frame at most) */
@@ -289,7 +291,7 @@ function trfSpawn(c,px,pz,far,keep){
     if(dd<far+10&&F){const y=hwY(x).y+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3){inside=false;break;}}if(inside)continue;}
     /* (about one driver in ten has their eyes elsewhere: a stopped car in their lane is seen only 25 to 45 m off) */
     c.look=trfRnd()<.1?25+trfRnd()*20:160;
-    c.on=true;c.m=m;c.L=L;c.s=hwS(L,x,dir);c.lat=0;c.lat0=0;c.lcT=9;c.vk=.92+trfRnd()*.16+(2-k)*.025;c.T=1.1+trfRnd()*.6;c.a=1.2+trfRnd()*.9;c.b=2+trfRnd();c.s0=2+trfRnd()*1.2;
+    c.on=true;c.m=m;patMaybe(c);c.L=L;c.s=hwS(L,x,dir);c.lat=0;c.lat0=0;c.lcT=9;c.vk=.92+trfRnd()*.16+(2-k)*.025;c.T=1.1+trfRnd()*.6;c.a=1.2+trfRnd()*.9;c.b=2+trfRnd();c.s0=2+trfRnd()*1.2;
     c.v=L.vA[Math.floor(c.s/L.ds)%L.n]*c.vk;c.lcNext=TRF.t+trfRnd();c.prev=false;c.wa=trfRnd()*TAU;c.wap=c.wa;
     /* (no faster than it could stop comfortably for a light that isn't green, or the nearest car ahead) */
     c.goK=-1;trfPose(c);trfLight(c,c.v);c.goK=-1;if(TRF.lgap<1e8)c.v=Math.min(c.v,Math.sqrt(2*2.5*Math.max(0,TRF.lgap-3)));
@@ -315,7 +317,7 @@ function trafficDraw(U,eye){
   for(let _i12=0;_i12<TRF_ON.length;_i12++){const c=TRF_ON[_i12];const dx=c.x-eye[0],dz=c.z-eye[2],d=Math.sqrt(dx*dx+dz*dz);
     c.vis=d<=far&&trfVisible(F,c,c.m.L*.6+1);if(!c.vis){c.prev=false;continue;}
     if(!set){set=true;gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uPrevOn,1);gl.uniform1f(u.uLiv,0);gl.uniform3f(u.uGlow,0,0,0);gl.uniform1f(u.uLamps,lamps);}
-    const m=c.m;gl.uniform3fv(u.uPaint,c.paint);gl.uniform3fv(u.uPaint2,c.paint);gl.uniform3fv(u.uRim,m.rim);gl.uniform3fv(u.uCal,m.cal);gl.uniform3fv(u.uClad,m.clad);
+    const m=c.m,pol=c.police;gl.uniform1f(u.uLiv,pol?5:0);gl.uniform3fv(u.uPaint,pol?POL_PAINT:c.paint);gl.uniform3fv(u.uPaint2,pol?POL_WHITE:c.paint);gl.uniform3fv(u.uRim,pol?POL_RIM:m.rim);gl.uniform3fv(u.uCal,m.cal);gl.uniform3fv(u.uClad,pol?POL_PAINT:m.clad);
     gl.uniform1f(u.uBrake,c.brake?1:0);gl.uniform1f(u.uDirt,c.dirt);gl.uniform4fv(u.uLivP,m.livP);gl.uniform1f(u.uMudOff,0);
     gl.uniformMatrix4fv(u.uM,false,c.M);gl.uniformMatrix4fv(u.uPrevM,false,c.prev?c.Mp:c.M);
     if(d<TRF_NEAR||c.mode!=='kin'&&d<TRF_NEAR*2){const TF=big?TRUCKF[m.id]:null;
@@ -329,8 +331,11 @@ function trafficDraw(U,eye){
         drawMesh(TF?(h[4]?TF.wheel:TF.wheelR):(h[4]?m.T.wheel:m.T.wheelR));}}
     else if(d<mid){drawMesh(m.T.all);tris+=m.T.tris;}
     else{drawMesh(m.T.far);tris+=m.T.trisFar;}
+    /* (a patrol: the light bar on its roof, dark) */
+    if(pol&&m.T.D){const [bx,by]=polBarD(m.T.D),B=polBar(),Q=TRF_WP,M=c.M;for(let q=0;q<16;q++)Q[q]=M[q];Q[12]+=M[0]*bx+M[4]*by;Q[13]+=M[1]*bx+M[5]*by;Q[14]+=M[2]*bx+M[6]*by;
+      gl.uniform1f(u.uLiv,0);gl.uniformMatrix4fv(u.uM,false,Q);gl.uniformMatrix4fv(u.uPrevM,false,Q);drawMesh(B.base);drawMesh(B.rOff);drawMesh(B.bOff);}
     c.Mp.set(c.M);c.prev=true;c.wap=c.wa;}
-  if(set){gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);}
+  if(set){gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);}
   TRF.tris=tris;return tris;
 }
 /* into a sun shadow map: the light copy of each car within the level's shadow reach that the cascade sees (F: the
@@ -406,7 +411,9 @@ function trfPhysDrive(c,dt){
   for(let k=-40;k<=40;k++){const i=((i0+k)%n+n)%n,dx=L.x[i]-c.x,dz=L.z[i]-c.z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}
   c.s=bi*L.ds;const tx=L.tx[bi],tz=L.tz[bi],lo=-(c.x-L.x[bi])*tz+(c.z-L.z[bi])*tx,he=Math.atan2(c.fx*tz-c.fz*tx,c.fx*tx+c.fz*tz),up=V.M[4];
   /* a knock: stop, honk */
-  if(V.ev.car>0){V.ev.car=0;c.hits++;c.stopT=2.5;if(c.honkT<=0){trfHonk(c);c.honkT=3;}}
+  if(V.ev.car>0){V.ev.car=0;c.hits++;c.stopT=2.5;if(c.honkT<=0){trfHonk(c);c.honkT=3;}
+    /* (by you: a patrol that sees it comes after you, 60_patrol) */
+    {const yx=GAME.car.p[0]-c.x,yz=GAME.car.p[2]-c.z;if(yx*yx+yz*yz<64){PAT.hitT=TRF.t;PAT.hitX=c.x;PAT.hitZ=c.z;PAT.hitPol=!!c.police;}}}
   if(up<.5||Math.abs(lo)>9)c.wreck=true;
   const inp=c.inp,spd=V.speed;
   if(c.wreck){inp.steer=0;inp.thr=0;inp.brk=1;inp.hb=1;
@@ -440,7 +447,7 @@ function trfThreatPhys(c){const V=c.veh;
 /* each physics step (60_game's step, with yours): the cars of the traffic on the physics and the police, then everyone
    touching everyone */
 function trafficSub(dt){
-  if(!TRF_PHYS.length&&!POL.live)return;TRF_CC.length=0;TRF_CC.push(GAME.car);policeSub(dt,TRF_CC);
+  if(!TRF_PHYS.length&&!POL.live&&!PAT.cars.some(P=>P.V))return;TRF_CC.length=0;TRF_CC.push(GAME.car);policeSub(dt,TRF_CC);patSub(dt,TRF_CC);
   /* (a car let off the physics earlier this frame is on the list until the next: skipped) */
   for(let _i20=0;_i20<TRF_PHYS.length;_i20++){const c=TRF_PHYS[_i20];if(c.mode!=='phys'||!c.veh)continue;c.veh.step(dt,c.inp);TRF_CC.push(c.veh);}
   for(let _i21=0;_i21<TRF_PHYS.length;_i21++){const c=TRF_PHYS[_i21];if(c.mode==='park'&&c.veh)TRF_CC.push(c.veh);}

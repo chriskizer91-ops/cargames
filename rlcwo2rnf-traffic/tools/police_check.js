@@ -27,7 +27,7 @@ const which=(process.argv[2]||'chase,bust').split(',');
   const t0=Date.now();await pg.goto('file://'+file+`?quality=${process.env.QUALITY||'mobile'}`);
   try{await pg.waitForFunction(()=>window.__game&&document.getElementById('loading').hidden,null,{timeout:600000,polling:1000});}catch(e){errs.push('boot timed out');}
   console.log('boot',((Date.now()-t0)/1000).toFixed(1)+'s');
-  await pg.evaluate(([car,st])=>{window.requestAnimationFrame=()=>0;const g=window.__game;g.GAME.hold=true;if(st)g.DEVW.stS=st;if(car){const i=g.BUILDS.findIndex(b=>b.id===car);if(i>=0)g.spawnCar(i);}},[process.env.CAR||'',process.env.STREETS||'']);
+  await pg.evaluate(([car,st])=>{window.requestAnimationFrame=()=>0;const g=window.__game;g.GAME.hold=true;if(st)g.DEVW.stS=st;g.DEVW.polStart='once';if(car){const i=g.BUILDS.findIndex(b=>b.id===car);if(i>=0)g.spawnCar(i);}},[process.env.CAR||'',process.env.STREETS||'']);
   const run=async(name,fn,check,arg)=>{const t=Date.now();try{const r=await pg.evaluate(fn,arg);const bad=check(r);if(bad.length)fails++;
       console.log(name,((Date.now()-t)/1000).toFixed(0)+'s',bad.length?'FAIL: '+bad.join(', '):'pass',JSON.stringify(r));}
     catch(e){fails++;errs.push(name+': '+e.message.slice(0,300));console.log(name,'FAILED',e.message.slice(0,300));}};

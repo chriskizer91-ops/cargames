@@ -78,11 +78,14 @@ function polRespawn(P,minBack=0){
   for(const back of [want,want+60,want+120]){const x=t.p[0]-fx*back,z=t.p[2]-fz*back;if(!inView(x,z)&&!polCrowded(P,x,z)){polPlace(P,x,z,Math.atan2(-fz,fx),v*.8);POL.respawns++;return true;}}
   return false;}
 const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(hyp2(o.V.p[0]-x,o.V.p[2]-z)<14)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(hyp2(c.x-x,c.z-z)<30)return true;}return false;};
-function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';heliOff();}
+function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.chase=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';heliOff();}
 
 /* ---------- each frame (60_game's step, before the traffic and the physics) ---------- */
 function policeFrame(dt){
-  if(!policeWanted()){if(POL.live)policeClear();return;}
+  if(!policeWanted()){if(POL.live)policeClear();patClear();POL.chase=false;return;}
+  /* no one after you till a patrol sees you break the law (60_patrol); Dev, When the police come: At once, the chase
+     straight away */
+  if(!POL.chase){if(DEVW.polStart==='once')POL.chase=true;else{patFrame(dt);if(!POL.chase)return;}}
   const t=GAME.car,N=polCount();
   if(!POL.live){POL.live=true;POL.k=0;polCrumb();truckFar(APP.bi);WANTED.lvl=1;WANTED.heat=0;say('POLICE!',2.2,PAL.red);}
   /* the build changed: they come after you in the new one */
@@ -144,10 +147,13 @@ function polRefit(){const T=polTarget();
 const polEscD=()=>+(DEVW.escD||800)||800;
 /* you got away: the chase is over, the police gone for 45 s, the level back to 1 */
 function polEscape(){POL.escapes++;POL.escT=0;heliOff();for(let i=0;i<POL.cars.length;i++)POL.cars[i].V=null;POL.holdT=45;POL.bustT=0;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;
-  say('YOU LOST THEM',3.5,PAL.green);say('THE POLICE ARE BACK IN 45 S',3,PAL.amber);buzz([30,30,30]);
+  /* (with the patrols, the chase is over and it's patrols again; at once, they're back in 45 s) */
+  const pat=DEVW.polStart!=='once';if(pat){POL.holdT=0;POL.live=false;POL.chase=false;}
+  say('YOU LOST THEM',3.5,PAL.green);if(!pat)say('THE POLICE ARE BACK IN 45 S',3,PAL.amber);buzz([30,30,30]);
   if(!(HELI.escaping&&voxSay('radio_air_lost','radio',0,0,0)))voxSay('radio_lost_visual','radio',0,0,0);HELI.escaping=false;}
 /* back at the garage: the chase over, the level back to 1 */
 function polHome(){goTo('garage');for(let i=0;i<POL.cars.length;i++)POL.cars[i].V=null;POL.home=true;POL.holdT=0;POL.bustT=0;WANTED.lvl=1;WANTED.heat=0;
+  if(DEVW.polStart!=='once'){POL.home=false;POL.live=false;POL.chase=false;heliOff();}
   say('TAKEN BACK TO THE GARAGE',3,PAL.amber);}
 /* how a police car drives. It follows your trail (where you drove, so it can be driven), steering for a point a little
    way along it, and reads the trail further on for the bends: no faster than the tightest bend ahead allows, braking in
@@ -289,18 +295,24 @@ function polBar(){if(POL.bar)return POL.bar;const box=(mb,x0,y0,z0,x1,y1,z1,col,
   const lens=(z0,z1,col,on)=>{const mb=new MB();box(mb,-.14,.07,z0,.14,.15,z1,on?col:col.map(v=>v*.18),on?7:0,on?MAT.EMIT:MAT.COL);return mb.build();};
   return POL.bar={base:base.build(),rOn:lens(-.52,-.04,[1,.06,.04],1),rOff:lens(-.52,-.04,[1,.06,.04],0),bOn:lens(.04,.52,[.08,.25,1],1),bOff:lens(.04,.52,[.08,.25,1],0)};}
 /* where the bar sits on this car's roof: over the middle of the roof, on its highest point there */
-function polBarAt(V){const T=TRUCKF[V.build.id]||truckFar(V.bi),D=T.D;if(D._bar)return D._bar;
+function polBarAt(V){const T=TRUCKF[V.build.id]||truckFar(V.bi);return polBarD(T.D);}
+function polBarD(D){if(D._bar)return D._bar;
   if(!D.G){return D._bar=[0,(D.H||1.6)+.05];}
   const u=(D.G.rf+D.G.rr)/2,r=secRing(D,u);let y=0;for(const p of r.p)y=Math.max(y,p[1]);return D._bar=[D.X(u),y];}
+/* the police cars to draw: the chase's, and the parked patrols (60_patrol), in one list made once */
+const POL_ALL=[];
+function polAll(){POL_ALL.length=0;if(POL.live)for(let i=0;i<POL.cars.length;i++)if(POL.cars[i].V)POL_ALL.push(POL.cars[i]);for(let i=0;i<PAT.cars.length;i++)if(PAT.cars[i].V)POL_ALL.push(PAT.cars[i]);return POL_ALL;}
 const polFlash=()=>{const a=(APP.t*1.5)%1,s=(APP.t*9)%1<.55;return [a<.5&&s,a>=.5&&s];};
-function policePrep(){if(!POL.live)return;for(let _i32=0;_i32<POL.cars.length;_i32++){const P=POL.cars[_i32];if(!P.V)continue;const V=P.V,R=V.M,M=P.M,cg=V.cg;
+function policePrep(){const PL=polAll();for(let _i32=0;_i32<PL.length;_i32++){const P=PL[_i32];const V=P.V,R=V.M,M=P.M,cg=V.cg;
   M[0]=R[0];M[1]=R[3];M[2]=R[6];M[3]=0;M[4]=R[1];M[5]=R[4];M[6]=R[7];M[7]=0;M[8]=R[2];M[9]=R[5];M[10]=R[8];M[11]=0;M[15]=1;
   M[12]=V.p[0]-R[0]*cg[0]-R[1]*cg[1]-RO[0];M[13]=V.p[1]-R[3]*cg[0]-R[4]*cg[1]-RO[1];M[14]=V.p[2]-R[6]*cg[0]-R[7]*cg[1]-RO[2];
-  if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}heliPrep();}
+  if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}if(POL.live)heliPrep();}
 const POL_PAINT=Float32Array.from(lin('#141518')),POL_WHITE=Float32Array.from(lin('#f0f0ec')),POL_RIM=Float32Array.from(lin('#2a2b2e')),POL_WP=new Float32Array(16);
 function policeDraw(U,eye){
-  if(!POL.live)return 0;const u=CUR.u,F=frustum(U.uVP),[rOn,bOn]=polFlash(),B=polBar();let tris=0;
-  for(let _i33=0;_i33<POL.cars.length;_i33++){const P=POL.cars[_i33];if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T){P.prev=false;continue;}
+  const PL=POL_ALL;if(!PL.length&&!POL.live)return 0;const u=CUR.u,F=frustum(U.uVP),[rOn0,bOn0]=polFlash(),B=polBar();let tris=0;
+  for(let _i33=0;_i33<PL.length;_i33++){const P=PL[_i33],V=P.V,T=TRUCKF[V.build.id];if(!T){P.prev=false;continue;}
+    /* (a parked patrol's bar dark) */
+    const rOn=P.spot?false:rOn0,bOn=P.spot?false:bOn0;
     const x=V.p[0]-RO[0],y=V.p[1]-RO[1],z=V.p[2]-RO[2],r=V.c.body.L*.6+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-r){inside=false;break;}}
     if(!inside||hyp2(V.p[0]-eye[0],V.p[2]-eye[2])>GFX.far+20){P.prev=false;continue;}
     gl.uniform3fv(u.uPaint,POL_PAINT);gl.uniform3fv(u.uPaint2,POL_WHITE);gl.uniform3fv(u.uRim,POL_RIM);gl.uniform3fv(u.uCal,POL_RIM);gl.uniform3fv(u.uClad,POL_PAINT);
@@ -316,11 +328,11 @@ function policeDraw(U,eye){
     for(const A of [P.MB,P.MBp]){A[12]+=A[0]*bx+A[4]*by;A[13]+=A[1]*bx+A[5]*by;A[14]+=A[2]*bx+A[6]*by;}
     gl.uniformMatrix4fv(u.uM,false,P.MB);gl.uniformMatrix4fv(u.uPrevM,false,P.MBp);drawMesh(B.base);drawMesh(rOn?B.rOn:B.rOff);drawMesh(bOn?B.bOn:B.bOff);
     P.Mp.set(P.M);P.prev=true;}
-  tris+=heliDraw(U,u);
+  if(POL.live)tris+=heliDraw(U,u);
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);
   return tris;}
-function policeShadow(F,used,G,VP){if(!POL.live)return used;
-  for(let _i34=0;_i34<POL.cars.length;_i34++){const P=POL.cars[_i34];if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T)continue;const x=V.p[0],y=V.p[1],z=V.p[2],r=V.c.body.L*.6+1;let inside=true;
+function policeShadow(F,used,G,VP){const PL=POL_ALL;
+  for(let _i34=0;_i34<PL.length;_i34++){const P=PL[_i34],V=P.V,T=TRUCKF[V.build.id];if(!T)continue;const x=V.p[0],y=V.p[1],z=V.p[2],r=V.c.body.L*.6+1;let inside=true;
     for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-r){inside=false;break;}}if(!inside)continue;
     if(!used){used=true;useLit(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);gl.disable(gl.CULL_FACE);}
     gl.uniformMatrix4fv(CUR.u.uM,false,P.M);drawMesh(T.body);}
@@ -330,7 +342,7 @@ function policeLights(L){if(!POL.live||!SKY.lightsOn)return;const [rOn,bOn]=polF
   for(let _i35=0;_i35<POL.cars.length;_i35++){const P=POL.cars[_i35];if(!P.V||L.dyn.length>=16||P.d>220)continue;const M=P.M,[bx,by]=polBarAt(P.V),q=P.lamp;if(!rOn&&!bOn)continue;
     q.pos[0]=M[12]+M[0]*bx+M[4]*(by+.3);q.pos[1]=M[13]+M[1]*bx+M[5]*(by+.3);q.pos[2]=M[14]+M[2]*bx+M[6]*(by+.3);
     if(rOn){q.col[0]=70;q.col[1]=3;q.col[2]=2;}else{q.col[0]=3;q.col[1]=10;q.col[2]=80;}L.dyn.push(q);}heliLight(L);}
-function policeOcc(occ){if(!POL.live)return;for(let _i36=0;_i36<POL.cars.length;_i36++){const P=POL.cars[_i36];if(!P.V||occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=hyp2(M[0],M[6])||1,D=carD(V);
+function policeOcc(occ){const PL=POL_ALL;for(let _i36=0;_i36<PL.length;_i36++){const P=PL[_i36];if(occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=hyp2(M[0],M[6])||1,D=carD(V);
   o[0]=V.p[0]-RO[0];o[1]=V.p[1]-RO[1];o[2]=V.p[2]-RO[2];o[3]=V.cg[1];o[4]=M[0]/l;o[5]=M[6]/l;o[6]=D.L/2;o[7]=V.build.look.track/2+.12;occ.push(o);}}
 
 /* ---------- the siren: a wail, a yelp up close; each car its own, where it is, with the Doppler ---------- */

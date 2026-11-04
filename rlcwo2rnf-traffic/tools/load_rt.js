@@ -28,7 +28,7 @@ const scenes=process.argv.slice(2).length?process.argv.slice(2):['free','race','
       g.applyTod('day');g.APP.tod='day';g.APP.lights=false;g.closeMenu();G.state='drive';g.APP.cam=1;
       const chase=/^chase(\d)$/.exec(sc),L=chase?+chase[1]:0;
       if(sc==='race'){g.startRace('ring');}
-      else{g.goTo('hwyE');if(L){g.DEVW.wanted=String(L);g.APP.police=true;}}
+      else{g.goTo('hwyE');if(L){g.DEVW.wanted=String(L);g.DEVW.polStart='once';g.APP.police=true;}}
       /* the drive: the game's own cruise at 70 mph on the highway; in the race, straight on at half throttle */
       const drive=()=>{if(sc==='race')g.setTestInput({steer:0,thr:g.RACE.green?.5:0,brk:0,hb:0,nos:false});
         else{g.setTestInput({steer:0,thr:0,brk:0,hb:0,nos:false});if(!g.CRUISE.on){g.DEVW.cruise='road';g.DEVW.lastCruise='road';g.CRUISE.on=true;g.CRUISE.line=null;}}};

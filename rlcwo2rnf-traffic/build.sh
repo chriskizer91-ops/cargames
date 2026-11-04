@@ -17,7 +17,7 @@ DRIVE="40_physics 41_ground 42_chassis 43_sim 37_newbuilds 44_ai 45_ev"
 # the world: the ground's photographs (49_textures, made by tools/pack_textures.py), the generator (run in a worker), the chunks round the camera, the world through the renderer's hooks, the world's dev panel and cruise, the dust and mud, the developer panel, the graphics tiers and the display
 WORLD="49_textures 49_voices 50_worldgen 51_world 52_world_gl 52_world_dev 53_fx 54_dev 55_gfx 55_post"
 # the game: the garage's parts, the ratings, the feats, day and night, the game, its HUD, menu, garage, touch and boot
-GAME="56_parts 57_ratings 58_ccparts 58_feats 59_daynight 60_game 60_career 60_race 60_traffic 60_streets 60_police 60_heli 60_park 60_chal 60_jobs 60_nitrous 61_nav 61_hud 62_menu 63_garage 63_showroom 63_dyno_lab 63_tune_career 64_touch 65_boot"
+GAME="56_parts 57_ratings 58_ccparts 58_feats 59_daynight 60_game 60_career 60_race 60_traffic 60_streets 60_police 60_patrol 60_heli 60_park 60_chal 60_jobs 60_nitrous 61_nav 61_hud 62_menu 63_garage 63_showroom 63_dyno_lab 63_tune_career 64_touch 65_boot"
 
 page rlcwo2rnf-traffic.html game $CARS $DRIVE $WORLD $GAME
 # the artifact host wants the doctype in capitals

@@ -225,7 +225,7 @@ function trfSpawnStreet(c,px,pz,far,keep){
     const y=stY(L,i)+1;
     if(dd<far+10&&F){let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3){inside=false;break;}}if(inside)continue;}
     c.look=trfRnd()<.1?25+trfRnd()*20:160;
-    c.on=true;c.m=m;c.L=L;c.s=i*L.ds;c.lat=0;c.lat0=0;c.lcT=9;c.vk=.9+trfRnd()*.18;c.T=1.1+trfRnd()*.6;c.a=1.2+trfRnd()*.9;c.b=2+trfRnd();c.s0=2+trfRnd()*1.2;
+    c.on=true;c.m=m;patMaybe(c);c.L=L;c.s=i*L.ds;c.lat=0;c.lat0=0;c.lcT=9;c.vk=.9+trfRnd()*.18;c.T=1.1+trfRnd()*.6;c.a=1.2+trfRnd()*.9;c.b=2+trfRnd();c.s0=2+trfRnd()*1.2;
     c.v=L.vA[i]*c.vk;c.lcNext=TRF.t+trfRnd();c.prev=false;c.wa=trfRnd()*TAU;c.wap=c.wa;c.claimJ=null;c.stopK=-1;c.stopL=null;
     c.goK=-1;trfPose(c);trfLight(c,c.v);c.goK=-1;if(TRF.lgap<1e8)c.v=Math.min(c.v,Math.sqrt(2*2.5*Math.max(0,TRF.lgap-3)));
     for(let q=0;q<TRF_ON.length;q++){const o=TRF_ON[q];const dx=o.x-x,dz=o.z-z,al=dx*c.fx+dz*c.fz;if(al<=0||al>150||Math.abs(-dx*c.fz+dz*c.fx)>2.5||o.fx*c.fx+o.fz*c.fz<.5)continue;

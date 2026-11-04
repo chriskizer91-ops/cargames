@@ -588,6 +588,7 @@ body.bayfull>.bar{display:none}
           <div><h2 class="sub">Half-precision lighting (a phone's GPU runs it twice as fast; Auto: on Mobile; switches on the spot, after a short pause)</h2><div class="seg" id="dHalf" role="group" aria-label="Half-precision lighting"></div></div>
           <div><h2 class="sub">Lean ground (the ground's fine detail left out of the shader: cheaper to draw, a plainer ground up close; Auto: on Mobile and Low; switches on the spot, after a short pause)</h2><div class="seg" id="dLean" role="group" aria-label="Lean ground"></div></div>
           <div><h2 class="sub">Lighting shortcuts (a pixel out of both headlamps' reach, or past the last sun shadow, skips their sums; the picture is the same either way: Off to see whether they pay on this device)</h2><div class="seg" id="dSkip" role="group" aria-label="Lighting shortcuts"></div></div></div>
+        <div class="row2" style="margin-top:12px"><div><h2 class="sub">When the police come (a patrol sees you speeding, running a red or hitting a car; or a chase straight away)</h2><div class="seg" id="dPolStart" role="group" aria-label="When the police come"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Wanted level (Auto: it rises with the chase)</h2><div class="seg" id="dWanted" role="group" aria-label="Wanted level"></div></div>
           <div><h2 class="sub">Police cars (Wanted: one a level, up to 3 on Mobile and Low, 4 on Medium, 5 on High and Ultra)</h2><div class="seg" id="dPol" role="group" aria-label="Police cars"></div></div></div>
         <div class="row2" style="margin-top:12px"><div><h2 class="sub">Police cars' speed (by level: your build tuned to top out at 125, 145, 165, 190, 215 mph)</h2><div class="seg" id="dPolPow" role="group" aria-label="Police engines"></div></div>
@@ -12151,7 +12152,7 @@ function worldGL(){
 /* ---------- the open world's side of the developer's panel (Mini Dirt Run Open World's): the world's own numbers,
    how far it's drawn, worker or not, and a cruise control that holds the road (for the long straight runs).
    The handling and Sim switches are HD's own (54_dev). ---------- */
-const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto',wanted:'auto',polPow:'level',sirP:'deep',sirV:'40',heliV:'290',escD:'800',gpuT:'auto',half:'auto',lean:'auto',skip:'on',stS:'4'};
+const DEVW={hud:'off',view:'near',gen:'worker',cruise:'off',lastCruise:'max',off:{},trafN:'auto',polN:'auto',wanted:'auto',polPow:'level',sirP:'deep',sirV:'40',heliV:'290',escD:'800',gpuT:'auto',half:'auto',lean:'auto',skip:'on',stS:'4',polStart:'patrol'};
 try{const d=JSON.parse(store.get('rt-devworld','{}'))||{};for(const k of Object.keys(DEVW))if(d[k]!==undefined)DEVW[k]=d[k];}catch(e){}
 DEVW.cruise='off';if(DEVW.gen==='main')WORLD.forceLocal=true;
 /* (the numbers on screen: off, the small readout, or everything; a save from before had on or off) */
@@ -12267,6 +12268,7 @@ function buildDevWorld(){
   segButtons($('dView'),[['near','Near'],['normal','Normal'],['far','Far']],v=>{DEVW.view=v;saveDev();});
   segButtons($('dText'),[['smooth','Smooth'],['dots','Dots']],v=>{setDotText(v==='dots');syncDevWorld();});
   segButtons($('dPol'),[['auto','Wanted'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5']],v=>{DEVW.polN=v;saveDev();syncDevWorld();});
+  segButtons($('dPolStart'),[['patrol','A patrol sees you'],['once','At once']],v=>{DEVW.polStart=v;saveDev();if(v==='patrol'&&POL.live)policeClear();syncDevWorld();});
   segButtons($('dWanted'),[['auto','Auto'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5']],v=>{DEVW.wanted=v;saveDev();syncDevWorld();});
   segButtons($('dPolPow'),[['level','By wanted level'],['same','Your build as it is']],v=>{DEVW.polPow=v;saveDev();syncDevWorld();});
   segButtons($('dSirP'),[['deep','Deeper'],['lower','A little deeper'],['orig','As before']],v=>{DEVW.sirP=v;saveDev();syncDevWorld();});
@@ -12288,7 +12290,7 @@ function buildDevWorld(){
   $('dReset').addEventListener('click',()=>{const S=WORLD.st;S.n=[0,0,0];S.ms=[0,0,0];S.mx=[0,0,0];S.sn=0;S.sms=0;S.smx=0;S.fn=0;S.fms=0;S.missT=0;S.odo=0;S.top=0;syncDevWorld();});
 }
 function syncDevWorld(){
-  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dStS',String(DEVW.stS||'4')],['dPol',String(DEVW.polN||'auto')],['dWanted',String(DEVW.wanted||'auto')],['dPolPow',DEVW.polPow||'level'],['dSirP',DEVW.sirP||'deep'],['dSirV',String(DEVW.sirV||'40')],['dHeliV',String(DEVW.heliV||'290')],['dEscD',String(DEVW.escD||'800')],['dGpuT',String(DEVW.gpuT||'auto')],['dHalf',String(DEVW.half||'auto')],['dLean',String(DEVW.lean||'auto')],['dSkip',String(DEVW.skip||'on')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
+  for(const [id,v] of [['dText',TXT.on?'smooth':'dots'],['dHud',DEVW.hud],['dView',DEVW.view],['dGen',DEVW.gen],['dCruise',CRUISE.on?DEVW.cruise:'off'],['dTraf',String(DEVW.trafN||'auto')],['dStS',String(DEVW.stS||'4')],['dPol',String(DEVW.polN||'auto')],['dWanted',String(DEVW.wanted||'auto')],['dPolStart',DEVW.polStart||'patrol'],['dPolPow',DEVW.polPow||'level'],['dSirP',DEVW.sirP||'deep'],['dSirV',String(DEVW.sirV||'40')],['dHeliV',String(DEVW.heliV||'290')],['dEscD',String(DEVW.escD||'800')],['dGpuT',String(DEVW.gpuT||'auto')],['dHalf',String(DEVW.half||'auto')],['dLean',String(DEVW.lean||'auto')],['dSkip',String(DEVW.skip||'on')]])for(const el of $(id).children)el.setAttribute('aria-pressed',el.dataset.v===v?'true':'false');
   const S=WORLD.st;$('dNote').textContent=`Made on: ${WORLD.mode}. ${WORLD.chunks.size} chunks and ${WORLD.far.size} far tiles loaded, ${(S.bytes/1048576).toFixed(1)} MB of them on the graphics card. `+
     `City Limits' town in the middle, Highway 40 straight through it east and west, country out to about two miles, then the salt flats to the edge, ${WG.HALF*2/1609.34|0} miles across.`;
 }
@@ -14979,6 +14981,8 @@ function trafficFrame(dt){
   TRF_ON.length=0;for(let i=0;i<TRF_ALL;i++){const c=TRF.cars[i];if(!c.on)continue;if(i<TRF_MAX?i>=N||!near:!stShare()){trfOff(c);continue;}TRF_ON.push(c);}
   /* what the cars keep clear of on the physics: you, and the cars of theirs on it */
   ACT.length=0;ACT.push(GAME.car);if(POL.live)for(let _i4=0;_i4<POL.cars.length;_i4++){const P=POL.cars[_i4];if(P.V)ACT.push(P.V);}
+  /* (and the parked patrols, 60_patrol) */
+  for(let q=0;q<PAT.cars.length;q++){const P=PAT.cars[q];if(P.V)ACT.push(P.V);}
   TRF_PHYS.length=0;for(let _i5=0;_i5<TRF_ON.length;_i5++){const c=TRF_ON[_i5];if(c.mode!=='kin'){TRF_PHYS.push(c);ACT.push(c.veh);}}
   for(let i=0;i<TRF_ON.length;i++){const c=TRF_ON[i];if(c.mode==='kin'){trfDrive(c,dt);if(TRF_PHYS.length<TRF_PHYS_MAX&&trfThreat(c))trfEngage(c);}else trfPhysDrive(c,dt);}
   /* one that has fallen out of range goes, and starts again out of sight (two a frame at most) */
@@ -15037,7 +15041,7 @@ function trfSpawn(c,px,pz,far,keep){
     if(dd<far+10&&F){const y=hwY(x).y+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3){inside=false;break;}}if(inside)continue;}
     /* (about one driver in ten has their eyes elsewhere: a stopped car in their lane is seen only 25 to 45 m off) */
     c.look=trfRnd()<.1?25+trfRnd()*20:160;
-    c.on=true;c.m=m;c.L=L;c.s=hwS(L,x,dir);c.lat=0;c.lat0=0;c.lcT=9;c.vk=.92+trfRnd()*.16+(2-k)*.025;c.T=1.1+trfRnd()*.6;c.a=1.2+trfRnd()*.9;c.b=2+trfRnd();c.s0=2+trfRnd()*1.2;
+    c.on=true;c.m=m;patMaybe(c);c.L=L;c.s=hwS(L,x,dir);c.lat=0;c.lat0=0;c.lcT=9;c.vk=.92+trfRnd()*.16+(2-k)*.025;c.T=1.1+trfRnd()*.6;c.a=1.2+trfRnd()*.9;c.b=2+trfRnd();c.s0=2+trfRnd()*1.2;
     c.v=L.vA[Math.floor(c.s/L.ds)%L.n]*c.vk;c.lcNext=TRF.t+trfRnd();c.prev=false;c.wa=trfRnd()*TAU;c.wap=c.wa;
     /* (no faster than it could stop comfortably for a light that isn't green, or the nearest car ahead) */
     c.goK=-1;trfPose(c);trfLight(c,c.v);c.goK=-1;if(TRF.lgap<1e8)c.v=Math.min(c.v,Math.sqrt(2*2.5*Math.max(0,TRF.lgap-3)));
@@ -15063,7 +15067,7 @@ function trafficDraw(U,eye){
   for(let _i12=0;_i12<TRF_ON.length;_i12++){const c=TRF_ON[_i12];const dx=c.x-eye[0],dz=c.z-eye[2],d=Math.sqrt(dx*dx+dz*dz);
     c.vis=d<=far&&trfVisible(F,c,c.m.L*.6+1);if(!c.vis){c.prev=false;continue;}
     if(!set){set=true;gl.uniform1f(u.uMudLocal,1);gl.uniform1f(u.uPrevOn,1);gl.uniform1f(u.uLiv,0);gl.uniform3f(u.uGlow,0,0,0);gl.uniform1f(u.uLamps,lamps);}
-    const m=c.m;gl.uniform3fv(u.uPaint,c.paint);gl.uniform3fv(u.uPaint2,c.paint);gl.uniform3fv(u.uRim,m.rim);gl.uniform3fv(u.uCal,m.cal);gl.uniform3fv(u.uClad,m.clad);
+    const m=c.m,pol=c.police;gl.uniform1f(u.uLiv,pol?5:0);gl.uniform3fv(u.uPaint,pol?POL_PAINT:c.paint);gl.uniform3fv(u.uPaint2,pol?POL_WHITE:c.paint);gl.uniform3fv(u.uRim,pol?POL_RIM:m.rim);gl.uniform3fv(u.uCal,m.cal);gl.uniform3fv(u.uClad,pol?POL_PAINT:m.clad);
     gl.uniform1f(u.uBrake,c.brake?1:0);gl.uniform1f(u.uDirt,c.dirt);gl.uniform4fv(u.uLivP,m.livP);gl.uniform1f(u.uMudOff,0);
     gl.uniformMatrix4fv(u.uM,false,c.M);gl.uniformMatrix4fv(u.uPrevM,false,c.prev?c.Mp:c.M);
     if(d<TRF_NEAR||c.mode!=='kin'&&d<TRF_NEAR*2){const TF=big?TRUCKF[m.id]:null;
@@ -15077,8 +15081,11 @@ function trafficDraw(U,eye){
         drawMesh(TF?(h[4]?TF.wheel:TF.wheelR):(h[4]?m.T.wheel:m.T.wheelR));}}
     else if(d<mid){drawMesh(m.T.all);tris+=m.T.tris;}
     else{drawMesh(m.T.far);tris+=m.T.trisFar;}
+    /* (a patrol: the light bar on its roof, dark) */
+    if(pol&&m.T.D){const [bx,by]=polBarD(m.T.D),B=polBar(),Q=TRF_WP,M=c.M;for(let q=0;q<16;q++)Q[q]=M[q];Q[12]+=M[0]*bx+M[4]*by;Q[13]+=M[1]*bx+M[5]*by;Q[14]+=M[2]*bx+M[6]*by;
+      gl.uniform1f(u.uLiv,0);gl.uniformMatrix4fv(u.uM,false,Q);gl.uniformMatrix4fv(u.uPrevM,false,Q);drawMesh(B.base);drawMesh(B.rOff);drawMesh(B.bOff);}
     c.Mp.set(c.M);c.prev=true;c.wap=c.wa;}
-  if(set){gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);}
+  if(set){gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);}
   TRF.tris=tris;return tris;
 }
 /* into a sun shadow map: the light copy of each car within the level's shadow reach that the cascade sees (F: the
@@ -15154,7 +15161,9 @@ function trfPhysDrive(c,dt){
   for(let k=-40;k<=40;k++){const i=((i0+k)%n+n)%n,dx=L.x[i]-c.x,dz=L.z[i]-c.z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}
   c.s=bi*L.ds;const tx=L.tx[bi],tz=L.tz[bi],lo=-(c.x-L.x[bi])*tz+(c.z-L.z[bi])*tx,he=Math.atan2(c.fx*tz-c.fz*tx,c.fx*tx+c.fz*tz),up=V.M[4];
   /* a knock: stop, honk */
-  if(V.ev.car>0){V.ev.car=0;c.hits++;c.stopT=2.5;if(c.honkT<=0){trfHonk(c);c.honkT=3;}}
+  if(V.ev.car>0){V.ev.car=0;c.hits++;c.stopT=2.5;if(c.honkT<=0){trfHonk(c);c.honkT=3;}
+    /* (by you: a patrol that sees it comes after you, 60_patrol) */
+    {const yx=GAME.car.p[0]-c.x,yz=GAME.car.p[2]-c.z;if(yx*yx+yz*yz<64){PAT.hitT=TRF.t;PAT.hitX=c.x;PAT.hitZ=c.z;PAT.hitPol=!!c.police;}}}
   if(up<.5||Math.abs(lo)>9)c.wreck=true;
   const inp=c.inp,spd=V.speed;
   if(c.wreck){inp.steer=0;inp.thr=0;inp.brk=1;inp.hb=1;
@@ -15188,7 +15197,7 @@ function trfThreatPhys(c){const V=c.veh;
 /* each physics step (60_game's step, with yours): the cars of the traffic on the physics and the police, then everyone
    touching everyone */
 function trafficSub(dt){
-  if(!TRF_PHYS.length&&!POL.live)return;TRF_CC.length=0;TRF_CC.push(GAME.car);policeSub(dt,TRF_CC);
+  if(!TRF_PHYS.length&&!POL.live&&!PAT.cars.some(P=>P.V))return;TRF_CC.length=0;TRF_CC.push(GAME.car);policeSub(dt,TRF_CC);patSub(dt,TRF_CC);
   /* (a car let off the physics earlier this frame is on the list until the next: skipped) */
   for(let _i20=0;_i20<TRF_PHYS.length;_i20++){const c=TRF_PHYS[_i20];if(c.mode!=='phys'||!c.veh)continue;c.veh.step(dt,c.inp);TRF_CC.push(c.veh);}
   for(let _i21=0;_i21<TRF_PHYS.length;_i21++){const c=TRF_PHYS[_i21];if(c.mode==='park'&&c.veh)TRF_CC.push(c.veh);}
@@ -15431,7 +15440,7 @@ function trfSpawnStreet(c,px,pz,far,keep){
     const y=stY(L,i)+1;
     if(dd<far+10&&F){let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-3){inside=false;break;}}if(inside)continue;}
     c.look=trfRnd()<.1?25+trfRnd()*20:160;
-    c.on=true;c.m=m;c.L=L;c.s=i*L.ds;c.lat=0;c.lat0=0;c.lcT=9;c.vk=.9+trfRnd()*.18;c.T=1.1+trfRnd()*.6;c.a=1.2+trfRnd()*.9;c.b=2+trfRnd();c.s0=2+trfRnd()*1.2;
+    c.on=true;c.m=m;patMaybe(c);c.L=L;c.s=i*L.ds;c.lat=0;c.lat0=0;c.lcT=9;c.vk=.9+trfRnd()*.18;c.T=1.1+trfRnd()*.6;c.a=1.2+trfRnd()*.9;c.b=2+trfRnd();c.s0=2+trfRnd()*1.2;
     c.v=L.vA[i]*c.vk;c.lcNext=TRF.t+trfRnd();c.prev=false;c.wa=trfRnd()*TAU;c.wap=c.wa;c.claimJ=null;c.stopK=-1;c.stopL=null;
     c.goK=-1;trfPose(c);trfLight(c,c.v);c.goK=-1;if(TRF.lgap<1e8)c.v=Math.min(c.v,Math.sqrt(2*2.5*Math.max(0,TRF.lgap-3)));
     for(let q=0;q<TRF_ON.length;q++){const o=TRF_ON[q];const dx=o.x-x,dz=o.z-z,al=dx*c.fx+dz*c.fz;if(al<=0||al>150||Math.abs(-dx*c.fz+dz*c.fx)>2.5||o.fx*c.fx+o.fz*c.fz<.5)continue;
@@ -15519,11 +15528,14 @@ function polRespawn(P,minBack=0){
   for(const back of [want,want+60,want+120]){const x=t.p[0]-fx*back,z=t.p[2]-fz*back;if(!inView(x,z)&&!polCrowded(P,x,z)){polPlace(P,x,z,Math.atan2(-fz,fx),v*.8);POL.respawns++;return true;}}
   return false;}
 const polCrowded=(P,x,z)=>{for(let _i23=0;_i23<POL.cars.length;_i23++){const o=POL.cars[_i23];if(o===P||!o.V)continue;if(hyp2(o.V.p[0]-x,o.V.p[2]-z)<14)return true;}for(let _i24=0;_i24<TRF_ON.length;_i24++){const c=TRF_ON[_i24];if(hyp2(c.x-x,c.z-z)<30)return true;}return false;};
-function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';heliOff();}
+function policeClear(){for(let _i25=0;_i25<POL.cars.length;_i25++){const P=POL.cars[_i25];P.V=null;if(P.vox)P.vox.g.gain.value=0;}POL.live=false;POL.chase=false;POL.bustT=0;POL.holdT=0;POL.outT=0;POL.home=false;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;VOX.place='';heliOff();}
 
 /* ---------- each frame (60_game's step, before the traffic and the physics) ---------- */
 function policeFrame(dt){
-  if(!policeWanted()){if(POL.live)policeClear();return;}
+  if(!policeWanted()){if(POL.live)policeClear();patClear();POL.chase=false;return;}
+  /* no one after you till a patrol sees you break the law (60_patrol); Dev, When the police come: At once, the chase
+     straight away */
+  if(!POL.chase){if(DEVW.polStart==='once')POL.chase=true;else{patFrame(dt);if(!POL.chase)return;}}
   const t=GAME.car,N=polCount();
   if(!POL.live){POL.live=true;POL.k=0;polCrumb();truckFar(APP.bi);WANTED.lvl=1;WANTED.heat=0;say('POLICE!',2.2,PAL.red);}
   /* the build changed: they come after you in the new one */
@@ -15585,10 +15597,13 @@ function polRefit(){const T=polTarget();
 const polEscD=()=>+(DEVW.escD||800)||800;
 /* you got away: the chase is over, the police gone for 45 s, the level back to 1 */
 function polEscape(){POL.escapes++;POL.escT=0;heliOff();for(let i=0;i<POL.cars.length;i++)POL.cars[i].V=null;POL.holdT=45;POL.bustT=0;WANTED.lvl=1;WANTED.heat=0;VOX.startT=-1;
-  say('YOU LOST THEM',3.5,PAL.green);say('THE POLICE ARE BACK IN 45 S',3,PAL.amber);buzz([30,30,30]);
+  /* (with the patrols, the chase is over and it's patrols again; at once, they're back in 45 s) */
+  const pat=DEVW.polStart!=='once';if(pat){POL.holdT=0;POL.live=false;POL.chase=false;}
+  say('YOU LOST THEM',3.5,PAL.green);if(!pat)say('THE POLICE ARE BACK IN 45 S',3,PAL.amber);buzz([30,30,30]);
   if(!(HELI.escaping&&voxSay('radio_air_lost','radio',0,0,0)))voxSay('radio_lost_visual','radio',0,0,0);HELI.escaping=false;}
 /* back at the garage: the chase over, the level back to 1 */
 function polHome(){goTo('garage');for(let i=0;i<POL.cars.length;i++)POL.cars[i].V=null;POL.home=true;POL.holdT=0;POL.bustT=0;WANTED.lvl=1;WANTED.heat=0;
+  if(DEVW.polStart!=='once'){POL.home=false;POL.live=false;POL.chase=false;heliOff();}
   say('TAKEN BACK TO THE GARAGE',3,PAL.amber);}
 /* how a police car drives. It follows your trail (where you drove, so it can be driven), steering for a point a little
    way along it, and reads the trail further on for the bends: no faster than the tightest bend ahead allows, braking in
@@ -15730,18 +15745,24 @@ function polBar(){if(POL.bar)return POL.bar;const box=(mb,x0,y0,z0,x1,y1,z1,col,
   const lens=(z0,z1,col,on)=>{const mb=new MB();box(mb,-.14,.07,z0,.14,.15,z1,on?col:col.map(v=>v*.18),on?7:0,on?MAT.EMIT:MAT.COL);return mb.build();};
   return POL.bar={base:base.build(),rOn:lens(-.52,-.04,[1,.06,.04],1),rOff:lens(-.52,-.04,[1,.06,.04],0),bOn:lens(.04,.52,[.08,.25,1],1),bOff:lens(.04,.52,[.08,.25,1],0)};}
 /* where the bar sits on this car's roof: over the middle of the roof, on its highest point there */
-function polBarAt(V){const T=TRUCKF[V.build.id]||truckFar(V.bi),D=T.D;if(D._bar)return D._bar;
+function polBarAt(V){const T=TRUCKF[V.build.id]||truckFar(V.bi);return polBarD(T.D);}
+function polBarD(D){if(D._bar)return D._bar;
   if(!D.G){return D._bar=[0,(D.H||1.6)+.05];}
   const u=(D.G.rf+D.G.rr)/2,r=secRing(D,u);let y=0;for(const p of r.p)y=Math.max(y,p[1]);return D._bar=[D.X(u),y];}
+/* the police cars to draw: the chase's, and the parked patrols (60_patrol), in one list made once */
+const POL_ALL=[];
+function polAll(){POL_ALL.length=0;if(POL.live)for(let i=0;i<POL.cars.length;i++)if(POL.cars[i].V)POL_ALL.push(POL.cars[i]);for(let i=0;i<PAT.cars.length;i++)if(PAT.cars[i].V)POL_ALL.push(PAT.cars[i]);return POL_ALL;}
 const polFlash=()=>{const a=(APP.t*1.5)%1,s=(APP.t*9)%1<.55;return [a<.5&&s,a>=.5&&s];};
-function policePrep(){if(!POL.live)return;for(let _i32=0;_i32<POL.cars.length;_i32++){const P=POL.cars[_i32];if(!P.V)continue;const V=P.V,R=V.M,M=P.M,cg=V.cg;
+function policePrep(){const PL=polAll();for(let _i32=0;_i32<PL.length;_i32++){const P=PL[_i32];const V=P.V,R=V.M,M=P.M,cg=V.cg;
   M[0]=R[0];M[1]=R[3];M[2]=R[6];M[3]=0;M[4]=R[1];M[5]=R[4];M[6]=R[7];M[7]=0;M[8]=R[2];M[9]=R[5];M[10]=R[8];M[11]=0;M[15]=1;
   M[12]=V.p[0]-R[0]*cg[0]-R[1]*cg[1]-RO[0];M[13]=V.p[1]-R[3]*cg[0]-R[4]*cg[1]-RO[1];M[14]=V.p[2]-R[6]*cg[0]-R[7]*cg[1]-RO[2];
-  if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}heliPrep();}
+  if(P.ro0!==RO[0]||P.ro2!==RO[2]){if(P.prev){P.Mp[12]-=RO[0]-P.ro0;P.Mp[14]-=RO[2]-P.ro2;}P.ro0=RO[0];P.ro2=RO[2];}}if(POL.live)heliPrep();}
 const POL_PAINT=Float32Array.from(lin('#141518')),POL_WHITE=Float32Array.from(lin('#f0f0ec')),POL_RIM=Float32Array.from(lin('#2a2b2e')),POL_WP=new Float32Array(16);
 function policeDraw(U,eye){
-  if(!POL.live)return 0;const u=CUR.u,F=frustum(U.uVP),[rOn,bOn]=polFlash(),B=polBar();let tris=0;
-  for(let _i33=0;_i33<POL.cars.length;_i33++){const P=POL.cars[_i33];if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T){P.prev=false;continue;}
+  const PL=POL_ALL;if(!PL.length&&!POL.live)return 0;const u=CUR.u,F=frustum(U.uVP),[rOn0,bOn0]=polFlash(),B=polBar();let tris=0;
+  for(let _i33=0;_i33<PL.length;_i33++){const P=PL[_i33],V=P.V,T=TRUCKF[V.build.id];if(!T){P.prev=false;continue;}
+    /* (a parked patrol's bar dark) */
+    const rOn=P.spot?false:rOn0,bOn=P.spot?false:bOn0;
     const x=V.p[0]-RO[0],y=V.p[1]-RO[1],z=V.p[2]-RO[2],r=V.c.body.L*.6+1;let inside=true;for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-r){inside=false;break;}}
     if(!inside||hyp2(V.p[0]-eye[0],V.p[2]-eye[2])>GFX.far+20){P.prev=false;continue;}
     gl.uniform3fv(u.uPaint,POL_PAINT);gl.uniform3fv(u.uPaint2,POL_WHITE);gl.uniform3fv(u.uRim,POL_RIM);gl.uniform3fv(u.uCal,POL_RIM);gl.uniform3fv(u.uClad,POL_PAINT);
@@ -15757,11 +15778,11 @@ function policeDraw(U,eye){
     for(const A of [P.MB,P.MBp]){A[12]+=A[0]*bx+A[4]*by;A[13]+=A[1]*bx+A[5]*by;A[14]+=A[2]*bx+A[6]*by;}
     gl.uniformMatrix4fv(u.uM,false,P.MB);gl.uniformMatrix4fv(u.uPrevM,false,P.MBp);drawMesh(B.base);drawMesh(rOn?B.rOn:B.rOff);drawMesh(bOn?B.bOn:B.bOff);
     P.Mp.set(P.M);P.prev=true;}
-  tris+=heliDraw(U,u);
+  if(POL.live)tris+=heliDraw(U,u);
   gl.uniform1f(u.uMudOff,0);gl.uniform1f(u.uMudLocal,0);gl.uniform1f(u.uPrevOn,0);gl.uniform1f(u.uDirt,0);gl.uniform1f(u.uLiv,0);gl.uniform1f(u.uLamps,0);gl.uniform1f(u.uBrake,0);
   return tris;}
-function policeShadow(F,used,G,VP){if(!POL.live)return used;
-  for(let _i34=0;_i34<POL.cars.length;_i34++){const P=POL.cars[_i34];if(!P.V)continue;const V=P.V,T=TRUCKF[V.build.id];if(!T)continue;const x=V.p[0],y=V.p[1],z=V.p[2],r=V.c.body.L*.6+1;let inside=true;
+function policeShadow(F,used,G,VP){const PL=POL_ALL;
+  for(let _i34=0;_i34<PL.length;_i34++){const P=PL[_i34],V=P.V,T=TRUCKF[V.build.id];if(!T)continue;const x=V.p[0],y=V.p[1],z=V.p[2],r=V.c.body.L*.6+1;let inside=true;
     for(let q=0;q<6;q++){const p=F[q];if(p[0]*x+p[1]*y+p[2]*z+p[3]<-r){inside=false;break;}}if(!inside)continue;
     if(!used){used=true;useLit(P_DEPTH);G.uni(P_DEPTH,'uVP',VP);G.uni(P_DEPTH,'uInst',0);gl.disable(gl.CULL_FACE);}
     gl.uniformMatrix4fv(CUR.u.uM,false,P.M);drawMesh(T.body);}
@@ -15771,7 +15792,7 @@ function policeLights(L){if(!POL.live||!SKY.lightsOn)return;const [rOn,bOn]=polF
   for(let _i35=0;_i35<POL.cars.length;_i35++){const P=POL.cars[_i35];if(!P.V||L.dyn.length>=16||P.d>220)continue;const M=P.M,[bx,by]=polBarAt(P.V),q=P.lamp;if(!rOn&&!bOn)continue;
     q.pos[0]=M[12]+M[0]*bx+M[4]*(by+.3);q.pos[1]=M[13]+M[1]*bx+M[5]*(by+.3);q.pos[2]=M[14]+M[2]*bx+M[6]*(by+.3);
     if(rOn){q.col[0]=70;q.col[1]=3;q.col[2]=2;}else{q.col[0]=3;q.col[1]=10;q.col[2]=80;}L.dyn.push(q);}heliLight(L);}
-function policeOcc(occ){if(!POL.live)return;for(let _i36=0;_i36<POL.cars.length;_i36++){const P=POL.cars[_i36];if(!P.V||occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=hyp2(M[0],M[6])||1,D=carD(V);
+function policeOcc(occ){const PL=POL_ALL;for(let _i36=0;_i36<PL.length;_i36++){const P=PL[_i36];if(occ.length>=8||P.d>60)continue;const V=P.V,o=P.occ,M=V.M,l=hyp2(M[0],M[6])||1,D=carD(V);
   o[0]=V.p[0]-RO[0];o[1]=V.p[1]-RO[1];o[2]=V.p[2]-RO[2];o[3]=V.cg[1];o[4]=M[0]/l;o[5]=M[6]/l;o[6]=D.L/2;o[7]=V.build.look.track/2+.12;occ.push(o);}}
 
 /* ---------- the siren: a wail, a yelp up close; each car its own, where it is, with the Doppler ---------- */
@@ -15843,6 +15864,98 @@ function voxChase(dt){
   /* the loudspeaker, close behind you and you still going */
   if(close&&t.speed>3&&now-(VOX.paT||-99)>9+Math.random()*5){VOX.paT=now;const V=close.V;voxSay(pl==='salt'&&Math.random()<.4?'police_pa_salt':VOX_PA[Math.floor(Math.random()*VOX_PA.length)],'pa',V.p[0],V.p[2],0);}
 }
+/* =====================================================================================
+   POLICE PATROLS (rlcwo2rnf+traffic): with the police on (the Drive tab), nobody comes after you until a patrol sees
+   you break the law. Patrol cars sit parked at the roadside at a dozen spots round the county (Highway 40's shoulders,
+   the section lines' verges, the town's parking lanes) and ride in the traffic (about one car in ten, two at most round
+   you), in the police's black and white, the light bar dark. A chase starts when one of them, near you and with
+   nothing in the way, sees you
+     - doing more than 15 mph over the road's limit (35 in town, 60 on the highway, 50, 35 and 25 on blacktop, gravel
+       and dirt);
+     - going into a junction on its red;
+     - hitting a car (or a police car: that one starts it whoever sees it).
+   That patrol car is the first after you, where it is, at its speed; the chase is the police mode's own (60_police:
+   the wanted level, the helicopter, busted or got away). Busted or away, the chase ends and it's patrols again.
+   Dev: When the police come: a patrol sees you (this), or at once (the chase straight away, as before).
+   A parked patrol is a whole car on the physics, made when you come within 380 m of its spot and let go past 450 m,
+   but stepped only when something is near enough to touch it (so it costs nothing until then); one in the traffic is a
+   traffic car like the rest until the moment it comes after you.
+   ===================================================================================== */
+const PAT={cars:[],spots:null,model:null,modelBi:-1,hitT:-9,hitX:0,hitZ:0,hitPol:false,inJ:null,seeT:0,see:null,jAt:null,starts:0,why:''};
+const PAT_PARK=3;
+for(let i=0;i<PAT_PARK;i++)PAT.cars.push(Object.assign(polNew(),{spot:null}));
+const patOn=()=>policeWanted()&&DEVW.polStart!=='once';
+/* the spots: [x, z, yaw, where]. On a shoulder or a verge facing the way the traffic on that side goes, or in a town
+   street's parking lane (the strip between the lane and the kerb), half way between junctions */
+function patSpots(){
+  const L1=WG.L,out=[],hy=WG.HWY_X,side=(cls)=>(WG.CL[cls]||WG.CL[1]).hw+1.7;
+  /* Highway 40's shoulders (the south side runs east, the north side west) */
+  for(const [x,s] of [[-2300,-1],[-1100,1],[800,-1],[2100,1]])if(Math.abs(x)<hy-300)out.push([x,s*13.3,s>0?0:PI,'Highway 40']);
+  /* the section lines' verges, the right-hand side for the traffic heading towards town */
+  const ns=(i,z,sg,name)=>{const c=WG.clsNSz(i,z);if(!c)return;const x=i*L1+WG.offNS(i,z),s=(WG.offNS(i,z+1)-WG.offNS(i,z-1))/2,yaw=Math.atan2(-sg,sg*s);
+    /* (heading sg along z: its right is -sg in x, near enough on these gentle bends) */
+    out.push([x-sg*side(c),z,yaw,name]);};
+  const ew=(j,x,sg,name)=>{const c=WG.clsEWx(j,x);if(!c)return;const z=j*L1+WG.offEW(j,x),s=(WG.offEW(j,x+1)-WG.offEW(j,x-1))/2,yaw=Math.atan2(-sg*s,sg);
+    out.push([x,z+sg*side(c),yaw,name]);};
+  ns(0,-1300,1,'Ridge Road');ns(0,1300,-1,'Wash Road');ns(1,-700,1,'East Line Road');ns(-1,700,-1,'West Line Road');
+  ew(-1,700,-1,'North Line Road');ew(1,-700,1,'South Line Road');
+  /* the town's streets (one lane each way, the parking lane 4.6 m out from the middle) */
+  out.push([-115.4,-60,PI/2,'Cactus Street'],[115.4,60,-PI/2,'Copper Street'],[60,-115.4,0,'Silver Street'],[-60,115.4,PI,'Neon Row']);
+  return out;}
+/* the traffic's patrol car: your build's light copy (60_traffic's trfModel), made again when you change cars */
+function patModel(){const i=APP.bi;if(PAT.modelBi===i)return PAT.model;PAT.modelBi=i;PAT.model=null;
+  const b=BUILDS[i];if(!b||b.machine)return null;try{PAT.model=trfModel(b.id,0);}catch(e){PAT.model=null;}return PAT.model;}
+/* how many patrols ride in the traffic round you */
+const patInTraffic=()=>{let n=0;for(let q=0;q<TRF_ON.length;q++)if(TRF_ON[q].police)n++;return n;};
+/* a traffic car starting out (60_traffic, 60_streets): one in ten a patrol, two at most, none in a chase */
+function patMaybe(c){c.police=false;if(!patOn()||POL.chase||!PAT.model||trfRnd()>.1||patInTraffic()>=2)return;c.police=true;c.m=PAT.model;}
+/* the speed limit where you are (m/s) */
+function patLimit(x,z){if(Math.abs(x)<WG.RING+30&&Math.abs(z)<WG.RING+30)return 15.6;
+  const r=WG.roadAt(x,z);if(r&&Math.abs(r.d)<r.hw+4)return r.cls===6?26.8:r.cls===3?22.4:r.cls===2?15.6:11.2;return 26.8;}
+
+/* ---------- each frame, while no one is after you ---------- */
+function patFrame(dt){
+  const t=GAME.car,px=t.p[0],pz=t.p[2];
+  if(!PAT.spots)PAT.spots=patSpots();
+  patModel();
+  /* the parked ones: out within 380 m of their spot, gone past 450 */
+  for(const P of PAT.cars){if(P.V&&hyp2(P.spot[0]-px,P.spot[1]-pz)>450){P.V=null;P.spot=null;}}
+  for(const s of PAT.spots){if(hyp2(s[0]-px,s[1]-pz)>380||PAT.cars.some(P=>P.spot===s))continue;const P=PAT.cars.find(P=>!P.V);if(!P)break;
+    truckFar(APP.bi);P.V=polMake();P.spot=s;polPlace(P,s[0],s[1],s[2],0);}
+  for(const P of PAT.cars){if(!P.V)continue;const i=P.inp;i.steer=0;i.thr=0;i.brk=1;i.hb=1;P.d=hyp2(P.V.p[0]-px,P.V.p[2]-pz);}
+  /* what you're doing: over the limit, into a junction on its red, a car just hit */
+  let why='',wx=px,wz=pz;
+  if(t.speed>patLimit(px,pz)+6.7)why='SPEEDING';
+  {if(!PAT.jAt){PAT.jAt=new Map();for(const n of WG.TW.jn)PAT.jAt.set(n.x+','+n.z,n);}
+    const n=PAT.jAt.get(Math.round(px/120)*120+','+Math.round(pz/120)*120),inn=n&&n.sig&&Math.abs(px-n.x)<n.hx&&Math.abs(pz-n.z)<n.hz?n:null;
+    if(inn&&PAT.inJ!==inn&&t.speed>3){const ew=Math.abs(t.v[0])>Math.abs(t.v[2]),tt=((APP.t/30+inn.ph+(ew?.5:0))%1+1)%1;if(tt>=.5+.5/30)why='RAN A RED LIGHT';}
+    PAT.inJ=inn;}
+  if(TRF.t-PAT.hitT<.5){why=PAT.hitPol?'HIT A POLICE CAR':'HIT A CAR';wx=PAT.hitX;wz=PAT.hitZ;}
+  for(const P of PAT.cars)if(P.V&&P.V.ev.car>0&&P.d<9){P.V.ev.car=0;why='HIT A POLICE CAR';}
+  if(!why)return;
+  /* a patrol near enough, with nothing in the way: the nearest that sees it (a police car hit sees it itself) */
+  const range=why==='SPEEDING'?70:100;PAT.seeT-=dt;let best=null,bd=1e9,traf=null;
+  for(const P of PAT.cars){if(!P.V)continue;const d=hyp2(P.V.p[0]-wx,P.V.p[2]-wz);if(d<range&&d<bd&&(why==='HIT A POLICE CAR'||polClear(P.V.p[0],P.V.p[2],wx,wz))){bd=d;best=P;traf=null;}}
+  for(let q=0;q<TRF_ON.length;q++){const c=TRF_ON[q];if(!c.police)continue;const d=hyp2(c.x-wx,c.z-wz);if(d<range&&d<bd&&(why==='HIT A POLICE CAR'||polClear(c.x,c.z,wx,wz))){bd=d;best=null;traf=c;}}
+  if(best||traf)patChase(best,traf,why);
+}
+/* the chase begins: the patrol that saw it is the first after you (a parked one where it is; one in the traffic made a
+   pursuit car where it is, at its speed) */
+function patChase(P0,c,why){
+  POL.chase=true;POL.live=true;POL.k=0;polCrumb();truckFar(APP.bi);WANTED.lvl=1;WANTED.heat=0;POL.bi=APP.bi;POL.spawnT=1.5;PAT.starts++;PAT.why=why;
+  const P=POL.cars[0];
+  if(P0){P.V=P0.V;P0.V=null;P0.spot=null;P.ck=Math.max(0,POL.k-1);P.stuckT=P.revT=P.flipT=P.lostT=0;P.hold=false;P.prev=false;}
+  else if(c){P.V=polMake();polPlace(P,c.x,c.z,Math.atan2(-c.fz,c.fx),c.v);trfOff(c);}
+  /* (the rest of the patrols stand down: the parked ones stay parked, the traffic's ride on as traffic) */
+  say('POLICE! '+why,2.6,PAL.red);buzz([40,30,40]);
+}
+/* the chase over (busted or away): patrols again */
+function patEnd(){POL.chase=false;}
+function patClear(){for(const P of PAT.cars){P.V=null;P.spot=null;}PAT.inJ=null;}
+/* each physics step: a parked patrol stepped only with something near enough to touch it */
+function patSub(dt,list){for(const P of PAT.cars){if(!P.V)continue;let near=P.d<25;
+  if(!near)for(let q=0;q<TRF_PHYS.length;q++){const c=TRF_PHYS[q];if(c.veh&&hyp2(c.veh.p[0]-P.V.p[0],c.veh.p[2]-P.V.p[2])<20){near=true;break;}}
+  if(near){P.V.step(dt,P.inp);list.push(P.V);}}}
 /* ---------- the police helicopter (wanted level 5) ----------
    Up high (85 m over the ground under it), it flies after you at up to 130 m/s (290 mph; Dev: Helicopter top speed),
    a little behind you and leading you by a second, never on the physics: nothing to hit. Drawn plain (a dark body,
@@ -18611,7 +18724,7 @@ else{
     }catch(e){console.error(e);L.textContent=/shader|compile|link/i.test(e.message)?'A shader would not compile: '+e.message:'Something went wrong starting the world: '+e.message;}
   })();
   window.__game={showClutchCap,TH,thNeed,thGate,thLimit,thDecorate,tuneSwap,TUNE,SPECS,dlSetVal,DL_SETUP,JOBS,JOB,PEOPLE,jActive,jOffer,jTarget,jAccept,jDrop,jobListen,closeJobDialog,jRec,CHALS,CHAL,ChalRun,DriftScore,chalStart,chalQuit,closeChalResult,showChalResult,drawChalHud,chalMarks,resetCar,placeName,chMedalOf,chFmt,chResult,syncChals,CAREER,setMode,cash,earn,DEALER,ownsPart,rigCost,buyRig,buyCar,PARKT,LG,GroundWorld,devFit,syncShow,showMeasure,rect:()=>RECT,grid:()=>({W,H,BW,BH,HS}),TXT,setDotText,txtFlush,DL,dlOpen,dlFrame,dlSetVal,dlParams,TUNE,tuneKey,SPECS,bayFill,BAYGRID,showSpec,RIGS,TRANS,PRESET_PARTS,specOf,speedTest,CARS,presetsOf,presetRig,rigBuild,PLUS,setPlus,PULL,showPullStart,showChart,showMeasure,PS,PERF,TLIST,DISP,showBody,showMode,showAct,showRuns,dynoOf,showHud,showFull,SHOW,showSetView,showEngine,renderShow,showSound,showLeave,MENU,ENG,setTestInput,makeDSP,SIM,BODY,setBody,WORLD,WG,RO,DEVW,CRUISE,toggleCruise,worldUpdate,drawWorld,setOrigin,PLACES:()=>PLACES,APP,GAME,RANCH,ENG,CAM,BUILDS,CARS,RIGS,Feats,spawnCar,spawnRig,placeCar,goTo,openMenu,closeMenu,showTab,startEngine,setRes,render,step,soundUpdate,makeCar,truck,rigBuild,rateRig,presetRig,startRun,setDetail,applyTod,TOUCH,
-    GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,rutShaders,get RESO(){return RESO;},SKY,TOD,compile,setDisplay,PIC,LOOK,TEX,texLoad,BOOT,BUDGET,budgetApply,perfReadout,PERF,perfBegin,perfEnd,DEVW,LAND,CARHOOK,FXP,STUDIO,GLASSHOOK,envNow,lgBuild,lgPlace,get P_LAND(){return P_LAND;},landLean:q=>{LEAN_Q=q;landRebuild();},landRebuild,carCounts,ST,trfBoxes,stShare,NAV,navSet,navClear,navBuild,navTap,bigRect,get P_DEPTH(){return P_DEPTH;},rperfRows,carLights,yardLights,worldFar,viewCut,FX,
+    GFX,setGfx,SIMSET,SIMDEV,syncWeather,dev:{DEV_T,DEV_GRIP,devApply,devTag,devStep},get gl(){return gl;},get R(){return R;},SL3,rutShaders,get RESO(){return RESO;},SKY,TOD,compile,setDisplay,PIC,LOOK,TEX,texLoad,BOOT,BUDGET,budgetApply,perfReadout,PERF,perfBegin,perfEnd,DEVW,LAND,CARHOOK,FXP,STUDIO,GLASSHOOK,envNow,lgBuild,lgPlace,get P_LAND(){return P_LAND;},landLean:q=>{LEAN_Q=q;landRebuild();},landRebuild,carCounts,ST,trfBoxes,stShare,NAV,navSet,navClear,navBuild,navTap,bigRect,PAT,patSpots,patLimit,policeWanted,get P_DEPTH(){return P_DEPTH;},rperfRows,carLights,yardLights,worldFar,viewCut,FX,
     RACE,RACE_EVENTS,startRace,raceEnd,raceOrder,hideResults,Driver,RaceLine,INPUT,truckFar,raceLine,raceCar,raceSettle,raceAccel,pickRivals,TRUCK,TRUCKF,NOS,nosQuote,nosOrder,nosStep,syncNos,spend,GLC,makeMesh,drawMesh,meshRetry,
     parts:{SLOTS,slotOptions,ENGINES,DE_ENGINES,ENGINE_OF,MACH,CAR_PARTS,POWER,NITROUS,TUNES,CAM_PARTS,EXHAUSTS},
     snap(){render(1/60);return cv.toDataURL('image/png');}};
