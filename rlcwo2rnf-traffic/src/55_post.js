@@ -32,8 +32,11 @@ function resize(){
    a phone did before it could measure its GPU (55_post's fence: 11_sl3 G.fenceTimer) */
 const gpuShare=()=>{const v=DEVW.gpuT;return v==='off'||v==='hold'?0:v&&v!=='auto'?+v/100:touchy?.7:.88;};
 /* (Dev: GPU load target, Hold: the render size stays where it is, for A/B tests where only the GPU's time should move) */
+/* (each step of the render size remakes its targets: counted, and the slowest of the two frames after each kept, for
+   the readout, to see on a phone whether a step is a hitch worth the bigger fix, R6 in PERF_PLAN.md) */
+const DRSN={n:0,t0:0,pend:0,worst:0,ms:0};
 function drsStep(dt){if(!RESO||!R||GAME.state!=='drive'&&!showActive()||DEVW.gpuT==='hold')return;const sh=gpuShare();RESO.share=sh||.88;
-  const sc=RESO.update(dt*1000,sh?R.gpuMs:-1);if(Math.abs(sc-R.scale)>.001)R.resize(PIC.w,PIC.h,sc);}
+  const sc=RESO.update(dt*1000,sh?R.gpuMs:-1);if(Math.abs(sc-R.scale)>.001){const t=performance.now();R.resize(PIC.w,PIC.h,sc);DRSN.ms=performance.now()-t;DRSN.n++;DRSN.pend=2;if(!DRSN.t0)DRSN.t0=APP.t;}}
 /* ---------- the HUD over the picture, in dots ---------- */
 const POST={quant:20,edge:[0,0,0],flash:[0,0,0]};
 /* where the HUD's grid sits on the canvas, in device pixels from the bottom left */
@@ -101,6 +104,7 @@ function rperfAcc(){if(!R)return;if(R.gpuMs>0){RPERF.gpu+=R.gpuMs;RPERF.gpuN++;}
 function rperfRows(){if(!R)return [];const f=x=>x.toFixed(1);
   return [`RENDER ${R.iw}X${R.ih} OF ${R.W}X${R.H} (${Math.round(R.iw/Math.max(1,R.W)*100)}%)  ${GFX_LEVELS.find(l=>l[0]===GFX.level)[1].toUpperCase()}${landTag()}  ${DISP.mode==='dots'?'DOTS '+PIC.dots[0]+'X'+PIC.dots[1]:'CLEAR'}`,
     `GPU ${RPERF.ms>0?f(RPERF.ms)+' MS'+(R.gpuSrc==='fence'?' (FENCE)':''):'NOT REPORTED'}  AIM ${DEVW.gpuT==='hold'?'HOLD':(Math.round(gpuShare()*100)||'OFF')+(gpuShare()?'%':'')}  BEAT ${RESO?(RESO.hz/RESO.div).toFixed(0):'-'} FPS (${RESO?RESO.hz:'-'} HZ SCREEN)  LIGHTS ${R.lights?R.lights.stats.lights:0}`,
+    `RESIZES ${DRSN.n}${DRSN.n?' ('+(DRSN.n/Math.max(1,(APP.t-DRSN.t0)/60)).toFixed(1)+' A MINUTE)  WORST FRAME AFTER ONE '+DRSN.worst.toFixed(0)+' MS  LAST TOOK '+DRSN.ms.toFixed(1)+' MS':''}`,
     `CHIP ${String(R.gpuName).toUpperCase().slice(0,52)}${R.software?' (SOFTWARE)':''}`];}
 /* ---------- the performance readout (F, or the Dev tab's Numbers on screen: Readout): small, under the HUD's name
    block, in Rut Access's style: frames a second against the beat, the frame's time and its worst, the CPU's share, the

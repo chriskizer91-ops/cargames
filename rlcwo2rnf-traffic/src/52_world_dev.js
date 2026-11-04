@@ -55,7 +55,7 @@ const PSN=['PHYS','WORLD','SHADOW','PROBE','SCENE','POST','HUD','SOUND','TREES',
 const PS={cur:new Float32Array(PS_N),prev:new Float32Array(PS_N),avg:new Float32Array(PS_N),sub:0,mk:0,tl:0,prevX:null,avgX:[0,0,0],spike:null,jsPrev:0};
 function psT(i,t0){const t=performance.now();PS.cur[i]+=t-t0;return t;}
 function perfBegin(){PERF.t0=performance.now();GLC.n=0;PERF.up0=WORLD.st.upms;}
-function perfEnd(dt){const k=PERF.i,ms=dt*1000,js=performance.now()-PERF.t0;PERF.ft[k]=ms;PERF.js[k]=js;PERF.draws=GLC.n;PERF.up=(PERF.up||0)*.95+(WORLD.st.upms-PERF.up0)*.05;PERF.i=(k+1)%240;PERF.n=Math.min(240,PERF.n+1);
+function perfEnd(dt){const k=PERF.i,ms=dt*1000,js=performance.now()-PERF.t0;if(DRSN.pend>0){DRSN.pend--;if(ms>DRSN.worst)DRSN.worst=ms;}PERF.ft[k]=ms;PERF.js[k]=js;PERF.draws=GLC.n;PERF.up=(PERF.up||0)*.95+(WORLD.st.upms-PERF.up0)*.05;PERF.i=(k+1)%240;PERF.n=Math.min(240,PERF.n+1);
   if(ms>30&&PERF.n>30&&PS.prevX&&GAME.state==='drive')PS.spike={ms,js:PS.jsPrev,s:Array.from(PS.prev),x:PS.prevX,at:APP.t};
   const X=[PS.sub,PS.mk,PS.tl];
   for(let i=0;i<PS_N;i++){PS.avg[i]+=(PS.cur[i]-PS.avg[i])*.05;PS.prev[i]=PS.cur[i];PS.cur[i]=0;}

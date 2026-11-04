@@ -38,6 +38,7 @@ the last slow frame (`SPIKE`), the GPU's aim (`AIM`), and the streaming rows (`C
 | **WORLD / TREES** | Everything | Streaming the land, the tree lists | under 2 ms | spikes at top speed |
 | **SPIKE … UNSEEN** | Everything | The last frame over 30 ms: which section, and how much nobody in JavaScript saw (the GPU, garbage collection, the browser) | NONE | the same section again and again; or big UNSEEN (GPU or garbage) |
 | **HOLES / GROUND NOT READY** | Everything | The world not keeping up with you | 0 | climbing while you drive fast |
+| **RESIZES** | Everything, under the GPU row | How often the dynamic resolution changed the render size, and the slowest frame right after one | under 2 a minute; the worst after one near your usual worst | the worst after one far above your usual frames: each change is a hitch, and the bigger fix (backlog 7) is worth it |
 | **AIM** | Everything, GPU row | The share of each frame the GPU is kept to (Dev: GPU load target) | Auto (70% on a touch screen) | — |
 
 **How to compare two settings (A/B).** The dynamic resolution keeps the GPU at its aim, so when something gets
@@ -90,7 +91,7 @@ nearby traffic car adds lamps. Tests 2 to 6 show it in numbers.
 | 4 | **Police far behind on a cheap ride** | each police car is a full physics car even 300 m back, out of sight | medium: the chase must feel the same; checked with the police tests |
 | 5 | **Garbage left on the drawing side** (~160 KB a frame at the start of a drive) | garbage collection is a stutter | low: same pixels, checked frame by frame |
 | 6 | **Yard lights cap (Dev)** | night in town: many lamps per pixel | low: Mobile only, a Dev control |
-| 7 | **Render-size steps without new buffers** | each dynamic resolution change reallocates the targets: a hitch | low |
+| 7 | **Render-size steps without new buffers** | each dynamic resolution change reallocates the targets; whether that is a hitch on a phone is now measured (the RESIZES row): done only if it shows | medium: a day's change to the renderer's passes |
 | 8 | **Smaller vertices** (52 → 24 bytes) | memory bandwidth, a phone's real limit | medium: a lot of code touches the mesh layout |
 | 9 | **Split the 9 MB page** | load time and memory | medium: changes how the game ships |
 | 9b | **Traffic's car models made on the loading screen** | the first time traffic starts, each kind of car is made and settled one a frame: 77 ms frames here (a phone: a few hundred), a stutter the first seconds of a drive | low: the same models, made earlier |
