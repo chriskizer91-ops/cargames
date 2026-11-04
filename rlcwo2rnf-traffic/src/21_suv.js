@@ -357,8 +357,12 @@ function buildSUV(look,build){
   /* from the skin only its underside is hidden; from the parts only the wheel wells */
   split(mb,t=>mb.m[t*3]===MAT.METAL&&Math.abs(mb.c[t*12]-MM.UNDER[0][0])<1e-6,true);split(pm,t=>t>=ww0&&t<ww1,false);
   const n=out[0].p.length+out[1].p.length+out[2].p.length;
+  /* (the builders' arrays let go once they're done with: D keeps hz and topY, made in here, and a closure keeps every
+     variable of the function it was made in, so without this each car built kept all of its building, about 18 MB a
+     car, 300 MB of the heap at the boot) */
+  const free=b=>{b.p=[];b.n=[];b.c=[];b.m=[];};free(mb);free(pm);
   if(BODY_MB)return {mbs:out,D,bay:BY,tris:n/9,stats:S};
-  return {body:out[0].build(),hood:out[1].build(),hide:out[2].build(),D,bay:BY,tris:n/9,stats:S};
+  const r={body:out[0].build(),hood:out[1].build(),hide:out[2].build(),D,bay:BY,tris:n/9,stats:S};out.forEach(free);return r;
 }
 /* ---------- glass, pillars, shut lines, handles, markers, mirrors, wipers: every build has these ---------- */
 function bodyCommon(K){

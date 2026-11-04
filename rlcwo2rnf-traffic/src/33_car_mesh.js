@@ -37,6 +37,8 @@ function truckLite(i,hubs){const b=BUILDS[i];if(TRUCKL[b.id])return TRUCKL[b.id]
     const D=s.D,fx=D.X(D.uFa),R0=b.look.tyre.R,Mp=D.pitch?M4.mul(M4T(fx,R0,0),M4.mul(M4RZ(D.pitch),M4T(-fx,-R0,0))):M4.id();
     /* (tail-up over big rear tyres, as drawWorldCar sits the body) */
     const body=new MB();mbAppendX(body,s.mbs[0],Mp);mbAppendX(body,s.mbs[1],Mp);
+    /* (the body's builders let go: 21_suv's closures would keep them) */
+    for(const q of s.mbs){q.p=[];q.n=[];q.c=[];q.m=[];}
     (D.spares||[]).forEach(sp=>mbAppendX(body,sp.rear?wR:wF,M4.mul(Mp,M4.mul(M4T(sp.p[0],sp.p[1],sp.p[2]),sp.face==='back'?M4RY(-PI/2):M4S(1,1,sp.p[2]<0?-1:1)))));
     const all=new MB().append(body);for(const [x,y,z,sd,front] of hubs)mbAppendX(all,front?wF:wR,M4.mul(M4T(x,y,z),M4S(1,1,sd)));
     return {D,body,all,stats:s.stats};};
