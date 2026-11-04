@@ -21,15 +21,20 @@ function drawMap(x0,y0,size){
   const t=GAME.car,n=size*HS;
   hRect(x0-1,y0-1,size+2,size+2,pack(0,0,0,200));
   mapFill(x0*HS,y0*HS,n,t.p[0],t.p[2],MINI_SPAN/n,MAPOFF);
-  policeMapDots((x,z)=>{const a=x0+size/2+(x-t.p[0])/MINI_SPAN*size,b=y0+size/2+(z-t.p[2])/MINI_SPAN*size;return a>=x0&&a<=x0+size&&b>=y0&&b<=y0+size?[a,b]:null;});
+  const toMini=(x,z)=>{const a=x0+size/2+(x-t.p[0])/MINI_SPAN*size,b=y0+size/2+(z-t.p[2])/MINI_SPAN*size;return a>=x0&&a<=x0+size&&b>=y0&&b<=y0+size?[a,b]:null;};
+  /* (the waypoint off the corner map: a mark on its edge, the way to it) */
+  navDraw(toMini,(x,z,col)=>{const dx=x-t.p[0],dz=z-t.p[2],k=(size/2-2)/Math.max(Math.abs(dx),Math.abs(dz),1);hDisc(x0+size/2+dx*k,y0+size/2+dz*k,1.6,col);});
+  policeMapDots(toMini);
   mapArrow(x0+size/2,y0+size/2);
   hFrame(x0-1,y0-1,size+2,size+2,pack(255,255,255,60));
   txt3('N',x0+size/2-1,y0+1,pack(255,255,255,150));
 }
 /* the big map (M, or tap the corner map): four miles across round the car */
 const BIGM={x:1e9,z:1e9,roads:[],towns:[]};
+/* where the big map sits (HUD units: left, top, size), for the drawing and the taps */
+const bigRect=()=>{const size=Math.min(H-14,W-14)|0;return [Math.round((W-size)/2),Math.round((H-size)/2),size];};
 function drawBigMap(){
-  const t=GAME.car,size=Math.min(H-14,W-14)|0,x0=Math.round((W-size)/2),y0=Math.round((H-size)/2),n=size*HS,span=BIG_SPAN,cxw=t.p[0],czw=t.p[2];
+  const t=GAME.car,[x0,y0,size]=bigRect(),n=size*HS,span=BIG_SPAN,cxw=t.p[0],czw=t.p[2];
   hRect(0,0,W,H,pack(0,0,0,110));hRect(x0-2,y0-2,size+4,size+4,pack(0,0,0,225));
   mapFill(x0*HS,y0*HS,n,cxw,czw,span/n,pack(22,24,26,235));
   if(Math.hypot(cxw-BIGM.x,czw-BIGM.z)>250){BIGM.x=cxw;BIGM.z=czw;BIGM.roads=WG.roadLines(cxw-span*.6,czw-span*.6,cxw+span*.6,czw+span*.6,40);BIGM.towns=WG.townsNear(cxw,czw,span*.75);}
@@ -38,11 +43,12 @@ function drawBigMap(){
   for(const r of BIGM.roads){const col=RC[r.cls];for(let k=2;k<r.pts.length;k+=2){const [a,b]=toM(r.pts[k-2],r.pts[k-1]),[c,d]=toM(r.pts[k],r.pts[k+1]);if(inR(a,b)&&inR(c,d))hLine(a,b,c,d,col);}}
   for(const tw of BIGM.towns){const [a,b]=toM(tw.x,tw.z);if(!inR(a,b))continue;hDisc(a,b,1.6,PAL.white);otxt3(tw.name.toUpperCase(),a+3,b-6,PAL.ink);}
   {const [a,b]=toM(37,-50);if(inR(a,b)){hDisc(a,b,1.6,PAL.gold);otxt3('GARAGE',a+3,b-6,PAL.gold);}}
-  policeMapDots((x,z)=>{const q=toM(x,z);return inR(q[0],q[1])?q:null;});
+  {const toB=(x,z)=>{const q=toM(x,z);return inR(q[0],q[1])?q:null;};navDraw(toB,null);policeMapDots(toB);}
   mapArrow(x0+size/2,y0+size/2,1.3);
   hFrame(x0-2,y0-2,size+4,size+4,pack(255,255,255,70));
   const ew=t.p[0]/1609.34,ns=-t.p[2]/1609.34;otxt3(`${Math.abs(ew).toFixed(1)} MI ${ew>=0?'EAST':'WEST'}, ${Math.abs(ns).toFixed(1)} MI ${ns>=0?'NORTH':'SOUTH'} OF THE GARAGE`,x0+3,y0+3,PAL.ink);
-  otxt3(GAME.touch?'TAP TO CLOSE':'M TO CLOSE',x0+3,y0+size-8,PAL.dim);otxt3('4 MILES ACROSS',x0+size-3,y0+size-8,PAL.dim,1,'r');
+  otxt3(GAME.touch?'TAP A ROAD FOR A WAYPOINT, OUTSIDE TO CLOSE':'CLICK A ROAD FOR A WAYPOINT, M TO CLOSE',x0+3,y0+size-8,PAL.dim);otxt3('4 MILES ACROSS',x0+size-3,y0+size-8,PAL.dim,1,'r');
+  if(NAV.on&&NAV.route)otxt3('WAYPOINT '+navDist(NAV.left)+' BY ROAD',x0+3,y0+11,PAL.pink);
 }
 /* where the corner map sits, for taps */
 const miniRect=()=>{const ms=Math.round(H*.27),[,ir]=hudInset();return [W-ms-5-ir,13,ms,ms];};
@@ -60,9 +66,10 @@ function simTag(t){
 }
 function drawHud(c){
   const t=GAME.car,pt=t.pt,e=pt.e,sc=W>=400?2:1,on=pt.st!=='off',rpm=on?Math.max(0,pt.rpmOut||0):0,tch=GAME.touch,lx=5+hudInset()[0];
-  /* top right: the map */
+  /* top right: the map (and how far the waypoint is, under it) */
   const [mx0,my0,ms]=miniRect();drawMap(mx0,my0,ms);
   if(GAME.state!=='drive')return;
+  if(NAV.on&&NAV.route&&!APP.bigMap)otxt3(navDist(NAV.left),mx0+ms,my0+ms+3,PAL.pink,1,'r');
   /* top left: the car and its build, the place, the driving level, the money */
   otxt5(carLabel().toUpperCase(),lx,5,GR.volt,sc,'l',.12);
   otxt3(GAME.place.toUpperCase(),lx,7+7*sc+2,PAL.ink);

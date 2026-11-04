@@ -266,7 +266,7 @@ function step(dt){
   if(t.lean)riderStep(dt,t,drive);
   if(t.lean&&t.lean.bail)drive=IDLE_IN;
   /* the police (60_police) and the traffic (60_traffic): where each of them goes this frame, before the physics */
-  let ta=performance.now();policeFrame(dt);trafficFrame(dt);ta=psT(PS_AI,ta);
+  let ta=performance.now();policeFrame(dt);trafficFrame(dt);navUpdate(dt);ta=psT(PS_AI,ta);
   GAME.acc+=dt;let n=0;
   /* the race runs on the time the physics does this frame (below 30 fps that is less than the frame's: the
      robots riding their lines and the clock must not run on ahead of the cars on the physics) */

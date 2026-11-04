@@ -24,7 +24,9 @@ function bindTouch(){
   if(matchMedia('(pointer: coarse)').matches)enableTouch();addEventListener('touchstart',enableTouch,{passive:true,once:true});
   /* a tap on the corner map opens the big map; any tap closes it */
   cv.addEventListener('pointerdown',e=>{if(GAME.state!=='drive')return;const hx=(e.clientX-RECT.x)/RECT.w*W,hy=(e.clientY-RECT.y)/RECT.h*H,[x0,y0,s]=miniRect();
-    if(APP.bigMap)APP.bigMap=false;else if(hx>=x0-2&&hx<=x0+s+2&&hy>=y0-2&&hy<=y0+s+2)APP.bigMap=true;});
+    /* (on the big map: a tap on it sets or clears the waypoint, 61_nav; outside it closes it) */
+    if(APP.bigMap){const [bx,by,bs]=bigRect();if(hx>=bx&&hx<=bx+bs&&hy>=by&&hy<=by+bs)navTap(hx,hy);else APP.bigMap=false;}
+    else if(hx>=x0-2&&hx<=x0+s+2&&hy>=y0-2&&hy<=y0+s+2)APP.bigMap=true;});
   /* the rear view: a tap looks back, another looks forward again (both thumbs are busy, so no holding) */
   {const b=$('tRear');b.addEventListener('pointerdown',e=>{e.preventDefault();TOUCH.rear=!TOUCH.rear;b.classList.toggle('lit',TOUCH.rear);buzz(8);});b.addEventListener('contextmenu',e=>e.preventDefault());}
   /* the small buttons press keys */
